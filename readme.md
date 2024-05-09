@@ -7,7 +7,3 @@
 **Author**
 
     Wilfreno B. Gayongan
-
-**Date**
-
-    Tue May 07 2024 23:30:27 GMT+0800 (Philippine Standard Time)
