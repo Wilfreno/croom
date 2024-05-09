@@ -1,3 +1,4 @@
 {
-  "exec": "babel-node src/server.js"
+  "exec": ["tsc --build && babel-node build/server.js"],
+  "delay": 2000
 }
