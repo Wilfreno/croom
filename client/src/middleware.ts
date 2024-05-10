@@ -13,7 +13,6 @@ export async function middleware(request: NextRequest) {
         "DEVELOPMENT_URL or PRODUCTION_URL is missing from your .env.local file"
       );
 
-    console.log("token", token);
     if (!token && !path_name.startsWith("/login"))
       return process.env.NODE_ENV === "development"
         ? NextResponse.redirect(dev_url + "/login")

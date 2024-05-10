@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import ShadCNThemeProvider from "@/components/ShadCnThemeProvider";
-import LayoutSideBar from "@/components/layout/LayoutSideBar";
 import { cn } from "@/lib/utils";
 
 const poppins = Poppins({
@@ -29,7 +28,6 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <LayoutSideBar />
           {children}
         </ShadCNThemeProvider>
       </body>
