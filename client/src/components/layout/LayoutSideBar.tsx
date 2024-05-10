@@ -97,7 +97,7 @@ export default function LayoutSideBar() {
     <section className="h-full w-fit px-2 py-5 flex flex-col items-center">
       <nav className="h-fit w-fit flex flex-col space-y-3">
         {nav_list.map((item) => (
-          <TooltipProvider>
+          <TooltipProvider key={item.name}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link href={item.link} as={item.link} prefetch>

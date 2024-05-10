@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
-export default function page() {
+export default function Page() {
   const path_name = usePathname();
   return <div>{path_name}</div>;
 }
