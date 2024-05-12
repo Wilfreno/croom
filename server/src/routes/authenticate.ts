@@ -37,6 +37,29 @@ router.post("/user", async (request, response) => {
   }
 });
 
+router.post("/otp", async (request, response) => {
+  try {
+    const { otp, email } = await request.body;
+
+    const found_otp = await prisma.otp.findMany({
+      where: {
+        email,
+      },
+    });
+
+    if (!found_otp)
+      return response.status(404).json(notFoundStatus("OTP does not exist"));
+
+    if (!found_otp.find((f_otp) => f_otp.value === otp))
+      return response.status(401).json(unauthorized("OTP incorrect"));
+
+    await prisma.otp.deleteMany({ where: { email } });
+    return response.status(200).json(okStatus("OTP verified", null));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(500).json(serverError());
+  }
+});
 const authenticate_router = router;
 
 export default authenticate_router;

@@ -116,6 +116,30 @@ router.post("/message", async (request, response) => {
   }
 });
 
+router.post("/otp", async (request, response) => {
+  try {
+    const { email } = await request.body;
+
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let random_string = "";
+
+    for (let i = 0; i < 6; i++) {
+      random_string += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    await prisma.otp.create({
+      data: {
+        email,
+        value: random_string,
+      },
+    });
+
+    return response.status(200).json(okStatus("OTP created", null));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(500).json(serverError());
+  }
+});
 const create_router = router;
 
 export default create_router;

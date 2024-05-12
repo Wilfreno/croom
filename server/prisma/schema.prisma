@@ -27,6 +27,7 @@ model User {
   room_id     String?
   Video       Video[]
   created_at  DateTime  @default(now())
+  otp         Otp[]
 }
 
 model Room {
@@ -69,5 +70,13 @@ model Video {
   video_url  String
   name       String
   length     Int
+  created_at DateTime @default(now())
+}
+
+model Otp {
+  id         String   @id @unique @default(uuid())
+  owner      User     @relation(fields: [email], references: [email])
+  email      String
+  value      String
   created_at DateTime @default(now())
 }
