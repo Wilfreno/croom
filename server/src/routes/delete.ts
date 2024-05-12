@@ -69,3 +69,7 @@ router.delete("/message", async (request, response) => {
     return response.status(500).json(serverError());
   }
 });
+
+const delete_router = router;
+
+export default delete_router;
