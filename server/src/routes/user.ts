@@ -4,6 +4,7 @@ import { Router } from "express";
 import exclude from "../lib/exclude";
 
 import {
+  badRequest,
   notFoundStatus,
   okStatus,
   serverConflict,
@@ -14,37 +15,51 @@ import { prisma } from "../server";
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
-router
-  .route("/")
-  .patch(async (request, response) => {
-    try {
-      const user: User & { patch_type: string } = await request.body;
+router.route("/").patch(async (request, response) => {
+  try {
+    const user: User & { patch_type: string } = await request.body;
 
-      const found_user = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
+    const found_user = await prisma.user.findUnique({
+      where: { id: user.id },
+    });
 
-      if (!found_user)
-        return response.status(404).json(notFoundStatus("user not found"));
+    if (!found_user)
+      return response.status(404).json(notFoundStatus("user not found"));
 
-      const new_user = await prisma.user.update({
-        where: {
-          id: user.id,
-        },
-        data: {
-          ...user,
-        },
-      });
+    const new_user = await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        ...user,
+      },
+    });
 
-      return response
-        .status(200)
-        .json(okStatus("user updated", exclude(new_user, ["password"])));
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-      return response.status(500).json(serverError());
-    }
-  });
+    return response
+      .status(200)
+      .json(okStatus("user updated", exclude(new_user, ["password"])));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(500).json(serverError());
+  }
+});
 
+router.get("/email/:email", async (request, response) => {
+  try {
+    const user_email = request.params.email;
+    const user = await prisma.user.findUnique({ where: { email: user_email } });
+
+    if (!user)
+      return response.status(404).send(notFoundStatus("user not found"));
+
+    return response
+      .status(200)
+      .send(okStatus("request succesful", exclude(user, ["password"])));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(500).json(serverError());
+  }
+});
 router.get("/:id", async (request, response) => {
   try {
     const user_id = request.params.id;
