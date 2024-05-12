@@ -5,7 +5,7 @@ import WebsocketServer from "./websocket";
 import user_router from "./routes/user";
 import new_router from "./routes/create";
 import delete_router from "./routes/delete";
-import verify_router from "./routes/verify";
+import verify_router from "./routes/authenticate";
 import { okStatus } from "./lib/response-json";
 
 // server configuration
@@ -23,7 +23,7 @@ express_app.use(express.json());
 express_app.use("/user", user_router);
 express_app.use("/create", new_router);
 express_app.use("/delete", delete_router);
-express_app.use("/veriy", verify_router);
+express_app.use("/authenticate", verify_router);
 
 //redirecting all get request from non-existing routes
 express_app.get("/", (_, response) => {

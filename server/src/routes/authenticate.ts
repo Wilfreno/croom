@@ -37,6 +37,6 @@ router.post("/user", async (request, response) => {
   }
 });
 
-const verify_router = router;
+const authenticate_router = router;
 
-export default verify_router;
+export default authenticate_router;
