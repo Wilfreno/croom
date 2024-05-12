@@ -4,7 +4,8 @@ type HTTPResponse = {
     | "NOT_FOUND"
     | "INTERNAL_SERVER_ERROR"
     | "CONFLICT"
-    | "BAD_REQUEST";
+    | "BAD_REQUEST"
+    | "UNAUTHORIZED";
   message: string;
   data: unknown;
 };
@@ -47,6 +48,14 @@ export function serverConflict(message: string): HTTPResponse {
 export function badRequest(message: string): HTTPResponse {
   return {
     status: "BAD_REQUEST",
+    message,
+    data: null,
+  };
+}
+
+export function unauthorized(message: string): HTTPResponse {
+  return {
+    status: "UNAUTHORIZED",
     message,
     data: null,
   };

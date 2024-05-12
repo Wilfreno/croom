@@ -15,68 +15,7 @@ const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
 router
-
   .route("/")
-
-  .post(async (request, response) => {
-    try {
-      const user: User & { profile_pic: Photo } = await request.body;
-
-      const found_user = await prisma.user.findUnique({
-        where: { email: user.email },
-      });
-
-      if (found_user)
-        return response.status(404).json(serverConflict("email already used"));
-
-      const new_user = await prisma.user.create({
-        data: {
-          first_name: user.first_name,
-          middle_name: user.middle_name ? user.middle_name : "",
-          last_name: user.last_name,
-          email: user.email,
-          password: await hash(user.password, 14),
-          profile_pic: {
-            create: {
-              photo_url: user.profile_pic.photo_url,
-            },
-          },
-        },
-        include: {
-          profile_pic: true,
-        },
-      });
-
-      return response
-        .status(200)
-        .json(okStatus("user created", exclude(new_user, ["password"])));
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-      return response.status(500).json(serverError());
-    }
-  })
-
-  .delete(async (request, response) => {
-    try {
-      const user: User = await request.body;
-
-      const found_user = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-
-      if (!found_user)
-        return response
-          .status(409)
-          .json(serverConflict("cannot delete user; user does not exist"));
-
-      await prisma.user.delete({ where: { id: user.id } });
-
-      return response.status(200).json(okStatus("user deleted", null));
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-    }
-  })
-
   .patch(async (request, response) => {
     try {
       const user: User & { patch_type: string } = await request.body;
