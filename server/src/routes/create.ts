@@ -4,6 +4,9 @@ import { Router } from "express";
 import { okStatus, serverConflict, serverError } from "../lib/response-json";
 import { hash } from "bcrypt";
 import exclude from "../lib/exclude";
+import { createTransport } from "nodemailer";
+import { render } from "@react-email/render";
+import OTP from "../lib/email/OTP";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -117,8 +120,23 @@ router.post("/message", async (request, response) => {
 });
 
 router.post("/otp", async (request, response) => {
+  const gmail_password = process.env.GMAIL_2FAUTH_APP_PASS;
+  if (!gmail_password)
+    throw new Error("GMAIL_2FAUTH_APP_PASS is missing from your .env file");
   try {
     const { email } = await request.body;
+
+    const transport = createTransport({
+      service: "gmail",
+      auth: {
+        user: "croom.dev@gmail.com",
+        pass: gmail_password,
+      },
+    });
+
+    const verify = await transport.verify();
+
+    if (!verify) throw new Error("trasnport verify failed");
 
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
     let random_string = "";
@@ -134,6 +152,22 @@ router.post("/otp", async (request, response) => {
       },
     });
 
+    const at_index = email.indexof("@");
+    const user_name = email.substring(0, at_index);
+
+    const html = render(OTP({ user_name, otp: random_string }));
+
+    await transport.sendMail(
+      {
+        from: "croom.dev@gmail.com",
+        to: email,
+        subject: "Welcome to Croom your verification code is " + random_string,
+        html,
+      },
+      (error, info) => {
+        if (error) throw new Error(JSON.stringify(info));
+      }
+    );
     return response.status(200).json(okStatus("OTP created", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
