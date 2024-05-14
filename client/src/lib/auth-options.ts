@@ -81,6 +81,39 @@ const auth_options: AuthOptions = {
   secret,
   debug: process.env.NODE_ENV === "development",
   callbacks: {
+    async signIn({ user, profile }) {
+      try {
+        if (profile) {
+          const { email } = user;
+          const at_index = email?.indexOf("@");
+          const email_name = email?.slice(1, at_index);
+          const db_user = await fetch(server_url + "/user/email/" + email_name);
+
+          if (!db_user) {
+            await fetch(server_url + "/create/user", {
+              method: "POST",
+              headers: {
+                "Conten-type": "application/json",
+              },
+              body: JSON.stringify({
+                email: email!,
+                display_name: profile.given_name,
+                user_name: profile.given_name,
+                photo: {
+                  create: {
+                    photo_url: profile.picture,
+                  },
+                },
+                provider: "GOOGLE",
+              }),
+            });
+          }
+        }
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
     async jwt({ token, profile, user }) {
       if (profile) {
         const db_user = await fetch(
