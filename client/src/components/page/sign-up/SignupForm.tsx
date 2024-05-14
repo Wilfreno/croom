@@ -12,6 +12,7 @@ import { CheckedState } from "@radix-ui/react-checkbox";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import Birthdate from "./Birthdate";
 
 export default function SignupForm() {
   const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
@@ -25,6 +26,7 @@ export default function SignupForm() {
     display_name: "",
     user_name: "",
     email: "",
+    birth_date: undefined,
     password: "",
   });
   const [agree, setAggree] = useState<CheckedState>(false);
@@ -32,6 +34,7 @@ export default function SignupForm() {
   const [creating_otp, setCreatingOtp] = useState(false);
   const [password, setPassword] = useState({ base: "", verify: "" });
   const [view_passwrord, setViewPassword] = useState([false, false]);
+
   useEffect(() => {
     if (password.base && password.verify && password.base === password.verify)
       setUser((prev) => ({ ...prev, password: password.base }));
@@ -40,7 +43,7 @@ export default function SignupForm() {
   return (
     <>
       <form
-        className={cn("my-auto flex flex-col space-y-5", view_otp && "hidden")}
+        className={cn("flex flex-col space-y-5", view_otp && "hidden")}
         onSubmit={async (e) => {
           e.preventDefault();
           setCreatingOtp(true);
@@ -166,6 +169,7 @@ export default function SignupForm() {
               </p>
             )}
         </div>
+        <Birthdate user={user} setUser={setUser} />
         <div className="flex items-center justify-center space-x-3 text-sm">
           <Checkbox
             id="terms"
@@ -180,6 +184,7 @@ export default function SignupForm() {
             !user.display_name ||
             !user.user_name ||
             !user.password ||
+            !user.birth_date ||
             !agree
           }
           className="w-full text-base"

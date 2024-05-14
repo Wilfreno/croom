@@ -31,7 +31,7 @@ export default function OtpVerification({
   const [submitting, setSubmitting] = useState(false);
   return (
     <form
-      className="grow flex flex-col justify-evenly "
+      className="grow flex flex-col justify-evenly space-y-5"
       onSubmit={async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -93,7 +93,7 @@ export default function OtpVerification({
         <p className="italic">
           {user.email ? user.email : "user@example.com"}
         </p>{" "}
-        <p className="my-5"> Please check your inbox</p>
+        <p className="my-5"> Please check your inbox.</p>
       </div>
       <InputOTP
         maxLength={6}
@@ -101,7 +101,7 @@ export default function OtpVerification({
         value={value}
         onChange={(value) => setValue(value)}
       >
-        <InputOTPGroup className="w-full flex justify-between">
+        <InputOTPGroup className="w-full flex justify-between space-x-5">
           <InputOTPSlot
             index={0}
             className="aspect-square w-11 h-auto text-base border rounded first:rounded-l"
@@ -128,7 +128,7 @@ export default function OtpVerification({
           />
         </InputOTPGroup>
       </InputOTP>
-      <Button className="w-full">
+      <Button className="w-full" disabled={!value}>
         {submitting ? <LoadingSvg className="h-8" /> : "Verify"}
       </Button>
     </form>
