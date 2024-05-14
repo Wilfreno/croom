@@ -5,8 +5,9 @@ import { useTheme } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggler() {
+export function ThemeToggler({ className }: { className: string }) {
   const { setTheme, theme, systemTheme } = useTheme();
   const [is_light, setIsLight] = useState(systemTheme === "light");
 
@@ -23,7 +24,7 @@ export function ThemeToggler() {
   return (
     <Button
       variant="ghost"
-      className="aspect-square w-10 h-auto p-2"
+      className={cn("aspect-square w-10 h-auto p-2 flex", className)}
       onClick={() => {
         setIsLight((prev) => !prev);
         setTheme(is_light ? "dark" : "light");
