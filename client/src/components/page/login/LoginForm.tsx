@@ -33,7 +33,7 @@ export default function LoginForm() {
           <Input
             placeholder="Password"
             type={view_password ? "text" : "password"}
-            className=" text-base py-5"
+            className="text-base py-5"
           />
           <Button
             className="aspect-square p-2 absolute right-2 top-1/2 -translate-y-1/2"
