@@ -24,10 +24,10 @@ router.post("/user", async (request, response) => {
 
     const new_user = await prisma.user.create({
       data: {
-        first_name: user.first_name,
-        middle_name: user.middle_name ? user.middle_name : "",
-        last_name: user.last_name,
+        display_name: user.display_name,
+        user_name: user.user_name,
         email: user.email,
+        birth_date: user.birth_date,
         profile_pic: {
           create: {
             photo_url: user.profile_pic.photo_url,
