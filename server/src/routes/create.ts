@@ -158,7 +158,7 @@ router.post("/otp", async (request, response) => {
 
     const html = render(OTP({ user_name, otp: random_string }));
 
-    await transport.sendMail(
+    transport.sendMail(
       {
         from: "croom.dev@gmail.com",
         to: email,
