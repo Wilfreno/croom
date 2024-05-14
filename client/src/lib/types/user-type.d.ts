@@ -1,8 +1,7 @@
 export type User = {
   id?: string;
-  first_name: string;
-  middle_name?: string | null;
-  last_name: string;
+  display_name: string;
+  user_name: string;
   email: string;
   password?: string;
   room_id?: string | null;

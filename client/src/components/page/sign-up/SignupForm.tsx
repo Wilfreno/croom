@@ -22,9 +22,8 @@ export default function SignupForm() {
 
   const { toast } = useToast();
   const [user, setUser] = useState<User>({
-    first_name: "",
-    middle_name: "",
-    last_name: "",
+    display_name: "",
+    user_name: "",
     email: "",
     password: "",
   });
@@ -82,7 +81,7 @@ export default function SignupForm() {
           required
           placeholder="Display name"
           onChange={(e) =>
-            setUser((prev) => ({ ...prev, first_name: e.target.value }))
+            setUser((prev) => ({ ...prev, display_name: e.target.value }))
           }
         />
         <Input
@@ -91,7 +90,7 @@ export default function SignupForm() {
           required
           placeholder="Username"
           onChange={(e) =>
-            setUser((prev) => ({ ...prev, first_name: e.target.value }))
+            setUser((prev) => ({ ...prev, user_name: e.target.value }))
           }
         />
         <div className="relative">
@@ -178,8 +177,8 @@ export default function SignupForm() {
         <Button
           disabled={
             !user.email ||
-            !user.first_name ||
-            !user.last_name ||
+            !user.display_name ||
+            !user.user_name ||
             !user.password ||
             !agree
           }
