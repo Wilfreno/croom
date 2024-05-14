@@ -142,7 +142,8 @@ router.post("/otp", async (request, response) => {
     let random_string = "";
 
     for (let i = 0; i < 6; i++) {
-      random_string += chars[Math.floor(Math.random() * chars.length)];
+      random_string +=
+        chars[Math.floor(Math.random() * new Date().getTime()) % chars.length];
     }
 
     await prisma.otp.create({
