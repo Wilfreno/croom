@@ -7,7 +7,7 @@ import new_router from "./routes/create";
 import delete_router from "./routes/delete";
 import verify_router from "./routes/authenticate";
 import { okStatus } from "./lib/response-json";
-
+import cors from "cors";
 // server configuration
 const express_app = express();
 const http_server = http.createServer(express_app);
@@ -18,6 +18,7 @@ export const prisma = new PrismaClient();
 
 //middleware
 express_app.use(express.json());
+express_app.use(cors());
 
 //routes
 express_app.use("/user", user_router);

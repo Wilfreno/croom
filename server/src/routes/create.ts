@@ -13,7 +13,8 @@ const environment_mode = process.env.NODE_ENV;
 
 router.post("/user", async (request, response) => {
   try {
-    const user: User & { profile_pic: Photo } = await request.body;
+    const user: User & { profile_pic: Photo } & { provider: string } =
+      await request.body;
 
     const found_user = await prisma.user.findFirst({
       where: { email: user.email },
@@ -22,7 +23,7 @@ router.post("/user", async (request, response) => {
     if (found_user)
       return response.status(409).json(serverConflict("email already used"));
 
-    const new_user = await prisma.user.create({
+    const new_user = (await prisma.user.create({
       data: {
         display_name: user.display_name,
         user_name: user.user_name,
@@ -33,12 +34,12 @@ router.post("/user", async (request, response) => {
             photo_url: user.profile_pic.photo_url,
           },
         },
-        password: await hash(user.password, 14),
+        password: user.password ? await hash(user.password, 14) : null,
       },
       include: {
         profile_pic: true,
       },
-    });
+    })) as User & { profile_pic: Photo };
 
     return response
       .status(200)
@@ -98,7 +99,6 @@ router.post("/message", async (request, response) => {
               length: message.video?.length!,
               name: message.video?.name!,
               video_url: message.video?.video_url!,
-              owner_id: message.owner_id!,
             },
           },
         },
