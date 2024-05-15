@@ -25,7 +25,7 @@ router.post("/user", async (request, response) => {
         .status(404)
         .json(notFoundStatus("cannot find user; user does not exist"));
 
-    if (!(await compare(user.password, found_user.password)))
+    if (!(await compare(user.password, found_user.password!)))
       return response.status(401).json(unauthorized("password incorrect"));
 
     return response

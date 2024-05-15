@@ -8,6 +8,7 @@ import { User } from "@/lib/types/user-type";
 import { cn } from "@/lib/utils";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function NewUser() {
@@ -19,6 +20,10 @@ export default function NewUser() {
       <DialogContent className="p-10 space-y-5">
         <DialogHeader className="grid place-items-center ">
           <p className="text-2xl font-bold">Welcome</p>
+          <Image
+            src={data?.user.profile_pic?.photo_url!}
+            alt={data?.user!.email!}
+          />
           <p> {data?.user.email}</p>
         </DialogHeader>
         <p className="text-sm">

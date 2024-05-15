@@ -81,45 +81,41 @@ const auth_options: AuthOptions = {
   secret,
   debug: process.env.NODE_ENV === "development",
   callbacks: {
-    async signIn({ user, profile }) {
+    async signIn() {
       try {
-        if (profile) {
-          const { email } = user;
-          const at_index = email?.indexOf("@");
-          const email_name = email?.slice(1, at_index);
-          const db_user = await fetch(server_url + "/user/email/" + email_name);
-
-          const user_json = await db_user.json();
-          if (!user_json.data) {
-            await fetch(server_url + "/create/user", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email: email!,
-                display_name: "",
-                user_name: "",
-                profile_pic: {
-                  photo_url: profile.picture,
-                },
-              }),
-            });
-          }
-        }
         return true;
       } catch (error) {
-        console.log(error);
         return false;
       }
     },
-    async jwt({ token, profile, user }) {
-      if (profile) {
-        const db_user = await fetch(
+    async jwt({ token, profile, user, account }) {
+      if (profile && account) {
+        let token_user: User;
+        const server_response = await fetch(
           server_url + "/user/email/" + profile.email
         );
+        const server_json = await server_response.json();
 
-        return { ...token, ...db_user };
+        if (server_json.status === "OK") {
+          token_user = server_json.data;
+        } else {
+          token_user = {
+            id: "",
+            display_name: "",
+            user_name: "",
+            email: profile.email!,
+            profile_pic: {
+              id: profile.sub!,
+              photo_url: profile.image!,
+              created_at: undefined,
+            },
+            birth_date: undefined,
+            created_at: undefined,
+            provider: account?.provider!,
+          };
+        }
+
+        return { ...token, ...token_user };
       }
       return { ...token, ...user };
     },
