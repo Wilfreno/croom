@@ -15,10 +15,10 @@ router.post("/user", async (request, response) => {
   try {
     const user: User & { profile_pic: Photo } = await request.body;
 
-    const found_user = await prisma.user.findUnique({
+    const found_user = await prisma.user.findFirst({
       where: { email: user.email },
     });
-
+    console.log("user::", user);
     if (found_user)
       return response.status(409).json(serverConflict("email already used"));
 

@@ -4,6 +4,7 @@ import "./globals.css";
 import ShadCNThemeProvider from "@/components/ShadCnThemeProvider";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
+import NextAuthSessionProvider from "@/components/NextAuthSessionProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -29,7 +30,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          {children}
+          <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
           <Toaster />
         </ShadCNThemeProvider>
       </body>

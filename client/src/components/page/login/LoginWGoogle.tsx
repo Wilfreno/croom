@@ -9,9 +9,9 @@ export default function LoginWGoogle() {
       variant="secondary"
       className="aspect-square w-fit h-auto text-base"
       onClick={async () =>
-        signIn("google", {
+        await signIn("google", {
           redirect: true,
-          callbackUrl: "/new",
+          callbackUrl: "/",
         })
       }
     >

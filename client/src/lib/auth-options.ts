@@ -17,7 +17,7 @@ if (!secret)
 
 let server_url: string;
 
-server_url = process.env.DEVELOPMENT_SERVER!;
+server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
 if (!server_url)
   throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
 
@@ -89,28 +89,27 @@ const auth_options: AuthOptions = {
           const email_name = email?.slice(1, at_index);
           const db_user = await fetch(server_url + "/user/email/" + email_name);
 
-          if (!db_user) {
+          const user_json = await db_user.json();
+          if (!user_json.data) {
             await fetch(server_url + "/create/user", {
               method: "POST",
               headers: {
-                "Conten-type": "application/json",
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 email: email!,
-                display_name: profile.given_name,
-                user_name: profile.given_name,
-                photo: {
-                  create: {
-                    photo_url: profile.picture,
-                  },
+                display_name: "",
+                user_name: "",
+                profile_pic: {
+                  photo_url: profile.picture,
                 },
-                provider: "GOOGLE",
               }),
             });
           }
         }
         return true;
       } catch (error) {
+        console.log(error);
         return false;
       }
     },

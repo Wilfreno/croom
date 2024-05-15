@@ -1,10 +1,24 @@
 export type User = {
   id: string;
+  email: string;
   display_name: string;
   user_name: string;
-  email: string;
-  password?: string;
-  birth_date?: Date;
-  room_id?: string | null;
-  created_at?: Date;
+  password: string;
+  profile_pic?: Photo;
+  birth_date: Date;
+  messages: Message[];
+  room: Room;
+  room_id: string;
+  video: Video[];
+  created_at: Date;
+};
+
+export type Photo = {
+  id: string;
+  owner: User;
+  owner_id: string;
+  message: Message;
+  message_id: string;
+  photo_url: string;
+  created_at: Date;
 };
