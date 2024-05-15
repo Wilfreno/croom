@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggler({ className }: { className: string }) {
+export function ThemeToggler({ className }: { className?: string }) {
   const { setTheme, theme, systemTheme } = useTheme();
   const [is_light, setIsLight] = useState(systemTheme === "light");
 

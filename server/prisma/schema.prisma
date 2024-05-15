@@ -21,7 +21,7 @@ model User {
   user_name    String
   password     String?
   profile_pic  Photo?
-  birth_date   DateTime
+  birth_date   DateTime?
   messages     Message[]
   rooms        Room[]
   provider     String?

@@ -27,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { signOut } from "next-auth/react";
 
 export default function LayoutSideBar() {
   const path_name = usePathname();
@@ -148,7 +149,13 @@ export default function LayoutSideBar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right">
             <DropdownMenuGroup>
-              <DropdownMenuItem>a</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  signOut();
+                }}
+              >
+                Logout
+              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

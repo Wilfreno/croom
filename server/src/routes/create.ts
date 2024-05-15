@@ -28,7 +28,7 @@ router.post("/user", async (request, response) => {
         display_name: user.display_name,
         user_name: user.user_name,
         email: user.email,
-        birth_date: user.birth_date,
+        birth_date: user.birth_date ? user.birth_date : null,
         profile_pic: {
           create: {
             photo_url: user.profile_pic.photo_url,

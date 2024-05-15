@@ -88,7 +88,16 @@ const auth_options: AuthOptions = {
         return false;
       }
     },
-    async jwt({ token, profile, user, account }) {
+    async jwt({ token, profile, user, account, session, trigger }) {
+      delete token.sub;
+      delete token.name;
+      delete token.sub;
+      delete token.picture;
+      delete token.jti;
+
+      if (trigger === "update" && session) {
+        return { ...token, ...session };
+      }
       if (profile && account) {
         let token_user: User;
         const server_response = await fetch(
@@ -106,7 +115,7 @@ const auth_options: AuthOptions = {
             email: profile.email!,
             profile_pic: {
               id: profile.sub!,
-              photo_url: profile.image!,
+              photo_url: profile.picture,
               created_at: undefined,
             },
             birth_date: undefined,
