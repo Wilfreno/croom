@@ -19,15 +19,14 @@ model User {
   email        String    @unique
   display_name String
   user_name    String
-  password     String
+  password     String?
   profile_pic  Photo?
   birth_date   DateTime
   messages     Message[]
-  room         Room?     @relation(fields: [room_id], references: [id])
-  room_id      String?
-  Video        Video[]
-  created_at   DateTime  @default(now())
+  rooms        Room[]
+  provider     String?
   otp          Otp[]
+  created_at   DateTime  @default(now())
 }
 
 model Room {
@@ -36,16 +35,6 @@ model Room {
   members    User[]
   messages   Message[]
   created_at DateTime  @default(now())
-}
-
-model Photo {
-  id         String   @id @unique @default(uuid())
-  owner      User?    @relation(fields: [owner_id], references: [id])
-  owner_id   String?  @unique
-  message    Message? @relation(fields: [message_id], references: [id])
-  message_id String?
-  photo_url  String
-  created_at DateTime @default(now())
 }
 
 model Message {
@@ -61,10 +50,18 @@ model Message {
   created_at DateTime @default(now())
 }
 
+model Photo {
+  id         String   @id @unique @default(uuid())
+  owner      User?    @relation(fields: [owner_id], references: [id])
+  owner_id   String?  @unique
+  message    Message? @relation(fields: [message_id], references: [id])
+  message_id String?
+  photo_url  String
+  created_at DateTime @default(now())
+}
+
 model Video {
   id         String   @id @unique @default(uuid())
-  owner      User     @relation(fields: [owner_id], references: [id])
-  owner_id   String
   message    Message  @relation(fields: [message_id], references: [id])
   message_id String   @unique
   video_url  String
