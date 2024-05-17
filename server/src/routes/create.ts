@@ -19,7 +19,6 @@ router.post("/user", async (request, response) => {
     const found_user = await prisma.user.findFirst({
       where: { email: user.email },
     });
-    console.log("user::", user);
     if (found_user)
       return response.status(409).json(serverConflict("email already used"));
 
@@ -31,7 +30,9 @@ router.post("/user", async (request, response) => {
         birth_date: user.birth_date ? user.birth_date : null,
         profile_pic: {
           create: {
-            photo_url: user.profile_pic.photo_url,
+            photo_url: user.profile_pic.photo_url
+              ? user.profile_pic.photo_url
+              : "",
           },
         },
         password: user.password ? await hash(user.password, 14) : null,
@@ -136,24 +137,23 @@ router.post("/otp", async (request, response) => {
 
     const verify = await transport.verify();
 
-    if (!verify) throw new Error("trasnport verify failed");
+    if (!verify) throw new Error("transport verify failed");
 
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const chars = await hash(email, 5);
     let random_string = "";
 
     for (let i = 0; i < 6; i++) {
-      random_string +=
-        chars[Math.floor(Math.random() * new Date().getTime()) % chars.length];
+      random_string += chars[Math.floor(Math.random() * chars.length)];
     }
-
+    random_string = random_string.replaceAll(".", chars[2]);
     await prisma.otp.create({
       data: {
         email,
-        value: random_string,
+        value: random_string.toUpperCase(),
       },
     });
 
-    const at_index = email.indexof("@");
+    const at_index = email.indexOf("@");
     const user_name = email.substring(0, at_index);
 
     const html = render(OTP({ user_name, otp: random_string }));
@@ -162,7 +162,9 @@ router.post("/otp", async (request, response) => {
       {
         from: "croom.dev@gmail.com",
         to: email,
-        subject: "Welcome to Croom your verification code is " + random_string,
+        subject:
+          "Welcome to Croom your verification code is " +
+          random_string.toUpperCase(),
         html,
       },
       (error, info) => {

@@ -23,11 +23,13 @@ export default function SignupForm() {
 
   const { toast } = useToast();
   const [user, setUser] = useState<User>({
+    id: "",
     display_name: "",
     user_name: "",
     email: "",
     birth_date: undefined,
     password: "",
+    provider: "",
   });
   const [agree, setAggree] = useState<CheckedState>(false);
   const [view_otp, setViewOTP] = useState(false);
@@ -48,7 +50,13 @@ export default function SignupForm() {
           e.preventDefault();
           setCreatingOtp(true);
           try {
-            const response = await fetch(development_server + "/create/otp");
+            const response = await fetch(development_server + "/create/otp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email: user.email }),
+            });
             setCreatingOtp(false);
             if (!response.ok) {
               const otp_response = await response.json();
@@ -60,7 +68,6 @@ export default function SignupForm() {
             }
             setViewOTP(true);
           } catch (error) {
-            setViewOTP(true);
             toast({
               title: "Oops! Something went wrong",
               action: <ToastAction altText="OK">OK</ToastAction>,

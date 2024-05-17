@@ -39,7 +39,7 @@ router.post("/user", async (request, response) => {
 
 router.post("/otp", async (request, response) => {
   try {
-    const { otp, email } = await request.body;
+    const { otp, email }: { otp: string; email: string } = await request.body;
 
     const found_otp = await prisma.otp.findMany({
       where: {

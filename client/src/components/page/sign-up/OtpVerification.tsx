@@ -41,7 +41,7 @@ export default function OtpVerification({
             {
               method: "POST",
               headers: {
-                "Content-type": "application/json",
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({ otp: value, email: user.email }),
             }
@@ -56,11 +56,40 @@ export default function OtpVerification({
             setSubmitting(false);
             return;
           }
+
+          const create_user_response = await fetch(
+            development_server + "/create/user",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: user.email,
+                display_name: user.display_name,
+                user_name: user.user_name,
+                password: user.password,
+                birth_date: user.birth_date,
+                profile_pic: {
+                  photo_url: "",
+                },
+              }),
+            }
+          );
+
+          const create_user = await create_user_response.json();
+          if (create_user.status !== "OK")
+            toast({
+              title: "Oops! Something went wrong",
+              description: create_user.message,
+              action: <ToastAction altText="OK">OK</ToastAction>,
+            });
+
           const sign_in = await signIn("credentials", {
             email: user.email,
             password: user.password,
             redirect: true,
-            callbackUrl: "/",
+            callbackUrl: "/chat",
           });
 
           if (sign_in?.error) {
@@ -99,7 +128,7 @@ export default function OtpVerification({
         maxLength={6}
         pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
         value={value}
-        onChange={(value) => setValue(value)}
+        onChange={(value) => setValue(value.toUpperCase())}
       >
         <InputOTPGroup className="w-full flex justify-between space-x-5">
           <InputOTPSlot

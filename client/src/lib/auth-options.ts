@@ -40,10 +40,10 @@ const auth_options: AuthOptions = {
       },
       async authorize(credentials) {
         try {
-          const login = await fetch(server_url + "/login", {
+          const login = await fetch(server_url + "/authenticate/user", {
             method: "POST",
             headers: {
-              "Content-type": "application/json",
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               email: credentials?.email,

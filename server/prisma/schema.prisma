@@ -25,7 +25,6 @@ model User {
   messages     Message[]
   rooms        Room[]
   provider     String?
-  otp          Otp[]
   created_at   DateTime  @default(now())
 }
 
@@ -72,7 +71,6 @@ model Video {
 
 model Otp {
   id         String   @id @unique @default(uuid())
-  owner      User     @relation(fields: [email], references: [email])
   email      String
   value      String
   created_at DateTime @default(now())
