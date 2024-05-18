@@ -39,27 +39,23 @@ const auth_options: AuthOptions = {
         },
       },
       async authorize(credentials) {
-        try {
-          const login = await fetch(server_url + "/authenticate/user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: credentials?.email,
-              password: credentials?.password,
-            }),
-          });
-          const login_json: ServerResponse = await login.json();
+        const login = await fetch(server_url + "/authenticate/user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: credentials?.email,
+            password: credentials?.password,
+          }),
+        });
+        const login_json: ServerResponse = await login.json();
 
-          if (login_json.status !== "OK") {
-            throw new Error(login_json.message);
-          }
-          const user = login_json.data as User;
-          return user;
-        } catch (e) {
-          throw e;
+        if (login_json.status !== "OK") {
+          throw new Error(login_json.message);
         }
+        const user = login_json.data as User;
+        return user;
       },
     }),
     GoogleProvider({
@@ -76,18 +72,11 @@ const auth_options: AuthOptions = {
   },
   pages: {
     signIn: "/login",
-    error: "/",
+    error: "/login",
   },
   secret,
   debug: process.env.NODE_ENV === "development",
   callbacks: {
-    async signIn() {
-      try {
-        return true;
-      } catch (error) {
-        return false;
-      }
-    },
     async jwt({ token, profile, user, account, session, trigger }) {
       delete token.sub;
       delete token.name;

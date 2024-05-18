@@ -13,27 +13,40 @@ export default function LoginForm() {
   const [view_password, setViewPassword] = useState(false);
   const [sign_in_error, setSignInError] = useState("");
 
-  async function handleLogin() {
-    setLoading(true);
-    const sign_in = await signIn("credentials", {
-      email: credentials.email,
-      password: credentials.password,
-      redirect: true,
-      callbackUrl: "/",
-    });
-    if (sign_in?.error) setSignInError(sign_in.error);
-    setLoading(false);
-  }
-
   return (
-    <form className="space-y-5">
-      <Input placeholder="Email" className=" text-base py-5" />
+    <form
+      className="space-y-5"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        const sign_in = await signIn("credentials", {
+          email: credentials.email,
+          password: credentials.password,
+          redirect: false,
+        });
+        if (sign_in?.error) setSignInError(sign_in.error);
+
+        setLoading(false);
+      }}
+    >
+      <Input
+        placeholder="Email"
+        className=" text-base py-5"
+        value={credentials.email}
+        onChange={(e) =>
+          setCredentials((prev) => ({ ...prev, email: e.target.value }))
+        }
+      />
       <div>
         <div className="relative">
           <Input
             placeholder="Password"
             type={view_password ? "text" : "password"}
             className="text-base py-5"
+            value={credentials.password}
+            onChange={(e) =>
+              setCredentials((prev) => ({ ...prev, password: e.target.value }))
+            }
           />
           <Button
             className="aspect-square p-2 absolute right-2 top-1/2 -translate-y-1/2"
@@ -41,6 +54,7 @@ export default function LoginForm() {
             variant="ghost"
             tabIndex={-1}
             onClick={() => setViewPassword((prev) => !prev)}
+            type="button"
           >
             {view_password ? (
               <EyeOpenIcon className="h-full w-full" />
@@ -49,6 +63,9 @@ export default function LoginForm() {
             )}
           </Button>
         </div>
+        {sign_in_error && (
+          <p className="text-red-600 text-xs mx-3 my-1">{sign_in_error}</p>
+        )}
         <Link
           href="#"
           className="text-primary text-center text-bold text-sm mx-2"
@@ -56,12 +73,10 @@ export default function LoginForm() {
           forgot your password?
         </Link>
       </div>
-      {sign_in_error && <p className="text-destructive">{sign_in_error}</p>}
       <Button
         disabled={!credentials.email || !credentials.password}
         className="w-full text-base"
-        type="button"
-        onClick={handleLogin}
+        type="submit"
       >
         {loading ? (
           <LoadingSvg className="h-6 fill-secondary-foreground" />

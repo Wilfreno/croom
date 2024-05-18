@@ -15,17 +15,15 @@ const environment_mode = process.env.NODE_ENV;
 
 router.post("/user", async (request, response) => {
   try {
-    const user = await request.body;
-    const found_user = await prisma.user.findUnique({
-      where: { email: user.email },
+    const { email, password } = await request.body;
+    const found_user = await prisma.user.findFirst({
+      where: { email: { contains: email } },
     });
 
     if (!found_user)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot find user; user does not exist"));
+      return response.status(404).json(notFoundStatus("user does not exist"));
 
-    if (!(await compare(user.password, found_user.password!)))
+    if (!(await compare(password, found_user.password!)))
       return response.status(401).json(unauthorized("password incorrect"));
 
     return response
