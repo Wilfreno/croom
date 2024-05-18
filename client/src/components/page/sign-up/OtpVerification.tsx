@@ -9,15 +9,17 @@ import { useToast } from "@/components/ui/use-toast";
 import { User } from "@/lib/types/user-type";
 import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 
 export default function OtpVerification({
   user,
+  view_otp,
   setViewOTP,
 }: {
   user: User;
+  view_otp: boolean;
   setViewOTP: Dispatch<SetStateAction<boolean>>;
 }) {
   const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
@@ -29,6 +31,50 @@ export default function OtpVerification({
   const { toast } = useToast();
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const resend_inital = { time: 30, open: true, interval_id: undefined };
+  const [resend, setResend] = useState<{
+    time: number;
+    open: boolean;
+    interval_id?: NodeJS.Timeout;
+  }>(resend_inital);
+
+  async function handleResend() {
+    const id = setInterval(() => {
+      setResend((prev) => ({ ...prev, time: prev.time - 1 }));
+    }, 1000);
+    setResend((prev) => ({ ...prev, open: false, interval_id: id }));
+
+    setResend((prev) => ({ ...prev, interval_id: id }));
+    try {
+      const response = await fetch(development_server + "/create/otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: user.email }),
+      });
+      if (!response.ok) {
+        const otp_response = await response.json();
+        toast({
+          title: otp_response.message,
+          action: <ToastAction altText="OK">OK</ToastAction>,
+        });
+        return;
+      }
+    } catch (error) {
+      toast({
+        title: "Oops! Something went wrong",
+        action: <ToastAction altText="OK">OK</ToastAction>,
+      });
+    }
+  }
+
+  if (resend.time < 1) {
+    clearInterval(resend.interval_id);
+    setResend(resend_inital);
+  }
+  console.log(resend);
   return (
     <form
       className="grow flex flex-col justify-evenly space-y-5"
@@ -157,7 +203,17 @@ export default function OtpVerification({
           />
         </InputOTPGroup>
       </InputOTP>
-      <Button className="w-full" disabled={!value}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="mx-auto"
+        disabled={!resend.open}
+        type="button"
+        onClick={handleResend}
+      >
+        resend {!resend.open && "(" + resend.time + ")"}
+      </Button>
+      <Button className="w-full" type="submit" disabled={!value}>
         {submitting ? <LoadingSvg className="h-8" /> : "Verify"}
       </Button>
     </form>

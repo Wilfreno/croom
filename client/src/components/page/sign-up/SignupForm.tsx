@@ -199,7 +199,13 @@ export default function SignupForm() {
           {creating_otp ? <LoadingSvg className="h-8" /> : "Signup"}
         </Button>
       </form>
-      {view_otp && <OtpVerification user={user} setViewOTP={setViewOTP} />}
+      {view_otp && (
+        <OtpVerification
+          user={user}
+          view_otp={view_otp}
+          setViewOTP={setViewOTP}
+        />
+      )}
     </>
   );
 }
