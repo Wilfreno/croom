@@ -24,7 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn("flex w-screen h-screen", poppins.className)}>
+      <body
+        className={cn("flex w-screen h-screen max-h-screen", poppins.className)}
+      >
         <ShadCNThemeProvider
           attribute="class"
           defaultTheme="system"

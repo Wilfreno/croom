@@ -7,6 +7,7 @@ import {
   MagnifyingGlassIcon,
   ArchiveBoxIcon,
   ChatBubbleOvalLeftEllipsisIcon,
+  HomeIcon,
 } from "@heroicons/react/24/solid";
 import { Button } from "../ui/button";
 import { usePathname } from "next/navigation";
@@ -33,6 +34,11 @@ export default function LayoutSideBar() {
   const path_name = usePathname();
 
   const nav_list = [
+    {
+      name: "home",
+      link: "/",
+      icon: <HomeIcon className={cn("h-full fill-secondary-foreground")} />,
+    },
     {
       name: "chat",
       link: "/chat",
@@ -95,9 +101,9 @@ export default function LayoutSideBar() {
     },
   ];
   return (
-    <section className="h-full w-fit px-2 py-5 flex flex-col items-center">
+    <section className="h-full w-fit px-2 py-5 flex flex-col items-center bg-primary-foreground">
       <nav className="h-fit w-fit flex flex-col space-y-3">
-        {nav_list.map((item) => (
+        {nav_list.map((item, index) => (
           <TooltipProvider key={item.name}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -106,9 +112,16 @@ export default function LayoutSideBar() {
                     disabled={path_name.startsWith(item.link)}
                     size="lg"
                     variant={
-                      path_name.startsWith(item.link) ? "outline" : "ghost"
+                      index === 0
+                        ? "ghost"
+                        : path_name.startsWith(item.link)
+                        ? "outline"
+                        : "ghost"
                     }
-                    className="flex aspect-square p-3 w-12 h-auto hover:bg-muted group"
+                    className={cn(
+                      "flex aspect-square p-3 w-12 h-auto hover:bg-muted group",
+                      index === 0 && "bg-secondary"
+                    )}
                   >
                     {item.icon}
                   </Button>
