@@ -24,7 +24,7 @@ export function ThemeToggler({ className }: { className?: string }) {
   return (
     <Button
       variant="ghost"
-      className={cn("aspect-square w-10 h-auto p-2 flex", className)}
+      className={cn("aspect-square w-10 h-auto p-2 flex ", className)}
       onClick={() => {
         setIsLight((prev) => !prev);
         setTheme(is_light ? "dark" : "light");

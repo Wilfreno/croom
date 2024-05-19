@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { signOut } from "next-auth/react";
+import CompassSvg from "../svg/CompassSvg";
 
 export default function LayoutSideBar() {
   const path_name = usePathname();
@@ -40,58 +41,22 @@ export default function LayoutSideBar() {
       icon: <HomeIcon className={cn("h-full fill-secondary-foreground")} />,
     },
     {
-      name: "chat",
-      link: "/chat",
-      icon: (
-        <ChatBubbleOvalLeftIcon
-          className={cn(
-            "h-full fill-muted-foreground  group-hover:fill-primary",
-            path_name.startsWith("/chat") && "fill-primary"
-          )}
-        />
-      ),
-    },
-    {
-      name: "discover rooms",
-      link: "/discover",
-      icon: (
-        <MagnifyingGlassIcon
-          className={cn(
-            "h-full fill-muted-foreground  group-hover:fill-primary",
-            path_name.startsWith("/discover") && "fill-primary"
-          )}
-        />
-      ),
-    },
-    {
-      name: "archived chat",
-      link: "/archive",
-      icon: (
-        <ArchiveBoxIcon
-          className={cn(
-            "h-full fill-muted-foreground  group-hover:fill-primary",
-            path_name.startsWith("/archive") && "fill-primary"
-          )}
-        />
-      ),
-    },
-    {
-      name: "chat requests",
-      link: "/request",
-      icon: (
-        <ChatBubbleOvalLeftEllipsisIcon
-          className={cn(
-            "h-full fill-muted-foreground  group-hover:fill-primary",
-            path_name.startsWith("/request") && "fill-primary"
-          )}
-        />
-      ),
-    },
-    {
       name: "create room",
       link: "/create",
       icon: (
         <PlusIcon
+          className={cn(
+            "h-full fill-muted-foreground  group-hover:fill-primary",
+            path_name.startsWith("/create") && "fill-primary"
+          )}
+        />
+      ),
+    },
+    {
+      name: "Discover",
+      link: "/discover",
+      icon: (
+        <CompassSvg
           className={cn(
             "h-full fill-muted-foreground  group-hover:fill-primary",
             path_name.startsWith("/create") && "fill-primary"
@@ -139,41 +104,8 @@ export default function LayoutSideBar() {
           </TooltipProvider>
         ))}
       </nav>
-      <Separator className="h-1 my-5 bg-primary rounded-full" />
-      <div className="mt-auto h-fit w-fit flex flex-col space-y-3 items-center">
-        <Button
-          size="lg"
-          variant="ghost"
-          className="flex aspect-square p-3 w-12 h-auto hover:bg-muted group"
-        >
-          <BellIcon className="h-full fill-muted-foreground  group-hover:fill-primary" />
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="aspect-square w-10 h-fit p-0 focus-visible:ring-0 rounded-full"
-            >
-              <Avatar className="h-full w-full">
-                <AvatarImage src="" alt="user" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right">
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => {
-                  signOut();
-                }}
-              >
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <ThemeToggler />
-      </div>
+      <Separator className="h-px my-5 bg-primary rounded-full" />
+      <ThemeToggler className="mt-auto" />
     </section>
   );
 }
