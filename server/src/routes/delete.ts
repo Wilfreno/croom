@@ -1,6 +1,11 @@
-import { Room, User } from "@prisma/client";
+import { FriendRequest, Room, User } from "@prisma/client";
 import { Router, response } from "express";
-import { okStatus, serverConflict, serverError } from "../lib/response-json";
+import {
+  badRequest,
+  okStatus,
+  serverConflict,
+  serverError,
+} from "../lib/response-json";
 import { prisma } from "../server";
 
 const router = Router();
@@ -24,7 +29,7 @@ router.delete("/user", async (request, response) => {
     return response.status(200).json(okStatus("user deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
@@ -44,7 +49,7 @@ router.delete("/room", async (request, response) => {
     return response.status(200).json(okStatus("room has been deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
@@ -66,8 +71,37 @@ router.delete("/message", async (request, response) => {
     return response.status(200).json(okStatus("messsage deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
+});
+
+router.delete("/friend-request", async (request, response) => {
+  try {
+    const friend_request: FriendRequest = request.body;
+
+    const found_request = await prisma.friendRequest.findFirst({
+      where: {
+        sender_id: friend_request.sender_id,
+        receiver_id: friend_request.receiver_id,
+      },
+    });
+
+    if (!found_request)
+      response
+        .status(409)
+        .json(serverConflict("cannot delete request; request does not exist "));
+
+    await prisma.friendRequest.delete({
+      where: {
+        receiver_id_sender_id: {
+          receiver_id: friend_request.receiver_id,
+          sender_id: friend_request.sender_id,
+        },
+      },
+    });
+
+    return response.status(200).json(okStatus("friend request deleted", null));
+  } catch (error) {}
 });
 
 const delete_router = router;

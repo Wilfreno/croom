@@ -8,6 +8,7 @@ import delete_router from "./routes/delete";
 import verify_router from "./routes/authenticate";
 import { okStatus } from "./lib/response-json";
 import cors from "cors";
+
 // server configuration
 const express_app = express();
 const http_server = http.createServer(express_app);

@@ -15,17 +15,21 @@ datasource db {
 }
 
 model User {
-  id           String    @id @unique @default(uuid())
-  email        String    @unique
-  display_name String
-  user_name    String
-  password     String?
-  profile_pic  Photo?
-  birth_date   DateTime?
-  messages     Message[]
-  rooms        Room[]
-  provider     String?
-  created_at   DateTime  @default(now())
+  id                      String          @id @unique @default(uuid())
+  email                   String          @unique
+  display_name            String
+  user_name               String
+  password                String?
+  profile_pic             Photo?
+  birth_date              DateTime?
+  messages                Message[]
+  rooms                   Room[]
+  provider                String?
+  friend_request_received FriendRequest[] @relation("friendRequestReceiver")
+  friend_request_send     FriendRequest[] @relation("friendRequestSender")
+  friends                 Friendship[]    @relation("friend")
+
+  created_at DateTime @default(now())
 }
 
 model Room {
@@ -73,5 +77,23 @@ model Otp {
   id         String   @id @unique @default(uuid())
   email      String
   value      String
+  created_at DateTime @default(now())
+}
+
+model FriendRequest {
+  receiver    User   @relation("friendRequestReceiver", fields: [receiver_id], references: [id])
+  receiver_id String
+  sender      User   @relation("friendRequestSender", fields: [sender_id], references: [id])
+  sender_id   String
+
+  @@id([receiver_id, sender_id])
+}
+
+model Friendship {
+  id String @id @unique @default(uuid())
+
+  friend    User   @relation("friend", fields: [friend_id], references: [id])
+  friend_id String
+
   created_at DateTime @default(now())
 }
