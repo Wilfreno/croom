@@ -16,27 +16,7 @@ export default function DirectMessages() {
         </Button>
       </div>
       <ScrollArea className="h-[35dvh] my-2">
-        <div className="mx-3 space-y-1">
-          {Array.from({ length: 30 }).map(() => (
-            <Link href={"#"}>
-              <Button
-                variant="ghost"
-                className="w-full justify-start space-x-5 rounded h-fit"
-              >
-                <Avatar className="aspect-square w-8 h-auto">
-                  <AvatarImage
-                    src={data?.user.profile_pic?.photo_url}
-                    alt={data?.user.display_name.slice(0, 1).toUpperCase()}
-                  />
-                  <AvatarFallback>
-                    {data?.user.display_name.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span>{data?.user.display_name}</span>
-              </Button>
-            </Link>
-          ))}
-        </div>
+        <div className="mx-3 space-y-1"></div>
       </ScrollArea>
     </div>
   );
