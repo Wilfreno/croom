@@ -25,11 +25,11 @@ model User {
   messages                Message[]
   rooms                   Room[]
   provider                String?
-  friend_request_received FriendRequest[] @relation("friendRequestReceiver")
-  friend_request_send     FriendRequest[] @relation("friendRequestSender")
-  friends                 Friendship[]    @relation("friend")
-
-  created_at DateTime @default(now())
+  friend_request_receiver FriendRequest[] @relation("friendRequestReceiver")
+  friend_request_sender   FriendRequest[] @relation("friendRequestSender")
+  friends                 Friendship[]    @relation("friends")
+  friends_with            Friendship[]    @relation("friendsWith")
+  created_at              DateTime        @default(now())
 }
 
 model Room {
@@ -81,19 +81,23 @@ model Otp {
 }
 
 model FriendRequest {
+  id          String @id @unique @default(uuid())
   receiver    User   @relation("friendRequestReceiver", fields: [receiver_id], references: [id])
   receiver_id String
   sender      User   @relation("friendRequestSender", fields: [sender_id], references: [id])
   sender_id   String
 
-  @@id([receiver_id, sender_id])
+  @@unique([sender_id, receiver_id])
 }
 
 model Friendship {
-  id String @id @unique @default(uuid())
-
-  friend    User   @relation("friend", fields: [friend_id], references: [id])
-  friend_id String
+  id          String @id @unique @default(uuid())
+  user_1      User   @relation("friends", fields: [friend_1_id], references: [id], onDelete: Cascade)
+  friend_1_id String
+  user_2      User   @relation("friendsWith", fields: [friend_2_id], references: [id], onDelete: Cascade)
+  friend_2_id String
 
   created_at DateTime @default(now())
+
+  @@unique([friend_1_id, friend_2_id])
 }

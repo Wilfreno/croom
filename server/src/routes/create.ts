@@ -18,7 +18,7 @@ import {
   notFoundStatus,
   okStatus,
   serverConflict,
-} from "src/lib/response-json";
+} from "../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -203,7 +203,7 @@ router.post("/friend-request", async (request, response) => {
     if (!found_sender || !found_receiver)
       return response.status(404).json(notFoundStatus("user cannot be found"));
 
-    const friends_request = await prisma.friendRequest.create({
+    const friend_request = await prisma.friendRequest.create({
       data: {
         sender_id: sender.id,
         receiver_id: receiver.id,
@@ -212,47 +212,13 @@ router.post("/friend-request", async (request, response) => {
 
     return response
       .status(200)
-      .json(okStatus("friend request sent", friends_request));
+      .json(okStatus("friend request sent", friend_request));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
-router.post("/friend", async (request, response) => {
-  try {
-    const friends_request: FriendRequest = request.body;
-
-    const found_request = await prisma.friendRequest.findFirst({
-      where: {
-        receiver_id: friends_request.receiver_id,
-        sender_id: friends_request.sender_id,
-      },
-    });
-
-    if (!found_request)
-      response
-        .status(409)
-        .json(serverConflict("cannot add friend; request does not exist"));
-
-    await prisma.friendship.create({
-      data: {
-        friend: {
-          connect: {
-            id: friends_request.sender_id,
-          },
-        },
-      },
-      include: {
-        friend: true,
-      },
-    });
-    return response.status(200).json(okStatus("friend request accepted", null));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
-  }
-});
 const create_router = router;
 
 export default create_router;

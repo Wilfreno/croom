@@ -93,10 +93,7 @@ router.delete("/friend-request", async (request, response) => {
 
     await prisma.friendRequest.delete({
       where: {
-        receiver_id_sender_id: {
-          receiver_id: friend_request.receiver_id,
-          sender_id: friend_request.sender_id,
-        },
+        id: friend_request.id,
       },
     });
 
