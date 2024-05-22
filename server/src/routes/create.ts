@@ -1,12 +1,24 @@
-import { Message, Photo, Room, User, Video } from "@prisma/client";
+import {
+  FriendRequest,
+  Message,
+  Photo,
+  Room,
+  User,
+  Video,
+} from "@prisma/client";
 import { prisma } from "../server";
 import { Router } from "express";
-import { okStatus, serverConflict, serverError } from "../lib/response-json";
 import { hash } from "bcrypt";
 import exclude from "../lib/exclude";
 import { createTransport } from "nodemailer";
 import { render } from "@react-email/render";
 import OTP from "../lib/email/OTP";
+import {
+  badRequest,
+  notFoundStatus,
+  okStatus,
+  serverConflict,
+} from "../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -47,7 +59,7 @@ router.post("/user", async (request, response) => {
       .json(okStatus("user created", exclude(new_user, ["password"])));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
@@ -75,7 +87,7 @@ router.post("/room", async (request, response) => {
       .json(okStatus("room created successfully", new_room));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
@@ -116,7 +128,7 @@ router.post("/message", async (request, response) => {
     return response.status(200).json(okStatus("message sent", new_message));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
 
@@ -174,9 +186,39 @@ router.post("/otp", async (request, response) => {
     return response.status(200).json(okStatus("OTP created", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(500).json(serverError());
+    return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
+
+router.post("/friend-request", async (request, response) => {
+  try {
+    const { sender, receiver }: Record<string, User> = request.body;
+
+    const found_sender = await prisma.user.findFirst({
+      where: { id: sender.id },
+    });
+    const found_receiver = await prisma.user.findFirst({
+      where: { id: receiver.id },
+    });
+    if (!found_sender || !found_receiver)
+      return response.status(404).json(notFoundStatus("user cannot be found"));
+
+    const friend_request = await prisma.friendRequest.create({
+      data: {
+        sender_id: sender.id,
+        receiver_id: receiver.id,
+      },
+    });
+
+    return response
+      .status(200)
+      .json(okStatus("friend request sent", friend_request));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest(new Error(error as string)));
+  }
+});
+
 const create_router = router;
 
 export default create_router;

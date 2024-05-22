@@ -6,7 +6,7 @@ type HTTPResponse = {
     | "CONFLICT"
     | "BAD_REQUEST"
     | "UNAUTHORIZED";
-  message: string;
+  message: string | Error;
   data: unknown;
 };
 
@@ -45,7 +45,7 @@ export function serverConflict(message: string): HTTPResponse {
   };
 }
 
-export function badRequest(message: string): HTTPResponse {
+export function badRequest(message: Error): HTTPResponse {
   return {
     status: "BAD_REQUEST",
     message,

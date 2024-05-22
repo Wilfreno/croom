@@ -1,4 +1,4 @@
-import http from "http";
+import http, { request } from "http";
 import WebSocket from "ws";
 import {
   WebSocketSeverMessage,
@@ -17,14 +17,34 @@ export default function WebsocketServer(
     typeof http.ServerResponse
   >
 ) {
-  const websocket_server = new WebSocket.Server({ server: http_server });
+  const websocket_server = new WebSocket.Server({ noServer: true });
+
+  http_server.on("upgrade", async (request, socket, head) => {
+    try {
+      const user_id = request.headers["user-id"];
+
+      console.log("user_id", request.headers["user-id"]);
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id as string },
+      });
+
+      if (!found_user) {
+        socket.write("HTTP/1.1 404 NotFound\r\n\r\n ");
+        socket.destroy();
+        return;
+      }
+      websocket_server.handleUpgrade(request, socket, head, (ws) => {
+        websocket_server.emit("connection", ws, request);
+      });
+    } catch (error) {
+      console.log(error);
+      socket.write("HTTP/1.1 400 BadRequest\r\n\r\n ");
+      socket.destroy();
+      return;
+    }
+  });
 
   websocket_server.on("connection", (socket, request) => {
-    const query = parse(request.url!, true).query;
-    const user_id = query.id;
-
-    if (!user_id) socket.close();
-    BroadCastIfOnline(user_id as string);
 
     socket.on("message", (client_message) => {
       const parsed_message: WebsocketClientMessage = JSON.parse(
