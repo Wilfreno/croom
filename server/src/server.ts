@@ -14,6 +14,8 @@ import accept_router from "./routes/accept";
 // server configuration
 const express_app = express();
 const http_server = http.createServer(express_app);
+
+//websoket server
 WebsocketServer(http_server);
 
 //prisma_client
@@ -24,13 +26,11 @@ express_app.use(express.json());
 express_app.use(cors());
 
 //routes
-express_app.use("/user", user_router);
 express_app.use("/create", new_router);
 express_app.use("/get", get_router);
 express_app.use("/delete", delete_router);
 express_app.use("/authenticate", verify_router);
 express_app.use("/accept", accept_router);
-
 
 //redirecting all get request from non-existing routes
 express_app.get("/", (_, response) => {
