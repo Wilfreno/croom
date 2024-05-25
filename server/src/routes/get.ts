@@ -49,12 +49,37 @@ router.get("/friends/:id", async (request, response) => {
       select: {
         friends: {
           select: {
-            user_1: true,
-            user_2: true,
+            user_1: {
+              include: {
+                profile_pic: true,
+              },
+            },
+            user_2: {
+              include: {
+                profile_pic: true,
+              },
+            },
+          },
+        },
+        friends_with: {
+          select: {
+            user_1: {
+              include: {
+                profile_pic: true,
+              },
+            },
+            user_2: {
+              include: {
+                profile_pic: true,
+              },
+            },
           },
         },
       },
     });
+
+    if (!user)
+      return response.status(404).json(notFoundStatus("user not found"));
 
     let friends = new Set<Omit<User, "password">>();
 
@@ -64,6 +89,13 @@ router.get("/friends/:id", async (request, response) => {
       if (user?.friends[i].user_2.id !== id)
         friends.add(exclude(user?.friends[i].user_2!, ["password"]));
     }
+    for (let i = 0; i < user?.friends_with.length!; i++) {
+      if (user?.friends_with[i].user_1.id !== id)
+        friends.add(exclude(user!.friends_with[i].user_1!, ["password"]));
+      if (user?.friends_with[i].user_2.id !== id)
+        friends.add(exclude(user?.friends_with[i].user_2!, ["password"]));
+    }
+
     return response
       .status(200)
       .json(okStatus("request succesful", Array.from(friends)));

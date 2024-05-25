@@ -24,7 +24,6 @@ export default function NewUser() {
   const [username_focus, setUsernameFocus] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  console.log(data);
   async function submitUser() {
     try {
       setLoading(true);

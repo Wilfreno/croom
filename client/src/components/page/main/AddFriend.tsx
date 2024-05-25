@@ -17,13 +17,14 @@ import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 export default function AddFriend() {
+  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
+  if (!server_url)
+    throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
+
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
   const { data } = useSession();
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
 
   return (
     <Dialog>
