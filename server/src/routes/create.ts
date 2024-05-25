@@ -192,21 +192,23 @@ router.post("/otp", async (request, response) => {
 
 router.post("/friend-request", async (request, response) => {
   try {
-    const { sender, receiver }: Record<string, User> = request.body;
+    const { sender, receiver }: Record<string, string> = request.body;
 
     const found_sender = await prisma.user.findFirst({
-      where: { id: sender.id },
+      where: { user_name: sender },
     });
     const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver.id },
+      where: { user_name: receiver },
     });
+    console.log(receiver);
+    console.log(found_receiver);
     if (!found_sender || !found_receiver)
       return response.status(404).json(notFoundStatus("user cannot be found"));
 
     const friend_request = await prisma.friendRequest.create({
       data: {
-        sender_id: sender.id,
-        receiver_id: receiver.id,
+        sender_id: found_sender.id,
+        receiver_id: found_receiver.id,
       },
     });
 
