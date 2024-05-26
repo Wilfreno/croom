@@ -10,7 +10,10 @@ const environment_mode = process.env.NODE_ENV;
 router.get("/user/email/:email", async (request, response) => {
   try {
     const user_email = request.params.email;
-    const user = await prisma.user.findUnique({ where: { email: user_email } });
+    const user = await prisma.user.findUnique({
+      where: { email: user_email },
+      include: { profile_pic: true },
+    });
 
     if (!user)
       return response.status(404).send(notFoundStatus("user not found"));

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { User } from "@/lib/types/user-type";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function NewUser() {
+export default function page() {
   const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
   if (!development_server)
     throw new Error(

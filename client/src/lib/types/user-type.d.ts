@@ -3,17 +3,16 @@ export type User = {
   email: string;
   display_name: string;
   user_name: string;
-  password: string;
   profile_pic: Photo;
-  birth_date: Date;
-  messages: Message[];
-  rooms: Room[];
+  birth_date?: Date;
+  messages?: Message[];
+  rooms?: Room[];
   provider: string;
-  friend_request_receiver: FriendRequest[];
-  friend_request_sender: FriendRequest[];
-  friends: Friendship[];
-  friends_with: Friendship[];
-  created_at: Date;
+  friend_request_receiver?: FriendRequest[];
+  friend_request_sender?: FriendRequest[];
+  friends?: Friendship[];
+  friends_with?: Friendship[];
+  created_at?: Date;
 };
 
 export type Room = {

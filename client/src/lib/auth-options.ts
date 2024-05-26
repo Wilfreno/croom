@@ -90,7 +90,7 @@ const auth_options: AuthOptions = {
       if (profile && account) {
         let token_user: User;
         const server_response = await fetch(
-          server_url + "/user/email/" + profile.email
+          server_url + "/get/user/email/" + profile.email
         );
         const server_json = await server_response.json();
 
