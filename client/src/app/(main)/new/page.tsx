@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { User } from "@/lib/types/user-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 export default function page() {
   const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
@@ -24,7 +24,8 @@ export default function page() {
   const [username_focus, setUsernameFocus] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function submitUser() {
+  async function submitUser(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     try {
       setLoading(true);
       const response = await fetch(development_server + "/create/user", {
@@ -46,7 +47,7 @@ export default function page() {
 
       await update(response_json.data);
       setLoading(false);
-      router.refresh();
+      router.push("/");
     } catch (error) {
       throw error;
     }
@@ -71,7 +72,7 @@ export default function page() {
           </Avatar>
           <p> {data?.user.email}</p>
         </DialogHeader>
-        <div className="space-y-5">
+        <form className="space-y-5" onSubmit={submitUser}>
           <div>
             <Input
               placeholder="Display name"
@@ -111,14 +112,13 @@ export default function page() {
             )}
           </div>
           <Button
-            type="button"
+            type="submit"
             disabled={!user?.display_name}
             className="w-full"
-            onClick={submitUser}
           >
             {loading ? <LoadingSvg className="h-6 " /> : "Confirm"}
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

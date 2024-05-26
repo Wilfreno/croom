@@ -7,6 +7,7 @@ import React, { useEffect } from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   const { data } = useSession();
+  if (data?.user.provider) redirect("/new");
 
   const websocket = useWebsocket(data?.user.id!);
 

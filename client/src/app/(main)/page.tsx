@@ -6,7 +6,7 @@ export default async function page() {
   const session = await getServerSession(auth_options);
 
   if (session) {
-    if (session.user.provider) redirect("/new");
+   
     redirect("/" + session.user.user_name);
   }
 }
