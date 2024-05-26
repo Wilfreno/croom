@@ -1,9 +1,9 @@
-import { Room, User } from "@prisma/client";
+import { Room, User } from "./user-type";
 
 export type WebsocketClientMessage = {
   type: "join" | "leave" | "message" | "kick" | "friend-request";
   payload: string;
-  room_id: Room["id"];
+  room_id?: Room["id"];
   user_id: User["id"];
 };
 
@@ -15,6 +15,6 @@ export type WebSocketSeverMessage = {
     | "online"
     | "offline"
     | "kicked"
-    | "friend-request";
+    | "friend-requestge";
   payload: string;
 };

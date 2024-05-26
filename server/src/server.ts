@@ -2,7 +2,6 @@ import express from "express";
 import http from "http";
 import { PrismaClient } from "@prisma/client";
 import WebsocketServer from "./websocket";
-import user_router from "./routes/user";
 import new_router from "./routes/create";
 import delete_router from "./routes/delete";
 import verify_router from "./routes/authenticate";

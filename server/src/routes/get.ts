@@ -107,6 +107,42 @@ router.get("/friends/:id", async (request, response) => {
     return response.status(400).json(badRequest(new Error(error as string)));
   }
 });
+
+router.get("/friend-request/:id", async (request, response) => {
+  try {
+    const user_id = request.params.id;
+
+    if (!user_id) throw new Error("user id as params is needed");
+
+    const user = await prisma.friendRequest.findMany({
+      where: {
+        receiver_id: user_id,
+      },
+      select: {
+        sender: {
+          include: {
+            profile_pic: true,
+          },
+        },
+      },
+    });
+    if (!user)
+      return response.status(404).json(notFoundStatus("user not found"));
+
+    let user_list: { sender: Omit<User, "password"> }[] = [];
+
+    for (let i = 0; i < user.length; i++) {
+      user_list.push({ sender: exclude(user[i].sender, ["password"]) });
+    }
+    console.log(user_list);
+    return response
+      .status(200)
+      .json(okStatus("request successfull", user_list));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest(new Error(error as string)));
+  }
+});
 const get_router = router;
 
 export default get_router;

@@ -9,10 +9,10 @@ export default function layout({ children }: { children: React.ReactNode }) {
   const { data } = useSession();
   if (data?.user.provider) redirect("/new");
 
-  const websocket = useWebsocket(data?.user.id!);
+  const websocket = useWebsocket();
 
   useEffect(() => {
-    websocket?.addEventListener("open", () => websocket?.send("wee"));
+    return () => websocket?.close();
   }, []);
 
   return (

@@ -35,7 +35,7 @@ export default function MainSideBarNavigation() {
   return (
     <nav className="flex flex-col my-5 space-y-1 mx-1">
       {nav_list.map((item) => (
-        <Link href={"/" + data?.user.user_name + item.link}>
+        <Link href={"/" + data?.user.user_name + item.link} key={item.name}>
           <Button
             variant={
               path_name.startsWith("/" + data?.user.user_name + item.link)

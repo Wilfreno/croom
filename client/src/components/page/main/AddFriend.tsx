@@ -1,3 +1,4 @@
+import useWebsocket from "@/components/hooks/useWebsocket";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,16 +12,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ServerResponse } from "@/lib/types/sever-response";
+import { WebsocketClientMessage } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AddFriend() {
   const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
   if (!server_url)
     throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
 
+  const websocket = useWebsocket();
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
@@ -61,6 +64,13 @@ export default function AddFriend() {
 
             const response_json = (await response.json()) as ServerResponse;
             setServerResponse(response_json);
+            websocket?.send(
+              JSON.stringify({
+                type: "friend-request",
+                payload: username,
+                user_id: data?.user.id,
+              } as WebsocketClientMessage)
+            );
             setSending(false);
           }}
           autoComplete="off"

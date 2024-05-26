@@ -10,7 +10,7 @@ import { parse } from "url";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
-const online = new Map<string, string>();
+const online = new Map<User["id"], WebSocket>();
 
 export default function WebsocketServer(
   http_server: http.Server<
@@ -47,7 +47,7 @@ export default function WebsocketServer(
     }
 
     //inlisting the user to the online map and broadcasting it to every room the user is in
-    online.set(user.id, user.id);
+    online.set(user.id, socket);
     broadCastIfOnline(user.id);
 
     //websocket event handlers
@@ -72,6 +72,11 @@ export default function WebsocketServer(
         case "kick":
           kicked(parsed_message.user_id, parsed_message.room_id);
           break;
+        case "friend-request":
+          friendRequest(parsed_message.user_id, parsed_message.payload);
+          break;
+        default:
+          return;
       }
     });
 
@@ -81,7 +86,7 @@ export default function WebsocketServer(
       );
 
       online.delete(parsed_message.user_id);
-      broadCastIfOnline(parsed_message.user_id);
+      broadCastIfOffline(parsed_message.user_id);
     });
   });
 }
@@ -178,6 +183,24 @@ function broadCastIfOffline(user_id: User["id"]) {
       });
     }
   });
+}
+async function friendRequest(sender: User["id"], receiver: User["user_name"]) {
+  const user_sender = await prisma.user.findFirst({ where: { id: sender } });
+  const user_receiver = await prisma.user.findFirst({
+    where: { user_name: receiver },
+  });
+
+  if (!user_sender || !user_receiver) return;
+  if (!online.has(user_receiver.id)) return;
+
+  online
+    .get(user_receiver.id)
+    ?.send(
+      makeMessage(
+        "friend-request",
+        user_sender.display_name + "seands a friend request"
+      )
+    );
 }
 
 function kicked(user_id: User["id"], room_id: Room["id"]) {
