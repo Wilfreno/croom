@@ -10,6 +10,7 @@ import { parse } from "url";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
+const online = new Map<string, string>();
 
 export default function WebsocketServer(
   http_server: http.Server<
@@ -17,35 +18,39 @@ export default function WebsocketServer(
     typeof http.ServerResponse
   >
 ) {
-  const websocket_server = new WebSocket.Server({ noServer: true });
+  const websocket_server = new WebSocket.Server({ server: http_server });
 
-  http_server.on("upgrade", async (request, socket, head) => {
-    try {
-      const user_id = request.headers["user-id"];
+  websocket_server.on("connection", async (socket, request) => {
+    //checking valid url connection
+    const params = parse(request.url!, true).query;
 
-      console.log("user_id", request.headers["user-id"]);
-      const found_user = await prisma.user.findFirst({
-        where: { id: user_id as string },
-      });
-
-      if (!found_user) {
-        socket.write("HTTP/1.1 404 NotFound\r\n\r\n ");
-        socket.destroy();
-        return;
-      }
-      websocket_server.handleUpgrade(request, socket, head, (ws) => {
-        websocket_server.emit("connection", ws, request);
-      });
-    } catch (error) {
-      console.log(error);
-      socket.write("HTTP/1.1 400 BadRequest\r\n\r\n ");
-      socket.destroy();
+    //cheking if there is  user_id query parameter on teh url
+    if (!params.user_id) {
+      socket.send(
+        makeMessage(
+          "error",
+          "the url connection needs a user_id query parameter"
+        )
+      );
+      socket.close();
       return;
     }
-  });
+    const user = await prisma.user.findFirst({
+      where: { id: params.user_id! as string },
+    });
 
-  websocket_server.on("connection", (socket, request) => {
+    //closing connection if user does not exist
+    if (!user) {
+      socket.send(makeMessage("error", "user does not exist"));
+      socket.close();
+      return;
+    }
 
+    //inlisting the user to the online map and broadcasting it to every room the user is in
+    online.set(user.id, user.id);
+    broadCastIfOnline(user.id);
+
+    //websocket event handlers
     socket.on("message", (client_message) => {
       const parsed_message: WebsocketClientMessage = JSON.parse(
         client_message.toString()
@@ -68,6 +73,15 @@ export default function WebsocketServer(
           kicked(parsed_message.user_id, parsed_message.room_id);
           break;
       }
+    });
+
+    socket.on("close", (client_message) => {
+      const parsed_message: WebsocketClientMessage = JSON.parse(
+        client_message.toString()
+      );
+
+      online.delete(parsed_message.user_id);
+      broadCastIfOnline(parsed_message.user_id);
     });
   });
 }
@@ -138,17 +152,28 @@ function makeMessage(
   message: string
 ): string {
   return JSON.stringify({
-    payload: message,
     type,
+    payload: message,
   });
 }
 
-function BroadCastIfOnline(user_id: User["id"]) {
+function broadCastIfOnline(user_id: User["id"]) {
   rooms.forEach((room) => {
     if (room.has(user_id)) {
       room.forEach((member) => {
         if (member !== room.get(user_id)) {
           member.send(makeMessage("online", user_id));
+        }
+      });
+    }
+  });
+}
+function broadCastIfOffline(user_id: User["id"]) {
+  rooms.forEach((room) => {
+    if (room.has(user_id)) {
+      room.forEach((member) => {
+        if (member !== room.get(user_id)) {
+          member.send(makeMessage("offline", user_id));
         }
       });
     }

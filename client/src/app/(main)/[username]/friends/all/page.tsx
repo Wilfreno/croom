@@ -5,11 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ServerResponse } from "@/lib/types/sever-response";
 import { User } from "@/lib/types/user-type";
-import {
-  ChatBubbleOvalLeftIcon,
-  EllipsisVerticalIcon,
-  MagnifyingGlassIcon,
-} from "@heroicons/react/24/solid";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
@@ -73,8 +69,12 @@ export default function page() {
       <ScrollArea className="h-[70vh]">
         <div className="px-5">
           {search_result
-            ? search_result.map((friend) => <FriendList friend={friend} />)
-            : friends?.map((friend) => <FriendList friend={friend} />)}
+            ? search_result.map((friend) => (
+                <FriendList key={friend.id} friend={friend} />
+              ))
+            : friends?.map((friend) => (
+                <FriendList key={friend.id} friend={friend} />
+              ))}
         </div>
       </ScrollArea>
     </div>

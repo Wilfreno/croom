@@ -1,11 +1,18 @@
+"use client";
+import useWebsocket from "@/components/hooks/useWebsocket";
 import LayoutSideBar from "@/components/layout/LayoutSideBar";
 import NewUser from "@/components/page/new-user/NewUser";
-import { Dialog } from "@/components/ui/dialog";
-import auth_options from "@/lib/auth-options";
-import { getServerSession } from "next-auth";
-import React from "react";
+import { useSession } from "next-auth/react";
+import React, { useEffect } from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
+  const { data } = useSession();
+  const websocket = useWebsocket(data?.user.id!);
+
+  useEffect(() => {
+    websocket?.addEventListener("open", () => websocket?.send("wee"));
+  }, []);
+
   return (
     <>
       <NewUser />
