@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 
-export default function layout({
+export default function Layout({
   children,
   params,
 }: {
@@ -30,6 +30,7 @@ export default function layout({
             <Link
               href={root_path_name + nav.link}
               as={root_path_name + nav.link}
+              key={nav.name}
             >
               <Button
                 variant={path_name.endsWith(nav.link) ? "secondary" : "outline"}

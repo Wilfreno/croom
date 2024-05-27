@@ -3,7 +3,8 @@ export type User = {
   email: string;
   display_name: string;
   user_name: string;
-  profile_pic: Photo;
+  password?: string
+  profile_pic?: Photo;
   birth_date?: Date;
   messages?: Message[];
   rooms?: Room[];

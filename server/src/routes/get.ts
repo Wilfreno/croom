@@ -134,7 +134,7 @@ router.get("/friend-request/:id", async (request, response) => {
     for (let i = 0; i < user.length; i++) {
       user_list.push({ sender: exclude(user[i].sender, ["password"]) });
     }
-    console.log(user_list);
+    console.log("list::", user_list);
     return response
       .status(200)
       .json(okStatus("request successfull", user_list));

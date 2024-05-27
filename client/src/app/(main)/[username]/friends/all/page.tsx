@@ -9,7 +9,7 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const [friends, setFriends] = useState<User[]>();
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<User[]>();

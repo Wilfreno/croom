@@ -16,7 +16,7 @@ export default function FriendList({ friend }: { friend: User }) {
       <div className="flex items-center space-x-5">
         <Avatar>
           <AvatarImage
-            src={friend.profile_pic.photo_url}
+            src={friend.profile_pic?.photo_url}
             alt={friend.display_name.slice(0, 1).toUpperCase()}
           />
           <AvatarFallback>

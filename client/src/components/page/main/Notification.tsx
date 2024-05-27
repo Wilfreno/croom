@@ -57,11 +57,11 @@ export default function Notification() {
           {notifications?.map((notification) => {
             if (notification.type === "friend-request") {
               return (
-                <div>
+                <div key={notification.content.sender.id}>
                   <div className="flex items-center space-x-5">
                     <Avatar>
                       <AvatarImage
-                        src={notification.content.sender.profile_pic.photo_url}
+                        src={notification.content.sender.profile_pic!.photo_url!}
                         alt={notification.content.sender.display_name
                           .slice(0, 1)
                           .toUpperCase()}

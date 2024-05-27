@@ -10,7 +10,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
   if (!development_server)
     throw new Error(
