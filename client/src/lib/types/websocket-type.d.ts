@@ -1,10 +1,12 @@
+import { NotificationType } from "./notification-type";
 import { Room, User } from "./user-type";
 
 export type WebsocketClientMessage = {
   type: "join" | "leave" | "message" | "kick" | "friend-request";
-  payload: string;
+  payload?: string;
   room_id?: Room["id"];
-  user_id: User["id"];
+  sender?: User["id"];
+  receiver?: User["id"];
 };
 
 export type WebSocketSeverMessage = {
@@ -15,6 +17,6 @@ export type WebSocketSeverMessage = {
     | "online"
     | "offline"
     | "kicked"
-    | "friend-requestge";
-  payload: string;
+    | "friend-request";
+  payload: string | NotificationType;
 };

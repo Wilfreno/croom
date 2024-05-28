@@ -16,7 +16,7 @@ import { WebsocketClientMessage } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function AddFriend() {
   const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
@@ -67,8 +67,8 @@ export default function AddFriend() {
             websocket?.send(
               JSON.stringify({
                 type: "friend-request",
-                payload: username,
-                user_id: data?.user.id,
+                sender: data?.user.id,
+                receiver: username,
               } as WebsocketClientMessage)
             );
             setSending(false);

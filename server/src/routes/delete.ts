@@ -75,31 +75,6 @@ router.delete("/message", async (request, response) => {
   }
 });
 
-router.delete("/friend-request", async (request, response) => {
-  try {
-    const friend_request: FriendRequest = request.body;
-
-    const found_request = await prisma.friendRequest.findFirst({
-      where: {
-        sender_id: friend_request.sender_id,
-        receiver_id: friend_request.receiver_id,
-      },
-    });
-
-    if (!found_request)
-      response
-        .status(409)
-        .json(serverConflict("cannot delete request; request does not exist "));
-
-    await prisma.friendRequest.delete({
-      where: {
-        id: friend_request.id,
-      },
-    });
-
-    return response.status(200).json(okStatus("friend request deleted", null));
-  } catch (error) {}
-});
 
 const delete_router = router;
 

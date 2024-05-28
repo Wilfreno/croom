@@ -7,6 +7,7 @@ import {
 import { Room, User } from "@prisma/client";
 import { prisma } from "./server";
 import { parse } from "url";
+import { NotificationType } from "./lib/types/notification-type";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
@@ -57,23 +58,23 @@ export default function WebsocketServer(
       );
       switch (parsed_message.type) {
         case "join":
-          joinRoom(socket, parsed_message.room_id, parsed_message.user_id);
+          joinRoom(socket, parsed_message.room_id!, parsed_message.sender!);
           break;
         case "message":
           broadcastMessage(
             socket,
-            parsed_message.payload,
-            parsed_message.room_id
+            parsed_message.payload as string,
+            parsed_message.room_id!
           );
           break;
         case "leave":
-          leaveRoom(parsed_message.user_id, parsed_message.room_id);
+          leaveRoom(parsed_message.sender!, parsed_message.room_id!);
           break;
         case "kick":
-          kicked(parsed_message.user_id, parsed_message.room_id);
+          kicked(parsed_message.receiver!, parsed_message.room_id!);
           break;
         case "friend-request":
-          friendRequest(parsed_message.user_id, parsed_message.payload);
+          friendRequest(parsed_message.sender!, parsed_message.receiver!);
           break;
         default:
           return;
@@ -85,8 +86,8 @@ export default function WebsocketServer(
         client_message.toString()
       );
 
-      online.delete(parsed_message.user_id);
-      broadCastIfOffline(parsed_message.user_id);
+      online.delete(parsed_message.sender!);
+      broadCastIfOffline(parsed_message.sender!);
     });
   });
 }
@@ -154,11 +155,11 @@ function broadcastMessage(
 
 function makeMessage(
   type: WebSocketSeverMessage["type"],
-  message: string
+  payload: WebSocketSeverMessage["payload"]
 ): string {
   return JSON.stringify({
     type,
-    payload: message,
+    payload: payload,
   });
 }
 
@@ -185,7 +186,10 @@ function broadCastIfOffline(user_id: User["id"]) {
   });
 }
 async function friendRequest(sender: User["id"], receiver: User["user_name"]) {
-  const user_sender = await prisma.user.findFirst({ where: { id: sender } });
+  const user_sender = await prisma.user.findFirst({
+    where: { id: sender },
+    include: { profile_pic: true },
+  });
   const user_receiver = await prisma.user.findFirst({
     where: { user_name: receiver },
   });
@@ -193,14 +197,15 @@ async function friendRequest(sender: User["id"], receiver: User["user_name"]) {
   if (!user_sender || !user_receiver) return;
   if (!online.has(user_receiver.id)) return;
 
-  online
-    .get(user_receiver.id)
-    ?.send(
-      makeMessage(
-        "friend-request",
-        user_sender.display_name + "seands a friend request"
-      )
-    );
+  online.get(user_receiver.id)?.send(
+    makeMessage("friend-request", {
+      type: "friend-request",
+      content: {
+        sender: user_sender,
+        message: user_receiver.display_name + " want to make friends with you.",
+      },
+    })
+  );
 }
 
 function kicked(user_id: User["id"], room_id: Room["id"]) {

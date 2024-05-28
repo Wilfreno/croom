@@ -9,6 +9,7 @@ import { okStatus } from "./lib/response-json";
 import cors from "cors";
 import get_router from "./routes/get";
 import accept_router from "./routes/accept";
+import decline_router from "./routes/decline";
 
 // server configuration
 const express_app = express();
@@ -30,13 +31,9 @@ express_app.use("/get", get_router);
 express_app.use("/delete", delete_router);
 express_app.use("/authenticate", verify_router);
 express_app.use("/accept", accept_router);
-
-//redirecting all get request from non-existing routes
+express_app.use("/decline", decline_router);
 express_app.get("/", (_, response) => {
   return response.status(200).json(okStatus("server is running", null));
-});
-express_app.get("/*", (_, response) => {
-  return response.redirect("/");
 });
 
 //server listen

@@ -1,9 +1,9 @@
+"use client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PencilSquareIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 
 export default function DirectMessages() {
   const { data } = useSession();

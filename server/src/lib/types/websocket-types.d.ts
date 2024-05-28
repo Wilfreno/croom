@@ -1,10 +1,12 @@
 import { Room, User } from "@prisma/client";
+import { NotificationType } from "./notification-type";
 
 export type WebsocketClientMessage = {
   type: "join" | "leave" | "message" | "kick" | "friend-request";
-  payload: string;
-  room_id: Room["id"];
-  user_id: User["id"];
+  payload?: string
+  room_id?: Room["id"];
+  sender?: User["id"];
+  receiver?: User["id"];
 };
 
 export type WebSocketSeverMessage = {
@@ -16,5 +18,5 @@ export type WebSocketSeverMessage = {
     | "offline"
     | "kicked"
     | "friend-request";
-  payload: string;
+  payload: string | NotificationType;
 };

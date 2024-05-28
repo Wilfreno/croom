@@ -192,18 +192,72 @@ router.post("/otp", async (request, response) => {
 
 router.post("/friend-request", async (request, response) => {
   try {
-    const { sender, receiver }: Record<string, string> = request.body;
+    const { sender, receiver }: Record<string, User["user_name"]> =
+      request.body;
+
+    if (!sender || !receiver)
+      return response
+        .status(400)
+        .json(
+          serverConflict(
+            "sender and receiver on request nody is required; {sender:username, receiver: username}"
+          )
+        );
+
+    const found_request = await prisma.friendRequest.findFirst({
+      where: {
+        sender: {
+          user_name: sender,
+        },
+        receiver: {
+          user_name: sender,
+        },
+      },
+    });
+
+    if (found_request)
+      return response
+        .status(409)
+        .json(serverConflict("already sent a friend request"));
 
     const found_sender = await prisma.user.findFirst({
       where: { user_name: sender },
     });
+
     const found_receiver = await prisma.user.findFirst({
       where: { user_name: receiver },
     });
-    console.log(receiver);
-    console.log(found_receiver);
+
     if (!found_sender || !found_receiver)
       return response.status(404).json(notFoundStatus("user cannot be found"));
+
+    const found_friendship = await prisma.friendship.findFirst({
+      where: {
+        AND: [
+          {
+            OR: [
+              { friend_1_id: found_sender.id },
+              { friend_1_id: found_receiver.id },
+            ],
+          },
+          {
+            OR: [
+              { friend_2_id: found_sender.id },
+              { friend_2_id: found_receiver.id },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (found_friendship)
+      return response
+        .status(409)
+        .json(
+          serverConflict(
+            found_sender + " and " + found_receiver + " is already friends"
+          )
+        );
 
     const friend_request = await prisma.friendRequest.create({
       data: {
