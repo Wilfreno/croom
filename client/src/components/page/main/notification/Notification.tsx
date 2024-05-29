@@ -10,10 +10,20 @@ export default async function Notification() {
   const { friend_requests, accept, decline } = useFriendrequest();
   const [notifications, setNotifications] = useState<NotificationType[]>();
 
-
   useEffect(() => {
-    if(friend_requests) 
-  },[friend_requests])
+    let n: NotificationType[] = [];
+    if (friend_requests) {
+      for (let i = 0; i < friend_requests.length; i++) {
+        n.push({
+          type: "friend-request",
+          content: friend_requests[i],
+          message:
+            friend_requests[i].sender.display_name +
+            " want to make friends with you.",
+        });
+      }
+    }
+  }, [friend_requests]);
   return (
     <div className="grid grid-rows-[auto_1fr] space-y-5">
       <p className="font-bold text-sm">Notifications</p>
@@ -25,8 +35,8 @@ export default async function Notification() {
                 <FriendRequestNotification
                   key={index}
                   notification={notification}
-                  notifications={notifications}
-                  setNotifications={setNotifications}
+                  decline={decline}
+                  accept={accept}
                   index={index}
                 />
               );

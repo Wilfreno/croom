@@ -14,119 +14,61 @@ import {
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationType } from "@/lib/types/notification-type";
-import { useSession } from "next-auth/react";
-import { ServerResponse } from "@/lib/types/sever-response";
-import { Dispatch, SetStateAction, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useRouter } from "next/navigation";
 import LoadingSvg from "@/components/svg/LoadingSvg";
+import { FriendRequest } from "@/lib/types/user-type";
+import { useState } from "react";
 
 export default function FriendRequestNotification({
   notification,
-  notifications,
-  setNotifications,
+  accept,
+  decline,
   index,
 }: {
   notification: NotificationType;
-  notifications: NotificationType[];
-  setNotifications: Dispatch<SetStateAction<NotificationType[]>>;
+  accept: (request: FriendRequest, index: number) => Promise<void>;
+  decline: (request: FriendRequest, index: number) => Promise<void>;
   index: number;
 }) {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
-  const { data } = useSession();
-  const { toast } = useToast();
-  const router = useRouter();
   const [loading, setLoading] = useState({ accept: false, decline: false });
-  const [accepted, setAccepted] = useState(false);
-
-  async function accept() {
-    setLoading((prev) => ({ ...prev, accept: true }));
-    const response = await fetch(server_url + "/accept/friend-request", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: notification.content.sender.id,
-        receiver: data?.user.id,
-      }),
-    });
-    const response_json = (await response.json()) as ServerResponse;
-
-    if (response_json.status === "OK") {
-      setAccepted(true);
-    } else {
-      toast({
-        title: "Something went wrong!",
-        description: response_json.message,
-      });
-    }
-    setNotifications((prev) => prev.toSpliced(index, 1));
-    setLoading((prev) => ({ ...prev, accept: false }));
-    router.refresh();
-  }
-
-  async function decline() {
-    setLoading((prev) => ({ ...prev, decline: true }));
-    const response = await fetch(server_url + "/decline/friend-request", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: notification.content.sender.id,
-        receiver: data?.user.id,
-      }),
-    });
-    const response_json = (await response.json()) as ServerResponse;
-
-    if (response_json.status !== "OK") {
-      toast({
-        title: "Something went wrong!",
-        description: response_json.message,
-      });
-    }
-
-    setNotifications((prev) => prev.toSpliced(index, 1));
-    setLoading((prev) => ({ ...prev, decline: false }));
-    router.refresh();
-  }
-
+  const [after_loading, setAfterLoading] = useState({
+    accept: false,
+    decline: false,
+  });
   const MotionButton = motion(Button);
+
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="popLayout">
       <Collapsible>
         <CollapsibleTrigger asChild>
           <li>
             <MotionButton
-              key={notification.content.sender.id}
-              exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
+              key={notification.content!.id}
+              initial={{ opacity: 0, x: -100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 1 }}
               variant="ghost"
               className="w-full justify-start space-x-5 h-fit"
             >
               <Avatar>
                 <AvatarImage
-                  src={notification.content.sender.profile_pic!.photo_url!}
-                  alt={notification.content.sender.display_name
-                    .slice(0, 1)
+                  src={notification.content!.sender.profile_pic!.photo_url!}
+                  alt={notification
+                    .content!.sender.display_name.slice(0, 1)
                     .toUpperCase()}
                 />
                 <AvatarFallback>
-                  {notification.content.sender.display_name
-                    .slice(0, 1)
+                  {notification
+                    .content!.sender.display_name.slice(0, 1)
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-start space-y-1">
                 <p className="font-bold">
-                  {notification.content.sender.display_name}
+                  {notification.content!.sender.display_name}
                 </p>
                 <p className="text-xs text-wrap text-start">
-                  {notification.content.message}
+                  {notification.message}
                 </p>
               </div>
             </MotionButton>
@@ -134,7 +76,7 @@ export default function FriendRequestNotification({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <motion.div
-            key={notification.content.message}
+            key={notification.message}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -145,7 +87,14 @@ export default function FriendRequestNotification({
                 <TooltipTrigger asChild>
                   <Button
                     className="h-fit w-auto p-2 bg-green-600 "
-                    onClick={accept}
+                    onClick={async () => {
+                      setLoading((prev) => ({ ...prev, accept: true }));
+                      await accept(
+                        notification.content as FriendRequest,
+                        index
+                      );
+                      setLoading((prev) => ({ ...prev, accept: false }));
+                    }}
                   >
                     {loading.accept ? (
                       <LoadingSvg className="h-6 fill-secondary-foreground" />
@@ -167,7 +116,14 @@ export default function FriendRequestNotification({
                 <TooltipTrigger asChild>
                   <Button
                     className="h-fit w-auto p-2 bg-red-600"
-                    onClick={decline}
+                    onClick={async () => {
+                      setLoading((prev) => ({ ...prev, decline: true }));
+                      await decline(
+                        notification.content as FriendRequest,
+                        index
+                      );
+                      setLoading((prev) => ({ ...prev, decline: false }));
+                    }}
                   >
                     {loading.decline ? (
                       <LoadingSvg className="h-6 fill-secondary-foreground" />

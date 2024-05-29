@@ -1,17 +1,12 @@
 "use client";
 
-import useWebsocket from "@/components/hooks/useWebsocket";
 import useFriendrequest from "@/components/hooks/useFriendrequest";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { FriendRequest } from "@/lib/types/user-type";
-import { WebSocketSeverMessage } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function page() {

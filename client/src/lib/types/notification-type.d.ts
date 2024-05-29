@@ -1,6 +1,7 @@
-import { User } from "./user-type";
+import { FriendRequest, User } from "./user-type";
 
 export type NotificationType = {
-  type: "friend-request";
-  content: { sender: Omit<User, "password">; message: string };
+  type: "friend-request" | undefined;
+  content: FriendRequest | undefined;
+  message: string;
 };

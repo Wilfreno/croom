@@ -55,8 +55,10 @@ export default function useFriendrequest() {
       });
     }
 
-    friend_requests.current = friend_requests.current!.toSpliced(index, 1);
-    router.refresh();
+    setTimeout(() => {
+      friend_requests.current = friend_requests.current!.toSpliced(index, 1);
+      router.refresh();
+    }, 3000);
   }
 
   async function decline(request: FriendRequest, index: number) {
@@ -79,8 +81,10 @@ export default function useFriendrequest() {
       });
     }
 
-    friend_requests.current = friend_requests.current!.toSpliced(index, 1);
-    router.refresh();
+    setTimeout(() => {
+      friend_requests.current = friend_requests.current!.toSpliced(index, 1);
+      router.refresh();
+    }, 3000);
   }
 
   useEffect(() => {
