@@ -1,31 +1,39 @@
-import auth_options from "@/lib/auth-options";
+"use client";
+
 import { NotificationType } from "@/lib/types/notification-type";
-import { ServerResponse } from "@/lib/types/sever-response";
-import { getServerSession } from "next-auth";
-import NotificationList from "./NotificationList";
-
-async function getNotifications(user_id: string): Promise<NotificationType[]> {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
-
-  const response = await fetch(server_url + "/get/notification/" + user_id);
-
-  const response_json = (await response.json()) as ServerResponse;
-
-  if (response_json.status === "OK")
-    return response_json.data as NotificationType[];
-  return [];
-}
+import useFriendrequest from "../../../hooks/useFriendrequest";
+import { useEffect, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import FriendRequestNotification from "./FriendRequestNotification";
 
 export default async function Notification() {
-  const session = await getServerSession(auth_options);
-
-  let notifications: NotificationType[] = [];
-  if (session) notifications = await getNotifications(session?.user.id!);
+  const { friend_requests, accept, decline } = useFriendrequest();
+  const [notifications, setNotifications] = useState<NotificationType[]>();
 
 
-  return <NotificationList server_notifications={notifications} />;
+  useEffect(() => {
+    if(friend_requests) 
+  },[friend_requests])
+  return (
+    <div className="grid grid-rows-[auto_1fr] space-y-5">
+      <p className="font-bold text-sm">Notifications</p>
+      <ScrollArea className="h-full">
+        <ul>
+          {notifications?.map((notification, index) => {
+            if (notification.type === "friend-request") {
+              return (
+                <FriendRequestNotification
+                  key={index}
+                  notification={notification}
+                  notifications={notifications}
+                  setNotifications={setNotifications}
+                  index={index}
+                />
+              );
+            }
+          })}
+        </ul>
+      </ScrollArea>
+    </div>
+  );
 }

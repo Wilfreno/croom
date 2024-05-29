@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-export default function Friendrequest() {
+export default function useFriendrequest() {
   const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
   if (!server_url)
     throw new Error(

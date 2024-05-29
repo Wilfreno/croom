@@ -1,7 +1,7 @@
 "use client";
 
 import useWebsocket from "@/components/hooks/useWebsocket";
-import Friendrequest from "@/components/page/friends/Friendrequest";
+import useFriendrequest from "@/components/hooks/useFriendrequest";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ export default function page() {
       "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
     );
 
-  const { friend_requests, decline, accept } = Friendrequest();
+  const { friend_requests, decline, accept } = useFriendrequest();
 
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<FriendRequest[]>([]);
