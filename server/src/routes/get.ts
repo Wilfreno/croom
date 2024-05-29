@@ -113,7 +113,10 @@ router.get("/friend-request/:id", async (request, response) => {
   try {
     const user_id = request.params.id;
 
-    if (!user_id) throw new Error("user id as params is needed");
+    if (!user_id)
+      return response
+        .status(400)
+        .json(badRequest(new Error("user id as params is needed")));
 
     const user = await prisma.friendRequest.findMany({
       where: {
@@ -135,7 +138,6 @@ router.get("/friend-request/:id", async (request, response) => {
     for (let i = 0; i < user.length; i++) {
       user_list.push({ sender: exclude(user[i].sender, ["password"]) });
     }
-    console.log("list::", user_list);
     return response
       .status(200)
       .json(okStatus("request successfull", user_list));

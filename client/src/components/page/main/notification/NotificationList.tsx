@@ -31,7 +31,7 @@ export default function NotificationList({
     <div className="grid grid-rows-[auto_1fr] space-y-5">
       <p className="font-bold text-sm">Notifications</p>
       <ScrollArea className="h-full">
-        <div>
+        <ul>
           {notifications.map((notification, index) => {
             if (notification.type === "friend-request") {
               return (
@@ -45,7 +45,7 @@ export default function NotificationList({
               );
             }
           })}
-        </div>
+        </ul>
       </ScrollArea>
     </div>
   );

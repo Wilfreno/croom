@@ -43,7 +43,6 @@ export default function FriendRequestNotification({
   const [loading, setLoading] = useState({ accept: false, decline: false });
   const [accepted, setAccepted] = useState(false);
 
-  console.log("notifications::", notifications);
   async function accept() {
     setLoading((prev) => ({ ...prev, accept: true }));
     const response = await fetch(server_url + "/accept/friend-request", {
@@ -68,6 +67,7 @@ export default function FriendRequestNotification({
     }
     setNotifications((prev) => prev.toSpliced(index, 1));
     setLoading((prev) => ({ ...prev, accept: false }));
+    router.refresh();
   }
 
   async function decline() {
@@ -93,6 +93,7 @@ export default function FriendRequestNotification({
 
     setNotifications((prev) => prev.toSpliced(index, 1));
     setLoading((prev) => ({ ...prev, decline: false }));
+    router.refresh();
   }
 
   const MotionButton = motion(Button);
@@ -100,34 +101,36 @@ export default function FriendRequestNotification({
     <AnimatePresence>
       <Collapsible>
         <CollapsibleTrigger asChild>
-          <MotionButton
-            key={notification.content.sender.id}
-            exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
-            variant="ghost"
-            className="w-full justify-start space-x-5 h-fit"
-          >
-            <Avatar>
-              <AvatarImage
-                src={notification.content.sender.profile_pic!.photo_url!}
-                alt={notification.content.sender.display_name
-                  .slice(0, 1)
-                  .toUpperCase()}
-              />
-              <AvatarFallback>
-                {notification.content.sender.display_name
-                  .slice(0, 1)
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col items-start space-y-1">
-              <p className="font-bold">
-                {notification.content.sender.display_name}
-              </p>
-              <p className="text-xs text-wrap text-start">
-                {notification.content.message}
-              </p>
-            </div>
-          </MotionButton>
+          <li>
+            <MotionButton
+              key={notification.content.sender.id}
+              exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
+              variant="ghost"
+              className="w-full justify-start space-x-5 h-fit"
+            >
+              <Avatar>
+                <AvatarImage
+                  src={notification.content.sender.profile_pic!.photo_url!}
+                  alt={notification.content.sender.display_name
+                    .slice(0, 1)
+                    .toUpperCase()}
+                />
+                <AvatarFallback>
+                  {notification.content.sender.display_name
+                    .slice(0, 1)
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-start space-y-1">
+                <p className="font-bold">
+                  {notification.content.sender.display_name}
+                </p>
+                <p className="text-xs text-wrap text-start">
+                  {notification.content.message}
+                </p>
+              </div>
+            </MotionButton>
+          </li>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <motion.div
