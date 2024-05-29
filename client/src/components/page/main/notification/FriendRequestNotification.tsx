@@ -38,113 +38,145 @@ export default function FriendRequestNotification({
 
   return (
     <AnimatePresence mode="popLayout">
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <li>
-            <MotionButton
-              key={notification.content!.id}
-              initial={{ opacity: 0, x: -100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 1 }}
-              variant="ghost"
-              className="w-full justify-start space-x-5 h-fit"
+      {!after_loading.accept && !after_loading && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <li>
+              <MotionButton
+                key={notification.content!.id}
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 1 }}
+                variant="ghost"
+                className="w-full justify-start space-x-5 h-fit"
+              >
+                <Avatar>
+                  <AvatarImage
+                    src={notification.content!.sender.profile_pic!.photo_url!}
+                    alt={notification
+                      .content!.sender.display_name.slice(0, 1)
+                      .toUpperCase()}
+                  />
+                  <AvatarFallback>
+                    {notification
+                      .content!.sender.display_name.slice(0, 1)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start space-y-1">
+                  <p className="font-bold">
+                    {notification.content!.sender.display_name}
+                  </p>
+                  <p className="text-xs text-wrap text-start">
+                    {notification.message}
+                  </p>
+                </div>
+              </MotionButton>
+            </li>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <motion.div
+              key={notification.message}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center w-full justify-evenly p-2"
             >
-              <Avatar>
-                <AvatarImage
-                  src={notification.content!.sender.profile_pic!.photo_url!}
-                  alt={notification
-                    .content!.sender.display_name.slice(0, 1)
-                    .toUpperCase()}
-                />
-                <AvatarFallback>
-                  {notification
-                    .content!.sender.display_name.slice(0, 1)
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start space-y-1">
-                <p className="font-bold">
-                  {notification.content!.sender.display_name}
-                </p>
-                <p className="text-xs text-wrap text-start">
-                  {notification.message}
-                </p>
-              </div>
-            </MotionButton>
-          </li>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <motion.div
-            key={notification.message}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center w-full justify-evenly p-2"
-          >
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="h-fit w-auto p-2 bg-green-600 "
-                    onClick={async () => {
-                      setLoading((prev) => ({ ...prev, accept: true }));
-                      await accept(
-                        notification.content as FriendRequest,
-                        index
-                      );
-                      setLoading((prev) => ({ ...prev, accept: false }));
-                    }}
-                  >
-                    {loading.accept ? (
-                      <LoadingSvg className="h-6 fill-secondary-foreground" />
-                    ) : (
-                      <>
-                        <CheckIcon className="h-4 text-secondary-foreground" />
-                        <p className="text-secondary-foreground ml-3">Accept</p>
-                      </>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Accept friend request</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="h-fit w-auto p-2 bg-red-600"
-                    onClick={async () => {
-                      setLoading((prev) => ({ ...prev, decline: true }));
-                      await decline(
-                        notification.content as FriendRequest,
-                        index
-                      );
-                      setLoading((prev) => ({ ...prev, decline: false }));
-                    }}
-                  >
-                    {loading.decline ? (
-                      <LoadingSvg className="h-6 fill-secondary-foreground" />
-                    ) : (
-                      <>
-                        <XMarkIcon className="h-4 text-secondary-foreground " />
-                        <p className="text-secondary-foreground ml-3">
-                          Decline
-                        </p>
-                      </>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Decline friend request</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </motion.div>
-        </CollapsibleContent>
-      </Collapsible>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className="h-fit w-auto p-2 bg-green-600 "
+                      onClick={async () => {
+                        setLoading((prev) => ({ ...prev, accept: true }));
+                        await accept(
+                          notification.content as FriendRequest,
+                          index
+                        );
+                        setLoading((prev) => ({ ...prev, accept: false }));
+                        setAfterLoading((prev) => ({ ...prev, accept: true }));
+                      }}
+                    >
+                      {loading.accept ? (
+                        <LoadingSvg className="h-6 fill-secondary-foreground" />
+                      ) : (
+                        <>
+                          <CheckIcon className="h-4 text-secondary-foreground" />
+                          <p className="text-secondary-foreground ml-3">
+                            Accept
+                          </p>
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Accept friend request</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className="h-fit w-auto p-2 bg-red-600"
+                      onClick={async () => {
+                        setLoading((prev) => ({ ...prev, decline: true }));
+                        await decline(
+                          notification.content as FriendRequest,
+                          index
+                        );
+                        setLoading((prev) => ({ ...prev, decline: false }));
+                        setAfterLoading((prev) => ({ ...prev, decline: true }));
+                      }}
+                    >
+                      {loading.decline ? (
+                        <LoadingSvg className="h-6 fill-secondary-foreground" />
+                      ) : (
+                        <>
+                          <XMarkIcon className="h-4 text-secondary-foreground " />
+                          <p className="text-secondary-foreground ml-3">
+                            Decline
+                          </p>
+                        </>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Decline friend request</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </motion.div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+      {after_loading.accept && (
+        <motion.li
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+          key="accept"
+          className="w-full flex items-center space-x-3"
+        >
+          <p>Friend request accepted</p>
+          <CheckIcon className="h-6 text-secondary-foreground bg-green-600 rounded-full" />
+        </motion.li>
+      )}
+      {after_loading.decline && (
+        <motion.li
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+          key="decline"
+          className="w-full flex items-center space-x-3"
+        >
+          <p>Friend request declines</p>
+          <XMarkIcon className="h-6 text-secondary-foreground bg-red-600 rounded-full" />
+        </motion.li>
+      )}
     </AnimatePresence>
   );
 }
