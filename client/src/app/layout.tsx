@@ -5,6 +5,7 @@ import ShadCNThemeProvider from "@/components/ShadCnThemeProvider";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import NextAuthSessionProvider from "@/components/NextAuthSessionProvider";
+import ReduxProvider from "@/components/ReduxProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -27,14 +28,16 @@ export default function RootLayout({
       <body
         className={cn("flex w-screen h-screen max-h-screen", poppins.className)}
       >
-        <ShadCNThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
-          <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
-          <Toaster />
-        </ShadCNThemeProvider>
+        <ReduxProvider>
+          <ShadCNThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+          >
+            <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+            <Toaster />
+          </ShadCNThemeProvider>
+        </ReduxProvider>
       </body>
     </html>
   );
