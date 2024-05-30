@@ -7,8 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User } from "@/lib/types/user-type";
-import { ChatBubbleOvalLeftIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
+import { User } from "@/lib/types/client-types";
+import {
+  ChatBubbleOvalLeftIcon,
+  EllipsisVerticalIcon,
+} from "@heroicons/react/24/solid";
 
 export default function FriendList({ friend }: { friend: User }) {
   return (

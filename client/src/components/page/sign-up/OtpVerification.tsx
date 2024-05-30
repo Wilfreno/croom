@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/input-otp";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/components/ui/use-toast";
-import { User } from "@/lib/types/user-type";
+import { User } from "@/lib/types/client-types";
 import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";

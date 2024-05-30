@@ -24,7 +24,7 @@ router.get("/user/email/:email", async (request, response) => {
       .send(okStatus("request succesful", exclude(user, ["password"])));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 router.get("/user/:id", async (request, response) => {
@@ -41,7 +41,7 @@ router.get("/user/:id", async (request, response) => {
       .send(okStatus("request succesful", exclude(user, ["password"])));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 router.get("/friends/:id", async (request, response) => {
@@ -105,7 +105,7 @@ router.get("/friends/:id", async (request, response) => {
       .json(okStatus("request succesful", Array.from(friends)));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -116,7 +116,7 @@ router.get("/friend-request/:id", async (request, response) => {
     if (!user_id)
       return response
         .status(400)
-        .json(badRequest(new Error("user id as params is needed")));
+        .json(badRequest("user id as params is needed; /friend-request/:id"));
 
     const user = await prisma.friendRequest.findMany({
       where: {
@@ -143,7 +143,7 @@ router.get("/friend-request/:id", async (request, response) => {
       .json(okStatus("request successfull", user_list));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -187,7 +187,7 @@ router.get("/notification/:id", async (request, response) => {
       .json(okStatus("request successfull", friend_requests_user_list));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 const get_router = router;

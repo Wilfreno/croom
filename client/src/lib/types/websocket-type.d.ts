@@ -1,5 +1,5 @@
 import { NotificationType } from "./notification-type";
-import { Room, User } from "./user-type";
+import { Room, User } from "./client-types";
 
 export type WebsocketClientMessage = {
   type: "join" | "leave" | "message" | "kick" | "friend-request";

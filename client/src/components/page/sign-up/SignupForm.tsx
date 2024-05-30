@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User } from "@/lib/types/user-type";
+import { User } from "@/lib/types/client-types";
 import { cn } from "@/lib/utils";
 import { EyeClosedIcon, EyeOpenIcon } from "@radix-ui/react-icons";
 import { useEffect, useState } from "react";

@@ -34,7 +34,7 @@ router.delete("/friend-request", async (request, response) => {
     return response.status(200).json(okStatus("friend request declined", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 

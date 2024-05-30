@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User } from "@/lib/types/user-type";
+import { User } from "@/lib/types/client-types";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 export default function Birthdate({
@@ -53,7 +53,11 @@ export default function Birthdate({
             <ScrollArea>
               <SelectGroup>
                 {Array.from({ length: 100 }).map((_, index) => (
-                  <SelectItem key={index} value={String(index)} className="cursor-pointer">
+                  <SelectItem
+                    key={index}
+                    value={String(index)}
+                    className="cursor-pointer"
+                  >
                     {new Date().getFullYear() - index}
                   </SelectItem>
                 ))}
@@ -108,7 +112,7 @@ export default function Birthdate({
                       : 31,
                 }).map((_, index) => (
                   <SelectItem
-                  key={index}
+                    key={index}
                     value={String(index + 1)}
                     className="cursor-pointer"
                   >

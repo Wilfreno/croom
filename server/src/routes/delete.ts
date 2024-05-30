@@ -29,7 +29,7 @@ router.delete("/user", async (request, response) => {
     return response.status(200).json(okStatus("user deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -49,7 +49,7 @@ router.delete("/room", async (request, response) => {
     return response.status(200).json(okStatus("room has been deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -71,7 +71,7 @@ router.delete("/message", async (request, response) => {
     return response.status(200).json(okStatus("messsage deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 

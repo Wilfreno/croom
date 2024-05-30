@@ -1,5 +1,5 @@
 import NextAuth, { Session } from "next-auth";
-import { User } from "./user-type";
+import { User } from "./client-types";
 
 declare module "next-auth" {
   interface Session {

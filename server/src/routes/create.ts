@@ -59,7 +59,7 @@ router.post("/user", async (request, response) => {
       .json(okStatus("user created", exclude(new_user, ["password"])));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -87,7 +87,7 @@ router.post("/room", async (request, response) => {
       .json(okStatus("room created successfully", new_room));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -128,7 +128,7 @@ router.post("/message", async (request, response) => {
     return response.status(200).json(okStatus("message sent", new_message));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -186,7 +186,7 @@ router.post("/otp", async (request, response) => {
     return response.status(200).json(okStatus("OTP created", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 
@@ -204,14 +204,20 @@ router.post("/friend-request", async (request, response) => {
           )
         );
 
+    const found_sender = await prisma.user.findFirst({
+      where: { user_name: sender },
+    });
+    const found_receiver = await prisma.user.findFirst({
+      where: { user_name: receiver },
+    });
+
+    if (!found_sender || !found_receiver)
+      return response.status(404).json(notFoundStatus("user cannot be found"));
+
     const found_request = await prisma.friendRequest.findFirst({
       where: {
-        sender: {
-          user_name: sender,
-        },
-        receiver: {
-          user_name: sender,
-        },
+        sender_id: found_sender.id,
+        receiver_id: found_receiver.id,
       },
     });
 
@@ -219,17 +225,6 @@ router.post("/friend-request", async (request, response) => {
       return response
         .status(409)
         .json(serverConflict("already sent a friend request"));
-
-    const found_sender = await prisma.user.findFirst({
-      where: { user_name: sender },
-    });
-
-    const found_receiver = await prisma.user.findFirst({
-      where: { user_name: receiver },
-    });
-
-    if (!found_sender || !found_receiver)
-      return response.status(404).json(notFoundStatus("user cannot be found"));
 
     const found_friendship = await prisma.friendship.findFirst({
       where: {
@@ -271,7 +266,7 @@ router.post("/friend-request", async (request, response) => {
       .json(okStatus("friend request sent", friend_request));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest(new Error(error as string)));
+    return response.status(400).json(badRequest());
   }
 });
 

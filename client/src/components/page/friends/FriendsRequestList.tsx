@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
-import { FriendRequest } from "@/lib/types/user-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";

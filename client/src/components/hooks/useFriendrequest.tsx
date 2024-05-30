@@ -2,7 +2,7 @@
 import useWebsocket from "@/components/hooks/useWebsocket";
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
-import { FriendRequest } from "@/lib/types/user-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { WebSocketSeverMessage } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";

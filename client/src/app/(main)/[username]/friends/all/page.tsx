@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ServerResponse } from "@/lib/types/sever-response";
-import { User } from "@/lib/types/user-type";
+import { User } from "@/lib/types/client-types";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";

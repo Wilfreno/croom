@@ -70,6 +70,8 @@ export type FriendRequest = {
   receiver_id: string;
   sender: User;
   sender_id: string;
+  created_at: Date;
+
 };
 
 export type Friendship = {

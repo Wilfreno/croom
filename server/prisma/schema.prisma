@@ -87,6 +87,7 @@ model FriendRequest {
   sender      User   @relation("friendRequestSender", fields: [sender_id], references: [id])
   sender_id   String
 
+  date_created DateTime @default(now())
   @@unique([sender_id, receiver_id])
 }
 

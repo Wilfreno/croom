@@ -5,7 +5,7 @@ import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FriendRequest } from "@/lib/types/user-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 

@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
-import { FriendRequest } from "@/lib/types/user-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { useState } from "react";
 
 export default function FriendRequestNotification({
@@ -38,7 +38,7 @@ export default function FriendRequestNotification({
 
   return (
     <AnimatePresence mode="popLayout">
-      {!after_loading.accept && !after_loading && (
+      {!after_loading.accept && !after_loading.decline && (
         <Collapsible>
           <CollapsibleTrigger asChild>
             <li>
@@ -46,8 +46,7 @@ export default function FriendRequestNotification({
                 key={notification.content!.id}
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 1 }}
+                transition={{ duration: 0.5 }}
                 variant="ghost"
                 className="w-full justify-start space-x-5 h-fit"
               >
@@ -158,7 +157,7 @@ export default function FriendRequestNotification({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
           key="accept"
-          className="w-full flex items-center space-x-3"
+          className="border rounded-lg p-2 w-full flex items-center space-x-3 "
         >
           <p>Friend request accepted</p>
           <CheckIcon className="h-6 text-secondary-foreground bg-green-600 rounded-full" />
@@ -171,7 +170,7 @@ export default function FriendRequestNotification({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
           key="decline"
-          className="w-full flex items-center space-x-3"
+          className=" border rounded-lg p-2 w-full flex items-center space-x-3"
         >
           <p>Friend request declines</p>
           <XMarkIcon className="h-6 text-secondary-foreground bg-red-600 rounded-full" />
