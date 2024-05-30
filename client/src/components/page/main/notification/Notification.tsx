@@ -1,24 +1,24 @@
 "use client";
 
 import { NotificationType } from "@/lib/types/notification-type";
-import useFriendrequest from "../../../hooks/useFriendrequest";
+import useFriendRequestHandler from "../../../hooks/useFriendrequest";
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import FriendRequestNotification from "./FriendRequestNotification";
 
 export default function Notification() {
-  const { friend_requests, accept, decline } = useFriendrequest();
+  const { friend_request_list, accept, decline } = useFriendRequestHandler();
   const [notifications, setNotifications] = useState<NotificationType[]>();
 
   useEffect(() => {
     let n: NotificationType[] = [];
-    if (friend_requests) {
-      for (let i = 0; i < friend_requests.length; i++) {
+    if (friend_request_list) {
+      for (let i = 0; i < friend_request_list.length; i++) {
         n.push({
           type: "friend-request",
-          content: friend_requests[i],
+          content: friend_request_list[i],
           message:
-            friend_requests[i].sender.display_name +
+            friend_request_list[i].sender.display_name +
             " want to make friends with you.",
         });
       }
@@ -31,10 +31,8 @@ export default function Notification() {
           new Date(b.content?.created_at!).getTime()
       )
     );
-  }, [friend_requests]);
+  }, [friend_request_list]);
 
-  console.log("N::", notifications);
-  console.log("F::", friend_requests);
   return (
     <div className="grid grid-rows-[auto_1fr] space-y-5">
       <p className="font-bold text-sm">Notifications</p>

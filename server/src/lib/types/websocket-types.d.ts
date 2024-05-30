@@ -3,7 +3,7 @@ import { NotificationType } from "./notification-type";
 
 export type WebsocketClientMessage = {
   type: "join" | "leave" | "message" | "kick" | "friend-request";
-  payload?: string
+  payload?: string;
   room_id?: Room["id"];
   sender?: User["id"];
   receiver?: User["id"];

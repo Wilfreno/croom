@@ -7,14 +7,21 @@ import { WebSocketSeverMessage } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { AppDispatch, useAppSelector } from "@/lib/redux/store";
+import { useDispatch } from "react-redux";
+import { setNewFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
+import { NotificationType } from "@/lib/types/notification-type";
 
-export default function useFriendrequest() {
+export default function useFriendRequestHandler() {
   const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
   if (!server_url)
     throw new Error(
       "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
     );
-  const friend_requests = useRef<FriendRequest[]>();
+  const friend_request_list = useAppSelector(
+    (state) => state.friend_request_list_reducer
+  );
+  const dispatch = useDispatch<AppDispatch>();
 
   const { data } = useSession();
   const websocket = useWebsocket();
@@ -29,9 +36,7 @@ export default function useFriendrequest() {
     const response_json = (await response.json()) as ServerResponse;
 
     if (response_json.status === "OK")
-      friend_requests.current = response_json.data as FriendRequest[];
-
-    router.refresh();
+      dispatch(setNewFriendRequestList(response_json.data as FriendRequest[]));
   }
 
   async function accept(request: FriendRequest, index: number) {
@@ -56,7 +61,9 @@ export default function useFriendrequest() {
     }
 
     setTimeout(() => {
-      friend_requests.current = friend_requests.current!.toSpliced(index, 1);
+      dispatch(
+        setNewFriendRequestList(friend_request_list.toSpliced(index, 1))
+      );
       router.refresh();
     }, 3000);
   }
@@ -82,7 +89,9 @@ export default function useFriendrequest() {
     }
 
     setTimeout(() => {
-      friend_requests.current = friend_requests.current!.toSpliced(index, 1);
+      dispatch(
+        setNewFriendRequestList(friend_request_list.toSpliced(index, 1))
+      );
       router.refresh();
     }, 3000);
   }
@@ -91,15 +100,23 @@ export default function useFriendrequest() {
     websocket?.addEventListener("message", (socket) => {
       const message: WebSocketSeverMessage = JSON.parse(socket.data);
 
-      if (message.type === "friend-request") getFriendRequest();
+      const notification = message.payload as NotificationType;
+      if (message.type === "friend-request")
+        dispatch(
+          setNewFriendRequestList([
+            ...friend_request_list,
+            notification.content!,
+          ])
+        );
     });
   }, [websocket]);
 
   useEffect(() => {
-    if (data && !friend_requests.current) getFriendRequest();
+    if (data && friend_request_list.length < 1) getFriendRequest();
   }, [data]);
+
   return {
-    friend_requests: friend_requests.current,
+    friend_request_list,
     accept,
     decline,
   };

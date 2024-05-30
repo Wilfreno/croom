@@ -1,6 +1,6 @@
 "use client";
 
-import useFriendrequest from "@/components/hooks/useFriendrequest";
+import useFriendRequestHandler from "@/components/hooks/useFriendrequest";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,27 +16,27 @@ export default function page() {
       "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
     );
 
-  const { friend_requests, decline, accept } = useFriendrequest();
+  const { friend_request_list, decline, accept } = useFriendRequestHandler();
 
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<FriendRequest[]>([]);
 
   useEffect(() => {
-    if (!search || !friend_requests) return;
+    if (!search || !friend_request_list) return;
 
     setSearchResult(
-      friend_requests.filter(
+      friend_request_list.filter(
         (request) =>
           request.sender.display_name.startsWith(search) ||
           request.sender.user_name.startsWith(search)
       )
     );
   }, [search]);
-  console.log(friend_requests);
+  console.log(friend_request_list);
   return (
     <div className="grow flex flex-col justify-between p-1">
       <p className="mx-5">
-        FRIEND REQUESTS - {friend_requests ? friend_requests.length : 0}
+        FRIEND REQUESTS - {friend_request_list ? friend_request_list.length : 0}
       </p>
       <div className="px-5 relative">
         <Input
@@ -64,7 +64,7 @@ export default function page() {
                   decline={decline}
                 />
               ))
-            : friend_requests?.map((request, index) => (
+            : friend_request_list?.map((request, index) => (
                 <FriendsRequestList
                   key={request.id}
                   request={request}

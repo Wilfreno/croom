@@ -200,7 +200,7 @@ router.post("/friend-request", async (request, response) => {
         .status(400)
         .json(
           serverConflict(
-            "sender and receiver on request nody is required; {sender:username, receiver: username}"
+            "sender and receiver on request body is required; {sender:username, receiver: username}"
           )
         );
 
@@ -250,7 +250,10 @@ router.post("/friend-request", async (request, response) => {
         .status(409)
         .json(
           serverConflict(
-            found_sender + " and " + found_receiver + " is already friends"
+            found_sender.display_name +
+              " and " +
+              found_receiver.display_name +
+              " is already friends"
           )
         );
 

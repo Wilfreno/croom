@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { badRequest, notFoundStatus, okStatus } from "../lib/response-json";
 import { prisma } from "../server";
-import { User } from "@prisma/client";
+import { FriendRequest, User } from "@prisma/client";
 import exclude from "../lib/exclude";
 import { NotificationType } from "../lib/types/notification-type";
 
@@ -129,6 +129,9 @@ router.get("/friend-request/:id", async (request, response) => {
           },
         },
       },
+      orderBy: {
+        date_created: "asc",
+      },
     });
     if (!user)
       return response.status(404).json(notFoundStatus("user not found"));
@@ -147,49 +150,6 @@ router.get("/friend-request/:id", async (request, response) => {
   }
 });
 
-router.get("/notification/:id", async (request, response) => {
-  try {
-    const user_id = request.params.id;
-    if (!user_id)
-      throw new Error("user id params is required; /get/notification/:id");
-
-    //getting friend requests
-    const friend_requests = await prisma.friendRequest.findMany({
-      where: {
-        receiver_id: user_id,
-      },
-      select: {
-        sender: {
-          include: {
-            profile_pic: true,
-          },
-        },
-      },
-    });
-    if (!friend_requests)
-      return response.status(404).json(notFoundStatus("user not found"));
-
-    let friend_requests_user_list: NotificationType[] = [];
-
-    for (let i = 0; i < friend_requests.length; i++) {
-      friend_requests_user_list.push({
-        content: {
-          sender: exclude(friend_requests[i].sender, ["password"]),
-          message:
-            friend_requests[i].sender.display_name +
-            " want to make friends with you.",
-        },
-        type: "friend-request",
-      });
-    }
-    return response
-      .status(200)
-      .json(okStatus("request successfull", friend_requests_user_list));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
 const get_router = router;
 
 export default get_router;
