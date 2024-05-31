@@ -9,6 +9,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import { User } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
@@ -17,7 +23,8 @@ import {
   EllipsisVerticalIcon,
 } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Dispatch, SetStateAction } from "react";
 
 export default function FriendList({
@@ -26,14 +33,13 @@ export default function FriendList({
   index,
 }: {
   friend: User;
-  setFriends: Dispatch<SetStateAction<User[] | undefined>>;
+  setFriends: Dispatch<SetStateAction<User[]>>;
   index: number;
 }) {
   const server_url = useServerUrl();
   const { data } = useSession();
   const { toast } = useToast();
-  const router = useRouter();
-
+  const params = useParams<{ username: string }>();
   async function unfriend() {
     const response = await fetch(server_url + "/delete/friend", {
       method: "DELETE",
@@ -82,9 +88,24 @@ export default function FriendList({
         <DialogContent>hey</DialogContent>
       </Dialog>
       <div className="flex imtex-center space-x-3">
-        <Button variant="ghost" size="icon" className="hover:bg-background">
-          <ChatBubbleOvalLeftIcon className="h-6" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href={"/" + params.username + "/dm/" + friend.user_name}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-background"
+                >
+                  <ChatBubbleOvalLeftIcon className="h-6" />
+                </Button>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Direct message</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="hover:bg-background">

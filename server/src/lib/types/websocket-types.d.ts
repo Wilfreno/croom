@@ -18,5 +18,5 @@ export type WebSocketSeverMessage = {
     | "offline"
     | "kicked"
     | "friend-request";
-  payload: string | NotificationType;
+  payload: string | NotificationType | Omit<User, "password">;
 };

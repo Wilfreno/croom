@@ -8,6 +8,7 @@ import { Room, User } from "@prisma/client";
 import { prisma } from "./server";
 import { parse } from "url";
 import { NotificationType } from "./lib/types/notification-type";
+import exclude from "./lib/exclude";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
@@ -49,7 +50,8 @@ export default function WebsocketServer(
 
     //inlisting the user to the online map and broadcasting it to every room the user is in
     online.set(user.id, socket);
-    broadCastIfOnline(user.id);
+    console.log("online:: ", online.size);
+    await broadCastIfOnline(user.id);
 
     //websocket event handlers
     socket.on("message", (client_message) => {
@@ -163,7 +165,51 @@ function makeMessage(
   });
 }
 
-function broadCastIfOnline(user_id: User["id"]) {
+async function broadCastIfOnline(user_id: User["id"]) {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: user_id,
+    },
+    include: {
+      profile_pic: true,
+    },
+  });
+
+  const friendship = await prisma.friendship.findMany({
+    where: {
+      OR: [{ friend_1_id: user_id }, { friend_2_id: user_id }],
+    },
+    include: {
+      user_1: {
+        include: {
+          profile_pic: true,
+        },
+      },
+      user_2: {
+        include: {
+          profile_pic: true,
+        },
+      },
+    },
+  });
+
+  let friends = new Set<Omit<User, "password">>();
+
+  for (let i = 0; i < friendship.length!; i++) {
+    if (friendship[i].user_1.id !== user_id)
+      friends.add(exclude(friendship[i].user_1, ["password"]));
+    if (friendship[i].user_2.id !== user_id)
+      friends.add(exclude(friendship[i].user_2!, ["password"]));
+  }
+
+  for (let friend of friends) {
+    online
+      .get(friend.id)
+      ?.send(makeMessage("online", exclude(user as User, ["password"])));
+
+    online.get(user_id)?.send(makeMessage("online", friend));
+  }
+
   rooms.forEach((room) => {
     if (room.has(user_id)) {
       room.forEach((member) => {

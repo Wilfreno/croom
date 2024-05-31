@@ -10,9 +10,9 @@ import FriendList from "@/components/page/friends/FriendList";
 import { Input } from "@/components/ui/input";
 
 export default function Page() {
-  const [friends, setFriends] = useState<User[]>();
+  const [friends, setFriends] = useState<User[]>([]);
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<User[]>();
+  const [search_result, setSearchResult] = useState<User[]>([]);
   const { data } = useSession();
 
   useEffect(() => {
