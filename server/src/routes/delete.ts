@@ -1,11 +1,6 @@
 import { FriendRequest, Room, User } from "@prisma/client";
 import { Router, response } from "express";
-import {
-  badRequest,
-  okStatus,
-  serverConflict,
-  serverError,
-} from "../lib/response-json";
+import { badRequest, okStatus, serverConflict } from "../lib/response-json";
 import { prisma } from "../server";
 
 const router = Router();
@@ -75,6 +70,38 @@ router.delete("/message", async (request, response) => {
   }
 });
 
+router.delete("/friend", async (request, response) => {
+  try {
+    const { friend_1, friend_2 }: Record<string, User["id"]> = request.body;
+
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        AND: [
+          { OR: [{ friend_1_id: friend_1 }, { friend_1_id: friend_2 }] },
+          { OR: [{ friend_2_id: friend_1 }, { friend_2_id: friend_2 }] },
+        ],
+      },
+    });
+
+    if (!friendship)
+      return response
+        .status(409)
+        .json(
+          serverConflict("cannot delete friendship; friendship does not exist")
+        );
+
+    await prisma.friendship.delete({
+      where: {
+        id: friendship.id,
+      },
+    });
+
+    return response.status(200).json(okStatus("friendship deleted", null));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest());
+  }
+});
 
 const delete_router = router;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { NotificationType } from "@/lib/types/notification-type";
-import useFriendRequestHandler from "../../../hooks/useFriendrequest";
+import useFriendRequestHandler from "../../../hooks/useFriendRequestHandler";
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import FriendRequestNotification from "./FriendRequestNotification";

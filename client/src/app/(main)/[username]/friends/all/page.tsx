@@ -1,6 +1,4 @@
 "use client";
-import FriendList from "@/components/page/friends/FriendList";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ServerResponse } from "@/lib/types/sever-response";
@@ -8,12 +6,15 @@ import { User } from "@/lib/types/client-types";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import FriendList from "@/components/page/friends/FriendList";
+import { Input } from "@/components/ui/input";
 
 export default function Page() {
   const [friends, setFriends] = useState<User[]>();
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<User[]>();
   const { data } = useSession();
+
   useEffect(() => {
     async function getFriends() {
       const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
@@ -67,15 +68,25 @@ export default function Page() {
         </Label>
       </div>
       <ScrollArea className="h-[70vh]">
-        <div className="px-5">
+        <ul className="px-3 space-y-3">
           {search_result
-            ? search_result.map((friend) => (
-                <FriendList key={friend.id} friend={friend} />
+            ? search_result.map((friend, index) => (
+                <FriendList
+                  key={friend.id}
+                  friend={friend}
+                  setFriends={setFriends}
+                  index={index}
+                />
               ))
-            : friends?.map((friend) => (
-                <FriendList key={friend.id} friend={friend} />
+            : friends?.map((friend, index) => (
+                <FriendList
+                  key={friend.id}
+                  friend={friend}
+                  setFriends={setFriends}
+                  index={index}
+                />
               ))}
-        </div>
+        </ul>
       </ScrollArea>
     </div>
   );

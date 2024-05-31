@@ -1,6 +1,6 @@
 "use client";
 
-import useFriendRequestHandler from "@/components/hooks/useFriendrequest";
+import useFriendRequestHandler from "@/components/hooks/useFriendRequestHandler";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
