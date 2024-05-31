@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { FriendRequest } from "@/lib/types/client-types";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export default function FriendRequestNotification({
   notification,
@@ -34,19 +34,18 @@ export default function FriendRequestNotification({
     accept: false,
     decline: false,
   });
-  const MotionButton = motion(Button);
+  const MotionButton = useMemo(() => motion(Button), []);
 
   return (
-    <AnimatePresence mode="popLayout">
-      {!after_loading.accept && !after_loading.decline && (
+    <AnimatePresence>
+      {!after_loading.accept && !after_loading.decline ? (
         <Collapsible>
           <CollapsibleTrigger asChild>
             <li>
               <MotionButton
-                key={notification.content!.id}
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.5, repeat: 1 }}
                 variant="ghost"
                 className="w-full justify-start space-x-5 h-fit"
               >
@@ -149,7 +148,7 @@ export default function FriendRequestNotification({
             </motion.div>
           </CollapsibleContent>
         </Collapsible>
-      )}
+      ) : null}
       {after_loading.accept && (
         <motion.li
           initial={{ opacity: 0, y: 10 }}
@@ -157,10 +156,10 @@ export default function FriendRequestNotification({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
           key="accept"
-          className="border rounded-lg p-2 w-full flex items-center space-x-3 "
+          className="border rounded-lg h-12 p-2 w-full flex items-center justify-center space-x-3 text-xs font-bold"
         >
           <p>Friend request accepted</p>
-          <CheckIcon className="h-6 text-secondary-foreground bg-green-600 rounded-full" />
+          <CheckIcon className="h-6 text-secondary-foreground fill-green-600 rounded-full" />
         </motion.li>
       )}
       {after_loading.decline && (
@@ -170,10 +169,10 @@ export default function FriendRequestNotification({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
           key="decline"
-          className=" border rounded-lg p-2 w-full flex items-center space-x-3"
+          className="border rounded-lg h-12 p-2 w-full flex items-center justify-center space-x-3 text-xs font-bold"
         >
-          <p>Friend request declines</p>
-          <XMarkIcon className="h-6 text-secondary-foreground bg-red-600 rounded-full" />
+          <p>Friend request declined</p>
+          <XMarkIcon className="h-6 text-secondary-foreground fill-red-600 rounded-full" />
         </motion.li>
       )}
     </AnimatePresence>
