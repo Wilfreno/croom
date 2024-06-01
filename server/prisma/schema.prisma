@@ -10,63 +10,72 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                      String          @id @unique @default(uuid())
-  email                   String          @unique
-  display_name            String
-  user_name               String
-  password                String?
-  profile_pic             Photo?
-  birth_date              DateTime?
-  messages                Message[]
-  rooms                   Room[]
-  provider                String?
-  friend_request_receiver FriendRequest[] @relation("friendRequestReceiver")
-  friend_request_sender   FriendRequest[] @relation("friendRequestSender")
-  friends                 Friendship[]    @relation("friends")
-  friends_with            Friendship[]    @relation("friendsWith")
-  created_at              DateTime        @default(now())
+  id                       String          @id @default(auto()) @map("_id") @db.ObjectId
+  email                    String          @unique
+  display_name             String
+  user_name                String
+  password                 String?
+  profile_pic              ProfilePic?
+  birth_date               DateTime?
+  messages                 Message[]
+  provider                 String?
+  rooms                    Room[]          @relation(fields: [room_ids], references: [id])
+  room_ids                 String[]        @db.ObjectId
+  friend_requests_sent     FriendRequest[] @relation("sender")
+  friend_requests_received FriendRequest[] @relation("receiver")
+  friendship               Friendship[]    @relation("friend1")
+  friendship2              Friendship[]    @relation("friend2")
+
+  created_at DateTime @default(now())
+}
+
+model ProfilePic {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  owner      User     @relation(fields: [owner_id], references: [id])
+  owner_id   String   @unique @db.ObjectId
+  photo_url  String
+  created_at DateTime @default(now())
 }
 
 model Room {
-  id         String    @id @unique @default(uuid())
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
   name       String
-  members    User[]
+  members    User[]    @relation(fields: [member_ids], references: [id])
+  member_ids String[]  @db.ObjectId
   messages   Message[]
   created_at DateTime  @default(now())
 }
 
 model Message {
-  id         String   @id @unique @default(uuid())
-  owner      User?    @relation(fields: [owner_id], references: [id])
-  owner_id   String?
-  room       Room?    @relation(fields: [room_id], references: [id])
-  room_id    String?
+  id         String         @id @default(auto()) @map("_id") @db.ObjectId
+  owner      User?          @relation(fields: [owner_id], references: [id])
+  owner_id   String?        @db.ObjectId
+  room       Room?          @relation(fields: [room_id], references: [id])
+  room_id    String?        @db.ObjectId
   type       String
   text       String?
-  photos     Photo[]
-  video      Video?
-  created_at DateTime @default(now())
+  photos     PhotoMessage[]
+  video      VideoMessage[]
+  created_at DateTime       @default(now())
 }
 
-model Photo {
-  id         String   @id @unique @default(uuid())
-  owner      User?    @relation(fields: [owner_id], references: [id])
-  owner_id   String?  @unique
+model PhotoMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   message    Message? @relation(fields: [message_id], references: [id])
-  message_id String?
+  message_id String?  @db.ObjectId
   photo_url  String
   created_at DateTime @default(now())
 }
 
-model Video {
-  id         String   @id @unique @default(uuid())
+model VideoMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   message    Message  @relation(fields: [message_id], references: [id])
-  message_id String   @unique
+  message_id String   @db.ObjectId
   video_url  String
   name       String
   length     Int
@@ -74,29 +83,31 @@ model Video {
 }
 
 model Otp {
-  id         String   @id @unique @default(uuid())
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   email      String
   value      String
   created_at DateTime @default(now())
 }
 
 model FriendRequest {
-  id          String @id @unique @default(uuid())
-  receiver    User   @relation("friendRequestReceiver", fields: [receiver_id], references: [id])
-  receiver_id String
-  sender      User   @relation("friendRequestSender", fields: [sender_id], references: [id])
-  sender_id   String
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  receiver    User   @relation("receiver", fields: [receiver_id], references: [id])
+  receiver_id String @db.ObjectId
+  sender      User   @relation("sender", fields: [sender_id], references: [id])
+  sender_id   String @db.ObjectId
 
   date_created DateTime @default(now())
+
   @@unique([sender_id, receiver_id])
 }
 
 model Friendship {
-  id          String @id @unique @default(uuid())
-  user_1      User   @relation("friends", fields: [friend_1_id], references: [id], onDelete: Cascade)
-  friend_1_id String
-  user_2      User   @relation("friendsWith", fields: [friend_2_id], references: [id], onDelete: Cascade)
-  friend_2_id String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  user_1      User   @relation("friend1", fields: [friend_1_id], references: [id])
+  friend_1_id String @db.ObjectId
+  user_2      User   @relation("friend2", fields: [friend_2_id], references: [id])
+  friend_2_id String @db.ObjectId
 
   created_at DateTime @default(now())
 
