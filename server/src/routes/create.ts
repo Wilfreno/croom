@@ -1,10 +1,11 @@
 import {
   FriendRequest,
   Message,
-  Photo,
+  PhotoMessage,
+  ProfilePic,
   Room,
   User,
-  Video,
+  VideoMessage,
 } from "@prisma/client";
 import { prisma } from "../server";
 import { Router } from "express";
@@ -25,7 +26,7 @@ const environment_mode = process.env.NODE_ENV;
 
 router.post("/user", async (request, response) => {
   try {
-    const user: User & { profile_pic: Photo } & { provider: string } =
+    const user: User & { profile_pic: ProfilePic } & { provider: string } =
       await request.body;
 
     const found_user = await prisma.user.findFirst({
@@ -52,7 +53,7 @@ router.post("/user", async (request, response) => {
       include: {
         profile_pic: true,
       },
-    })) as User & { profile_pic: Photo };
+    })) as User & { profile_pic: ProfilePic };
 
     return response
       .status(200)
@@ -93,8 +94,9 @@ router.post("/room", async (request, response) => {
 
 router.post("/message", async (request, response) => {
   try {
-    const message: Message & { video?: Video } & { photos?: Photo[] } =
-      request.body;
+    const message: Message & { video?: VideoMessage } & {
+      photos?: PhotoMessage[];
+    } = request.body;
 
     const new_message = await prisma.message.create({
       data: {
