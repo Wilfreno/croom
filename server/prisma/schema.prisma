@@ -12,6 +12,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -20,53 +21,84 @@ model User {
   display_name            String
   user_name               String
   password                String?
-  profile_pic             Photo?
+  profile_pic             ProfilePhoto?
   birth_date              DateTime?
-  messages                Message[]
-  rooms                   Room[]
   provider                String?
+
+
+  rooms                   Room[]
+  text_messages_sent      TextMessage[]   @relation("text-sent")
+  text_messages_received  TextMessage[]   @relation("text-received")
+  photo_messages_sent     PhotoMessage[]  @relation("photo-sent")
+  photo_messages_received PhotoMessage[]  @relation("photo-received")
+  video_messages_sent     VideoMessage[]  @relation("video-sent")
+  video_messages_received VideoMessage[]  @relation("video-received")
   friend_request_receiver FriendRequest[] @relation("friendRequestReceiver")
   friend_request_sender   FriendRequest[] @relation("friendRequestSender")
   friends                 Friendship[]    @relation("friends")
   friends_with            Friendship[]    @relation("friendsWith")
+
+
   created_at              DateTime        @default(now())
 }
 
-model Room {
-  id         String    @id @unique @default(uuid())
-  name       String
-  members    User[]
-  messages   Message[]
-  created_at DateTime  @default(now())
-}
-
-model Message {
+model ProfilePhoto {
   id         String   @id @unique @default(uuid())
-  owner      User?    @relation(fields: [owner_id], references: [id])
-  owner_id   String?
-  room       Room?    @relation(fields: [room_id], references: [id])
-  room_id    String?
-  type       String
-  text       String?
-  photos     Photo[]
-  video      Video?
-  created_at DateTime @default(now())
-}
-
-model Photo {
-  id         String   @id @unique @default(uuid())
-  owner      User?    @relation(fields: [owner_id], references: [id])
-  owner_id   String?  @unique
-  message    Message? @relation(fields: [message_id], references: [id])
-  message_id String?
+  owner      User     @relation(fields: [owner_id], references: [id])
+  owner_id   String   @unique
   photo_url  String
   created_at DateTime @default(now())
 }
 
-model Video {
-  id         String   @id @unique @default(uuid())
-  message    Message  @relation(fields: [message_id], references: [id])
-  message_id String   @unique
+model Room {
+  id             String         @id @unique @default(uuid())
+  name           String
+  members        User[]
+  text_messages  TextMessage[]
+  photo_messages PhotoMessage[]
+  video_messages VideoMessage[]
+  created_at     DateTime       @default(now())
+}
+
+model TextMessage {
+  id               String       @id @unique @default(uuid())
+  sender           User    @relation("text-sent", fields: [sender_id], references: [id])
+  sender_id        String
+  user_receiver    User?   @relation("text-received", fields: [user_receiver_id], references: [id])
+  user_receiver_id String?
+  room_receiver    Room    @relation(fields: [room_receiver_id], references: [id])
+  room_receiver_id String
+
+  content String
+
+  created_at DateTime @default(now())
+}
+
+model PhotoMessage {
+  id               String  @id @unique @default(uuid())
+  sender           User    @relation("photo-sent", fields: [sender_id], references: [id])
+  sender_id        String
+  user_receiver    User?   @relation("photo-received", fields: [user_receiver_id], references: [id])
+  user_receiver_id String?
+  room_receiver    Room    @relation(fields: [room_receiver_id], references: [id])
+  room_receiver_id String
+
+  photo_url  String
+  created_at DateTime @default(now())
+}
+
+model VideoMessage {
+  id String @id @unique @default(uuid())
+
+  sender    User   @relation("video-sent", fields: [sender_id], references: [id])
+  sender_id String
+
+  user_receiver    User?   @relation("video-received", fields: [user_receiver_id], references: [id])
+  user_receiver_id String?
+
+  room_receiver    Room   @relation(fields: [room_receiver_id], references: [id])
+  room_receiver_id String
+
   video_url  String
   name       String
   length     Int
@@ -88,6 +120,7 @@ model FriendRequest {
   sender_id   String
 
   date_created DateTime @default(now())
+
   @@unique([sender_id, receiver_id])
 }
 
