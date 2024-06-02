@@ -9,6 +9,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { data } = useSession();
   if (data?.user.provider) redirect("/new");
 
+  console.log("session:", data);
+
   const websocket = useWebsocket();
 
   useEffect(() => {

@@ -35,7 +35,7 @@ router.post("/user", async (request, response) => {
     if (found_user)
       return response.status(409).json(serverConflict("email already used"));
 
-    const new_user = (await prisma.user.create({
+    const new_user = await prisma.user.create({
       data: {
         display_name: user.display_name,
         user_name: user.user_name,
@@ -53,7 +53,7 @@ router.post("/user", async (request, response) => {
       include: {
         profile_pic: true,
       },
-    })) as User & { profile_pic: ProfilePic };
+    });
 
     return response
       .status(200)
