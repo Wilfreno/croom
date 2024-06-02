@@ -48,56 +48,33 @@ router.get("/friends/:id", async (request, response) => {
   try {
     const id = request.params.id;
 
-    const user = await prisma.user.findFirst({
-      where: { id },
-      select: {
-        friends: {
-          select: {
-            user_1: {
-              include: {
-                profile_pic: true,
-              },
-            },
-            user_2: {
-              include: {
-                profile_pic: true,
-              },
-            },
+    const friendship = await prisma.friendship.findMany({
+      where: {
+        OR: [{ friend_1_id: id }, { friend_2_id: id }],
+      },
+      include: {
+        user_1: {
+          include: {
+            profile_pic: true,
           },
         },
-        friends_with: {
-          select: {
-            user_1: {
-              include: {
-                profile_pic: true,
-              },
-            },
-            user_2: {
-              include: {
-                profile_pic: true,
-              },
-            },
+        user_2: {
+          include: {
+            profile_pic: true,
           },
         },
       },
     });
-
-    if (!user)
-      return response.status(404).json(notFoundStatus("user not found"));
+    if (!friendship)
+      return response.status(404).json(notFoundStatus("user got no friends"));
 
     let friends = new Set<Omit<User, "password">>();
 
-    for (let i = 0; i < user?.friends.length!; i++) {
-      if (user?.friends[i].user_1.id !== id)
-        friends.add(exclude(user!.friends[i].user_1!, ["password"]));
-      if (user?.friends[i].user_2.id !== id)
-        friends.add(exclude(user?.friends[i].user_2!, ["password"]));
-    }
-    for (let i = 0; i < user?.friends_with.length!; i++) {
-      if (user?.friends_with[i].user_1.id !== id)
-        friends.add(exclude(user!.friends_with[i].user_1!, ["password"]));
-      if (user?.friends_with[i].user_2.id !== id)
-        friends.add(exclude(user?.friends_with[i].user_2!, ["password"]));
+    for (let i = 0; i < friendship.length; i++) {
+      if (friendship[i].user_1.id !== id)
+        friends.add(exclude(friendship[i].user_1!, ["password"]));
+      if (friendship[i].user_2.id !== id)
+        friends.add(exclude(friendship[i].user_2!, ["password"]));
     }
 
     return response
