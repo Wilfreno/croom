@@ -48,28 +48,6 @@ router.delete("/room", async (request, response) => {
   }
 });
 
-router.delete("/message", async (request, response) => {
-  try {
-    const message = await request.body;
-
-    const found_mesasge = await prisma.message.findFirst({
-      where: { id: message.id },
-    });
-
-    if (!found_mesasge)
-      return response
-        .status(409)
-        .json(serverConflict("cannot delete message; message does not exist"));
-
-    await prisma.message.findFirst({ where: { id: message.id } });
-
-    return response.status(200).json(okStatus("messsage deleted", null));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
 router.delete("/friend", async (request, response) => {
   try {
     const { friend_1, friend_2 }: Record<string, User["id"]> = request.body;

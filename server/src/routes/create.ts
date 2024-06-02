@@ -1,11 +1,4 @@
-import {
-  FriendRequest,
-  Message,
-  Photo,
-  Room,
-  User,
-  Video,
-} from "@prisma/client";
+import { ProfilePhoto, Room, User } from "@prisma/client";
 import { prisma } from "../server";
 import { Router } from "express";
 import { hash } from "bcrypt";
@@ -25,8 +18,7 @@ const environment_mode = process.env.NODE_ENV;
 
 router.post("/user", async (request, response) => {
   try {
-    const user: User & { profile_pic: Photo } & { provider: string } =
-      await request.body;
+    const user: User & { profile_pic: ProfilePhoto } = request.body;
 
     const found_user = await prisma.user.findFirst({
       where: { email: user.email },
@@ -34,7 +26,7 @@ router.post("/user", async (request, response) => {
     if (found_user)
       return response.status(409).json(serverConflict("email already used"));
 
-    const new_user = (await prisma.user.create({
+    const new_user = await prisma.user.create({
       data: {
         display_name: user.display_name,
         user_name: user.user_name,
@@ -52,7 +44,7 @@ router.post("/user", async (request, response) => {
       include: {
         profile_pic: true,
       },
-    })) as User & { profile_pic: Photo };
+    });
 
     return response
       .status(200)
@@ -91,46 +83,6 @@ router.post("/room", async (request, response) => {
   }
 });
 
-router.post("/message", async (request, response) => {
-  try {
-    const message: Message & { video?: Video } & { photos?: Photo[] } =
-      request.body;
-
-    const new_message = await prisma.message.create({
-      data: {
-        type: message.type,
-        text: message.text,
-        room: {
-          connect: { id: message.room_id! },
-        },
-        video: {
-          connectOrCreate: {
-            where: {
-              id: message.video?.id!,
-            },
-            create: {
-              length: message.video?.length!,
-              name: message.video?.name!,
-              video_url: message.video?.video_url!,
-            },
-          },
-        },
-        photos: {
-          create: message.photos?.map((photo) => ({
-            id: photo.id,
-            photo_url: photo.photo_url,
-            owner_id: message.owner_id,
-          })),
-        },
-      },
-      include: { room: true, owner: true, video: true, photos: true },
-    });
-    return response.status(200).json(okStatus("message sent", new_message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
 
 router.post("/otp", async (request, response) => {
   const gmail_password = process.env.GMAIL_2FAUTH_APP_PASS;
