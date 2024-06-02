@@ -4,10 +4,10 @@ import {
   okStatus,
   serverError,
   unauthorized,
-} from "../lib/response-json";
-import { prisma } from "../server";
+} from "../../lib/response-json";
+import { prisma } from "../../server";
 import { compare } from "bcrypt";
-import exclude from "../lib/exclude";
+import exclude from "../../lib/exclude";
 
 const router = Router();
 

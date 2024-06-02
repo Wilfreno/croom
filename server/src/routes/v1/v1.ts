@@ -1,10 +1,10 @@
 import { Router } from "express";
-import create_router from "../create";
-import get_router from "../get";
-import delete_router from "../delete";
-import authenticate_router from "../authenticate";
-import accept_router from "../accept";
-import decline_router from "../decline";
+import create_router from "./create";
+import get_router from "./get";
+import delete_router from "./delete";
+import authenticate_router from "./authenticate";
+import accept_router from "./accept";
+import decline_router from "./decline";
 const router = Router();
 
 router.use("/create", create_router);

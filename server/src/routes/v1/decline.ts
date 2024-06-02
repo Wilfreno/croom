@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { badRequest, okStatus, serverConflict } from "../lib/response-json";
-import { prisma } from "../server";
+import { badRequest, okStatus, serverConflict } from "../../lib/response-json";
+import { prisma } from "../../server";
 import { User } from "@prisma/client";
 
 const router = Router();

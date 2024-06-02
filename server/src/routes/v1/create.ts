@@ -1,17 +1,17 @@
 import { ProfilePhoto, Room, User } from "@prisma/client";
-import { prisma } from "../server";
+import { prisma } from "../../server";
 import { Router } from "express";
 import { hash } from "bcrypt";
-import exclude from "../lib/exclude";
+import exclude from "../../lib/exclude";
 import { createTransport } from "nodemailer";
 import { render } from "@react-email/render";
-import OTP from "../lib/email/OTP";
+import OTP from "../../lib/email/OTP";
 import {
   badRequest,
   notFoundStatus,
   okStatus,
   serverConflict,
-} from "../lib/response-json";
+} from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -82,7 +82,6 @@ router.post("/room", async (request, response) => {
     return response.status(400).json(badRequest());
   }
 });
-
 
 router.post("/otp", async (request, response) => {
   const gmail_password = process.env.GMAIL_2FAUTH_APP_PASS;

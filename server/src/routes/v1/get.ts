@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { badRequest, notFoundStatus, okStatus } from "../lib/response-json";
-import { prisma } from "../server";
-import { FriendRequest, User } from "@prisma/client";
-import exclude from "../lib/exclude";
-import { NotificationType } from "../lib/types/notification-type";
+import { badRequest, notFoundStatus, okStatus } from "../../lib/response-json";
+import { prisma } from "../../server";
+import { User } from "@prisma/client";
+import exclude from "../../lib/exclude";
+import { parse } from "url";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -127,6 +127,19 @@ router.get("/friend-request/:id", async (request, response) => {
   }
 });
 
+router.get("/dm/:receiver", async (request, response) => {
+  try {
+    const receiver = request.params.receiver;
+    const sender = parse(request.url, true).query;
+    const fdff = request.query;
+    console.log(fdff);
+
+    return response.status(200);
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest());
+  }
+});
 const get_router = router;
 
 export default get_router;
