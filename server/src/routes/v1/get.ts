@@ -13,7 +13,7 @@ router.get("/user/email/:email", async (request, response) => {
     const user_email = request.params.email;
     const user = await prisma.user.findUnique({
       where: { email: user_email },
-      include: { profile_pic: true },
+      include: { profile_photo: true },
     });
 
     if (!user)
@@ -53,14 +53,14 @@ router.get("/friends/:id", async (request, response) => {
         OR: [{ friend_1_id: id }, { friend_2_id: id }],
       },
       include: {
-        user_1: {
+        friend_1: {
           include: {
-            profile_pic: true,
+            profile_photo: true,
           },
         },
-        user_2: {
+        friend_2: {
           include: {
-            profile_pic: true,
+            profile_photo: true,
           },
         },
       },
@@ -71,10 +71,10 @@ router.get("/friends/:id", async (request, response) => {
     let friends = new Set<Omit<User, "password">>();
 
     for (let i = 0; i < friendship.length; i++) {
-      if (friendship[i].user_1.id !== id)
-        friends.add(exclude(friendship[i].user_1!, ["password"]));
-      if (friendship[i].user_2.id !== id)
-        friends.add(exclude(friendship[i].user_2!, ["password"]));
+      if (friendship[i].friend_1.id !== id)
+        friends.add(exclude(friendship[i].friend_1!, ["password"]));
+      if (friendship[i].friend_2.id !== id)
+        friends.add(exclude(friendship[i].friend_2!, ["password"]));
     }
 
     return response
@@ -102,7 +102,7 @@ router.get("/friend-request/:id", async (request, response) => {
       select: {
         sender: {
           include: {
-            profile_pic: true,
+            profile_photo: true,
           },
         },
       },
@@ -127,14 +127,53 @@ router.get("/friend-request/:id", async (request, response) => {
   }
 });
 
-router.get("/dm/:receiver", async (request, response) => {
+router.get("/dm/:friend_id", async (request, response) => {
   try {
-    const receiver = request.params.receiver;
-    const sender = parse(request.url, true).query;
-    const fdff = request.query;
-    console.log(fdff);
+    const friend_id = request.params.friend_id;
+    const query = request.query;
 
-    return response.status(200);
+    if (!query.user_id)
+      return response
+        .status(400)
+        .json(
+          badRequest(
+            "user id is required as a query parameter; /dm/:friend_id?user_id= "
+          )
+        );
+
+    const user = query.user_id as string;
+    let count = 20;
+    let skip = 0;
+    if (query.page) {
+      count *= Number(query.page);
+      skip = count - 20;
+    }
+
+    const direct_messages = await prisma.directMessage.findMany({
+      where: {
+        OR: [
+          {
+            AND: [{ sender_id: user }, { receiver_id: friend_id }],
+          },
+          {
+            AND: [{ sender_id: friend_id }, { receiver_id: user }],
+          },
+        ],
+      },
+      include: {
+        text_messages: true,
+        photo_messages: true,
+        video_message: true,
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+      take: count,
+      skip,
+    });
+    return response
+      .status(200)
+      .json(okStatus("request succesfull", direct_messages));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());

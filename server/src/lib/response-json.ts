@@ -45,10 +45,10 @@ export function serverConflict(message: string): HTTPResponse {
   };
 }
 
-export function badRequest(message?: string): HTTPResponse {
+export function badRequest(message = "Something went wrong"): HTTPResponse {
   return {
     status: "BAD_REQUEST",
-    message: message ? message : "Something went wrong",
+    message: message,
     data: null,
   };
 }

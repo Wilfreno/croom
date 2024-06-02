@@ -2,7 +2,7 @@ import http from "http";
 import WebSocket from "ws";
 import { Room, User } from "@prisma/client";
 import { parse } from "url";
-import { prisma } from "src/server";
+import { prisma } from "../server";
 import { WebsocketClientMessage } from "src/lib/types/websocket-types";
 import makeMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -28,7 +28,6 @@ export default function WebsocketServer(
   websocket_server.on("connection", async (socket, request) => {
     //checking valid url connection
     const params = parse(request.url!, true).query;
-
     //cheking if there is  user_id query parameter on teh url
     if (!params.user_id) {
       socket.send(

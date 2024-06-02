@@ -1,4 +1,10 @@
-import { FriendRequest, Room, User } from "@prisma/client";
+import {
+  DirectMessage,
+  FriendRequest,
+  Room,
+  RoomMessage,
+  User,
+} from "@prisma/client";
 import { Router, response } from "express";
 import { badRequest, okStatus, serverConflict } from "../../lib/response-json";
 import { prisma } from "../../server";
@@ -75,6 +81,61 @@ router.delete("/friend", async (request, response) => {
     });
 
     return response.status(200).json(okStatus("friendship deleted", null));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest());
+  }
+});
+
+router.delete("/direct-message/:id", async (request, response) => {
+  try {
+    const message: DirectMessage = request.body;
+
+    const found_message = await prisma.directMessage.findFirst({
+      where: {
+        id: message.id,
+      },
+    });
+
+    if (!found_message)
+      return response
+        .status(409)
+        .json(serverConflict("cannot delete message; message does not exist"));
+
+    await prisma.directMessage.delete({
+      where: {
+        id: message.id,
+      },
+    });
+
+    return response.status(200).json(okStatus("message deleted", null));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest());
+  }
+});
+router.delete("/room-message/:id", async (request, response) => {
+  try {
+    const message: RoomMessage = request.body;
+
+    const found_message = await prisma.roomMessage.findFirst({
+      where: {
+        id: message.id,
+      },
+    });
+
+    if (!found_message)
+      return response
+        .status(409)
+        .json(serverConflict("cannot delete message; message does not exist"));
+
+    await prisma.roomMessage.delete({
+      where: {
+        id: message.id,
+      },
+    });
+
+    return response.status(200).json(okStatus("message deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());
