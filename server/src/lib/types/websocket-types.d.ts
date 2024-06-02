@@ -1,22 +1,50 @@
-import { Room, User } from "@prisma/client";
-import { NotificationType } from "./notification-type";
+import {
+  FriendRequest,
+  PhotoMessage,
+  Room,
+  TextMessage,
+  User,
+  VideoMessage,
+} from "@prisma/client";
 
 export type WebsocketClientMessage = {
-  type: "join" | "leave" | "message" | "kick" | "friend-request";
-  payload?: string;
+  type: WebsokcetMessageType;
+  payload?: WebSocketPayloadType;
   room_id?: Room["id"];
   sender?: User["id"];
   receiver?: User["id"];
 };
 
 export type WebSocketSeverMessage = {
-  type:
-    | "message"
-    | "error"
-    | "success"
-    | "online"
-    | "offline"
-    | "kicked"
-    | "friend-request";
-  payload: string | NotificationType | Omit<User, "password">;
+  type: WebsokcetMessageType;
+  payload: WebSocketPayloadType;
+};
+
+export type WebSocketPayloadType =
+  | string
+  | NotificationType
+  | Omit<User, "password">
+  | DirectMessageType;
+
+export type WebsokcetMessageType =
+  | "send-direct-message"
+  | "delete-direct-message"
+  | "error"
+  | "success"
+  | "online"
+  | "offline"
+  | "kick"
+  | "friend-request"
+  | "join"
+  | "leave";
+
+export type NotificationType = {
+  type: "friend-request" | undefined;
+  content: FriendRequest | undefined;
+  message: string;
+};
+
+export type DirectMessageType = {
+  type: "text" | "photo" | "video";
+  content: string;
 };

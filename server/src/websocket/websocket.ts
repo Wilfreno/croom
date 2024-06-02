@@ -3,15 +3,20 @@ import WebSocket from "ws";
 import { Room, User } from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
-import { WebsocketClientMessage } from "src/lib/types/websocket-types";
+import {
+  DirectMessageType,
+  WebsocketClientMessage,
+} from "src/lib/types/websocket-types";
 import makeMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
 import joinRoom from "./join-room";
-import sendMessage from "./send-message";
+import sendMessage from "./send-direct-message";
 import leaveRoom from "./leave-room";
 import kicked from "./kick";
 import friendRequest from "./friend-request";
 import broadCastOffline from "./broadcast-offline";
+import sendDirectMessage from "./send-direct-message";
+import deleteDirectMessage from "./delete-direct-message";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
@@ -60,19 +65,21 @@ export default function WebsocketServer(
         client_message.toString()
       );
       switch (parsed_message.type) {
+        case "send-direct-message":
+          sendDirectMessage(
+            parsed_message.receiver!,
+            parsed_message.payload as DirectMessageType,
+            online
+          );
+          break;
+        case "delete-direct-message":
+          deleteDirectMessage(parsed_message.receiver!, online);
+          break;
         case "join":
           joinRoom(
             socket,
             parsed_message.room_id!,
             parsed_message.sender!,
-            rooms
-          );
-          break;
-        case "message":
-          sendMessage(
-            socket,
-            parsed_message.payload as string,
-            parsed_message.room_id!,
             rooms
           );
           break;
