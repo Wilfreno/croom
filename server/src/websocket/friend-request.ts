@@ -19,7 +19,7 @@ export default async function friendRequest(
     include: {
       sender: {
         include: {
-          profile_pic: true,
+          profile_photo: true,
         },
       },
     },

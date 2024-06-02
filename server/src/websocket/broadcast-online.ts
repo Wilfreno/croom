@@ -14,7 +14,7 @@ export default async function broadcastOnline(
       id: user_id,
     },
     include: {
-      profile_pic: true,
+      profile_photo: true,
     },
   });
 
@@ -23,14 +23,14 @@ export default async function broadcastOnline(
       OR: [{ friend_1_id: user_id }, { friend_2_id: user_id }],
     },
     include: {
-      user_1: {
+      friend_1: {
         include: {
-          profile_pic: true,
+          profile_photo: true,
         },
       },
-      user_2: {
+      friend_2: {
         include: {
-          profile_pic: true,
+          profile_photo: true,
         },
       },
     },
@@ -39,10 +39,10 @@ export default async function broadcastOnline(
   let friends = new Set<Omit<User, "password">>();
 
   for (let i = 0; i < friendship.length!; i++) {
-    if (friendship[i].user_1.id !== user_id)
-      friends.add(exclude(friendship[i].user_1, ["password"]));
-    if (friendship[i].user_2.id !== user_id)
-      friends.add(exclude(friendship[i].user_2!, ["password"]));
+    if (friendship[i].friend_1.id !== user_id)
+      friends.add(exclude(friendship[i].friend_1, ["password"]));
+    if (friendship[i].friend_2.id !== user_id)
+      friends.add(exclude(friendship[i].friend_2!, ["password"]));
   }
 
   for (let friend of friends) {

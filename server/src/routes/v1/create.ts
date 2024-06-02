@@ -258,13 +258,13 @@ router.post("/direct-message/text", async (request, response) => {
       data: {
         receiver_id: receiver,
         sender_id: sender,
-        text_messages: {
+        text_message: {
           create: {
             content,
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
@@ -308,13 +308,13 @@ router.post("/direct-message/photo", async (request, response) => {
       data: {
         receiver_id: receiver,
         sender_id: sender,
-        photo_messages: {
+        photo_message: {
           create: {
             photo_url,
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
@@ -366,7 +366,7 @@ router.post("/direct-message/video", async (request, response) => {
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
@@ -410,13 +410,13 @@ router.post("/room-message/text", async (request, response) => {
       data: {
         receiver_id: receiver,
         sender_id: sender,
-        text_messages: {
+        text_message: {
           create: {
             content,
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
@@ -460,13 +460,13 @@ router.post("/room-message/photo", async (request, response) => {
       data: {
         receiver_id: receiver,
         sender_id: sender,
-        photo_messages: {
+        photo_message: {
           create: {
             photo_url,
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
@@ -518,7 +518,7 @@ router.post("/room-message/video", async (request, response) => {
           },
         },
       },
-      include: { text_messages: true },
+      include: { text_message: true },
     });
 
     return response.status(200).json(okStatus("message sent", message));
