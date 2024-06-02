@@ -1,56 +1,89 @@
 export type User = {
   id: string;
   email: string;
-  display_name: string;
-  user_name: string;
-  password?: string
-  profile_pic?: Photo;
-  birth_date?: Date;
-  messages?: Message[];
-  rooms?: Room[];
-  provider: string;
-  friend_request_receiver?: FriendRequest[];
-  friend_request_sender?: FriendRequest[];
-  friends?: Friendship[];
-  friends_with?: Friendship[];
-  created_at?: Date;
+  password?: string;
+  profile_photo: ProfilePhoto;
+  birth_date: Date;
+  display_name?: string;
+  user_name?: string;
+  provider?: string;
+  friend_request_sent: FriendRequest[];
+  friend_request_received: FriendRequest[];
+  friends: Friendship[];
+  friends_with: Friendship[];
+  direct_messages_sent: DirectMessage[];
+  direct_messages_received: DirectMessage[];
+  rooms: Room[];
+  room_mesages_sent: RoomMessage[];
+  created_at: Date;
+};
+
+export type ProfilePhoto = {
+  id: string;
+  owner: User;
+  owner_id: string;
+  photo_url: string;
+  created_at: Date;
 };
 
 export type Room = {
   id: string;
   name: string;
   members: User[];
-  messages: Message[];
+  messages: RoomMessage[];
   created_at: Date;
 };
 
-export type Message = {
+export type DirectMessage = {
   id: string;
-  owner: User;
-  owner_id: string;
+  sender: User;
+  sender_id: string;
+  receiver: User;
+  receiver_id: string;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+  created_at: Date;
+};
+
+export type RoomMessage = {
+  id: string;
+  sender: User;
+  sender_id: string;
   room: Room;
   room_id: string;
-  type: string;
-  text: string;
-  photos: Photo[];
-  video: Video;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_Message?: VideoMessage;
   created_at: Date;
 };
 
-export type Photo = {
+export type TextMessage = {
   id: string;
-  owner?: User;
-  owner_id?: string;
-  message?: Message;
-  message_id?: string;
-  photo_url: string;
-  created_at?: Date;
+  direct_message?: DirectMessage;
+  direct_message_id?: string;
+  room_message?: RoomMessage;
+  room_message_id?: string;
+  content: string;
+  created_at: Date;
 };
 
-export type Video = {
+export type PhotoMessage = {
   id: string;
-  message: Message;
-  message_id: string;
+  direct_message?: DirectMessage;
+  direct_message_id?: string;
+  room_message?: RoomMessage;
+  room_message_id?: string;
+  photo_url: string;
+  created_at: Date;
+};
+
+export type VideoMessage = {
+  id: string;
+  direct_message?: DirectMessage;
+  direct_message_id?: string;
+  room_message?: RoomMessage;
+  room_message_id?: string1;
   video_url: string;
   name: string;
   length: number;
@@ -70,16 +103,14 @@ export type FriendRequest = {
   receiver_id: string;
   sender: User;
   sender_id: string;
-  created_at: Date;
-
+  date_created: Date;
 };
 
 export type Friendship = {
   id: string;
-  user_1: User;
+  friend_1: User;
   friend_1_id: string;
-  user_2: User;
+  friend_2: User;
   friend_2_id: string;
-
   created_at: Date;
 };

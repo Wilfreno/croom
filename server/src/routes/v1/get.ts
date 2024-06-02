@@ -126,7 +126,6 @@ router.get("/friend-request/:id", async (request, response) => {
     return response.status(400).json(badRequest());
   }
 });
-
 router.get("/dm/:friend_id", async (request, response) => {
   try {
     const friend_id = request.params.friend_id;
@@ -161,8 +160,8 @@ router.get("/dm/:friend_id", async (request, response) => {
         ],
       },
       include: {
-        text_messages: true,
-        photo_messages: true,
+        text_message: true,
+        photo_message: true,
         video_message: true,
       },
       orderBy: {
