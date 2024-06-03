@@ -14,11 +14,11 @@ export default function UserMenu() {
       >
         <Avatar>
           <AvatarImage
-            src={data?.user.profile_pic?.photo_url!}
-            alt={data?.user.user_name.slice(0, 1).toUpperCase()}
+            src={data?.user.profile_photo?.photo_url!}
+            alt={data?.user.user_name?.slice(0, 1).toUpperCase()}
           />
           <AvatarFallback>
-            {data?.user.user_name.slice(0, 1).toUpperCase()}
+            {data?.user.user_name?.slice(0, 1).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <p className="font-bold">{data?.user.display_name}</p>
