@@ -22,7 +22,7 @@ export type WebSocketSeverMessage = {
 
 export type WebSocketPayloadType =
   | string
-  | NotificationType
+  | FriendRequestMessageType
   | Omit<User, "password">
   | DirectMessageType;
 
@@ -39,10 +39,10 @@ export type WebsokcetMessageType =
   | "join"
   | "leave";
 
-export type NotificationType = {
-  type: "friend-request" | undefined;
-  content: FriendRequest | undefined;
-  message: string;
+export type FriendRequestMessageType = {
+  sender: Omit<User, "password">;
+  receiver: Omit<User, "password">;
+  created_at: Date;
 };
 
 export type DirectMessageType = {

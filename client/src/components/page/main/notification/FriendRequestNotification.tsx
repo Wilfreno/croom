@@ -15,8 +15,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
-import { FriendRequest } from "@/lib/types/client-types";
 import { useMemo, useState } from "react";
+import { FriendRequestMessageType } from "@/lib/types/websocket-type";
 
 export default function FriendRequestNotification({
   notification,
@@ -25,8 +25,14 @@ export default function FriendRequestNotification({
   index,
 }: {
   notification: NotificationType;
-  accept: (request: FriendRequest, index: number) => Promise<void>;
-  decline: (request: FriendRequest, index: number) => Promise<void>;
+  accept: (
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) => Promise<void>;
+  decline: (
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) => Promise<void>;
   index: number;
 }) {
   const [loading, setLoading] = useState({ accept: false, decline: false });
@@ -88,10 +94,7 @@ export default function FriendRequestNotification({
                       className="h-fit w-auto p-2 bg-green-600 "
                       onClick={async () => {
                         setLoading((prev) => ({ ...prev, accept: true }));
-                        await accept(
-                          notification.content as FriendRequest,
-                          index
-                        );
+                        await accept(notification.content?.sender!, index);
                         setLoading((prev) => ({ ...prev, accept: false }));
                         setAfterLoading((prev) => ({ ...prev, accept: true }));
                       }}
@@ -120,10 +123,7 @@ export default function FriendRequestNotification({
                       className="h-fit w-auto p-2 bg-red-600"
                       onClick={async () => {
                         setLoading((prev) => ({ ...prev, decline: true }));
-                        await decline(
-                          notification.content as FriendRequest,
-                          index
-                        );
+                        await decline(notification.content?.sender!, index);
                         setLoading((prev) => ({ ...prev, decline: false }));
                         setAfterLoading((prev) => ({ ...prev, decline: true }));
                       }}

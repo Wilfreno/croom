@@ -5,6 +5,7 @@ import { parse } from "url";
 import { prisma } from "../server";
 import {
   DirectMessageType,
+  FriendRequestMessageType,
   WebsocketClientMessage,
 } from "src/lib/types/websocket-types";
 import makeMessage from "./make-message";
@@ -17,6 +18,8 @@ import friendRequest from "./send-friend-request";
 import broadCastOffline from "./broadcast-offline";
 import sendDirectMessage from "./send-direct-message";
 import deleteDirectMessage from "./delete-direct-message";
+import sendfriendRequest from "./send-friend-request";
+import acceptFriendrequest from "./accept-friend-request";
 
 const members = new Map<User["id"], WebSocket>();
 const rooms = new Map<Room["id"], typeof members>();
@@ -65,11 +68,20 @@ export default function WebsocketServer(
         client_message.toString()
       );
       switch (parsed_message.type) {
-        case "send-friend-request":
-          friendRequest(parsed_message.receiver!, online);
+        case "send-friend-request": {
+          const friend_request =
+            parsed_message.payload as FriendRequestMessageType;
+
+          sendfriendRequest(friend_request, online);
           break;
-        case "accept-friend-request":
+        }
+        case "accept-friend-request": {
+          const friend_request =
+            parsed_message.payload as FriendRequestMessageType;
+
+          acceptFriendrequest(friend_request, online);
           break;
+        }
         case "send-direct-message":
           sendDirectMessage(
             parsed_message.receiver!,

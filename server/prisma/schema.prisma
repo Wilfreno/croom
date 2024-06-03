@@ -26,23 +26,23 @@ model User {
   direct_messages_received DirectMessage[] @relation("dm-receiver")
   rooms                    Room[]          @relation("room-to-user")
   room_mesages_sent        RoomMessage[]   @relation("room-message-sender")
-  created_at               DateTime        @default(now())
+  date_created             DateTime        @default(now())
 }
 
 model ProfilePhoto {
-  id         String   @id @unique @default(uuid())
-  owner      User     @relation(fields: [owner_id], references: [id])
-  owner_id   String   @unique
-  photo_url  String
-  created_at DateTime @default(now())
+  id           String   @id @unique @default(uuid())
+  owner        User     @relation(fields: [owner_id], references: [id])
+  owner_id     String   @unique
+  photo_url    String
+  date_created DateTime @default(now())
 }
 
 model Room {
-  id         String        @id @unique @default(uuid())
-  name       String
-  members    User[]        @relation("room-to-user")
-  messages   RoomMessage[]
-  created_at DateTime      @default(now())
+  id           String        @id @unique @default(uuid())
+  name         String
+  members      User[]        @relation("room-to-user")
+  messages     RoomMessage[]
+  date_created DateTime      @default(now())
 }
 
 model DirectMessage {
@@ -54,7 +54,7 @@ model DirectMessage {
   text_message  TextMessage?
   photo_message PhotoMessage?
   video_message VideoMessage?
-  created_at    DateTime      @default(now())
+  date_created  DateTime      @default(now())
 }
 
 model RoomMessage {
@@ -66,7 +66,7 @@ model RoomMessage {
   text_message  TextMessage?
   photo_message PhotoMessage?
   video_Message VideoMessage?
-  created_at    DateTime      @default(now())
+  date_created  DateTime      @default(now())
 }
 
 model TextMessage {
@@ -76,7 +76,7 @@ model TextMessage {
   room_message      RoomMessage?   @relation(fields: [room_message_id], references: [id])
   room_message_id   String?        @unique
   content           String
-  created_at        DateTime       @default(now())
+  date_created      DateTime       @default(now())
 }
 
 model PhotoMessage {
@@ -86,7 +86,7 @@ model PhotoMessage {
   room_message      RoomMessage?   @relation(fields: [room_message_id], references: [id])
   room_message_id   String?        @unique
   photo_url         String
-  created_at        DateTime       @default(now())
+  date_created      DateTime       @default(now())
 }
 
 model VideoMessage {
@@ -98,14 +98,14 @@ model VideoMessage {
   video_url         String
   name              String
   length            Int
-  created_at        DateTime       @default(now())
+  date_created      DateTime       @default(now())
 }
 
 model Otp {
-  id         String   @id @unique @default(uuid())
-  email      String
-  value      String
-  created_at DateTime @default(now())
+  id           String   @id @unique @default(uuid())
+  email        String
+  value        String
+  date_created DateTime @default(now())
 }
 
 model FriendRequest {
@@ -120,12 +120,12 @@ model FriendRequest {
 }
 
 model Friendship {
-  id          String   @id @unique @default(uuid())
-  friend_1    User     @relation("friend1", fields: [friend_1_id], references: [id], onDelete: Cascade)
-  friend_1_id String
-  friend_2    User     @relation("friend2", fields: [friend_2_id], references: [id], onDelete: Cascade)
-  friend_2_id String
-  created_at  DateTime @default(now())
+  id           String   @id @unique @default(uuid())
+  friend_1     User     @relation("friend1", fields: [friend_1_id], references: [id], onDelete: Cascade)
+  friend_1_id  String
+  friend_2     User     @relation("friend2", fields: [friend_2_id], references: [id], onDelete: Cascade)
+  friend_2_id  String
+  date_created DateTime @default(now())
 
   @@unique([friend_1_id, friend_2_id])
 }

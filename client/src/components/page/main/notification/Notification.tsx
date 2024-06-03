@@ -12,23 +12,22 @@ export default function Notification() {
 
   useEffect(() => {
     let n: NotificationType[] = [];
-    if (friend_request_list) {
-      for (let i = 0; i < friend_request_list.length; i++) {
-        n.push({
-          type: "friend-request",
-          content: friend_request_list[i],
-          message:
-            friend_request_list[i].sender.display_name +
-            " want to make friends with you.",
-        });
-      }
+
+    for (let i = 0; i < friend_request_list.length; i++) {
+      n.push({
+        type: "friend-request",
+        content: friend_request_list[i],
+        message:
+          friend_request_list[i].sender.display_name +
+          " want to make friends with you.",
+      });
     }
 
     setNotifications(
       n.toSorted(
         (a, b) =>
-          new Date(a.content?.created_at!).getTime() -
-          new Date(b.content?.created_at!).getTime()
+          new Date(a.content?.date_created!).getTime() -
+          new Date(b.content?.date_created!).getTime()
       )
     );
   }, [friend_request_list]);

@@ -213,11 +213,23 @@ router.post("/friend-request", async (request, response) => {
         sender_id: found_sender.id,
         receiver_id: found_receiver.id,
       },
+      include: {
+        receiver: {
+          include: {
+            profile_photo: true,
+          },
+        },
+      },
     });
 
     return response
       .status(200)
-      .json(okStatus("friend request sent", friend_request));
+      .json(
+        okStatus(
+          "friend request sent",
+          exclude(friend_request.receiver, ["password"])
+        )
+      );
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());

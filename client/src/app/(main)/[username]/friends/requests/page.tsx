@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FriendRequest } from "@/lib/types/client-types";
+import { FriendRequestMessageType } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
@@ -19,7 +20,9 @@ export default function page() {
   const { friend_request_list, decline, accept } = useFriendRequestHandler();
 
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<FriendRequest[]>([]);
+  const [search_result, setSearchResult] = useState<FriendRequestMessageType[]>(
+    []
+  );
 
   useEffect(() => {
     if (!search || !friend_request_list) return;
@@ -32,7 +35,7 @@ export default function page() {
       )
     );
   }, [search]);
-  console.log(friend_request_list);
+
   return (
     <div className="grow flex flex-col justify-between p-1">
       <p className="mx-5">
@@ -57,7 +60,7 @@ export default function page() {
           {search
             ? search_result.map((request, index) => (
                 <FriendsRequestList
-                  key={request.id}
+                  key={request.receiver.id}
                   request={request}
                   index={index}
                   accept={accept}
@@ -66,7 +69,7 @@ export default function page() {
               ))
             : friend_request_list?.map((request, index) => (
                 <FriendsRequestList
-                  key={request.id}
+                  key={request.sender.id}
                   request={request}
                   index={index}
                   accept={accept}

@@ -15,7 +15,7 @@ export type User = {
   direct_messages_received?: DirectMessage[];
   rooms?: Room[];
   room_mesages_sent?: RoomMessage[];
-  created_at?: Date;
+  date_created?: Date;
 };
 
 export type ProfilePhoto = {
@@ -23,7 +23,7 @@ export type ProfilePhoto = {
   owner?: User;
   owner_id?: string;
   photo_url: string;
-  created_at?: Date;
+  date_created?: Date;
 };
 
 export type Room = {
@@ -31,7 +31,7 @@ export type Room = {
   name: string;
   members: User[];
   messages: RoomMessage[];
-  created_at: Date;
+  date_created: Date;
 };
 
 export type DirectMessage = {
@@ -43,7 +43,7 @@ export type DirectMessage = {
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type RoomMessage = {
@@ -55,7 +55,7 @@ export type RoomMessage = {
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_Message?: VideoMessage;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type TextMessage = {
@@ -65,7 +65,7 @@ export type TextMessage = {
   room_message?: RoomMessage;
   room_message_id?: string;
   content: string;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type PhotoMessage = {
@@ -75,7 +75,7 @@ export type PhotoMessage = {
   room_message?: RoomMessage;
   room_message_id?: string;
   photo_url: string;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type VideoMessage = {
@@ -87,14 +87,14 @@ export type VideoMessage = {
   video_url: string;
   name: string;
   length: number;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type Otp = {
   id: string;
   email: string;
   value: string;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type FriendRequest = {
@@ -112,5 +112,5 @@ export type Friendship = {
   friend_1_id: string;
   friend_2: User;
   friend_2_id: string;
-  created_at: Date;
+  date_created: Date;
 };

@@ -3,7 +3,11 @@ import useWebsocket from "@/components/hooks/useWebsocket";
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
 import { FriendRequest } from "@/lib/types/client-types";
-import { WebSocketSeverMessage } from "@/lib/types/websocket-type";
+import {
+  FriendRequestMessageType,
+  WebSocketSeverMessage,
+  WebsocketClientMessage,
+} from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -33,23 +37,43 @@ export default function useFriendRequestHandler() {
     const response_json = (await response.json()) as ServerResponse;
 
     if (response_json.status === "OK")
-      dispatch(setNewFriendRequestList(response_json.data as FriendRequest[]));
+      dispatch(
+        setNewFriendRequestList(
+          friend_request_list.map((request) => ({
+            sender: request.sender,
+            receiver: request.receiver,
+            date_created: request.date_created,
+          }))
+        )
+      );
   }
 
-  async function accept(request: FriendRequest, index: number) {
+  async function accept(
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) {
     const response = await fetch(server_url + "/v1/accept/friend-request", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: request.sender.id,
+        sender: sender.id,
         receiver: data?.user.id,
       }),
     });
     const response_json = (await response.json()) as ServerResponse;
 
     if (response_json.status === "OK") {
+      websocket?.send(
+        JSON.stringify({
+          type: "accept-friend-request",
+          payload: {
+            sender: sender,
+            receiver: data?.user,
+          },
+        } as WebsocketClientMessage)
+      );
     } else {
       toast({
         title: "Something went wrong!",
@@ -65,14 +89,17 @@ export default function useFriendRequestHandler() {
     }, 3000);
   }
 
-  async function decline(request: FriendRequest, index: number) {
+  async function decline(
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) {
     const response = await fetch(server_url + "/v1/decline/friend-request", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: request.sender.id,
+        sender: sender.id,
         receiver: data?.user.id,
       }),
     });
@@ -97,14 +124,10 @@ export default function useFriendRequestHandler() {
     websocket?.addEventListener("message", (socket) => {
       const message: WebSocketSeverMessage = JSON.parse(socket.data);
 
-      const notification = message.payload as NotificationType;
-      if (message.type === "send-friend-request")
-        dispatch(
-          setNewFriendRequestList([
-            ...friend_request_list,
-            notification.content!,
-          ])
-        );
+      if (message.type === "send-friend-request") {
+        const payload = message.payload as FriendRequestMessageType;
+        dispatch(setNewFriendRequestList([...friend_request_list, payload]));
+      }
     });
   }, [websocket]);
 

@@ -2,13 +2,9 @@ import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { ServerResponse } from "@/lib/types/sever-response";
-import { FriendRequest } from "@/lib/types/client-types";
+import { FriendRequestMessageType } from "@/lib/types/websocket-type";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 
 export default function FriendsRequestList({
   request,
@@ -16,28 +12,31 @@ export default function FriendsRequestList({
   accept,
   decline,
 }: {
-  request: FriendRequest;
+  request: FriendRequestMessageType;
   index: number;
-  accept: (request: FriendRequest, index: number) => Promise<void>;
-  decline: (request: FriendRequest, index: number) => Promise<void>;
+  accept: (
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) => Promise<void>;
+  decline: (
+    sender: FriendRequestMessageType["sender"],
+    index: number
+  ) => Promise<void>;
 }) {
   const [loading, setLoading] = useState({ accept: false, decline: false });
 
   return (
-    <li
-      key={request.id}
-      className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10"
-    >
+    <li className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10">
       <Dialog>
         <DialogTrigger asChild>
           <Button className="flex items-center space-x-5 grow bg-transparent justify-start text-secondary-foreground hover:bg-transparent hover:shadow-none shadow-none focus-visible:ring-0">
             <Avatar>
               <AvatarImage
-                src={request.sender.profile_pic?.photo_url}
-                alt={request.sender.display_name.slice(0, 1).toUpperCase()}
+                src={request.sender.profile_photo?.photo_url}
+                alt={request.sender.display_name!.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback>
-                {request.sender.display_name.slice(0, 1).toUpperCase()}
+                {request.sender.display_name!.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <p>{request.sender.display_name}</p>
@@ -52,7 +51,7 @@ export default function FriendsRequestList({
           className="h-fit w-auto bg-green-600 p-2 text-secondary-foreground"
           onClick={async () => {
             setLoading((prev) => ({ ...prev, accept: true }));
-            await accept(request, index);
+            await accept(request.sender, index);
             setLoading((prev) => ({ ...prev, accept: false }));
           }}
         >
@@ -69,7 +68,7 @@ export default function FriendsRequestList({
           className="h-fit w-auto bg-red-600 p-2 text-secondary-foreground"
           onClick={async () => {
             setLoading((prev) => ({ ...prev, decline: true }));
-            await decline(request, index);
+            await decline(request.sender, index);
             setLoading((prev) => ({ ...prev, decline: false }));
           }}
         >

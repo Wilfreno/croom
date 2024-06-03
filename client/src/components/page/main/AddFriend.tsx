@@ -11,8 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { FriendRequest } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
-import { WebsocketClientMessage } from "@/lib/types/websocket-type";
+import {
+  FriendRequestMessageType,
+  WebsocketClientMessage,
+} from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
@@ -65,13 +69,17 @@ export default function AddFriend() {
             const response_json = (await response.json()) as ServerResponse;
             setServerResponse(response_json);
 
+            const friend_request = response_json.data as FriendRequest;
             if (response_json.status !== "OK") return;
 
             websocket?.send(
               JSON.stringify({
-                type: "friend-request",
-                sender: data?.user.id,
-                receiver: username,
+                type: "send-friend-request",
+                payload: {
+                  sender: data?.user,
+                  receiver: friend_request.receiver,
+                  date_created: friend_request.date_created,
+                } as FriendRequestMessageType,
               } as WebsocketClientMessage)
             );
             setSending(false);

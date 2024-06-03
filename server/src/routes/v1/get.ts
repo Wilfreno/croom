@@ -4,6 +4,7 @@ import { prisma } from "../../server";
 import { User } from "@prisma/client";
 import exclude from "../../lib/exclude";
 import { parse } from "url";
+import { FriendRequestMessageType } from "src/lib/types/websocket-types";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -105,6 +106,11 @@ router.get("/friend-request/:id", async (request, response) => {
             profile_photo: true,
           },
         },
+        receiver: {
+          include: {
+            profile_photo: true,
+          },
+        },
       },
       orderBy: {
         date_created: "asc",
@@ -113,10 +119,13 @@ router.get("/friend-request/:id", async (request, response) => {
     if (!user)
       return response.status(404).json(notFoundStatus("user not found"));
 
-    let user_list: { sender: Omit<User, "password"> }[] = [];
+    let user_list: FriendRequestMessageType[] = [];
 
     for (let i = 0; i < user.length; i++) {
-      user_list.push({ sender: exclude(user[i].sender, ["password"]) });
+      user_list.push({
+        sender: exclude(user[i].sender, ["password"]),
+        receiver: exclude(user[i].receiver, ["password"]),
+      });
     }
     return response
       .status(200)
