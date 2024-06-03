@@ -3,27 +3,27 @@ export type User = {
   email: string;
   password?: string;
   profile_photo: ProfilePhoto;
-  birth_date: Date;
+  birth_date?: Date;
   display_name?: string;
   user_name?: string;
   provider?: string;
-  friend_request_sent: FriendRequest[];
-  friend_request_received: FriendRequest[];
-  friends: Friendship[];
-  friends_with: Friendship[];
-  direct_messages_sent: DirectMessage[];
-  direct_messages_received: DirectMessage[];
-  rooms: Room[];
-  room_mesages_sent: RoomMessage[];
-  created_at: Date;
+  friend_request_sent?: FriendRequest[];
+  friend_request_received?: FriendRequest[];
+  friends?: Friendship[];
+  friends_with?: Friendship[];
+  direct_messages_sent?: DirectMessage[];
+  direct_messages_received?: DirectMessage[];
+  rooms?: Room[];
+  room_mesages_sent?: RoomMessage[];
+  created_at?: Date;
 };
 
 export type ProfilePhoto = {
   id: string;
-  owner: User;
-  owner_id: string;
+  owner?: User;
+  owner_id?: string;
   photo_url: string;
-  created_at: Date;
+  created_at?: Date;
 };
 
 export type Room = {

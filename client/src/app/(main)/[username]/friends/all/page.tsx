@@ -25,7 +25,7 @@ export default function Page() {
 
       try {
         const response = await fetch(
-          server_url + "/get/friends/" + data?.user.id
+          server_url + "/v1/get/friends/" + data?.user.id
         );
         const response_json = (await response.json()) as ServerResponse;
 
@@ -44,8 +44,8 @@ export default function Page() {
     setSearchResult(
       friends.filter(
         (user) =>
-          user.display_name.startsWith(search) ||
-          user.user_name.startsWith(search)
+          user.display_name?.startsWith(search) ||
+          user.user_name?.startsWith(search)
       )
     );
   }, [search]);

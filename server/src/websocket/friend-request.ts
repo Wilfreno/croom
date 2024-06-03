@@ -1,8 +1,8 @@
 import { User } from "@prisma/client";
 import { prisma } from "../server";
 import makeMessage from "./make-message";
-import { NotificationType } from "src/lib/types/notification-type";
 import { WebSocket } from "ws";
+import { NotificationType } from "../lib/types/websocket-types";
 
 export default async function friendRequest(
   receiver: User["user_name"],

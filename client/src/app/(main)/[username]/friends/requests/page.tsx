@@ -27,8 +27,8 @@ export default function page() {
     setSearchResult(
       friend_request_list.filter(
         (request) =>
-          request.sender.display_name.startsWith(search) ||
-          request.sender.user_name.startsWith(search)
+          request.sender.display_name?.startsWith(search) ||
+          request.sender.user_name?.startsWith(search)
       )
     );
   }, [search]);

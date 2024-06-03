@@ -1,8 +1,14 @@
 import { ThemeToggler } from "@/components/dark-mode/ThemeToggler";
 import LoginForm from "@/components/page/login/LoginForm";
 import LoginWGoogle from "@/components/page/login/LoginWGoogle";
+import auth_options from "@/lib/auth-options";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 
-export default function page() {
+export default async function page() {
+  const session = await getServerSession(auth_options);
+
+  if (session) redirect("/");
   return (
     <div className="border rounded p-5  bg-primary-foreground shadow-lg relative">
       <ThemeToggler className="absolute top-1 right-2" />

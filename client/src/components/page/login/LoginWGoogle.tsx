@@ -11,7 +11,7 @@ export default function LoginWGoogle() {
       onClick={async () =>
         await signIn("google", {
           redirect: true,
-          callbackUrl: "/",
+          callbackUrl: "/new",
         })
       }
     >

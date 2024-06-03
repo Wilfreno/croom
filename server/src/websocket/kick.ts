@@ -11,6 +11,6 @@ export default function kicked(
   rooms
     .get(room_id)
     ?.get(user_id)
-    ?.send(makeMessage("kicked", "you have been kicked out of the room"));
+    ?.send(makeMessage("kick", "you have been kicked out of the room"));
   leaveRoom(user_id, room_id, rooms);
 }

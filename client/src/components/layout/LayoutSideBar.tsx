@@ -1,25 +1,12 @@
 "use client";
+
+
+
 import Link from "next/link";
-import {
-  BellIcon,
-  ChatBubbleOvalLeftIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  ArchiveBoxIcon,
-  ChatBubbleOvalLeftEllipsisIcon,
-  HomeIcon,
-} from "@heroicons/react/24/solid";
+import { PlusIcon, HomeIcon } from "@heroicons/react/24/solid";
 import { Button } from "../ui/button";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Separator } from "../ui/separator";
 import { ThemeToggler } from "../dark-mode/ThemeToggler";
 import {
@@ -28,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { signOut } from "next-auth/react";
 import CompassSvg from "../svg/CompassSvg";
 
 export default function LayoutSideBar() {
@@ -65,6 +51,7 @@ export default function LayoutSideBar() {
       ),
     },
   ];
+
   return (
     <section className="h-full w-fit px-2 py-5 flex flex-col items-center bg-primary-foreground">
       <nav className="h-fit w-fit flex flex-col space-y-3">
