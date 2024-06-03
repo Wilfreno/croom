@@ -4,7 +4,7 @@ import makeMessage from "./make-message";
 import { WebSocket } from "ws";
 import { NotificationType } from "../lib/types/websocket-types";
 
-export default async function friendRequest(
+export default async function sendfriendRequest(
   receiver: User["user_name"],
   online: Map<string, WebSocket>
 ) {
@@ -28,7 +28,7 @@ export default async function friendRequest(
   if (!online.has(user_receiver!.id)) return;
 
   online.get(user_receiver!.id)?.send(
-    makeMessage("friend-request", {
+    makeMessage("send-friend-request", {
       type: "friend-request",
       content: found_request,
       message: user_receiver!.display_name + " want to make friends with you.",

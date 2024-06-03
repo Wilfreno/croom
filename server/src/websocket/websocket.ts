@@ -13,7 +13,7 @@ import joinRoom from "./join-room";
 import sendMessage from "./send-direct-message";
 import leaveRoom from "./leave-room";
 import kicked from "./kick";
-import friendRequest from "./friend-request";
+import friendRequest from "./send-friend-request";
 import broadCastOffline from "./broadcast-offline";
 import sendDirectMessage from "./send-direct-message";
 import deleteDirectMessage from "./delete-direct-message";
@@ -65,6 +65,11 @@ export default function WebsocketServer(
         client_message.toString()
       );
       switch (parsed_message.type) {
+        case "send-friend-request":
+          friendRequest(parsed_message.receiver!, online);
+          break;
+        case "accept-friend-request":
+          break;
         case "send-direct-message":
           sendDirectMessage(
             parsed_message.receiver!,
@@ -88,9 +93,6 @@ export default function WebsocketServer(
           break;
         case "kick":
           kicked(parsed_message.receiver!, parsed_message.room_id!, rooms);
-          break;
-        case "friend-request":
-          friendRequest(parsed_message.receiver!, online);
           break;
         default:
           return;

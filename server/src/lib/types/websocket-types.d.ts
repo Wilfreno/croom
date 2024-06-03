@@ -27,6 +27,8 @@ export type WebSocketPayloadType =
   | DirectMessageType;
 
 export type WebsokcetMessageType =
+  | "send-friend-request"
+  | "accept-friend-request"
   | "send-direct-message"
   | "delete-direct-message"
   | "error"
@@ -34,7 +36,6 @@ export type WebsokcetMessageType =
   | "online"
   | "offline"
   | "kick"
-  | "friend-request"
   | "join"
   | "leave";
 

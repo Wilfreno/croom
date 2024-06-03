@@ -49,7 +49,7 @@ export default function AddFriend() {
             e.preventDefault();
             setSending(true);
             const response = await fetch(
-              server_url + "/create/friend-request",
+              server_url + "/v1/create/friend-request",
               {
                 method: "POST",
                 headers: {

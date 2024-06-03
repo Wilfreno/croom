@@ -1,22 +1,44 @@
-import { NotificationType } from "./notification-type";
-import { Room, User } from "./client-types";
+import { FriendRequest, Room, User } from "./client-types";
 
 export type WebsocketClientMessage = {
-  type: "join" | "leave" | "message" | "kick" | "friend-request";
-  payload?: string;
+  type: WebsokcetMessageType;
+  payload?: WebSocketPayloadType;
   room_id?: Room["id"];
   sender?: User["id"];
   receiver?: User["id"];
 };
 
 export type WebSocketSeverMessage = {
-  type:
-    | "message"
-    | "error"
-    | "success"
-    | "online"
-    | "offline"
-    | "kicked"
-    | "friend-request";
-  payload: string | NotificationType | User;
+  type: WebsokcetMessageType;
+  payload: WebSocketPayloadType;
+};
+
+export type WebSocketPayloadType =
+  | string
+  | NotificationType
+  | Omit<User, "password">
+  | DirectMessageType;
+
+export type WebsokcetMessageType =
+  | "send-friend-request"
+  | "accept-friend-request"
+  | "send-direct-message"
+  | "delete-direct-message"
+  | "error"
+  | "success"
+  | "online"
+  | "offline"
+  | "kick"
+  | "join"
+  | "leave";
+
+export type NotificationType = {
+  type: "friend-request" | undefined;
+  content: FriendRequest | undefined;
+  message: string;
+};
+
+export type DirectMessageType = {
+  type: "text" | "photo" | "video";
+  content: string;
 };

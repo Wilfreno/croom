@@ -51,14 +51,14 @@ export default function FriendRequestNotification({
               >
                 <Avatar>
                   <AvatarImage
-                    src={notification.content!.sender.profile_pic!.photo_url!}
+                    src={notification.content!.sender.profile_photo!.photo_url!}
                     alt={notification
-                      .content!.sender.display_name.slice(0, 1)
+                      .content!.sender.display_name?.slice(0, 1)
                       .toUpperCase()}
                   />
                   <AvatarFallback>
                     {notification
-                      .content!.sender.display_name.slice(0, 1)
+                      .content!.sender.display_name?.slice(0, 1)
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

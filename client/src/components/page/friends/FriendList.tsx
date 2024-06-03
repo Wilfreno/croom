@@ -41,7 +41,7 @@ export default function FriendList({
   const { toast } = useToast();
   const params = useParams<{ username: string }>();
   async function unfriend() {
-    const response = await fetch(server_url + "/delete/friend", {
+    const response = await fetch(server_url + "/v1/delete/friend", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -75,11 +75,11 @@ export default function FriendList({
           >
             <Avatar>
               <AvatarImage
-                src={friend.profile_pic?.photo_url}
-                alt={friend.display_name.slice(0, 1).toUpperCase()}
+                src={friend.profile_photo?.photo_url}
+                alt={friend.display_name?.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback className="group-hover:bg-background">
-                {friend.display_name.slice(0, 1).toUpperCase()}
+                {friend.display_name?.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <p>{friend.display_name}</p>

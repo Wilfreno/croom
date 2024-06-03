@@ -11,13 +11,10 @@ import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
 import { setNewFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
 import { NotificationType } from "@/lib/types/notification-type";
+import useServerUrl from "./useServerUrl";
 
 export default function useFriendRequestHandler() {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
+  const server_url = useServerUrl();
   const friend_request_list = useAppSelector(
     (state) => state.friend_request_list_reducer
   );
@@ -101,7 +98,7 @@ export default function useFriendRequestHandler() {
       const message: WebSocketSeverMessage = JSON.parse(socket.data);
 
       const notification = message.payload as NotificationType;
-      if (message.type === "friend-request")
+      if (message.type === "send-friend-request")
         dispatch(
           setNewFriendRequestList([
             ...friend_request_list,

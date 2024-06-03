@@ -21,14 +21,11 @@ export default function page() {
     websocket?.addEventListener("message", (socket) => {
       const message = JSON.parse(socket.data) as WebSocketSeverMessage;
 
-      console.log(message);
       if (message.type === "online") {
         setOnlineFriends((prev) => [...prev, message.payload as User]);
       }
     });
   }, [websocket]);
-
-  console.log(online_friends);
 
   return (
     <div className="grow flex flex-col justify-between p-1">
