@@ -35,11 +35,11 @@ export default function useFriendRequestHandler() {
     );
 
     const response_json = (await response.json()) as ServerResponse;
-
+    const friend_requests = response_json.data as FriendRequestMessageType[];
     if (response_json.status === "OK")
       dispatch(
         setNewFriendRequestList(
-          friend_request_list.map((request) => ({
+          friend_requests.map((request) => ({
             sender: request.sender,
             receiver: request.receiver,
             date_created: request.date_created,

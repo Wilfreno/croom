@@ -165,18 +165,6 @@ router.post("/friend-request", async (request, response) => {
     if (!found_sender || !found_receiver)
       return response.status(404).json(notFoundStatus("user cannot be found"));
 
-    const found_request = await prisma.friendRequest.findFirst({
-      where: {
-        sender_id: found_sender.id,
-        receiver_id: found_receiver.id,
-      },
-    });
-
-    if (found_request)
-      return response
-        .status(409)
-        .json(serverConflict("already sent a friend request"));
-
     const found_friendship = await prisma.friendship.findFirst({
       where: {
         AND: [
@@ -208,12 +196,29 @@ router.post("/friend-request", async (request, response) => {
           )
         );
 
+    const found_request = await prisma.friendRequest.findFirst({
+      where: {
+        sender_id: found_sender.id,
+        receiver_id: found_receiver.id,
+      },
+    });
+
+    if (found_request)
+      return response
+        .status(409)
+        .json(serverConflict("already sent a friend request"));
+
     const friend_request = await prisma.friendRequest.create({
       data: {
         sender_id: found_sender.id,
         receiver_id: found_receiver.id,
       },
       include: {
+        sender: {
+          include: {
+            profile_photo: true,
+          },
+        },
         receiver: {
           include: {
             profile_photo: true,
@@ -222,14 +227,13 @@ router.post("/friend-request", async (request, response) => {
       },
     });
 
-    return response
-      .status(200)
-      .json(
-        okStatus(
-          "friend request sent",
-          exclude(friend_request.receiver, ["password"])
-        )
-      );
+    return response.status(200).json(
+      okStatus("friend request sent", {
+        sender: exclude(friend_request.sender, ["password"]),
+        receiver: exclude(friend_request.receiver, ["password"]),
+        date_created: friend_request.date_created,
+      })
+    );
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());

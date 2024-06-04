@@ -51,6 +51,7 @@ model DirectMessage {
   sender_id     String
   receiver      User          @relation("dm-receiver", fields: [receiver_id], references: [id])
   receiver_id   String
+  opend         Boolean       @default(false)
   text_message  TextMessage?
   photo_message PhotoMessage?
   video_message VideoMessage?

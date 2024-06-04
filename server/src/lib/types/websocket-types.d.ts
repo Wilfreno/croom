@@ -42,7 +42,7 @@ export type WebsokcetMessageType =
 export type FriendRequestMessageType = {
   sender: Omit<User, "password">;
   receiver: Omit<User, "password">;
-  created_at: Date;
+  date_created: Date;
 };
 
 export type DirectMessageType = {

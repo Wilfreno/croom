@@ -72,6 +72,7 @@ export default function AddFriend() {
             const friend_request = response_json.data as FriendRequest;
             if (response_json.status !== "OK") return;
 
+            console.log(friend_request);
             websocket?.send(
               JSON.stringify({
                 type: "send-friend-request",

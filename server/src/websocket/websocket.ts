@@ -62,6 +62,7 @@ export default function WebsocketServer(
     online.set(user.id, socket);
     await broadcastOnline(user.id, online, rooms);
 
+    console.log("online::", online.size);
     //websocket event handlers
     socket.on("message", (client_message) => {
       const parsed_message: WebsocketClientMessage = JSON.parse(

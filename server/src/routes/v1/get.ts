@@ -96,11 +96,11 @@ router.get("/friend-request/:id", async (request, response) => {
         .status(400)
         .json(badRequest("user id as params is needed; /friend-request/:id"));
 
-    const user = await prisma.friendRequest.findMany({
+    const friend_request = await prisma.friendRequest.findMany({
       where: {
         receiver_id: user_id,
       },
-      select: {
+      include: {
         sender: {
           include: {
             profile_photo: true,
@@ -116,15 +116,16 @@ router.get("/friend-request/:id", async (request, response) => {
         date_created: "asc",
       },
     });
-    if (!user)
+    if (!friend_request)
       return response.status(404).json(notFoundStatus("user not found"));
 
     let user_list: FriendRequestMessageType[] = [];
 
-    for (let i = 0; i < user.length; i++) {
+    for (let i = 0; i < friend_request.length; i++) {
       user_list.push({
-        sender: exclude(user[i].sender, ["password"]),
-        receiver: exclude(user[i].receiver, ["password"]),
+        sender: exclude(friend_request[i].sender, ["password"]),
+        receiver: exclude(friend_request[i].receiver, ["password"]),
+        date_created: friend_request[i].date_created,
       });
     }
     return response
@@ -174,7 +175,7 @@ router.get("/dm/:friend_id", async (request, response) => {
         video_message: true,
       },
       orderBy: {
-        created_at: "desc",
+        date_created: "desc",
       },
       take: count,
       skip,
