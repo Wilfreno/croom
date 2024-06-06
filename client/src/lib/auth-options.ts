@@ -39,7 +39,7 @@ const auth_options: AuthOptions = {
         },
       },
       async authorize(credentials) {
-        const login = await fetch(server_url + "/v1/authenticate/user", {
+        const login = await fetch(server_url + "/authenticate/user", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -91,7 +91,7 @@ const auth_options: AuthOptions = {
       if (profile && account) {
         let token_user: User;
         const server_response = await fetch(
-          server_url + "/v1/get/user/email/" + profile.email
+          server_url + "/get/v1/user/email/" + profile.email
         );
         const server_json = await server_response.json();
 
@@ -108,7 +108,7 @@ const auth_options: AuthOptions = {
               photo_url: profile.picture,
             },
             birth_date: undefined,
-            created_at: undefined,
+            date_created: undefined,
             provider: account?.provider!,
           };
         }

@@ -4,7 +4,6 @@ import useServerUrl from "@/components/hooks/useServerUrl";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { User } from "@/lib/types/client-types";
 import { useSession } from "next-auth/react";
@@ -24,7 +23,7 @@ export default function Page() {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await fetch(development_server + "/v1/create/user", {
+      const response = await fetch(development_server + "/create/v1/user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

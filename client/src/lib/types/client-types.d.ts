@@ -7,24 +7,24 @@ export type User = {
   display_name: string;
   user_name: string;
   provider?: string;
-  friend_request_sent: FriendRequest[];
-  friend_request_received: FriendRequest[];
-  friends: Friendship[];
-  friends_with: Friendship[];
-  direct_messages: DirectConversation[];
-  direct_messages_: DirectConversation[];
-  direct_message_sent: Message[];
-  direct_message_received: Message[];
-  room_mesages_sent: RoomMessage[];
-  date_created: Date;
+  friend_request_sent?: FriendRequest[];
+  friend_request_received?: FriendRequest[];
+  friends?: Friendship[];
+  friends_with?: Friendship[];
+  direct_messages?: DirectConversation[];
+  direct_messages_?: DirectConversation[];
+  direct_message_sent?: Message[];
+  direct_message_received?: Message[];
+  room_mesages_sent?: RoomMessage[];
+  date_created?: Date;
 };
 
 export type ProfilePhoto = {
   id: string;
-  owner: User;
-  owner_id: string;
+  owner?: User;
+  owner_id?: string;
   photo_url: string;
-  date_created: Date;
+  date_created?: Date;
 };
 
 export type FriendRequest = {

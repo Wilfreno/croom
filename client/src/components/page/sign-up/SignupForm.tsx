@@ -13,14 +13,10 @@ import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import Birthdate from "./Birthdate";
+import useServerUrl from "@/components/hooks/useServerUrl";
 
 export default function SignupForm() {
-  const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
-  if (!development_server)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
-
+  const development_server = useServerUrl();
   const { toast } = useToast();
   const [user, setUser] = useState<User>({
     id: "",
@@ -50,13 +46,16 @@ export default function SignupForm() {
           e.preventDefault();
           setCreatingOtp(true);
           try {
-            const response = await fetch(development_server + "/create/otp", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ email: user.email }),
-            });
+            const response = await fetch(
+              development_server + "/create/v1/otp",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email: user.email }),
+              }
+            );
             setCreatingOtp(false);
             if (!response.ok) {
               const otp_response = await response.json();
