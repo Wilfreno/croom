@@ -61,7 +61,7 @@ model Friendship {
 }
 
 model DirectConversation {
-  id           String    @id @unique 
+  id           String    @id @unique
   user1        User      @relation("direct-message1", fields: [user1_id], references: [id])
   user1_id     String
   user2        User      @relation("direct-message2", fields: [user2_id], references: [id])
@@ -73,19 +73,19 @@ model DirectConversation {
 }
 
 model Message {
-  id              String              @id @unique @default(uuid())
+  id              String             @id @unique @default(uuid())
   converstation   DirectConversation @relation(fields: [conversation_id], references: [id])
   conversation_id String
-  sender          User                @relation("message-sent", fields: [sender_id], references: [id])
+  sender          User               @relation("message-sent", fields: [sender_id], references: [id])
   sender_id       String
-  receiver        User                @relation("message-received", fields: [receiver_id], references: [id])
+  receiver        User               @relation("message-received", fields: [receiver_id], references: [id])
   receiver_id     String
   type            String
-  seen            Boolean             @default(false)
+  seen            Boolean            @default(false)
   text_message    TextMessage?
   photo_message   PhotoMessage?
   video_message   VideoMessage?
-  date_created    DateTime            @default(now())
+  date_created    DateTime           @default(now())
 }
 
 model RoomMessage {

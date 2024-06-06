@@ -1,7 +1,6 @@
-import { FriendRequest } from "@prisma/client";
 import { Router } from "express";
-import { prisma } from "../../server";
-import { badRequest, okStatus, serverConflict } from "../../lib/response-json";
+import { prisma } from "../server";
+import { badRequest, okStatus, serverConflict } from "../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
