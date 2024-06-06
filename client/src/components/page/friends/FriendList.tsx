@@ -91,7 +91,11 @@ export default function FriendList({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link href={"/" + params.username + "/dm/" + friend.user_name}>
+              <Link
+                href={"/" + params.username + "/dm/" + friend.id}
+                as={"/" + params.username + "/dm/" + friend.id}
+                prefetch
+              >
                 <Button
                   variant="ghost"
                   size="icon"

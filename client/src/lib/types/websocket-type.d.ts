@@ -1,11 +1,9 @@
-import { Room, User } from "./client-types";
+import { Message, User } from "./client-types";
 
 export type WebsocketClientMessage = {
   type: WebsokcetMessageType;
   payload?: WebSocketPayloadType;
   room_id?: Room["id"];
-  sender?: User["id"];
-  receiver?: User["id"];
 };
 
 export type WebSocketSeverMessage = {
@@ -17,7 +15,7 @@ export type WebSocketPayloadType =
   | string
   | FriendRequestMessageType
   | Omit<User, "password">
-  | DirectMessageType;
+  | Message;
 
 export type WebsokcetMessageType =
   | "send-friend-request"
@@ -35,10 +33,5 @@ export type WebsokcetMessageType =
 export type FriendRequestMessageType = {
   sender: Omit<User, "password">;
   receiver: Omit<User, "password">;
-  date_created: Date
-};
-
-export type DirectMessageType = {
-  type: "text" | "photo" | "video";
-  content: string;
+  date_created: Date;
 };

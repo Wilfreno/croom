@@ -10,23 +10,24 @@ datasource db {
 }
 
 model User {
-  id                       String          @id @unique @default(uuid())
-  email                    String          @unique
-  password                 String?
-  profile_photo            ProfilePhoto?
-  birth_date               DateTime?
-  display_name             String
-  user_name                String
-  provider                 String?
-  friend_request_sent      FriendRequest[] @relation("friend-request-sender")
-  friend_request_received  FriendRequest[] @relation("friend-request-receiver")
-  friends                  Friendship[]    @relation("friend1")
-  friends_with             Friendship[]    @relation("friend2")
-  direct_messages_sent     DirectMessage[] @relation("dm-sender")
-  direct_messages_received DirectMessage[] @relation("dm-receiver")
-  rooms                    Room[]          @relation("room-to-user")
-  room_mesages_sent        RoomMessage[]   @relation("room-message-sender")
-  date_created             DateTime        @default(now())
+  id                      String               @id @unique @default(uuid())
+  email                   String               @unique
+  password                String?
+  profile_photo           ProfilePhoto?
+  birth_date              DateTime?
+  display_name            String
+  user_name               String
+  provider                String?
+  friend_request_sent     FriendRequest[]      @relation("friend-request-sender")
+  friend_request_received FriendRequest[]      @relation("friend-request-receiver")
+  friends                 Friendship[]         @relation("friend1")
+  friends_with            Friendship[]         @relation("friend2")
+  direct_messages         DirectConversation[] @relation("direct-message1")
+  direct_messages_        DirectConversation[] @relation("direct-message2")
+  direct_message_sent     Message[]            @relation("message-sent")
+  direct_message_received Message[]            @relation("message-received")
+  room_mesages_sent       RoomMessage[]        @relation("room-message-sender")
+  date_created            DateTime             @default(now())
 }
 
 model ProfilePhoto {
@@ -34,78 +35,6 @@ model ProfilePhoto {
   owner        User     @relation(fields: [owner_id], references: [id])
   owner_id     String   @unique
   photo_url    String
-  date_created DateTime @default(now())
-}
-
-model Room {
-  id           String        @id @unique @default(uuid())
-  name         String
-  members      User[]        @relation("room-to-user")
-  messages     RoomMessage[]
-  date_created DateTime      @default(now())
-}
-
-model DirectMessage {
-  id            String        @id @unique @default(uuid())
-  sender        User          @relation("dm-sender", fields: [sender_id], references: [id])
-  sender_id     String
-  receiver      User          @relation("dm-receiver", fields: [receiver_id], references: [id])
-  receiver_id   String
-  opend         Boolean       @default(false)
-  text_message  TextMessage?
-  photo_message PhotoMessage?
-  video_message VideoMessage?
-  date_created  DateTime      @default(now())
-}
-
-model RoomMessage {
-  id            String        @id @unique @default(uuid())
-  sender        User          @relation("room-message-sender", fields: [sender_id], references: [id])
-  sender_id     String
-  room          Room          @relation(fields: [room_id], references: [id])
-  room_id       String
-  text_message  TextMessage?
-  photo_message PhotoMessage?
-  video_Message VideoMessage?
-  date_created  DateTime      @default(now())
-}
-
-model TextMessage {
-  id                String         @id @unique @default(uuid())
-  direct_message    DirectMessage? @relation(fields: [direct_message_id], references: [id])
-  direct_message_id String?        @unique
-  room_message      RoomMessage?   @relation(fields: [room_message_id], references: [id])
-  room_message_id   String?        @unique
-  content           String
-  date_created      DateTime       @default(now())
-}
-
-model PhotoMessage {
-  id                String         @id @unique @default(uuid())
-  direct_message    DirectMessage? @relation(fields: [direct_message_id], references: [id])
-  direct_message_id String?        @unique
-  room_message      RoomMessage?   @relation(fields: [room_message_id], references: [id])
-  room_message_id   String?        @unique
-  photo_url         String
-  date_created      DateTime       @default(now())
-}
-
-model VideoMessage {
-  id                String         @id @unique @default(uuid())
-  direct_message    DirectMessage? @relation(fields: [direct_message_id], references: [id])
-  direct_message_id String?        @unique
-  room_message      RoomMessage?   @relation(fields: [room_message_id], references: [id])
-  room_message_id   String?        @unique
-  video_url         String
-  name              String
-  length            Int
-  date_created      DateTime       @default(now())
-}
-
-model Otp {
-  id           String   @id @unique @default(uuid())
-  email        String
-  value        String
   date_created DateTime @default(now())
 }
 
@@ -129,4 +58,82 @@ model Friendship {
   date_created DateTime @default(now())
 
   @@unique([friend_1_id, friend_2_id])
+}
+
+model DirectConversation {
+  id           String    @id @unique 
+  user1        User      @relation("direct-message1", fields: [user1_id], references: [id])
+  user1_id     String
+  user2        User      @relation("direct-message2", fields: [user2_id], references: [id])
+  user2_id     String
+  messages     Message[]
+  date_created DateTime  @default(now())
+
+  @@unique([user1_id, user2_id])
+}
+
+model Message {
+  id              String              @id @unique @default(uuid())
+  converstation   DirectConversation @relation(fields: [conversation_id], references: [id])
+  conversation_id String
+  sender          User                @relation("message-sent", fields: [sender_id], references: [id])
+  sender_id       String
+  receiver        User                @relation("message-received", fields: [receiver_id], references: [id])
+  receiver_id     String
+  type            String
+  seen            Boolean             @default(false)
+  text_message    TextMessage?
+  photo_message   PhotoMessage?
+  video_message   VideoMessage?
+  date_created    DateTime            @default(now())
+}
+
+model RoomMessage {
+  id            String        @id @unique @default(uuid())
+  sender        User          @relation("room-message-sender", fields: [sender_id], references: [id])
+  sender_id     String
+  room_id       String
+  text_message  TextMessage?
+  photo_message PhotoMessage?
+  video_Message VideoMessage?
+  date_created  DateTime      @default(now())
+}
+
+model TextMessage {
+  id              String       @id @unique @default(uuid())
+  message         Message?     @relation(fields: [message_id], references: [id])
+  message_id      String?      @unique
+  room_message    RoomMessage? @relation(fields: [room_message_id], references: [id])
+  room_message_id String?      @unique
+  content         String
+  date_created    DateTime     @default(now())
+}
+
+model PhotoMessage {
+  id              String       @id @unique @default(uuid())
+  message         Message?     @relation(fields: [message_id], references: [id])
+  message_id      String?      @unique
+  room_message    RoomMessage? @relation(fields: [room_message_id], references: [id])
+  room_message_id String?      @unique
+  photo_url       String
+  date_created    DateTime     @default(now())
+}
+
+model VideoMessage {
+  id              String       @id @unique @default(uuid())
+  message         Message?     @relation(fields: [message_id], references: [id])
+  message_id      String?      @unique
+  room_message    RoomMessage? @relation(fields: [room_message_id], references: [id])
+  room_message_id String?      @unique
+  video_url       String
+  name            String
+  length          Int
+  date_created    DateTime     @default(now())
+}
+
+model Otp {
+  id           String   @id @unique @default(uuid())
+  email        String
+  value        String
+  date_created DateTime @default(now())
 }

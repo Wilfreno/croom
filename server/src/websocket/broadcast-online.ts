@@ -6,8 +6,7 @@ import { type WebSocket } from "ws";
 
 export default async function broadcastOnline(
   user_id: User["id"],
-  online: Map<string, WebSocket>,
-  rooms: Map<string, Map<string, WebSocket>>
+  online: Map<string, WebSocket>
 ) {
   const user = await prisma.user.findFirst({
     where: {
@@ -52,14 +51,4 @@ export default async function broadcastOnline(
 
     online.get(user_id)?.send(makeMessage("online", friend));
   }
-
-  rooms.forEach((room) => {
-    if (room.has(user_id)) {
-      room.forEach((member) => {
-        if (member !== room.get(user_id)) {
-          member.send(makeMessage("online", user_id));
-        }
-      });
-    }
-  });
 }

@@ -68,10 +68,10 @@ export default function Page() {
         </Label>
       </div>
       <ScrollArea className="h-[70vh]">
-        <ul className="px-3 space-y-3">
-          {search_result
+        <ul className="px-3 space-y-5">
+          {search
             ? search_result.map((friend, index) => (
-                <FriendList
+                <Friege ndList
                   key={friend.id}
                   friend={friend}
                   setFriends={setFriends}

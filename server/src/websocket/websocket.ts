@@ -1,28 +1,20 @@
 import http from "http";
 import WebSocket from "ws";
-import { Room, User } from "@prisma/client";
+import { Message, User } from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
-  DirectMessageType,
   FriendRequestMessageType,
   WebsocketClientMessage,
 } from "src/lib/types/websocket-types";
 import makeMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
-import joinRoom from "./join-room";
-import sendMessage from "./send-direct-message";
-import leaveRoom from "./leave-room";
-import kicked from "./kick";
-import friendRequest from "./send-friend-request";
-import broadCastOffline from "./broadcast-offline";
 import sendDirectMessage from "./send-direct-message";
 import deleteDirectMessage from "./delete-direct-message";
 import sendfriendRequest from "./send-friend-request";
 import acceptFriendrequest from "./accept-friend-request";
 
 const members = new Map<User["id"], WebSocket>();
-const rooms = new Map<Room["id"], typeof members>();
 const online = new Map<User["id"], WebSocket>();
 
 export default function WebsocketServer(
@@ -60,7 +52,7 @@ export default function WebsocketServer(
 
     //inlisting the user to the online map and broadcasting it to every room the user is in
     online.set(user.id, socket);
-    await broadcastOnline(user.id, online, rooms);
+    await broadcastOnline(user.id, online);
 
     console.log("online::", online.size);
     //websocket event handlers
@@ -84,41 +76,15 @@ export default function WebsocketServer(
           break;
         }
         case "send-direct-message":
-          sendDirectMessage(
-            parsed_message.receiver!,
-            parsed_message.payload as DirectMessageType,
-            online
-          );
+          sendDirectMessage(parsed_message.payload as Message, online);
           break;
         case "delete-direct-message":
-          deleteDirectMessage(parsed_message.receiver!, online);
+          deleteDirectMessage(parsed_message.payload as Message, online);
           break;
         case "join":
-          joinRoom(
-            socket,
-            parsed_message.room_id!,
-            parsed_message.sender!,
-            rooms
-          );
-          break;
-        case "leave":
-          leaveRoom(parsed_message.sender!, parsed_message.room_id!, rooms);
-          break;
-        case "kick":
-          kicked(parsed_message.receiver!, parsed_message.room_id!, rooms);
-          break;
         default:
           return;
       }
-    });
-
-    socket.on("close", (client_message) => {
-      const parsed_message: WebsocketClientMessage = JSON.parse(
-        client_message.toString()
-      );
-
-      online.delete(parsed_message.sender!);
-      broadCastOffline(parsed_message.sender!, rooms);
     });
   });
 }

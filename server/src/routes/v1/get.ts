@@ -32,7 +32,10 @@ router.get("/user/:id", async (request, response) => {
   try {
     const user_id = request.params.id;
 
-    const user = await prisma.user.findFirst({ where: { id: user_id } });
+    const user = await prisma.user.findFirst({
+      where: { id: user_id },
+      include: { profile_photo: true },
+    });
 
     if (!user)
       return response.status(404).send(notFoundStatus("user not found"));
@@ -136,43 +139,36 @@ router.get("/friend-request/:id", async (request, response) => {
     return response.status(400).json(badRequest());
   }
 });
-router.get("/dm/:friend_id", async (request, response) => {
+
+router.get("/direct-message", async (request, response) => {
   try {
-    const friend_id = request.params.friend_id;
     const query = request.query;
 
-    if (!query.user_id)
+    if (!query.user_id || !query.friend_id)
       return response
         .status(400)
         .json(
           badRequest(
-            "user id is required as a query parameter; /dm/:friend_id?user_id= "
+            "user_id and friend_id is required as a query parameter; /direct-message?user_id=&friend_id="
           )
         );
 
-    const user = query.user_id as string;
+    const user_id = query.user_id as string;
+    const friend_id = query.friend_id as string;
+
     let count = 20;
     let skip = 0;
+
     if (query.page) {
       count *= Number(query.page);
       skip = count - 20;
     }
 
-    const direct_messages = await prisma.directMessage.findMany({
-      where: {
-        OR: [
-          {
-            AND: [{ sender_id: user }, { receiver_id: friend_id }],
-          },
-          {
-            AND: [{ sender_id: friend_id }, { receiver_id: user }],
-          },
-        ],
-      },
+    const dm_id = [user_id, friend_id].sort().join("-");
+    const direct_messages = await prisma.directConversation.findMany({
+      where: { id: dm_id },
       include: {
-        text_message: true,
-        photo_message: true,
-        video_message: true,
+        messages: true,
       },
       orderBy: {
         date_created: "desc",
@@ -180,6 +176,7 @@ router.get("/dm/:friend_id", async (request, response) => {
       take: count,
       skip,
     });
+
     return response
       .status(200)
       .json(okStatus("request succesfull", direct_messages));
@@ -188,6 +185,38 @@ router.get("/dm/:friend_id", async (request, response) => {
     return response.status(400).json(badRequest());
   }
 });
+
+router.get("/direct-conversation/:id", async (request, response) => {
+  try {
+    const user_id = request.params.id;
+
+    const found_user = await prisma.user.findFirst({ where: { id: user_id } });
+
+    if (!found_user)
+      return response.status(404).json(notFoundStatus("user does not exist"));
+
+    const direct_conversation = await prisma.directConversation.findMany({
+      where: {
+        OR: [{ user1_id: user_id }, { user2_id: user_id }],
+      },
+      include: {
+        messages: {
+          orderBy: {
+            date_created: "asc",
+          },
+        },
+      },
+    });
+
+    return response
+      .status(200)
+      .json(okStatus("request successful", direct_conversation));
+  } catch (error) {
+    if (environment_mode === "development") console.error(error);
+    return response.status(400).json(badRequest());
+  }
+});
+
 const get_router = router;
 
 export default get_router;

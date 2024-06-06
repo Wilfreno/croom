@@ -1,10 +1,4 @@
-import {
-  DirectMessage,
-  FriendRequest,
-  Room,
-  RoomMessage,
-  User,
-} from "@prisma/client";
+import { FriendRequest, RoomMessage, User } from "@prisma/client";
 import { Router, response } from "express";
 import { badRequest, okStatus, serverConflict } from "../../lib/response-json";
 import { prisma } from "../../server";
@@ -28,26 +22,6 @@ router.delete("/user", async (request, response) => {
     await prisma.user.delete({ where: { id: user.id } });
 
     return response.status(200).json(okStatus("user deleted", null));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.delete("/room", async (request, response) => {
-  try {
-    const room: Room = await request.body;
-
-    const found_room = await prisma.room.findFirst({ where: { id: room.id } });
-
-    if (!found_room)
-      return response
-        .status(409)
-        .json(serverConflict("cannot delete room; room does not exist"));
-
-    await prisma.room.delete({ where: { id: room.id } });
-
-    return response.status(200).json(okStatus("room has been deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());
@@ -87,13 +61,13 @@ router.delete("/friend", async (request, response) => {
   }
 });
 
-router.delete("/direct-message/:id", async (request, response) => {
+router.delete("/direct-message", async (request, response) => {
   try {
-    const message: DirectMessage = request.body;
+    const { message_id }: Record<string, string> = request.body;
 
-    const found_message = await prisma.directMessage.findFirst({
+    const found_message = await prisma.message.findFirst({
       where: {
-        id: message.id,
+        id: message_id,
       },
     });
 
@@ -102,9 +76,9 @@ router.delete("/direct-message/:id", async (request, response) => {
         .status(409)
         .json(serverConflict("cannot delete message; message does not exist"));
 
-    await prisma.directMessage.delete({
+    await prisma.message.delete({
       where: {
-        id: message.id,
+        id: message_id,
       },
     });
 

@@ -1,4 +1,12 @@
-import { ProfilePhoto, Room, User } from "@prisma/client";
+import {
+  DirectConversation,
+  Message,
+  PhotoMessage,
+  ProfilePhoto,
+  TextMessage,
+  User,
+  VideoMessage,
+} from "@prisma/client";
 import { prisma } from "../../server";
 import { Router } from "express";
 import { hash } from "bcrypt";
@@ -49,34 +57,6 @@ router.post("/user", async (request, response) => {
     return response
       .status(200)
       .json(okStatus("user created", exclude(new_user, ["password"])));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.post("/room", async (request, response) => {
-  try {
-    const room: Room = request.body;
-
-    const found_room = await prisma.room.findFirst({
-      where: { name: room.name },
-    });
-
-    if (found_room)
-      return response
-        .status(409)
-        .json(serverConflict("room name already exist"));
-
-    const new_room = await prisma.room.create({
-      data: {
-        ...room,
-      },
-    });
-
-    return response
-      .status(200)
-      .json(okStatus("room created successfully", new_room));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response.status(400).json(badRequest());
@@ -242,46 +222,71 @@ router.post("/friend-request", async (request, response) => {
 
 router.post("/direct-message/text", async (request, response) => {
   try {
-    const { sender, receiver, content } = request.body;
+    const { sender_id, receiver_id, text }: Record<string, string> =
+      request.body;
 
-    if (!sender || !receiver || !content)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, and content is required inside the request body; sender: user_id; receiver: user_id; content: text_message"
-          )
-        );
+    const dm_id = [sender_id, receiver_id].sort().join("-");
 
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
+    const found_conversation = await prisma.directConversation.findFirst({
+      where: { id: dm_id },
     });
 
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        text_message: {
-          create: {
-            content,
+    let message: Message;
+    if (found_conversation) {
+      message = await prisma.message.create({
+        data: {
+          conversation_id: found_conversation.id,
+          sender_id,
+          receiver_id,
+          text_message: {
+            create: {
+              content: text,
+            },
+          },
+          type: "text",
+        },
+      });
+      await prisma.directConversation.update({
+        where: { id: found_conversation.id },
+        data: {
+          messages: {
+            connect: {
+              id: message.id,
+            },
           },
         },
-      },
-      include: { text_message: true },
-    });
+        select: {
+          messages: {
+            orderBy: {
+              date_created: "desc",
+            },
+            take: 1,
+          },
+        },
+      });
+    } else {
+      const direct_conversation = await prisma.directConversation.create({
+        data: {
+          id: dm_id,
+          user1_id: sender_id,
+          user2_id: receiver_id,
+        },
+      });
+
+      message = await prisma.message.create({
+        data: {
+          conversation_id: direct_conversation.id,
+          sender_id,
+          receiver_id,
+          text_message: {
+            create: {
+              content: text,
+            },
+          },
+          type: "text",
+        },
+      });
+    }
 
     return response.status(200).json(okStatus("message sent", message));
   } catch (error) {
@@ -290,259 +295,6 @@ router.post("/direct-message/text", async (request, response) => {
   }
 });
 
-router.post("/direct-message/photo", async (request, response) => {
-  try {
-    const { sender, receiver, photo_url } = request.body;
-
-    if (!sender || !receiver || !photo_url)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, and photo_url is required inside the request body; sender: user_id; receiver: user_id; photo_url: photo_url"
-          )
-        );
-
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
-    });
-
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        photo_message: {
-          create: {
-            photo_url,
-          },
-        },
-      },
-      include: { text_message: true },
-    });
-
-    return response.status(200).json(okStatus("message sent", message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.post("/direct-message/video", async (request, response) => {
-  try {
-    const { sender, receiver, video_url, name, length } = request.body;
-
-    if (!sender || !receiver || !video_url || !name || !length)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, video_url, name, and length is required inside the request body; sender: user_id; receiver: user_id; video_url: video_url; name:video_name; leng:video_length_in_miliseconds"
-          )
-        );
-
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
-    });
-
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        video_message: {
-          create: {
-            video_url,
-            name,
-            length,
-          },
-        },
-      },
-      include: { text_message: true },
-    });
-
-    return response.status(200).json(okStatus("message sent", message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.post("/room-message/text", async (request, response) => {
-  try {
-    const { sender, receiver, content } = request.body;
-
-    if (!sender || !receiver || !content)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, and content is required inside the request body; sender: user_id; receiver: user_id; content: text_message"
-          )
-        );
-
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
-    });
-
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        text_message: {
-          create: {
-            content,
-          },
-        },
-      },
-      include: { text_message: true },
-    });
-
-    return response.status(200).json(okStatus("message sent", message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.post("/room-message/photo", async (request, response) => {
-  try {
-    const { sender, receiver, photo_url } = request.body;
-
-    if (!sender || !receiver || !photo_url)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, and photo_url is required inside the request body; sender: user_id; receiver: user_id; photo_url: photo_url"
-          )
-        );
-
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
-    });
-
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        photo_message: {
-          create: {
-            photo_url,
-          },
-        },
-      },
-      include: { text_message: true },
-    });
-
-    return response.status(200).json(okStatus("message sent", message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
-
-router.post("/room-message/video", async (request, response) => {
-  try {
-    const { sender, receiver, video_url, name, length } = request.body;
-
-    if (!sender || !receiver || !video_url || !name || !length)
-      return response
-        .status(400)
-        .json(
-          badRequest(
-            "sender, receiver, video_url, name, and length is required inside the request body; sender: user_id; receiver: user_id; video_url: video_url; name:video_name; leng:video_length_in_miliseconds"
-          )
-        );
-
-    const found_sender = await prisma.user.findFirst({ where: { id: sender } });
-    const found_receiver = await prisma.user.findFirst({
-      where: { id: receiver },
-    });
-
-    if (!found_sender)
-      return response
-        .status(404)
-        .json(notFoundStatus("cannot send message; sender id does not exist"));
-
-    if (!found_receiver)
-      return response
-        .status(404)
-        .json(
-          notFoundStatus("cannot send message; receiver id does not exist")
-        );
-
-    const message = await prisma.directMessage.create({
-      data: {
-        receiver_id: receiver,
-        sender_id: sender,
-        video_message: {
-          create: {
-            video_url,
-            name,
-            length,
-          },
-        },
-      },
-      include: { text_message: true },
-    });
-
-    return response.status(200).json(okStatus("message sent", message));
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
 const create_router = router;
 
 export default create_router;
