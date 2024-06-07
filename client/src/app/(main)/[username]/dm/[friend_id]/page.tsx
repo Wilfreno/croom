@@ -2,8 +2,10 @@
 
 import useServerUrl from "@/components/hooks/useServerUrl";
 import useWebsocket from "@/components/hooks/useWebsocket";
+import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Message, User } from "@/lib/types/client-types";
@@ -16,7 +18,11 @@ import { cn } from "@/lib/utils";
 import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+
+interface MessageSent extends Message {
+  sending?: boolean;
+}
 
 export default function page() {
   const server_url = useServerUrl();
@@ -29,12 +35,35 @@ export default function page() {
   const [text_message, setTextMessage] = useState("");
   const [friend, setFriend] = useState<User>();
   const [textarea_height, setTextareaHeight] = useState<number>();
-  const [direct_message, setDirectMessages] = useState<Message[]>([]);
+  const [direct_message, setDirectMessages] = useState<MessageSent[]>([]);
 
-  async function sendTextMessage() {
+  const message_ref = useRef<HTMLDivElement>(null);
+
+  async function sendTextMessage(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     try {
+      const sending_message: MessageSent = {
+        id: data?.user.id!,
+        conversation_id: data?.user.id!,
+        sender_id: data?.user.id!,
+        type: "text",
+        text_message: {
+          id: "",
+          content: text_message,
+          date_created: new Date(),
+        },
+        sender: data?.user!,
+        seen: false,
+        receiver_id: friend?.id!,
+        receiver: friend!,
+        date_created: new Date(),
+        sending: true,
+      };
+
+      setDirectMessages((prev) => [...prev, sending_message]);
+
       const response = await fetch(
-        server_url + "/v1/create/direct-message/text",
+        server_url + "/create/v1/direct-message/text",
         {
           method: "POST",
           headers: {
@@ -50,6 +79,7 @@ export default function page() {
 
       const response_json = (await response.json()) as ServerResponse;
 
+      console.log(response_json);
       if (response_json.status !== "OK") {
         toast({
           title: "Oops! Something went wrong.",
@@ -59,7 +89,7 @@ export default function page() {
       }
 
       const message = response_json.data as Message;
-
+      setDirectMessages((prev) => prev.toSpliced(prev.length - 1, 1));
       setDirectMessages((prev) => [...prev, message]);
 
       websocket?.send(
@@ -68,20 +98,20 @@ export default function page() {
           payload: message,
         } as WebsocketClientMessage)
       );
+
+      setTextMessage("");
     } catch (error) {
       throw error;
     }
   }
 
-  console.log("dm::", direct_message);
-
   useEffect(() => {
-    if (!params.friend_id || data) return;
+    if (!params.friend_id || !data) return;
 
     async function getFriend() {
       try {
         const response = await fetch(
-          server_url + "/v1/get/user/" + params.friend_id
+          server_url + "/get/v1/user/" + params.friend_id
         );
 
         const response_json = (await response.json()) as ServerResponse;
@@ -104,15 +134,14 @@ export default function page() {
       try {
         const response = await fetch(
           server_url +
-            "/v1/get/direct-message?user_id=" +
+            "/get/v1/direct-message?user_id=" +
             data?.user.id +
             "&friend_id=" +
-            params.friend_id
+            params.friend_id +
+            "&page=1"
         );
 
         const response_json = (await response.json()) as ServerResponse;
-
-        console.log("AAAA::", response_json);
 
         if (response_json.status !== "OK") {
           toast({
@@ -121,7 +150,6 @@ export default function page() {
           });
           return;
         }
-
         setDirectMessages(response_json.data as Message[]);
       } catch (error) {
         throw error;
@@ -146,7 +174,6 @@ export default function page() {
       }
     });
   }, [websocket]);
-
   return (
     <div className="grow flex flex-col bg-secondary">
       <div className="px-5 flex items-center py-2 w-full shadow-lg space-x-5 border-b bg-primary-foreground">
@@ -164,44 +191,72 @@ export default function page() {
           <p className="text-xs">{friend?.user_name}</p>
         </div>
       </div>
-      <div className="grow grid-flow-row space-y-5 place-items-end">
-        {direct_message.map((dm) => (
-          <div
-            key={dm.id}
-            className={cn(
-              "flex items-end",
-              data?.user.id === dm.sender_id
-                ? "justify-self-end"
-                : "justify-self-start"
-            )}
-          >
-            <Avatar>
-              <AvatarImage
-                src={
-                  dm.sender_id === data?.user.id
-                    ? data.user.profile_photo?.photo_url
-                    : friend?.profile_photo?.photo_url
+      <ScrollArea className="grow">
+        <div className="flex flex-col space-y-5 justify-end p-5">
+          {direct_message.map((dm, index) =>
+            dm.sender_id === friend?.id ? (
+              <div
+                key={dm.id}
+                className="flex items-end mr-auto space-x-3"
+                onLoad={(e) =>
+                  index === direct_message.length - 1 &&
+                  e.currentTarget.scrollIntoView()
                 }
-                alt={
-                  dm.sender_id === data?.user.id
-                    ? data.user.display_name.slice(0, 1).toUpperCase()
-                    : friend?.display_name.slice(0, 1).toUpperCase()
+              >
+                <Avatar>
+                  <AvatarImage
+                    src={friend?.profile_photo?.photo_url}
+                    alt={friend?.display_name.slice(0, 1).toUpperCase()}
+                  />
+                  <AvatarFallback>
+                    {friend?.display_name.slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="max-w-1/2 p-2  rounded-lg shadow-md bg-primary">
+                  {dm.type === "text" && dm.text_message?.content}
+                </div>
+              </div>
+            ) : (
+              <div
+                key={dm.id}
+                className="relative flex items-end ml-auto space-x-3"
+                onLoad={(e) =>
+                  index === direct_message.length - 1 &&
+                  e.currentTarget.scrollIntoView()
                 }
-              />
-              <AvatarFallback>
-                {dm.sender_id === data?.user.id
-                  ? data.user.display_name.slice(0, 1).toUpperCase()
-                  : friend?.display_name.slice(0, 1).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="w-fit p-2 rounded-lg bg-secondary ">
-              {dm.type === "text" && dm.text_message?.content}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-end space-x-5 w-[95%] mx-auto my-3 bg-primary-foreground py-3 px-2 h-fit border rounded-lg">
+              >
+                <div
+                  className={cn(
+                    "max-w-1/2 p-2 rounded-lg shadow-md",
+                    dm.sending ? "bg-primary-foreground" : "bg-primary"
+                  )}
+                >
+                  {dm.type === "text" && dm.text_message?.content}
+                </div>
+                <Avatar>
+                  <AvatarImage
+                    src={data?.user.profile_photo?.photo_url}
+                    alt={data?.user.display_name.slice(0, 1).toUpperCase()}
+                  />
+                  <AvatarFallback>
+                    {data?.user.display_name.slice(0, 1).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {!!dm.sending && (
+                  <p className="absolute top-full mx-5 text-xs">sending</p>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      </ScrollArea>
+      <form
+        onSubmit={sendTextMessage}
+        autoComplete="off"
+        className="flex items-end space-x-5 w-[95%] mx-auto my-3 bg-primary-foreground py-3 px-2 h-fit border rounded-lg"
+      >
         <Button
+          type="button"
           className="aspect-square h-fit rounded-full p-1 "
           variant="ghost"
         >
@@ -224,14 +279,14 @@ export default function page() {
           }}
         />
         <Button
+          type="submit"
           className="aspect-square h-fit rounded-full p-1"
           variant="ghost"
           disabled={!text_message}
-          onClick={sendTextMessage}
         >
           <PaperAirplaneIcon className="h-6" />
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

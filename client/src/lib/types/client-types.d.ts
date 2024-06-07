@@ -57,7 +57,7 @@ export type DirectConversation = {
 
 export type Message = {
   id: string;
-  converstaion: DirectConversation;
+  converstaion?: DirectConversation;
   conversation_id: string;
   sender: User;
   sender_id: string;

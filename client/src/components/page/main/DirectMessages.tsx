@@ -53,7 +53,6 @@ export default function DirectMessages() {
     getDirectConversations();
   }, [data]);
 
-  console.log(direct_conversation);
   return (
     <div className="flex flex-col space-y-5 mx-2">
       <div className="flex items-center justify-between">
