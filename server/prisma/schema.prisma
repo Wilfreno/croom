@@ -26,6 +26,7 @@ model User {
   direct_messages_        DirectConversation[] @relation("direct-message2")
   direct_message_sent     Message[]            @relation("message-sent")
   direct_message_received Message[]            @relation("message-received")
+  rooms                   Room[]
   room_mesages_sent       RoomMessage[]        @relation("room-message-sender")
   date_created            DateTime             @default(now())
 }
@@ -72,6 +73,14 @@ model DirectConversation {
   @@unique([user1_id, user2_id])
 }
 
+model Room {
+  id           String        @id @unique @default(uuid())
+  room_name    String
+  members      User[]
+  messages     RoomMessage[]
+  date_created DateTime      @default(now())
+}
+
 model Message {
   id              String             @id @unique @default(uuid())
   converstation   DirectConversation @relation(fields: [conversation_id], references: [id])
@@ -90,9 +99,10 @@ model Message {
 
 model RoomMessage {
   id            String        @id @unique @default(uuid())
+  room          Room          @relation(fields: [room_id], references: [id])
+  room_id       String
   sender        User          @relation("room-message-sender", fields: [sender_id], references: [id])
   sender_id     String
-  room_id       String
   text_message  TextMessage?
   photo_message PhotoMessage?
   video_Message VideoMessage?
