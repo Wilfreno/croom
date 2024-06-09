@@ -2,7 +2,7 @@
 
 import useServerUrl from "@/components/hooks/useServerUrl";
 import useWebsocket from "@/components/hooks/useWebsocket";
-import LoadingSvg from "@/components/svg/LoadingSvg";
+import UserMessage, { MessageSent } from "@/components/page/main/UserMessage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,10 +20,6 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-interface MessageSent extends Message {
-  sending?: boolean;
-}
-
 export default function page() {
   const server_url = useServerUrl();
   const params = useParams<{ username: string; friend_id: string }>();
@@ -36,8 +32,6 @@ export default function page() {
   const [friend, setFriend] = useState<User>();
   const [textarea_height, setTextareaHeight] = useState<number>();
   const [direct_message, setDirectMessages] = useState<MessageSent[]>([]);
-
-  const message_ref = useRef<HTMLDivElement>(null);
 
   async function sendTextMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -193,61 +187,15 @@ export default function page() {
       </div>
       <ScrollArea className="grow">
         <div className="flex flex-col space-y-5 justify-end p-5">
-          {direct_message.map((dm, index) =>
-            dm.sender_id === friend?.id ? (
-              <div
-                key={dm.id}
-                className="flex items-end mr-auto space-x-3"
-                onLoad={(e) =>
-                  index === direct_message.length - 1 &&
-                  e.currentTarget.scrollIntoView()
-                }
-              >
-                <Avatar>
-                  <AvatarImage
-                    src={friend?.profile_photo?.photo_url}
-                    alt={friend?.display_name.slice(0, 1).toUpperCase()}
-                  />
-                  <AvatarFallback>
-                    {friend?.display_name.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="max-w-1/2 p-2  rounded-lg shadow-md bg-primary">
-                  {dm.type === "text" && dm.text_message?.content}
-                </div>
-              </div>
-            ) : (
-              <div
-                key={dm.id}
-                className="relative flex items-end ml-auto space-x-3"
-                onLoad={(e) =>
-                  index === direct_message.length - 1 &&
-                  e.currentTarget.scrollIntoView()
-                }
-              >
-                <div
-                  className={cn(
-                    "max-w-1/2 p-2 rounded-lg shadow-md",
-                    dm.sending ? "bg-primary-foreground" : "bg-primary"
-                  )}
-                >
-                  {dm.type === "text" && dm.text_message?.content}
-                </div>
-                <Avatar>
-                  <AvatarImage
-                    src={data?.user.profile_photo?.photo_url}
-                    alt={data?.user.display_name.slice(0, 1).toUpperCase()}
-                  />
-                  <AvatarFallback>
-                    {data?.user.display_name.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {!!dm.sending && (
-                  <p className="absolute top-full mx-5 text-xs">sending</p>
-                )}
-              </div>
-            )
-          )}
+          {direct_message.map((dm, index) => (
+            <UserMessage
+              user={data?.user!}
+              friend={friend!}
+              message={dm}
+              dm_length={direct_message.length}
+              index={index}
+            />
+          ))}
         </div>
       </ScrollArea>
       <form
