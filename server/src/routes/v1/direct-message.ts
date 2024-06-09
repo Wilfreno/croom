@@ -1,4 +1,4 @@
-import { FriendRequest, Message } from "@prisma/client";
+import { Message } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../../server";
 import { badRequest, okStatus, serverConflict } from "../../lib/response-json";
@@ -19,6 +19,7 @@ router
       });
 
       let message: Message;
+
       if (found_conversation) {
         message = await prisma.message.create({
           data: {
@@ -31,6 +32,9 @@ router
               },
             },
             type: "text",
+          },
+          include: {
+            text_message: true,
           },
         });
         await prisma.directConversation.update({
@@ -72,6 +76,9 @@ router
             },
             type: "text",
           },
+          include: {
+            text_message: true,
+          },
         });
       }
 
@@ -106,21 +113,27 @@ router
       }
 
       const dm_id = [user_id, friend_id].sort().join("-");
-      const direct_messages = await prisma.directConversation.findMany({
+      const m = await prisma.directConversation.findFirst({
         where: { id: dm_id },
-        include: {
-          messages: true,
+        select: {
+          messages: {
+            include: {
+              text_message: true,
+              photo_message: true,
+              video_message: true,
+            },
+            orderBy: {
+              date_created: "asc",
+            },
+            take: count,
+            skip,
+          },
         },
-        orderBy: {
-          date_created: "desc",
-        },
-        take: count,
-        skip,
       });
 
       return response
         .status(200)
-        .json(okStatus("request succesfull", direct_messages));
+        .json(okStatus("request succesfull", m!.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response.status(400).json(badRequest());

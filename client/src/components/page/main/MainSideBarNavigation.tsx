@@ -9,11 +9,13 @@ import {
 } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function MainSideBarNavigation() {
   const { data } = useSession();
   const path_name = usePathname();
+  const router = useRouter();
+
   const nav_list = [
     { name: "Notes", link: "/notes", icon: <BookmarkIcon className="h-5" /> },
     {

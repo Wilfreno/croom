@@ -2,7 +2,6 @@
 import useWebsocket from "@/components/hooks/useWebsocket";
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
-import { FriendRequest } from "@/lib/types/client-types";
 import {
   FriendRequestMessageType,
   WebSocketSeverMessage,
@@ -31,7 +30,7 @@ export default function useFriendRequestHandler() {
 
   async function getFriendRequest() {
     const response = await fetch(
-      server_url + "/v1/get/friend-request/" + data?.user.id
+      server_url + "/get/v1/friend-request/" + data?.user.id
     );
 
     const response_json = (await response.json()) as ServerResponse;
@@ -52,7 +51,7 @@ export default function useFriendRequestHandler() {
     sender: FriendRequestMessageType["sender"],
     index: number
   ) {
-    const response = await fetch(server_url + "/v1/accept/friend-request", {
+    const response = await fetch(server_url + "/accept/friend-request", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -93,7 +92,7 @@ export default function useFriendRequestHandler() {
     sender: FriendRequestMessageType["sender"],
     index: number
   ) {
-    const response = await fetch(server_url + "/v1/decline/friend-request", {
+    const response = await fetch(server_url + "/decline/friend-request", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

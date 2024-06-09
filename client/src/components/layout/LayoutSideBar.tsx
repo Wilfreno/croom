@@ -1,11 +1,9 @@
 "use client";
 
-
-
 import Link from "next/link";
 import { PlusIcon, HomeIcon } from "@heroicons/react/24/solid";
 import { Button } from "../ui/button";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { ThemeToggler } from "../dark-mode/ThemeToggler";
@@ -16,14 +14,22 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import CompassSvg from "../svg/CompassSvg";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
 
 export default function LayoutSideBar() {
   const path_name = usePathname();
+  const { data } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const drawer = searchParams.get("drawer");
 
   const nav_list = [
     {
       name: "home",
-      link: "/",
+      link: path_name.startsWith("/" + data?.user.user_name)
+        ? path_name + "?drawer=" + (drawer === "open" ? "close" : "open")
+        : "/" + data?.user.user_name,
       icon: <HomeIcon className={cn("h-full fill-secondary-foreground")} />,
     },
     {
@@ -52,6 +58,9 @@ export default function LayoutSideBar() {
     },
   ];
 
+  useEffect(() => {
+    router.replace(path_name + "?drawer=open");
+  }, []);
   return (
     <section className="h-full w-fit px-2 py-5 flex flex-col items-center bg-primary-foreground">
       <nav className="h-fit w-fit flex flex-col space-y-3">

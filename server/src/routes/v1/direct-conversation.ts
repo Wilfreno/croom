@@ -19,10 +19,30 @@ router.get("/:id", async (request, response) => {
         OR: [{ user1_id: user_id }, { user2_id: user_id }],
       },
       include: {
-        messages: {
-          orderBy: {
-            date_created: "asc",
+        user1: {
+          select: {
+            id: true,
+            display_name: true,
+            profile_photo: true,
           },
+        },
+        user2: {
+          select: {
+            id: true,
+            display_name: true,
+            profile_photo: true,
+          },
+        },
+        messages: {
+          include: {
+            text_message: true,
+            photo_message: true,
+            video_message: true,
+          },
+          orderBy: {
+            date_created: "desc",
+          },
+          take: 1,
         },
       },
     });

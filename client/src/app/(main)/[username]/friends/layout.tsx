@@ -25,7 +25,7 @@ export default function Layout({
     <section className="grow flex flex-col space-y-3">
       <div className="flex items-center justify-between m-5">
         <h1 className="font-bold text-xl ">Friends</h1>
-        <nav className="space-x-5">
+        <nav className=" space-x-1 lg:space-x-5 flex flex-nowrap">
           {friends_nav.map((nav) => (
             <Link
               href={root_path_name + nav.link}
@@ -34,7 +34,7 @@ export default function Layout({
             >
               <Button
                 variant={path_name.endsWith(nav.link) ? "secondary" : "outline"}
-                className="w-24"
+                className="w-20 text-xs lg:w-24 lg:text-sm"
               >
                 {nav.name}
               </Button>

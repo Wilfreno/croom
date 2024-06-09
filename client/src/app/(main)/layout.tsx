@@ -5,7 +5,6 @@ import React, { useEffect } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const websocket = useWebsocket();
-
   useEffect(() => {
     return () => websocket?.close();
   }, [websocket]);

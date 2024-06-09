@@ -47,7 +47,7 @@ export default function OtpVerification({
 
     setResend((prev) => ({ ...prev, interval_id: id }));
     try {
-      const response = await fetch(development_server + "/create/otp", {
+      const response = await fetch(development_server + "/create/v1/otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +104,7 @@ export default function OtpVerification({
           }
 
           const create_user_response = await fetch(
-            development_server + "/create/user",
+            development_server + "/create/v1/user",
             {
               method: "POST",
               headers: {
