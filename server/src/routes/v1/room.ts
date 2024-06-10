@@ -1,16 +1,528 @@
-import { Router } from "express";
-import { badRequest } from "src/lib/response-json";
+import { Router, response } from "express";
+import {
+  badRequest,
+  notFoundStatus,
+  okStatus,
+  serverConflict,
+  unauthorized,
+} from "../../lib/response-json";
+import { prisma } from "../../server";
+import { RoomMember } from "@prisma/client";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
-router.get("/", async (request, response) => {
-  try {
-  } catch (error) {
-    if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
-  }
-});
+router
+  //create routes
+  .post("/", async (request, response) => {
+    try {
+      const {
+        room_name,
+        creator: { user_id },
+      } = request.body;
+
+      const room = await prisma.room.create({
+        data: {
+          room_name,
+          members: {
+            create: {
+              id: user_id,
+              role: "MODERATOR",
+            },
+          },
+          lounge: {
+            create: true,
+          },
+        },
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      return response.status(200).json(okStatus("room created", room));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .post("/lounge/message/text", async (request, response) => {
+    try {
+      const { sender_id, room_id, text } = request.body;
+
+      const found_user = await prisma.roomMember.findFirst({
+        where: {
+          id: sender_id,
+          room_id,
+        },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(serverConflict("user is not a room member"));
+
+      const lounge = await prisma.lounge.update({
+        where: { id: room_id },
+        data: {
+          messages: {
+            create: {
+              type: "TEXT",
+              sender_id,
+              text_message: {
+                create: {
+                  content: text,
+                },
+              },
+            },
+          },
+        },
+        select: {
+          messages: {
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  display_name: true,
+                  profile_photo: true,
+                },
+              },
+              text_message: {
+                select: {
+                  content: true,
+                },
+              },
+            },
+            orderBy: {
+              date_created: "desc",
+            },
+            take: 1,
+          },
+        },
+      });
+
+      return response
+        .status(400)
+        .json(okStatus("message sent", lounge.messages[0]));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .post("/session", async (request, response) => {
+    try {
+      const { member_id, room_id, session_name } = request.body;
+
+      const found_room = await prisma.room.findFirst({
+        where: { id: room_id },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; room does not exist"));
+
+      const found_member = await prisma.roomMember.findFirst({
+        where: { id: member_id, role: "MODERATOR", room_id },
+      });
+
+      if (!found_member)
+        return response
+          .status(409)
+          .json(
+            serverConflict("only room moderators can create a room session")
+          );
+
+      const session = await prisma.session.create({
+        data: {
+          name: session_name,
+          room: {
+            connect: {
+              id: room_id,
+            },
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(okStatus("new room session created", session));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .post("/session/message/text", async (request, response) => {
+    try {
+      const { session_id, sender_id, text } = request.body;
+
+      const found_session = await prisma.session.findFirst({
+        where: {
+          id: session_id,
+        },
+      });
+
+      if (!found_session)
+        return response
+          .status(409)
+          .json(
+            serverConflict("cannot send message; room session does not exist")
+          );
+
+      const found_member = await prisma.roomMember.findFirst({
+        where: {
+          id: sender_id,
+          room_id: found_session.room_id!,
+        },
+      });
+
+      if (!found_member)
+        return response
+          .status(409)
+          .json(serverConflict("user is not a room member"));
+
+      const session = await prisma.session.update({
+        where: {
+          id: session_id,
+        },
+        data: {
+          messages: {
+            create: {
+              type: "TEXT",
+              sender_id,
+              text_message: {
+                create: {
+                  content: text,
+                },
+              },
+            },
+          },
+        },
+        select: {
+          messages: {
+            include: {
+              text_message: true,
+            },
+            orderBy: {
+              date_created: "desc",
+            },
+            take: 1,
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(okStatus("message sent", session.messages));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+
+  //read routes
+  .get("/list/:name", async (request, response) => {
+    try {
+      const room_name = request.params.name;
+
+      const room = await prisma.room.findMany({
+        where: { room_name: { contains: room_name } },
+        include: {
+          members: {
+            take: 5,
+            select: {
+              id: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+        },
+      });
+
+      if (room.length < 1)
+        return response.status(404).json(notFoundStatus("no room found"));
+
+      return response.status(200).json(okStatus("request succesfull", room));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .get("/:id", async (request, response) => {
+    try {
+      const room_id = request.params.id;
+
+      const room = await prisma.room.findFirst({
+        where: { id: room_id },
+        include: {
+          members: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!room)
+        return response
+          .status(404)
+          .json("cannot find room; room does not exist");
+
+      return response.json(200).json(okStatus("request succesful", room));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+
+  //update routes
+  .patch("/add-member", async (request, response) => {
+    try {
+      const { room_id, member_id } = request.body;
+
+      const found_room = await prisma.room.findFirst({
+        where: { id: room_id },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; room does not exist"));
+
+      const found_user = await prisma.user.findFirst({
+        where: { id: member_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; user does not exist"));
+
+      await prisma.room.update({
+        where: { id: room_id },
+        data: {
+          members: {
+            create: {
+              id: member_id,
+              role: "MEMBER",
+            },
+          },
+        },
+      });
+
+      return response.status(200).json(okStatus("added a member", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .patch("/member-role", async (request, response) => {
+    try {
+      const {
+        room_id,
+        member_id,
+        role,
+      }: Record<string, string> & { role: RoomMember["role"] } = request.body;
+
+      const found_room = await prisma.room.findFirst({
+        where: { id: room_id },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; room does not exist"));
+
+      const found_member = await prisma.roomMember.findFirst({
+        where: {
+          id: member_id,
+          room_id,
+        },
+      });
+
+      if (!found_member)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; user is not a member"));
+
+      await prisma.roomMember.update({
+        where: {
+          id: member_id,
+          room_id,
+        },
+        data: {
+          role,
+        },
+      });
+
+      return response.status(200).json(okStatus("role updated", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+
+  //delete routes
+  .delete("/", async (request, response) => {
+    try {
+      const {
+        room_id,
+        moderator: { user_id },
+      } = request.body;
+
+      const found_room = await prisma.room.findFirst({
+        where: { id: room_id },
+        select: {
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+        },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(serverConflict("cannot delete room; room does not exist"));
+
+      if (found_room._count.members > 1)
+        return response
+          .status(409)
+          .json(serverConflict("cannot delete room if there's still members"));
+
+      const found_member = await prisma.roomMember.findFirst({
+        where: {
+          id: user_id,
+          room_id,
+          role: "MODERATOR",
+        },
+      });
+
+      if (!found_member)
+        return response
+          .status(401)
+          .json(
+            unauthorized(
+              "user must be a room member and a room moderator to process the request"
+            )
+          );
+
+      await prisma.room.delete({
+        where: { id: room_id },
+      });
+
+      return response.status(200).json(okStatus("room deleted", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .delete("/member", async (request, response) => {
+    try {
+      const { room_id, member_id, moderator_id } = request.body;
+
+      const found_room = await prisma.room.findFirst({
+        where: { id: room_id },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(serverConflict("cannot process request; room does not exist"));
+
+      const found_moderator = await prisma.roomMember.findFirst({
+        where: {
+          id: moderator_id,
+          room_id,
+          role: "MODERATOR",
+        },
+      });
+
+      if (!found_moderator)
+        return response
+          .status(409)
+          .json(
+            serverConflict("cannot process request; moderator_id is not found")
+          );
+
+      const found_member = await prisma.roomMember.findFirst({
+        where: {
+          id: member_id,
+          room_id,
+        },
+      });
+
+      if (!found_member)
+        return response
+          .status(409)
+          .json(
+            serverConflict("cannot process request; member_id does not exist")
+          );
+
+      await prisma.roomMember.delete({
+        where: {
+          id: member_id,
+          room_id,
+        },
+      });
+
+      return response
+        .status(200)
+        .json(okStatus("user deleted from the room's member list", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .delete("/session", async (request, response) => {
+    try {
+      const { session_id, member_id } = request.body;
+
+      const found_session = await prisma.session.findFirst({
+        where: { id: session_id },
+      });
+
+      if (!found_session)
+        return response
+          .status(409)
+          .json(
+            serverConflict(
+              "cannot process request; room session does not exist"
+            )
+          );
+
+      const found_moderator = await prisma.roomMember.findFirst({
+        where: {
+          id: member_id,
+          room_id: found_session.room_id!,
+          role: "MODERATOR",
+        },
+      });
+
+      if (!found_moderator)
+        return response
+          .status(401)
+          .json(unauthorized("only room moderators can delete a room session"));
+
+      await prisma.session.delete({
+        where: {
+          id: session_id,
+        },
+      });
+
+      return response.status(200).json(okStatus("room session deleted", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  });
 
 const v1_room = router;
 
