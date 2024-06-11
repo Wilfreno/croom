@@ -26,7 +26,11 @@ export type WebSocketPayloadType =
   | string
   | FriendRequestMessageType
   | WebsocketUserType
-  | DirectMessage
+  | (DirectMessage & {
+      text_message?: TextMessage;
+      photo_message?: PhotoMessage;
+      video_message?: VideoMessage;
+    })
   | RoomMember
   | (LoungeMessage & { sender: WebsocketUserType })
   | ({ room_member: RoomMember } & { session: Session });
