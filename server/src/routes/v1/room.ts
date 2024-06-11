@@ -1,4 +1,4 @@
-import { Router, response } from "express";
+import { Router } from "express";
 import {
   badRequest,
   notFoundStatus,
@@ -248,7 +248,7 @@ router
       if (room.length < 1)
         return response.status(404).json(notFoundStatus("no room found"));
 
-      return response.status(200).json(okStatus("request succesfull", room));
+      return response.status(200).json(okStatus("request successful", room));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response.status(400).json(badRequest());
@@ -274,7 +274,97 @@ router
           .status(404)
           .json("cannot find room; room does not exist");
 
-      return response.json(200).json(okStatus("request succesful", room));
+      return response.json(200).json(okStatus("request successful", room));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .get("/lounge/messages/:id", async (request, response) => {
+    try {
+      const room_id = request.params.id;
+      const query = request.query;
+
+      let take = 20;
+      let skip = 0;
+
+      if (query.page) {
+        take *= Number(query.page);
+        skip = take - 20;
+      }
+
+      const lounge = await prisma.lounge.findFirst({
+        where: {
+          id: room_id,
+        },
+        select: {
+          messages: {
+            include: {
+              text_message: true,
+              photo_message: true,
+              video_message: true,
+            },
+            take,
+            skip,
+            orderBy: {
+              date_created: "desc",
+            },
+          },
+        },
+      });
+
+      if (!lounge)
+        return response
+          .status(404)
+          .json(notFoundStatus("cannot find lounge; roo, does not exist "));
+
+      return response
+        .status(200)
+        .json(okStatus("request successful", lounge.messages));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response.status(400).json(badRequest());
+    }
+  })
+  .get("/session/messages/:id", async (request, response) => {
+    try {
+      const session_id = request.params.id;
+      const query = request.query;
+
+      let take = 20;
+      let skip = 0;
+
+      if (query.page) {
+        take *= Number(query.page);
+        skip = take - 20;
+      }
+
+      const session = await prisma.session.findFirst({
+        where: { id: session_id },
+        select: {
+          messages: {
+            include: {
+              text_message: true,
+              photo_message: true,
+              video_message: true,
+            },
+            take,
+            skip,
+            orderBy: {
+              date_created: "desc",
+            },
+          },
+        },
+      });
+
+      if (!session)
+        return response
+          .status(404)
+          .json(notFoundStatus("room session does not exist"));
+
+      return response
+        .status(200)
+        .json(okStatus("request successful", session.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response.status(400).json(badRequest());

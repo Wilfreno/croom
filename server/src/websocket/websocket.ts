@@ -1,20 +1,33 @@
 import http from "http";
 import WebSocket from "ws";
-import { Message, User } from "@prisma/client";
+import {
+  DirectMessage,
+  Lounge,
+  LoungeMessage,
+  Room,
+  RoomMember,
+  Session,
+  User,
+} from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
   FriendRequestMessageType,
   WebsocketClientMessage,
 } from "src/lib/types/websocket-types";
-import makeMessage from "./make-message";
+import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
 import sendDirectMessage from "./send-direct-message";
 import deleteDirectMessage from "./delete-direct-message";
-import sendfriendRequest from "./send-friend-request";
-import acceptFriendrequest from "./accept-friend-request";
+import sendFriendRequest from "./send-friend-request";
+import acceptFriendRequest from "./accept-friend-request";
+import newRoomMember from "./new-room-member";
+import joinLounge from "./join-lounge";
+import leaveLounge from "./leave-lounge";
+import sendLoungeMessage from "./send-lounge-message";
 
-const members = new Map<User["id"], WebSocket>();
+const lounge = new Map<Lounge["id"], Map<User["id"], WebSocket>>();
+const session = new Map<Session["id"], Map<User["id"], WebSocket>>();
 const online = new Map<User["id"], WebSocket>();
 
 export default function WebsocketServer(
@@ -28,10 +41,10 @@ export default function WebsocketServer(
   websocket_server.on("connection", async (socket, request) => {
     //checking valid url connection
     const params = parse(request.url!, true).query;
-    //cheking if there is  user_id query parameter on teh url
+    //checking if there is  user_id query parameter on teh url
     if (!params.user_id) {
       socket.send(
-        makeMessage(
+        createMessage(
           "error",
           "the url connection needs a user_id query parameter"
         )
@@ -45,16 +58,17 @@ export default function WebsocketServer(
 
     //closing connection if user does not exist
     if (!user) {
-      socket.send(makeMessage("error", "user does not exist"));
+      socket.send(createMessage("error", "user does not exist"));
       socket.close();
       return;
     }
 
-    //inlisting the user to the online map and broadcasting it to every room the user is in
+    //enlisting the user to the online map and broadcasting it to every room the user is in
     online.set(user.id, socket);
     await broadcastOnline(user.id, online);
 
     console.log("online::", online.size);
+
     //websocket event handlers
     socket.on("message", (client_message) => {
       const parsed_message: WebsocketClientMessage = JSON.parse(
@@ -65,23 +79,46 @@ export default function WebsocketServer(
           const friend_request =
             parsed_message.payload as FriendRequestMessageType;
 
-          sendfriendRequest(friend_request, online);
+          sendFriendRequest(friend_request, online);
           break;
         }
         case "accept-friend-request": {
           const friend_request =
             parsed_message.payload as FriendRequestMessageType;
 
-          acceptFriendrequest(friend_request, online);
+          acceptFriendRequest(friend_request, online);
           break;
         }
         case "send-direct-message":
-          sendDirectMessage(parsed_message.payload as Message, online);
+          sendDirectMessage(parsed_message.payload as DirectMessage, online);
           break;
         case "delete-direct-message":
-          deleteDirectMessage(parsed_message.payload as Message, online);
+          deleteDirectMessage(parsed_message.payload as DirectMessage, online);
           break;
-        case "join":
+        case "new-room-member": {
+          const payload = parsed_message.payload as RoomMember;
+          newRoomMember(lounge, payload, socket);
+          break;
+        }
+        case "join-lounge": {
+          const payload = parsed_message.payload as RoomMember;
+          joinLounge(lounge, payload, socket);
+          break;
+        }
+        case "leave-lounge": {
+          const payload = parsed_message.payload as RoomMember;
+          leaveLounge(lounge, payload);
+          break;
+        }
+        case "send-lounge-message": {
+          const payload = parsed_message.payload as LoungeMessage & {
+            sender: Omit<User, "password">;
+          };
+          sendLoungeMessage(lounge, payload);
+          break;
+        }
+        case "join-session": {
+        }
         default:
           return;
       }

@@ -1,7 +1,7 @@
 import { User } from "@prisma/client";
 import { prisma } from "../server";
 import exclude from "../lib/exclude";
-import makeMessage from "./make-message";
+import createMessage from "./make-message";
 import { type WebSocket } from "ws";
 
 export default async function broadcastOnline(
@@ -47,8 +47,8 @@ export default async function broadcastOnline(
   for (let friend of friends) {
     online
       .get(friend.id)
-      ?.send(makeMessage("online", exclude(user as User, ["password"])));
+      ?.send(createMessage("online", exclude(user as User, ["password"])));
 
-    online.get(user_id)?.send(makeMessage("online", friend));
+    online.get(user_id)?.send(createMessage("online", friend));
   }
 }

@@ -1,5 +1,5 @@
 import { Message } from "@prisma/client";
-import makeMessage from "./make-message";
+import createMessage from "./make-message";
 import { WebSocket } from "ws";
 
 export default function sendDirectMessage(
@@ -8,5 +8,5 @@ export default function sendDirectMessage(
 ) {
   online
     .get(payload.receiver_id)
-    ?.send(makeMessage("send-direct-message", payload));
+    ?.send(createMessage("send-direct-message", payload));
 }
