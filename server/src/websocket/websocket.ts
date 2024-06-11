@@ -124,7 +124,7 @@ export default function WebsocketServer(
         }
         case "join-lounge": {
           const payload = parsed_message.payload as RoomMember;
-          joinLounge(lounge, payload, socket);
+          joinLounge(lounge, online, payload);
           break;
         }
         case "leave-lounge": {

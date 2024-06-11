@@ -4,7 +4,7 @@ import {
   WebsocketUserType,
 } from "src/lib/types/websocket-types";
 
-export default async function sendFriendRequest(
+export default function sendFriendRequest(
   payload: FriendRequestMessageType,
   online: Map<string, WebsocketUserType>
 ) {
