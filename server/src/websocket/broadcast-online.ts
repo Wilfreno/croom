@@ -1,5 +1,3 @@
-
-
 import { Lounge, User } from "@prisma/client";
 import { prisma } from "../server";
 import createMessage from "./make-message";
@@ -53,12 +51,14 @@ export default async function broadcastOnline(
 
   for (const room_member of room_member_list) {
     lounge.get(room_member.room_id)?.forEach((member) => {
-      member.websocket?.send(
-        createMessage("online-room-member", { user: current_user?.user! })
-      );
-      current_user?.websocket?.send(
-        createMessage("online-room-member", { user: member.user })
-      );
+      if (member.user.id !== current_user?.user.id) {
+        member.websocket?.send(
+          createMessage("online-room-member", { user: current_user?.user! })
+        );
+        current_user?.websocket?.send(
+          createMessage("online-room-member", { user: member.user })
+        );
+      }
     });
   }
 }

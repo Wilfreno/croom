@@ -1,37 +1,31 @@
 import { Lounge, RoomMember, User } from "@prisma/client";
-import { prisma } from "../server";
-import { WebSocket } from "ws";
 import createMessage from "./make-message";
-import exclude from "src/lib/exclude";
+import { WebsocketUserType } from "src/lib/types/websocket-types";
 
 export default async function newRoomMember(
-  lounge: Map<Lounge["id"], Map<User["id"], WebSocket>>,
-  payload: RoomMember,
-  socket: WebSocket
+  lounge: Map<Lounge["id"], Map<User["id"], WebsocketUserType>>,
+  online: Map<User["id"], WebsocketUserType>,
+  payload: RoomMember
 ) {
   try {
-    const user = await prisma.user.findFirst({
-      where: { id: payload.id },
-      select: { display_name: true },
-    });
-
+    const current_user = online.get(payload.id)!;
     if (!lounge.has(payload.room_id)) {
       lounge.set(payload.room_id, new Map());
     }
-    lounge.get(payload.room_id)?.set(payload.id, socket);
+    lounge.get(payload.room_id)?.set(payload.id, current_user);
 
-    lounge
-      .get(payload.room_id)
-      ?.forEach((ws) =>
-        ws !== socket
-          ? ws.send(
-              createMessage(
-                "new-room-member",
-                user?.display_name + " joins the room"
-              )
-            )
-          : null
-      );
+    lounge.get(payload.room_id)?.forEach((member) => {
+      if (member.user.id !== current_user.user.id) {
+        member.websocket!.send(
+          createMessage("new-room-member", {
+            user: current_user.user,
+          })
+        );
+        current_user.websocket?.send(
+          createMessage("new-room-member", { user: member.user })
+        );
+      }
+    });
   } catch (error) {
     throw error;
   }
