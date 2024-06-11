@@ -90,9 +90,7 @@ export default function WebsocketServer(
       websocket: socket,
     });
 
-    await broadcastOnline(user.id, online);
-
-    console.log("online::", online.size);
+    await broadcastOnline(user.id, online, lounge);
 
     //websocket event handlers
     socket.on("message", (client_message) => {
@@ -103,7 +101,6 @@ export default function WebsocketServer(
         case "send-friend-request": {
           const friend_request =
             parsed_message.payload as FriendRequestMessageType;
-
           sendFriendRequest(friend_request, online);
           break;
         }
