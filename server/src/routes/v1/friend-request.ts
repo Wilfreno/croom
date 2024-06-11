@@ -8,7 +8,7 @@ import {
 } from "../../lib/response-json";
 import { User } from "@prisma/client";
 import exclude from "../../lib/exclude";
-import { FriendRequestMessageType } from "src/lib/types/websocket-types";
+import { WebsocketFriendRequestType } from "src/lib/types/websocket-types";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -146,7 +146,7 @@ router
       if (!friend_request)
         return response.status(404).json(notFoundStatus("user not found"));
 
-      let user_list: FriendRequestMessageType[] = [];
+      let user_list: WebsocketFriendRequestType[] = [];
 
       for (let i = 0; i < friend_request.length; i++) {
         user_list.push({

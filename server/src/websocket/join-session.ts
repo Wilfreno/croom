@@ -1,11 +1,14 @@
 import { RoomMember, Session, User } from "@prisma/client";
 import createMessage from "./make-message";
-import { WebsocketUserType } from "src/lib/types/websocket-types";
+import {
+  WebsocketRoomSessionType,
+  WebsocketUserType,
+} from "src/lib/types/websocket-types";
 
 export default function joinSession(
   session: Map<Session["id"], Map<User["id"], WebsocketUserType>>,
   online: Map<User["id"], WebsocketUserType>,
-  payload: { room_member: RoomMember } & { session: Session }
+  payload: WebsocketRoomSessionType
 ) {
   const current_user = online.get(payload.room_member.id);
   if (!session.has(payload.session.id)) {

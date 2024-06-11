@@ -18,9 +18,12 @@ import {
 import { parse } from "url";
 import { prisma } from "../server";
 import {
-  FriendRequestMessageType,
-  WebsocketClientMessage,
+  WebsocketFriendRequestType,
+  WebsocketClientMessage as WebsocketClientMessageType,
   WebsocketUserType,
+  WebsocketLoungeMessageType,
+  WebsocketDirectMessageType,
+  WebsocketRoomSessionType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -32,6 +35,7 @@ import newRoomMember from "./new-room-member";
 import joinLounge from "./join-lounge";
 import leaveLounge from "./leave-lounge";
 import sendLoungeMessage from "./send-lounge-message";
+import joinSession from "./join-session";
 
 const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
 const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
@@ -94,28 +98,34 @@ export default function WebsocketServer(
 
     //websocket event handlers
     socket.on("message", (client_message) => {
-      const parsed_message: WebsocketClientMessage = JSON.parse(
+      const parsed_message: WebsocketClientMessageType = JSON.parse(
         client_message.toString()
       );
       switch (parsed_message.type) {
         case "send-friend-request": {
           const friend_request =
-            parsed_message.payload as FriendRequestMessageType;
+            parsed_message.payload as WebsocketFriendRequestType;
           sendFriendRequest(friend_request, online);
           break;
         }
         case "accept-friend-request": {
           const friend_request =
-            parsed_message.payload as FriendRequestMessageType;
+            parsed_message.payload as WebsocketFriendRequestType;
 
           acceptFriendRequest(friend_request, online);
           break;
         }
         case "send-direct-message":
-          sendDirectMessage(parsed_message.payload as DirectMessage, online);
+          sendDirectMessage(
+            parsed_message.payload as WebsocketDirectMessageType,
+            online
+          );
           break;
         case "delete-direct-message":
-          deleteDirectMessage(parsed_message.payload as DirectMessage, online);
+          deleteDirectMessage(
+            parsed_message.payload as WebsocketDirectMessageType,
+            online
+          );
           break;
         case "new-room-member": {
           const payload = parsed_message.payload as RoomMember;
@@ -133,13 +143,13 @@ export default function WebsocketServer(
           break;
         }
         case "send-lounge-message": {
-          const payload = parsed_message.payload as LoungeMessage & {
-            sender: WebsocketUserType;
-          };
+          const payload = parsed_message.payload as WebsocketLoungeMessageType;
           sendLoungeMessage(lounge, online, payload);
           break;
         }
         case "join-session": {
+          const payload = parsed_message.payload as WebsocketRoomSessionType;
+          joinSession(session, online, payload);
         }
         default:
           return;

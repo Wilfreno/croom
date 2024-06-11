@@ -24,21 +24,12 @@ export type WebSocketSeverMessage = {
 
 export type WebSocketPayloadType =
   | string
-  | FriendRequestMessageType
-  | WebsocketUserType
-  | (DirectMessage & {
-      text_message?: TextMessage;
-      photo_message?: PhotoMessage;
-      video_message?: VideoMessage;
-    })
   | RoomMember
-  | (LoungeMessage & {
-      sender: WebsocketUserType;
-      text_message?: TextMessage;
-      photo_message?: PhotoMessage;
-      video_message?: VideoMessage;
-    })
-  | ({ room_member: RoomMember } & { session: Session });
+  | WebsocketFriendRequestType
+  | WebsocketUserType
+  | WebsocketDirectMessageType
+  | WebsocketLoungeMessageType
+  | WebsocketRoomSessionType;
 
 export type WebsocketMessageType =
   | "online-friend"
@@ -58,7 +49,7 @@ export type WebsocketMessageType =
   | "kick"
   | "leave";
 
-export type FriendRequestMessageType = {
+export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;
   date_created: Date;
@@ -74,4 +65,22 @@ export type WebsocketUserType = {
     };
   };
   websocket?: WebSocket;
+};
+
+export interface WebsocketDirectMessageType extends DirectMessage {
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}
+
+export interface WebsocketLoungeMessageType extends LoungeMessage {
+  sender: WebsocketUserType;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}
+
+export type WebsocketRoomSessionType = {
+  room_member: RoomMember;
+  session: Session;
 };
