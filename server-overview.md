@@ -13,7 +13,7 @@
 
 ## Database
 
-- ### Databse Management System
+- ### Database Management System
 
   POSTGRESQL
 
@@ -74,7 +74,7 @@
         video_url: string
         owner: User
         owner_id: string
-        messsag: Message
+        message: Message
         message_id: string
         created_at: date
     }
