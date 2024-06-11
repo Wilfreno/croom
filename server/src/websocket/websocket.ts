@@ -129,14 +129,14 @@ export default function WebsocketServer(
         }
         case "leave-lounge": {
           const payload = parsed_message.payload as RoomMember;
-          leaveLounge(lounge, payload);
+          leaveLounge(lounge, online, payload);
           break;
         }
         case "send-lounge-message": {
           const payload = parsed_message.payload as LoungeMessage & {
-            sender: Omit<User, "password">;
+            sender: WebsocketUserType;
           };
-          sendLoungeMessage(lounge, payload);
+          sendLoungeMessage(lounge, online, payload);
           break;
         }
         case "join-session": {

@@ -32,7 +32,12 @@ export type WebSocketPayloadType =
       video_message?: VideoMessage;
     })
   | RoomMember
-  | (LoungeMessage & { sender: WebsocketUserType })
+  | (LoungeMessage & {
+      sender: WebsocketUserType;
+      text_message?: TextMessage;
+      photo_message?: PhotoMessage;
+      video_message?: VideoMessage;
+    })
   | ({ room_member: RoomMember } & { session: Session });
 
 export type WebsocketMessageType =
