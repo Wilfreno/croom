@@ -1,17 +1,23 @@
-import { WebSocket } from "ws";
 import createMessage from "./make-message";
-import { FriendRequestMessageType } from "src/lib/types/websocket-types";
+import {
+  FriendRequestMessageType,
+  WebsocketUserType,
+} from "src/lib/types/websocket-types";
 
 export default async function acceptFriendRequest(
   payload: FriendRequestMessageType,
-  online: Map<string, WebSocket>
+  online: Map<string, WebsocketUserType>
 ) {
-  if (!online.has(payload.sender.id)) return;
+  if (!online.has(payload.sender.user.id)) return;
 
   online
-    .get(payload.sender.id)
-    ?.send(createMessage("online", payload.receiver));
+    .get(payload.sender.user.id)
+    ?.websocket!.send(
+      createMessage("online-friend", { user: payload.receiver.user })
+    );
   online
-    .get(payload.receiver.id)
-    ?.send(createMessage("online", payload.sender));
+    .get(payload.receiver.user.id)
+    ?.websocket!.send(
+      createMessage("online-friend", { user: payload.sender.user })
+    );
 }
