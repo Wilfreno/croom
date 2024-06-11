@@ -1,10 +1,16 @@
+/**
+ * @author Wilfreno Gayongan
+ *
+ *
+ *  this section is the implementation of the websocket server
+ */
+
 import http from "http";
 import WebSocket from "ws";
 import {
   DirectMessage,
   Lounge,
   LoungeMessage,
-  Room,
   RoomMember,
   Session,
   User,
@@ -14,6 +20,7 @@ import { prisma } from "../server";
 import {
   FriendRequestMessageType,
   WebsocketClientMessage,
+  WebsocketUserType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -26,9 +33,9 @@ import joinLounge from "./join-lounge";
 import leaveLounge from "./leave-lounge";
 import sendLoungeMessage from "./send-lounge-message";
 
-const lounge = new Map<Lounge["id"], Map<User["id"], WebSocket>>();
-const session = new Map<Session["id"], Map<User["id"], WebSocket>>();
-const online = new Map<User["id"], WebSocket>();
+const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
+const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
+const online = new Map<User["id"], WebsocketUserType>();
 
 export default function WebsocketServer(
   http_server: http.Server<
@@ -54,6 +61,13 @@ export default function WebsocketServer(
     }
     const user = await prisma.user.findFirst({
       where: { id: params.user_id! as string },
+      include: {
+        profile_photo: {
+          select: {
+            photo_url: true,
+          },
+        },
+      },
     });
 
     //closing connection if user does not exist
@@ -64,7 +78,18 @@ export default function WebsocketServer(
     }
 
     //enlisting the user to the online map and broadcasting it to every room the user is in
-    online.set(user.id, socket);
+    online.set(user.id, {
+      user: {
+        id: user.id,
+        display_name: user.display_name,
+        user_name: user.user_name,
+        profile_photo: {
+          photo_url: user.profile_photo?.photo_url!,
+        },
+      },
+      websocket: socket,
+    });
+
     await broadcastOnline(user.id, online);
 
     console.log("online::", online.size);

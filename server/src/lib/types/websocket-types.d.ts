@@ -3,12 +3,14 @@ import {
   FriendRequest,
   Lounge,
   LoungeMessage,
+  ProfilePhoto,
   Room,
   RoomMember,
   Session,
   User,
 } from "@prisma/client";
 import sendLoungeMessage from "src/websocket/send-lounge-message";
+import { WebSocket } from "ws";
 
 export type WebsocketClientMessage = {
   type: WebsocketMessageType;
@@ -23,14 +25,15 @@ export type WebSocketSeverMessage = {
 export type WebSocketPayloadType =
   | string
   | FriendRequestMessageType
-  | Omit<User, "password">
-  | Omit<User, "password">[]
+  | WebsocketUserType
   | DirectMessage
   | RoomMember
-  | (LoungeMessage & { sender: Omit<User, "password"> })
+  | (LoungeMessage & { sender: WebsocketUserType })
   | ({ room_member: RoomMember } & { session: Session });
 
 export type WebsocketMessageType =
+  | "online-friend"
+  | "online-room-member"
   | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
@@ -42,13 +45,24 @@ export type WebsocketMessageType =
   | "join-session"
   | "error"
   | "success"
-  | "online"
   | "offline"
   | "kick"
   | "leave";
 
 export type FriendRequestMessageType = {
-  sender: Omit<User, "password">;
-  receiver: Omit<User, "password">;
+  sender: WebsocketUserType;
+  receiver: WebsocketUserType;
   date_created: Date;
+};
+
+export type WebsocketUserType = {
+  user: {
+    id: User["id"];
+    user_name: User["user_name"];
+    display_name: User["display_name"];
+    profile_photo: {
+      photo_url: ProfilePhoto["photo_url"];
+    };
+  };
+  websocket?: WebSocket;
 };
