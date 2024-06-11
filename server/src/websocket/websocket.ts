@@ -119,7 +119,7 @@ export default function WebsocketServer(
           break;
         case "new-room-member": {
           const payload = parsed_message.payload as RoomMember;
-          newRoomMember(lounge, payload, socket);
+          newRoomMember(lounge, online, payload);
           break;
         }
         case "join-lounge": {
