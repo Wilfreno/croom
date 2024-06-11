@@ -1,12 +1,12 @@
-import { WebSocket } from "ws";
 import createMessage from "./make-message";
-import { Message } from "@prisma/client";
+import { DirectMessage } from "@prisma/client";
+import { WebsocketUserType } from "src/lib/types/websocket-types";
 
 export default function deleteDirectMessage(
-  payload: Message,
-  online: Map<string, WebSocket>
+  payload: DirectMessage,
+  online: Map<string, WebsocketUserType>
 ) {
   online
     .get(payload.receiver_id)
-    ?.send(createMessage("delete-direct-message", "message deleted"));
+    ?.websocket!.send(createMessage("delete-direct-message", payload));
 }
