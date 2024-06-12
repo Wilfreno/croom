@@ -1,19 +1,15 @@
 import { Router } from "express";
 import { prisma } from "../../server";
-import {
-  badRequest,
-  notFoundStatus,
-  okStatus,
-  serverConflict,
-} from "../../lib/response-json";
 import { User } from "@prisma/client";
 import exclude from "../../lib/exclude";
-import { WebsocketFriendRequestType } from "src/lib/types/websocket-types";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
 router
+
+  //create routes
   .post("/", async (request, response) => {
     try {
       const { sender, receiver }: Record<string, User["user_name"]> =
@@ -23,7 +19,8 @@ router
         return response
           .status(400)
           .json(
-            serverConflict(
+            responseWithoutData(
+              "BAD_REQUEST",
               "sender and receiver on request body is required; {sender:username, receiver: username}"
             )
           );
@@ -38,7 +35,7 @@ router
       if (!found_sender || !found_receiver)
         return response
           .status(404)
-          .json(notFoundStatus("user cannot be found"));
+          .json(responseWithoutData("NOT_FOUND", "user cannot be found"));
 
       const found_friendship = await prisma.friendship.findFirst({
         where: {
@@ -63,7 +60,8 @@ router
         return response
           .status(409)
           .json(
-            serverConflict(
+            responseWithoutData(
+              "CONFLICT",
               found_sender.display_name +
                 " and " +
                 found_receiver.display_name +
@@ -81,7 +79,9 @@ router
       if (found_request)
         return response
           .status(409)
-          .json(serverConflict("already sent a friend request"));
+          .json(
+            responseWithoutData("CONFLICT", "already sent a friend request")
+          );
 
       const friend_request = await prisma.friendRequest.create({
         data: {
@@ -103,7 +103,7 @@ router
       });
 
       return response.status(200).json(
-        okStatus("friend request sent", {
+        responseWithData("OK", "friend request sent", {
           sender: exclude(friend_request.sender, ["password"]),
           receiver: exclude(friend_request.receiver, ["password"]),
           date_created: friend_request.date_created,
@@ -111,56 +111,138 @@ router
       );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
-  .get("/:id", async (request, response) => {
+
+  //read routes
+  .get("/sent/:id", async (request, response) => {
     try {
       const user_id = request.params.id;
 
       if (!user_id)
         return response
           .status(400)
-          .json(badRequest("user id as params is needed; /friend-request/:id"));
+          .json(
+            responseWithoutData(
+              "BAD_REQUEST",
+              "user id as params is needed; /friend-request/:id"
+            )
+          );
+
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "user not found"));
 
       const friend_request = await prisma.friendRequest.findMany({
         where: {
-          receiver_id: user_id,
+          sender_id: user_id,
         },
-        include: {
-          sender: {
-            include: {
-              profile_photo: true,
-            },
-          },
+        select: {
           receiver: {
             include: {
               profile_photo: true,
             },
           },
+          date_created: true,
         },
         orderBy: {
           date_created: "asc",
         },
       });
-      if (!friend_request)
-        return response.status(404).json(notFoundStatus("user not found"));
 
-      let user_list: WebsocketFriendRequestType[] = [];
+      let user_list = [];
 
       for (let i = 0; i < friend_request.length; i++) {
         user_list.push({
-          sender: exclude(friend_request[i].sender, ["password"]),
           receiver: exclude(friend_request[i].receiver, ["password"]),
           date_created: friend_request[i].date_created,
         });
       }
       return response
         .status(200)
-        .json(okStatus("request successfull", user_list));
+        .json(responseWithData("OK", "request successful", user_list));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+  .get("/received/:id", async (request, response) => {
+    try {
+      const user_id = request.params.id;
+
+      if (!user_id)
+        return response
+          .status(400)
+          .json(
+            responseWithoutData(
+              "BAD_REQUEST",
+              "user id as params is needed; /friend-request/:id"
+            )
+          );
+
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "user not found"));
+
+      const friend_request = await prisma.friendRequest.findMany({
+        where: { receiver_id: user_id },
+        select: {
+          sender: {
+            include: {
+              profile_photo: true,
+            },
+          },
+          date_created: true,
+        },
+      });
+
+      let user_list = [];
+
+      for (let i = 0; i < friend_request.length; i++) {
+        user_list.push({
+          sender: exclude(friend_request[i].sender, ["password"]),
+          date_created: friend_request[i].date_created,
+        });
+      }
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "request successful", user_list));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   });
 

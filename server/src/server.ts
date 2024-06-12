@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import { PrismaClient } from "@prisma/client";
-import { okStatus } from "./lib/response-json";
+import { responseWithData } from "./lib/response-json";
 import cors from "cors";
 import WebsocketServer from "./websocket/websocket";
 import create_router from "./routes/create";
@@ -33,7 +33,9 @@ express_app.use("/authenticate", authenticate_router);
 express_app.use("/accept", accept_router);
 express_app.use("/decline", decline_router);
 express_app.get("/ready", (_, response) => {
-  return response.status(200).json(okStatus("server is running", null));
+  return response
+    .status(200)
+    .json(responseWithData("OK", "server is running", null));
 });
 
 //server listen

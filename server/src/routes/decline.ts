@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { badRequest, okStatus, serverConflict } from "../lib/response-json";
+import { responseWithData, responseWithoutData } from "../lib/response-json";
 import { prisma } from "../server";
 import { User } from "@prisma/client";
 
@@ -20,7 +20,12 @@ router.delete("/friend-request", async (request, response) => {
     if (!found_request)
       return response
         .status(409)
-        .json(serverConflict("cannot delete request; request does not exist"));
+        .json(
+          responseWithoutData(
+            "CONFLICT",
+            "cannot delete request; request does not exist"
+          )
+        );
 
     await prisma.friendRequest.delete({
       where: {
@@ -31,10 +36,19 @@ router.delete("/friend-request", async (request, response) => {
       },
     });
 
-    return response.status(200).json(okStatus("friend request declined", null));
+    return response
+      .status(200)
+      .json(responseWithData("OK", "friend request declined", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
+    return response
+      .status(400)
+      .json(
+        responseWithoutData(
+          "INTERNAL_SERVER_ERROR",
+          "oops! something went wrong"
+        )
+      );
   }
 });
 

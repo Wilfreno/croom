@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../server";
-import { badRequest, okStatus, serverConflict } from "../lib/response-json";
+import { responseWithData, responseWithoutData } from "../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -19,7 +19,12 @@ router.post("/friend-request", async (request, response) => {
     if (!found_request)
       response
         .status(409)
-        .json(serverConflict("cannot add friend; request does not exist"));
+        .json(
+          responseWithoutData(
+            "CONFLICT",
+            "cannot add friend; request does not exist"
+          )
+        );
 
     await prisma.friendship.create({
       data: {
@@ -36,10 +41,19 @@ router.post("/friend-request", async (request, response) => {
         },
       },
     });
-    return response.status(200).json(okStatus("friend request accepted", null));
+    return response
+      .status(200)
+      .json(responseWithData("OK", "friend request accepted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
+    return response
+      .status(400)
+      .json(
+        responseWithoutData(
+          "INTERNAL_SERVER_ERROR",
+          "oops! something went wrong"
+        )
+      );
   }
 });
 

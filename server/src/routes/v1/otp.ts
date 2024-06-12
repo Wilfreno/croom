@@ -3,16 +3,16 @@ import { hash } from "bcrypt";
 import { Router } from "express";
 import { createTransport } from "nodemailer";
 import OTPEmail from "../../lib/email/OTP";
-import { badRequest, okStatus } from "../../lib/response-json";
 import { prisma } from "../../server";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
 router.post("/", async (request, response) => {
-  const gmail_password = process.env.GMAIL_2FAUTH_APP_PASS;
+  const gmail_password = process.env.GMAIL_2F_AUTH_APP_PASS;
   if (!gmail_password)
-    throw new Error("GMAIL_2FAUTH_APP_PASS is missing from your .env file");
+    throw new Error("GMAIL_2F_AUTH_APP_PASS is missing from your .env file");
   try {
     const { email } = await request.body;
 
@@ -60,10 +60,19 @@ router.post("/", async (request, response) => {
         if (error) throw new Error(JSON.stringify(info));
       }
     );
-    return response.status(200).json(okStatus("OTP created", null));
+    return response
+      .status(200)
+      .json(responseWithData("OK", "OTP created", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
-    return response.status(400).json(badRequest());
+    return response
+      .status(500)
+      .json(
+        responseWithoutData(
+          "INTERNAL_SERVER_ERROR",
+          "oops! something went wrong"
+        )
+      );
   }
 });
 

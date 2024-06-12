@@ -2,13 +2,8 @@ import { ProfilePhoto, User } from "@prisma/client";
 import { hash } from "bcrypt";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
-import {
-  badRequest,
-  notFoundStatus,
-  okStatus,
-  serverConflict,
-} from "../../lib/response-json";
 import { prisma } from "../../server";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -22,7 +17,9 @@ router
         where: { email: user.email },
       });
       if (found_user)
-        return response.status(409).json(serverConflict("email already used"));
+        return response
+          .status(409)
+          .json(responseWithoutData("CONFLICT", "email already used"));
 
       const new_user = await prisma.user.create({
         data: {
@@ -46,10 +43,23 @@ router
 
       return response
         .status(200)
-        .json(okStatus("user created", exclude(new_user, ["password"])));
+        .json(
+          responseWithData(
+            "OK",
+            "user created",
+            exclude(new_user, ["password"])
+          )
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/email/:email", async (request, response) => {
@@ -61,14 +71,29 @@ router
       });
 
       if (!user)
-        return response.status(404).send(notFoundStatus("user not found"));
+        return response
+          .status(404)
+          .send(responseWithoutData("NOT_FOUND", "user not found"));
 
       return response
         .status(200)
-        .send(okStatus("request succesful", exclude(user, ["password"])));
+        .send(
+          responseWithData(
+            "OK",
+            "request successful",
+            exclude(user, ["password"])
+          )
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/:id", async (request, response) => {
@@ -81,14 +106,29 @@ router
       });
 
       if (!user)
-        return response.status(404).send(notFoundStatus("user not found"));
+        return response
+          .status(404)
+          .send(responseWithoutData("NOT_FOUND", "user not found"));
 
       return response
         .status(200)
-        .send(okStatus("request succesful", exclude(user, ["password"])));
+        .send(
+          responseWithData(
+            "OK",
+            "request successful",
+            exclude(user, ["password"])
+          )
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .delete("/", async (request, response) => {
@@ -102,14 +142,28 @@ router
       if (!found_user)
         return response
           .status(409)
-          .json(serverConflict("cannot delete user; user does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete user; user does not exist"
+            )
+          );
 
       await prisma.user.delete({ where: { id: user.id } });
 
-      return response.status(200).json(okStatus("user deleted", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "user deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   });
 

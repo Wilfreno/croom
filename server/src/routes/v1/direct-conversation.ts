@@ -1,12 +1,7 @@
 import { Router } from "express";
-import {
-  badRequest,
-  notFoundStatus,
-  okStatus,
-  serverConflict,
-} from "../../lib/response-json";
 import { prisma } from "../../server";
 import { DirectConversation, DirectMessage } from "@prisma/client";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -86,10 +81,17 @@ router
 
       return response
         .status(200)
-        .json(okStatus("message sent", conversation.messages[0]));
+        .json(responseWithData("OK", "message sent", conversation.messages[0]));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
 
@@ -103,7 +105,9 @@ router
       });
 
       if (!found_user)
-        return response.status(404).json(notFoundStatus("user does not exist"));
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "user does not exist"));
 
       const direct_conversation = await prisma.directConversation.findMany({
         where: {
@@ -140,10 +144,19 @@ router
 
       return response
         .status(200)
-        .json(okStatus("request successful", direct_conversation));
+        .json(
+          responseWithData("OK", "request successful", direct_conversation)
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/messages", async (request, response) => {
@@ -154,7 +167,8 @@ router
         return response
           .status(400)
           .json(
-            badRequest(
+            responseWithoutData(
+              "BAD_REQUEST",
               "user_id and friend_id is required as a query parameter; /direct-message?user_id=&friend_id="
             )
           );
@@ -191,10 +205,17 @@ router
 
       return response
         .status(200)
-        .json(okStatus("request successful", m!.messages));
+        .json(responseWithData("OK", "request successful", m!.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
 
@@ -213,7 +234,10 @@ router
         return response
           .status(409)
           .json(
-            serverConflict("cannot delete message; message does not exist")
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete message; message does not exist"
+            )
           );
 
       await prisma.directMessage.delete({
@@ -222,10 +246,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("message deleted", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "message deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   });
 

@@ -1,13 +1,7 @@
 import { Router } from "express";
-import {
-  badRequest,
-  notFoundStatus,
-  okStatus,
-  serverConflict,
-  unauthorized,
-} from "../../lib/response-json";
 import { prisma } from "../../server";
 import { RoomMember } from "@prisma/client";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -43,10 +37,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("room created", room));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "room created", room));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .post("/lounge/message/text", async (request, response) => {
@@ -63,7 +66,7 @@ router
       if (!found_user)
         return response
           .status(409)
-          .json(serverConflict("user is not a room member"));
+          .json(responseWithoutData("CONFLICT", "user is not a room member"));
 
       const lounge = await prisma.lounge.update({
         where: { id: room_id },
@@ -106,10 +109,17 @@ router
 
       return response
         .status(400)
-        .json(okStatus("message sent", lounge.messages[0]));
+        .json(responseWithData("OK", "message sent", lounge.messages[0]));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .post("/session", async (request, response) => {
@@ -123,7 +133,12 @@ router
       if (!found_room)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; room does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; room does not exist"
+            )
+          );
 
       const found_member = await prisma.roomMember.findFirst({
         where: { id: member_id, role: "MODERATOR", room_id },
@@ -133,7 +148,10 @@ router
         return response
           .status(409)
           .json(
-            serverConflict("only room moderators can create a room session")
+            responseWithoutData(
+              "CONFLICT",
+              "only room moderators can create a room session"
+            )
           );
 
       const session = await prisma.session.create({
@@ -149,10 +167,17 @@ router
 
       return response
         .status(200)
-        .json(okStatus("new room session created", session));
+        .json(responseWithData("OK", "new room session created", session));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .post("/session/message/text", async (request, response) => {
@@ -169,7 +194,10 @@ router
         return response
           .status(409)
           .json(
-            serverConflict("cannot send message; room session does not exist")
+            responseWithoutData(
+              "CONFLICT",
+              "cannot send message; room session does not exist"
+            )
           );
 
       const found_member = await prisma.roomMember.findFirst({
@@ -182,7 +210,7 @@ router
       if (!found_member)
         return response
           .status(409)
-          .json(serverConflict("user is not a room member"));
+          .json(responseWithoutData("CONFLICT", "user is not a room member"));
 
       const session = await prisma.session.update({
         where: {
@@ -216,10 +244,17 @@ router
 
       return response
         .status(200)
-        .json(okStatus("message sent", session.messages));
+        .json(responseWithData("OK", "message sent", session.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
 
@@ -246,12 +281,23 @@ router
       });
 
       if (room.length < 1)
-        return response.status(404).json(notFoundStatus("no room found"));
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "no room found"));
 
-      return response.status(200).json(okStatus("request successful", room));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "request successful", room));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/:id", async (request, response) => {
@@ -274,10 +320,19 @@ router
           .status(404)
           .json("cannot find room; room does not exist");
 
-      return response.json(200).json(okStatus("request successful", room));
+      return response
+        .json(200)
+        .json(responseWithData("OK", "request successful", room));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/lounge/messages/:id", async (request, response) => {
@@ -316,14 +371,26 @@ router
       if (!lounge)
         return response
           .status(404)
-          .json(notFoundStatus("cannot find lounge; roo, does not exist "));
+          .json(
+            responseWithoutData(
+              "NOT_FOUND",
+              "cannot find lounge; roo, does not exist "
+            )
+          );
 
       return response
         .status(200)
-        .json(okStatus("request successful", lounge.messages));
+        .json(responseWithData("OK", "request successful", lounge.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .get("/session/messages/:id", async (request, response) => {
@@ -360,14 +427,23 @@ router
       if (!session)
         return response
           .status(404)
-          .json(notFoundStatus("room session does not exist"));
+          .json(
+            responseWithoutData("NOT_FOUND", "room session does not exist")
+          );
 
       return response
         .status(200)
-        .json(okStatus("request successful", session.messages));
+        .json(responseWithData("OK", "request successful", session.messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
 
@@ -383,7 +459,12 @@ router
       if (!found_room)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; room does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; room does not exist"
+            )
+          );
 
       const found_user = await prisma.user.findFirst({
         where: { id: member_id },
@@ -392,7 +473,12 @@ router
       if (!found_user)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; user does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; user does not exist"
+            )
+          );
 
       await prisma.room.update({
         where: { id: room_id },
@@ -406,10 +492,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("added a member", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "added a member", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .patch("/member-role", async (request, response) => {
@@ -427,7 +522,12 @@ router
       if (!found_room)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; room does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; room does not exist"
+            )
+          );
 
       const found_member = await prisma.roomMember.findFirst({
         where: {
@@ -439,7 +539,12 @@ router
       if (!found_member)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; user is not a member"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; user is not a member"
+            )
+          );
 
       await prisma.roomMember.update({
         where: {
@@ -451,10 +556,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("role updated", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "role updated", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
 
@@ -480,12 +594,22 @@ router
       if (!found_room)
         return response
           .status(409)
-          .json(serverConflict("cannot delete room; room does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete room; room does not exist"
+            )
+          );
 
       if (found_room._count.members > 1)
         return response
           .status(409)
-          .json(serverConflict("cannot delete room if there's still members"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete room if there's still members"
+            )
+          );
 
       const found_member = await prisma.roomMember.findFirst({
         where: {
@@ -499,7 +623,8 @@ router
         return response
           .status(401)
           .json(
-            unauthorized(
+            responseWithoutData(
+              "UNAUTHORIZED",
               "user must be a room member and a room moderator to process the request"
             )
           );
@@ -508,10 +633,19 @@ router
         where: { id: room_id },
       });
 
-      return response.status(200).json(okStatus("room deleted", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "room deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .delete("/member", async (request, response) => {
@@ -525,7 +659,12 @@ router
       if (!found_room)
         return response
           .status(409)
-          .json(serverConflict("cannot process request; room does not exist"));
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; room does not exist"
+            )
+          );
 
       const found_moderator = await prisma.roomMember.findFirst({
         where: {
@@ -539,7 +678,10 @@ router
         return response
           .status(409)
           .json(
-            serverConflict("cannot process request; moderator_id is not found")
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; moderator_id is not found"
+            )
           );
 
       const found_member = await prisma.roomMember.findFirst({
@@ -553,7 +695,10 @@ router
         return response
           .status(409)
           .json(
-            serverConflict("cannot process request; member_id does not exist")
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; member_id does not exist"
+            )
           );
 
       await prisma.roomMember.delete({
@@ -565,10 +710,23 @@ router
 
       return response
         .status(200)
-        .json(okStatus("user deleted from the room's member list", null));
+        .json(
+          responseWithData(
+            "OK",
+            "user deleted from the room's member list",
+            null
+          )
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .delete("/session", async (request, response) => {
@@ -583,7 +741,8 @@ router
         return response
           .status(409)
           .json(
-            serverConflict(
+            responseWithoutData(
+              "CONFLICT",
               "cannot process request; room session does not exist"
             )
           );
@@ -599,7 +758,12 @@ router
       if (!found_moderator)
         return response
           .status(401)
-          .json(unauthorized("only room moderators can delete a room session"));
+          .json(
+            responseWithoutData(
+              "UNAUTHORIZED",
+              "only room moderators can delete a room session"
+            )
+          );
 
       await prisma.session.delete({
         where: {
@@ -607,10 +771,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("room session deleted", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "room session deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   });
 
