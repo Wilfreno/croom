@@ -11,8 +11,8 @@ export default function joinLounge(
 
   if (!lounge.has(payload.room_id)) {
     lounge.set(payload.room_id, new Map());
-  }
 
+  }
   lounge.get(payload.room_id)?.set(payload.id, current_user!);
 
   lounge.get(payload.room_id)?.forEach((member) => {

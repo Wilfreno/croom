@@ -7,6 +7,7 @@ import {
   Room,
   RoomMember,
   Session,
+  SessionMessage,
   User,
 } from "@prisma/client";
 import sendLoungeMessage from "src/websocket/send-lounge-message";
@@ -24,12 +25,13 @@ export type WebSocketSeverMessage = {
 
 export type WebSocketPayloadType =
   | string
-  | RoomMember
-  | WebsocketFriendRequestType
   | WebsocketUserType
+  | WebsocketFriendRequestType
   | WebsocketDirectMessageType
+  | RoomMember
   | WebsocketLoungeMessageType
-  | WebsocketRoomSessionType;
+  | WebsocketRoomSessionType
+  | WebsocketSessionMessageType;
 
 export type WebsocketMessageType =
   | "online-friend"
@@ -43,11 +45,12 @@ export type WebsocketMessageType =
   | "leave-lounge"
   | "send-lounge-message"
   | "join-session"
+  | "leave-session"
+  | "send-session-message"
   | "error"
   | "success"
   | "offline"
-  | "kick"
-  | "leave";
+  | "kick";
 
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
@@ -84,3 +87,10 @@ export type WebsocketRoomSessionType = {
   room_member: RoomMember;
   session: Session;
 };
+
+export interface WebsocketSessionMessageType extends SessionMessage {
+  sender: WebsocketUserType;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}

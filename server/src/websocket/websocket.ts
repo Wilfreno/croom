@@ -7,14 +7,7 @@
 
 import http from "http";
 import WebSocket from "ws";
-import {
-  DirectMessage,
-  Lounge,
-  LoungeMessage,
-  RoomMember,
-  Session,
-  User,
-} from "@prisma/client";
+import { Lounge, RoomMember, Session, User } from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
@@ -24,6 +17,7 @@ import {
   WebsocketLoungeMessageType,
   WebsocketDirectMessageType,
   WebsocketRoomSessionType,
+  WebsocketSessionMessageType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -36,6 +30,8 @@ import joinLounge from "./join-lounge";
 import leaveLounge from "./leave-lounge";
 import sendLoungeMessage from "./send-lounge-message";
 import joinSession from "./join-session";
+import leaveSession from "./leave-session";
+import sendSessionMessage from "./send-session-message";
 
 const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
 const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
@@ -139,7 +135,7 @@ export default function WebsocketServer(
         }
         case "leave-lounge": {
           const payload = parsed_message.payload as RoomMember;
-          leaveLounge(lounge, online, payload);
+          leaveLounge(lounge, payload);
           break;
         }
         case "send-lounge-message": {
@@ -150,6 +146,16 @@ export default function WebsocketServer(
         case "join-session": {
           const payload = parsed_message.payload as WebsocketRoomSessionType;
           joinSession(session, online, payload);
+          break;
+        }
+        case "leave-session": {
+          const payload = parsed_message.payload as WebsocketRoomSessionType;
+          leaveSession(session, payload);
+          break;
+        }
+        case "send-session-message": {
+          const payload = parsed_message.payload as WebsocketSessionMessageType;
+          sendSessionMessage(session, payload);
         }
         default:
           return;

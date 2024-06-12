@@ -15,7 +15,7 @@ import decline_router from "./routes/decline";
 const express_app = express();
 const http_server = http.createServer(express_app);
 
-//websoket server
+//websocket server
 WebsocketServer(http_server);
 
 //prisma_client
@@ -32,7 +32,7 @@ express_app.use("/delete", delete_router);
 express_app.use("/authenticate", authenticate_router);
 express_app.use("/accept", accept_router);
 express_app.use("/decline", decline_router);
-express_app.get("/", (_, response) => {
+express_app.get("/ready", (_, response) => {
   return response.status(200).json(okStatus("server is running", null));
 });
 

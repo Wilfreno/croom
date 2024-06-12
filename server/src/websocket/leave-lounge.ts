@@ -4,14 +4,12 @@ import { WebsocketUserType } from "src/lib/types/websocket-types";
 
 export default function leaveLounge(
   lounge: Map<Lounge["id"], Map<User["id"], WebsocketUserType>>,
-  online: Map<User["id"], WebsocketUserType>,
   payload: RoomMember
 ) {
-  const current_user = online.get(payload.id);
-
   if (!lounge.has(payload.room_id) || lounge.get(payload.room_id)?.size === 0)
     return;
 
+  const current_user = lounge.get(payload.room_id)?.get(payload.id);
   lounge.get(payload.room_id)?.delete(payload.id);
 
   if (lounge.get(payload.room_id)?.size === 0) lounge.delete(payload.room_id);
