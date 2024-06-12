@@ -16,30 +16,28 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
-import { User } from "@/lib/types/client-types";
+import { setOnlineFriends } from "@/lib/redux/slices/online-friends-slice";
+import { AppDispatch } from "@/lib/redux/store";
 import { ServerResponse } from "@/lib/types/sever-response";
+import { WebsocketUserType } from "@/lib/types/websocket-type";
 import {
   ChatBubbleOvalLeftIcon,
   EllipsisVerticalIcon,
 } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Dispatch, SetStateAction } from "react";
+import { useDispatch } from "react-redux";
 
-export default function FriendList({
-  friend,
-  setFriends,
-  index,
-}: {
-  friend: User;
-  setFriends: Dispatch<SetStateAction<User[]>>;
-  index: number;
-}) {
+export default function FriendList({ friend }: { friend: WebsocketUserType }) {
+  const dispatch = useDispatch<AppDispatch>();
   const server_url = useServerUrl();
   const { data } = useSession();
   const { toast } = useToast();
   const params = useParams<{ username: string }>();
+  const router = useRouter();
+
   async function unfriend() {
     const response = await fetch(server_url + "/v1/delete/friend", {
       method: "DELETE",
@@ -48,7 +46,7 @@ export default function FriendList({
       },
       body: JSON.stringify({
         friend_1: data?.user.id,
-        friend_2: friend.id,
+        friend_2: friend.user.id,
       }),
     });
 
@@ -62,7 +60,8 @@ export default function FriendList({
       return;
     }
 
-    setFriends((prev) => prev?.toSpliced(index, 1));
+    dispatch(setOnlineFriends({ operation: "remove", content: friend }));
+    router.refresh();
   }
 
   return (
@@ -75,25 +74,25 @@ export default function FriendList({
           >
             <Avatar>
               <AvatarImage
-                src={friend.profile_photo?.photo_url}
-                alt={friend.display_name?.slice(0, 1).toUpperCase()}
+                src={friend.user.profile_photo?.photo_url}
+                alt={friend.user.display_name?.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback className="group-hover:bg-background">
-                {friend.display_name?.slice(0, 1).toUpperCase()}
+                {friend.user.display_name?.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p>{friend.display_name}</p>
+            <p>{friend.user.display_name}</p>
           </Button>
         </DialogTrigger>
         <DialogContent>hey</DialogContent>
       </Dialog>
-      <div className="flex imtex-center space-x-3">
+      <div className="flex text-center space-x-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href={"/" + params.username + "/dm/" + friend.id}
-                as={"/" + params.username + "/dm/" + friend.id}
+                href={"/" + params.username + "/dm/" + friend.user.id}
+                as={"/" + params.username + "/dm/" + friend.user.id}
                 prefetch
               >
                 <Button

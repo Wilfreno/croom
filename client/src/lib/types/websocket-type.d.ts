@@ -1,37 +1,87 @@
-import { Message, User } from "./client-types";
+import {
+  PhotoMessage,
+  ProfilePhoto,
+  RoomMember,
+  Session,
+  TextMessage,
+  User,
+  VideoMessage,
+} from "./client-types";
 
 export type WebsocketClientMessage = {
-  type: WebsokcetMessageType;
-  payload?: WebSocketPayloadType;
-  room_id?: Room["id"];
+  type: WebsocketMessageType;
+  payload: WebSocketPayloadType;
 };
 
 export type WebSocketSeverMessage = {
-  type: WebsokcetMessageType;
+  type: WebsocketMessageType;
   payload: WebSocketPayloadType;
 };
 
 export type WebSocketPayloadType =
   | string
-  | FriendRequestMessageType
-  | Omit<User, "password">
-  | Message;
+  | WebsocketUserType
+  | WebsocketFriendRequestType
+  | WebsocketDirectMessageType
+  | RoomMember
+  | WebsocketLoungeMessageType
+  | WebsocketRoomSessionType
+  | WebsocketSessionMessageType;
 
-export type WebsokcetMessageType =
+export type WebsocketMessageType =
+  | "online-friend"
+  | "online-room-member"
   | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
   | "delete-direct-message"
-  | "error"
-  | "success"
-  | "online"
-  | "offline"
-  | "kick"
-  | "join"
-  | "leave";
+  | "new-room-member"
+  | "join-lounge"
+  | "leave-lounge"
+  | "send-lounge-message"
+  | "join-session"
+  | "leave-session"
+  | "send-session-message";
 
-export type FriendRequestMessageType = {
-  sender: Omit<User, "password">;
-  receiver: Omit<User, "password">;
+export type WebsocketFriendRequestType = {
+  sender: WebsocketUserType;
+  receiver: WebsocketUserType;
   date_created: Date;
 };
+
+export type WebsocketUserType = {
+  user: {
+    id: User["id"];
+    user_name: User["user_name"];
+    display_name: User["display_name"];
+    profile_photo: {
+      photo_url: ProfilePhoto["photo_url"];
+    };
+  };
+  websocket?: WebSocket;
+};
+
+export interface WebsocketDirectMessageType extends DirectMessage {
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}
+
+export interface WebsocketLoungeMessageType extends LoungeMessage {
+  sender: WebsocketUserType;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}
+
+export type WebsocketRoomSessionType = {
+  room_member: RoomMember;
+  session: Session;
+};
+
+export interface WebsocketSessionMessageType extends SessionMessage {
+  sender: WebsocketUserType;
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+}

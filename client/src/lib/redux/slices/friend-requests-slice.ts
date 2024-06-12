@@ -1,19 +1,19 @@
 import { FriendRequest } from "@/lib/types/client-types";
-import { FriendRequestMessageType } from "@/lib/types/websocket-type";
+import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 
-export const friend_request_lis = createSlice({
+export const friend_request_list = createSlice({
   name: "friend_request",
-  initialState: [] as FriendRequestMessageType[],
+  initialState: [] as WebsocketFriendRequestType[],
   reducers: {
     setNewFriendRequestList: (
       _,
-      action: PayloadAction<FriendRequestMessageType[]>
+      action: PayloadAction<WebsocketFriendRequestType[]>
     ) => {
       return action.payload;
     },
   },
 });
 
-export const { setNewFriendRequestList } = friend_request_lis.actions;
-export default friend_request_lis.reducer;
+export const { setNewFriendRequestList } = friend_request_list.actions;
+export default friend_request_list.reducer;

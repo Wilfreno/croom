@@ -8,21 +8,17 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import FriendList from "@/components/page/friends/FriendList";
 import { Input } from "@/components/ui/input";
+import useServerUrl from "@/components/hooks/useServerUrl";
 
 export default function Page() {
   const [friends, setFriends] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<User[]>([]);
   const { data } = useSession();
+  const server_url = useServerUrl();
 
   useEffect(() => {
     async function getFriends() {
-      const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-      if (!server_url)
-        throw new Error(
-          "DEVELOPMENT_SERVER is missing from your .env.local file"
-        );
-
       try {
         const response = await fetch(
           server_url + "/v1/get/friends/" + data?.user.id
@@ -71,7 +67,7 @@ export default function Page() {
         <ul className="px-3 space-y-5">
           {search
             ? search_result.map((friend, index) => (
-                <Friege ndList
+                <FriendList
                   key={friend.id}
                   friend={friend}
                   setFriends={setFriends}

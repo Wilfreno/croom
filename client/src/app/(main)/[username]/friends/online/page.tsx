@@ -2,31 +2,32 @@
 
 import useWebsocket from "@/components/hooks/useWebsocket";
 import FriendList from "@/components/page/friends/FriendList";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { User } from "@/lib/types/client-types";
-import { WebSocketSeverMessage } from "@/lib/types/websocket-type";
+import { useAppSelector } from "@/lib/redux/store";
+import { WebsocketUserType } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
 export default function page() {
-  const websocket = useWebsocket();
-  const [online_friends, setOnlineFriends] = useState<User[]>([]);
+  const online_friends = useAppSelector(
+    (state) => state.online_friends_reducer
+  );
+
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<User[]>();
+  const [search_result, setSearchResult] = useState<WebsocketUserType[]>();
 
   useEffect(() => {
-    websocket?.addEventListener("message", (socket) => {
-      const message = JSON.parse(socket.data) as WebSocketSeverMessage;
-      if (message.type === "online") {
-        setOnlineFriends((prev) => [...prev, message.payload as User]);
-      }
-    });
-  }, [websocket]);
+    if (!search || online_friends.length < 1) return;
 
-  console.log(online_friends);
+    setSearchResult(
+      online_friends.filter((friend) =>
+        friend.user.display_name.startsWith("search")
+      )
+    );
+  }, [search]);
+
   return (
     <div className="grow flex flex-col justify-between p-1">
       <p className="mx-5">
@@ -50,20 +51,10 @@ export default function page() {
         <ul className="px-3 space-y-3">
           {search
             ? search_result?.map((friend, index) => (
-                <FriendList
-                  key={friend.id}
-                  friend={friend}
-                  setFriends={setOnlineFriends}
-                  index={index}
-                />
+                <FriendList key={friend.user.id} friend={friend} />
               ))
             : online_friends?.map((friend, index) => (
-                <FriendList
-                  key={friend.id}
-                  friend={friend}
-                  setFriends={setOnlineFriends}
-                  index={index}
-                />
+                <FriendList key={friend.user.id} friend={friend} />
               ))}
         </ul>
       </ScrollArea>
