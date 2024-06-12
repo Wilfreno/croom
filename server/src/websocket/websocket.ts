@@ -140,7 +140,7 @@ export default function WebsocketServer(
         }
         case "send-lounge-message": {
           const payload = parsed_message.payload as WebsocketLoungeMessageType;
-          sendLoungeMessage(lounge, online, payload);
+          sendLoungeMessage(lounge, payload);
           break;
         }
         case "join-session": {
