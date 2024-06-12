@@ -1,21 +1,41 @@
+/**
+ * @author Wilfreno Gayongan
+ *
+ *
+ *  this section is the implementation of the websocket server
+ */
+
 import http from "http";
 import WebSocket from "ws";
-import { Message, User } from "@prisma/client";
+import { Lounge, RoomMember, Session, User } from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
-  FriendRequestMessageType,
-  WebsocketClientMessage,
+  WebsocketFriendRequestType,
+  WebsocketClientMessage as WebsocketClientMessageType,
+  WebsocketUserType,
+  WebsocketLoungeMessageType,
+  WebsocketDirectMessageType,
+  WebsocketRoomSessionType,
+  WebsocketSessionMessageType,
 } from "src/lib/types/websocket-types";
-import makeMessage from "./make-message";
+import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
 import sendDirectMessage from "./send-direct-message";
 import deleteDirectMessage from "./delete-direct-message";
-import sendfriendRequest from "./send-friend-request";
-import acceptFriendrequest from "./accept-friend-request";
+import sendFriendRequest from "./send-friend-request";
+import acceptFriendRequest from "./accept-friend-request";
+import newRoomMember from "./new-room-member";
+import joinLounge from "./join-lounge";
+import leaveLounge from "./leave-lounge";
+import sendLoungeMessage from "./send-lounge-message";
+import joinSession from "./join-session";
+import leaveSession from "./leave-session";
+import sendSessionMessage from "./send-session-message";
 
-const members = new Map<User["id"], WebSocket>();
-const online = new Map<User["id"], WebSocket>();
+const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
+const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
+const online = new Map<User["id"], WebsocketUserType>();
 
 export default function WebsocketServer(
   http_server: http.Server<
@@ -28,10 +48,10 @@ export default function WebsocketServer(
   websocket_server.on("connection", async (socket, request) => {
     //checking valid url connection
     const params = parse(request.url!, true).query;
-    //cheking if there is  user_id query parameter on teh url
+    //checking if there is  user_id query parameter on teh url
     if (!params.user_id) {
       socket.send(
-        makeMessage(
+        createMessage(
           "error",
           "the url connection needs a user_id query parameter"
         )
@@ -41,47 +61,102 @@ export default function WebsocketServer(
     }
     const user = await prisma.user.findFirst({
       where: { id: params.user_id! as string },
+      include: {
+        profile_photo: {
+          select: {
+            photo_url: true,
+          },
+        },
+      },
     });
 
     //closing connection if user does not exist
     if (!user) {
-      socket.send(makeMessage("error", "user does not exist"));
+      socket.send(createMessage("error", "user does not exist"));
       socket.close();
       return;
     }
 
-    //inlisting the user to the online map and broadcasting it to every room the user is in
-    online.set(user.id, socket);
-    await broadcastOnline(user.id, online);
+    //enlisting the user to the online map and broadcasting it to every room the user is in
+    online.set(user.id, {
+      user: {
+        id: user.id,
+        display_name: user.display_name,
+        user_name: user.user_name,
+        profile_photo: {
+          photo_url: user.profile_photo?.photo_url!,
+        },
+      },
+      websocket: socket,
+    });
 
-    console.log("online::", online.size);
+    await broadcastOnline(user.id, online, lounge);
+
     //websocket event handlers
     socket.on("message", (client_message) => {
-      const parsed_message: WebsocketClientMessage = JSON.parse(
+      const parsed_message: WebsocketClientMessageType = JSON.parse(
         client_message.toString()
       );
       switch (parsed_message.type) {
         case "send-friend-request": {
           const friend_request =
-            parsed_message.payload as FriendRequestMessageType;
-
-          sendfriendRequest(friend_request, online);
+            parsed_message.payload as WebsocketFriendRequestType;
+          sendFriendRequest(friend_request, online);
           break;
         }
         case "accept-friend-request": {
           const friend_request =
-            parsed_message.payload as FriendRequestMessageType;
+            parsed_message.payload as WebsocketFriendRequestType;
 
-          acceptFriendrequest(friend_request, online);
+          acceptFriendRequest(friend_request, online);
           break;
         }
         case "send-direct-message":
-          sendDirectMessage(parsed_message.payload as Message, online);
+          sendDirectMessage(
+            parsed_message.payload as WebsocketDirectMessageType,
+            online
+          );
           break;
         case "delete-direct-message":
-          deleteDirectMessage(parsed_message.payload as Message, online);
+          deleteDirectMessage(
+            parsed_message.payload as WebsocketDirectMessageType,
+            online
+          );
           break;
-        case "join":
+        case "new-room-member": {
+          const payload = parsed_message.payload as RoomMember;
+          newRoomMember(lounge, online, payload);
+          break;
+        }
+        case "join-lounge": {
+          const payload = parsed_message.payload as RoomMember;
+          joinLounge(lounge, online, payload);
+          break;
+        }
+        case "leave-lounge": {
+          const payload = parsed_message.payload as RoomMember;
+          leaveLounge(lounge, payload);
+          break;
+        }
+        case "send-lounge-message": {
+          const payload = parsed_message.payload as WebsocketLoungeMessageType;
+          sendLoungeMessage(lounge, payload);
+          break;
+        }
+        case "join-session": {
+          const payload = parsed_message.payload as WebsocketRoomSessionType;
+          joinSession(session, online, payload);
+          break;
+        }
+        case "leave-session": {
+          const payload = parsed_message.payload as WebsocketRoomSessionType;
+          leaveSession(session, payload);
+          break;
+        }
+        case "send-session-message": {
+          const payload = parsed_message.payload as WebsocketSessionMessageType;
+          sendSessionMessage(session, payload);
+        }
         default:
           return;
       }

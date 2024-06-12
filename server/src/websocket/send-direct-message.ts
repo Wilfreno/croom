@@ -1,12 +1,14 @@
-import { Message } from "@prisma/client";
-import makeMessage from "./make-message";
-import { WebSocket } from "ws";
+import createMessage from "./make-message";
+import {
+  WebsocketDirectMessageType,
+  WebsocketUserType,
+} from "src/lib/types/websocket-types";
 
 export default function sendDirectMessage(
-  payload: Message,
-  online: Map<string, WebSocket>
+  payload: WebsocketDirectMessageType,
+  online: Map<string, WebsocketUserType>
 ) {
   online
     .get(payload.receiver_id)
-    ?.send(makeMessage("send-direct-message", payload));
+    ?.websocket?.send(createMessage("send-direct-message", payload));
 }

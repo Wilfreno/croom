@@ -1,13 +1,8 @@
 import { User } from "@prisma/client";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
-import {
-  badRequest,
-  notFoundStatus,
-  okStatus,
-  serverConflict,
-} from "../../lib/response-json";
 import { prisma } from "../../server";
+import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -35,7 +30,9 @@ router
         },
       });
       if (!friendship)
-        return response.status(404).json(notFoundStatus("user got no friends"));
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "user got no friends"));
 
       let friends = new Set<Omit<User, "password">>();
 
@@ -48,10 +45,19 @@ router
 
       return response
         .status(200)
-        .json(okStatus("request succesful", Array.from(friends)));
+        .json(
+          responseWithData("OK", "request successful", Array.from(friends))
+        );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   })
   .delete("/", async (request, response) => {
@@ -71,7 +77,8 @@ router
         return response
           .status(409)
           .json(
-            serverConflict(
+            responseWithoutData(
+              "CONFLICT",
               "cannot delete friendship; friendship does not exist"
             )
           );
@@ -82,10 +89,19 @@ router
         },
       });
 
-      return response.status(200).json(okStatus("friendship deleted", null));
+      return response
+        .status(200)
+        .json(responseWithData("OK", "friendship deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
-      return response.status(400).json(badRequest());
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
     }
   });
 

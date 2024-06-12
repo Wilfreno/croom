@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import { PrismaClient } from "@prisma/client";
-import { okStatus } from "./lib/response-json";
+import { responseWithData } from "./lib/response-json";
 import cors from "cors";
 import WebsocketServer from "./websocket/websocket";
 import create_router from "./routes/create";
@@ -15,7 +15,7 @@ import decline_router from "./routes/decline";
 const express_app = express();
 const http_server = http.createServer(express_app);
 
-//websoket server
+//websocket server
 WebsocketServer(http_server);
 
 //prisma_client
@@ -32,8 +32,10 @@ express_app.use("/delete", delete_router);
 express_app.use("/authenticate", authenticate_router);
 express_app.use("/accept", accept_router);
 express_app.use("/decline", decline_router);
-express_app.get("/", (_, response) => {
-  return response.status(200).json(okStatus("server is running", null));
+express_app.get("/ready", (_, response) => {
+  return response
+    .status(200)
+    .json(responseWithData("OK", "server is running", null));
 });
 
 //server listen

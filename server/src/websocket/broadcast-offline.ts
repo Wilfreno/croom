@@ -1,5 +1,5 @@
 import { User } from "@prisma/client";
-import makeMessage from "./make-message";
+import createMessage from "./make-message";
 import { WebSocket } from "ws";
 
 export default function broadCastOffline(
@@ -11,7 +11,7 @@ export default function broadCastOffline(
     if (room.has(user_id)) {
       room.forEach((member) => {
         if (member !== room.get(user_id)) {
-          member.send(makeMessage("offline", user_id));
+          member.send(createMessage("offline", user_id));
         }
       });
     }

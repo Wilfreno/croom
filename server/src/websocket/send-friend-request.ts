@@ -1,14 +1,15 @@
-import { User } from "@prisma/client";
-import makeMessage from "./make-message";
-import { WebSocket } from "ws";
-import { FriendRequestMessageType } from "src/lib/types/websocket-types";
+import createMessage from "./make-message";
+import {
+  WebsocketFriendRequestType,
+  WebsocketUserType,
+} from "src/lib/types/websocket-types";
 
-export default async function sendfriendRequest(
-  payload: FriendRequestMessageType,
-  online: Map<string, WebSocket>
+export default function sendFriendRequest(
+  payload: WebsocketFriendRequestType,
+  online: Map<string, WebsocketUserType>
 ) {
-  if (!online.has(payload.receiver.id)) return;
+  if (!online.has(payload.receiver.user.id)) return;
   online
-    .get(payload.receiver.id)
-    ?.send(makeMessage("send-friend-request", payload));
+    .get(payload.receiver.user.id)
+    ?.websocket!.send(createMessage("send-friend-request", payload));
 }
