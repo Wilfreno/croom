@@ -3,7 +3,7 @@ export type User = {
   email: string;
   password?: string;
   profile_photo?: ProfilePhoto;
-  birth_date?: Date;
+  birth_date?: DateTime;
   display_name: string;
   user_name: string;
   provider?: string;
@@ -13,110 +13,173 @@ export type User = {
   friends_with?: Friendship[];
   direct_messages?: DirectConversation[];
   direct_messages_?: DirectConversation[];
-  direct_message_sent?: Message[];
-  direct_message_received?: Message[];
-  room_mesages_sent?: RoomMessage[];
-  date_created?: Date;
+  messages_sent?: DirectMessage[];
+  messages_received?: DirectMessage[];
+  room_membership?: RoomMember[];
+  lounge_message?: LoungeMessage[];
+  session_message?: SessionMessage[];
+  date_created: DateTime;
 };
 
 export type ProfilePhoto = {
   id: string;
   owner?: User;
-  owner_id?: string;
+  owner_id: string;
   photo_url: string;
-  date_created?: Date;
+  date_created: DateTime;
 };
 
 export type FriendRequest = {
   id: string;
-  receiver: User;
+  receiver?: User;
   receiver_id: string;
-  sender: User;
+  sender?: User;
   sender_id: string;
-  date_created: Date;
+  date_created: DateTime;
 };
 
 export type Friendship = {
   id: string;
-  friend_1: User;
+  friend_1?: User;
   friend_1_id: string;
-  friend_2: User;
+  friend_2?: User;
   friend_2_id: string;
-  date_created: Date;
+  date_created: DateTime;
 };
 
 export type DirectConversation = {
   id: string;
-  user1: User;
+  user1?: User;
   user1_id: string;
-  user2: User;
+  user2?: User;
   user2_id: string;
-  messages: Message[];
-  date_created: Date;
+  messages?: DirectMessage[];
+  date_created: DateTime;
 };
 
-export type Message = {
+export type DirectMessage = {
   id: string;
-  converstaion?: DirectConversation;
+  conversation?: DirectConversation;
   conversation_id: string;
-  sender: User;
+  sender?: User;
   sender_id: string;
-  receiver: User;
+  receiver?: User;
   receiver_id: string;
-  type: string;
-  seen: boolean;
+  type: MessageType;
+  seen: Boolean;
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
-  date_created: Date;
+  date_created: DateTime;
 };
 
-export type RoomMessage = {
+type MessageType = "TEXT" | "PHOTO" | "VIDEO";
+
+export type Room = {
   id: string;
-  sender: User;
-  sender_id: string;
+  room_name: string;
+  members?: RoomMember[];
+  lounge: Lounge;
+  room_sessions: Session[];
+  date_created: DateTime;
+};
+
+export type RoomMember = {
+  id: string;
+  user?: User;
+  room?: Room;
   room_id: string;
+  role: Role;
+  date_created: DateTime;
+};
+
+type Role = "MEMBER" | "MODERATOR";
+
+export type Lounge = {
+  id: string;
+  room?: Room;
+  messages?: LoungeMessage[];
+  date_created: DateTime;
+};
+
+export type LoungeMessage = {
+  id: string;
+  type: MessageType;
+  lounge?: Lounge;
+  lounge_id: string;
+  sender?: User;
+  sender_id: string;
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
-  video_Message?: VideoMessage;
-  date_created: Date;
+  video_message?: VideoMessage;
+  date_created: DateTime;
+};
+
+//Session refers to room sessions
+export type Session = {
+  id: string;
+  room?: Room;
+  room_id: string;
+  name: string;
+  messages?: SessionMessage[];
+  date_created: DateTime;
+};
+
+export type SessionMessage = {
+  id: string;
+  type: MessageType;
+  session?: Session;
+  session_id: string;
+  sender?: User;
+  sender_id: string;
+
+  text_message?: TextMessage;
+  photo_message?: PhotoMessage;
+  video_message?: VideoMessage;
+  date_created: DateTime;
 };
 
 export type TextMessage = {
   id: string;
-  message?: Message;
-  message_id?: string;
-  room_message?: RoomMessage;
-  room_message_id?: string;
+  direct_message?: DirectMessage;
+  direct_message_id: string;
+  lounge_message?: LoungeMessage;
+  lounge_message_id: string;
+  session_message?: SessionMessage;
+  session_message_id: string;
   content: string;
-  date_created: Date;
+  date_created: DateTime;
 };
 
 export type PhotoMessage = {
   id: string;
-  message?: Message;
-  message_id?: string;
-  room_message?: RoomMessage;
-  room_message_id?: string;
+  direct_message?: DirectMessage;
+  direct_message_id: string;
+  lounge_message?: LoungeMessage;
+  lounge_message_id: string;
+  session_message?: SessionMessage;
+  session_message_id: string;
   photo_url: string;
-  date_created: Date;
+  date_created: DateTime;
 };
 
 export type VideoMessage = {
   id: string;
-  message?: Message;
-  message_id?: string;
-  room_message?: RoomMessage;
-  room_message_id?: string;
+  direct_message?: DirectMessage;
+  direct_message_id: string;
+  lounge_message?: LoungeMessage;
+  lounge_message_id: string;
+  session_message?: SessionMessage;
+  session_message_id: string;
   video_url: string;
   name: string;
-  length: number;
-  date_created: Date;
+  length: Int;
+  date_created: DateTime;
 };
 
 export type Otp = {
   id: string;
   email: string;
   value: string;
-  date_created: Date;
+  date_created: DateTime;
 };
