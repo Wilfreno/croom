@@ -66,20 +66,34 @@ export default function Page() {
       <ScrollArea className="h-[70vh]">
         <ul className="px-3 space-y-5">
           {search
-            ? search_result.map((friend, index) => (
+            ? search_result.map((friend) => (
                 <FriendList
                   key={friend.id}
-                  friend={friend}
-                  setFriends={setFriends}
-                  index={index}
+                  friend={{
+                    user: {
+                      id: friend.id,
+                      display_name: friend.display_name,
+                      profile_photo: {
+                        photo_url: friend.profile_photo?.photo_url!,
+                      },
+                      user_name: friend.user_name,
+                    },
+                  }}
                 />
               ))
-            : friends?.map((friend, index) => (
+            : friends?.map((friend) => (
                 <FriendList
                   key={friend.id}
-                  friend={friend}
-                  setFriends={setFriends}
-                  index={index}
+                  friend={{
+                    user: {
+                      id: friend.id,
+                      display_name: friend.display_name,
+                      profile_photo: {
+                        photo_url: friend.profile_photo?.photo_url!,
+                      },
+                      user_name: friend.user_name,
+                    },
+                  }}
                 />
               ))}
         </ul>

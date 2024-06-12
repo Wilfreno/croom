@@ -27,7 +27,6 @@ import {
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Dispatch, SetStateAction } from "react";
 import { useDispatch } from "react-redux";
 
 export default function FriendList({ friend }: { friend: WebsocketUserType }) {

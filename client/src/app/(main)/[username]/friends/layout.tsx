@@ -1,5 +1,4 @@
 "use client";
-
 import AddFriend from "@/components/page/main/AddFriend";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
