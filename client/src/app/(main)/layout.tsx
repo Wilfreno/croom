@@ -15,14 +15,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    websocket?.addEventListener("message", (socket) => {
-      const message = JSON.parse(socket.data) as WebSocketSeverMessage;
+    websocket?.addEventListener("message", (websocket_message) => {
+      const message = JSON.parse(
+        websocket_message.data
+      ) as WebSocketSeverMessage;
 
       const payload = message.payload as WebsocketUserType;
-      if (message.type === "online-friend") {
-        dispatch(setOnlineFriends({ operation: "add", content: payload }));
+      switch (message.type) {
+        case "online-friend":
+          dispatch(setOnlineFriends({ operation: "add", content: payload }));
+          break;
+        case "offline":
+          dispatch(setOnlineFriends({ operation: "remove", content: payload }));
+          break;
+        default:
+          return;
       }
     });
+
     return () => websocket?.close();
   }, [websocket]);
 
