@@ -1,6 +1,5 @@
 "use client";
 
-import useWebsocket from "@/components/hooks/useWebsocket";
 import FriendList from "@/components/page/friends/FriendList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
