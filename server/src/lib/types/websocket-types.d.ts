@@ -52,7 +52,7 @@ export type WebsocketMessageType =
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;
-  date_created: Date;
+  date_created?: Date;
 };
 
 export type WebsocketUserType = {
