@@ -97,39 +97,39 @@ export default function DirectMessages() {
                   <AvatarImage
                     src={
                       data?.user.id === dc.user1_id
-                        ? dc.user2.profile_photo?.photo_url
-                        : dc.user1.profile_photo?.photo_url
+                        ? dc.user2!.profile_photo?.photo_url
+                        : dc.user1!.profile_photo?.photo_url
                     }
                     alt={
                       data?.user.id === dc.user1_id
-                        ? dc.user2.display_name.slice(0, 1).toUpperCase()
-                        : dc.user1.display_name.slice(0, 1).toUpperCase()
+                        ? dc.user2!.display_name.slice(0, 1).toUpperCase()
+                        : dc.user1!.display_name.slice(0, 1).toUpperCase()
                     }
                   />
                   <AvatarFallback>
                     {data?.user.id === dc.user1_id
-                      ? dc.user2.display_name.slice(0, 1).toUpperCase()
-                      : dc.user1.display_name.slice(0, 1).toUpperCase()}
+                      ? dc.user2!.display_name.slice(0, 1).toUpperCase()
+                      : dc.user1!.display_name.slice(0, 1).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
                   <h1 className="font-bold">
                     {data?.user.id === dc.user1_id
-                      ? dc.user2.display_name
-                      : dc.user1.display_name}
+                      ? dc.user2!.display_name
+                      : dc.user1!.display_name}
                   </h1>
                   <p
                     className={cn(
                       "text-xs truncate",
-                      dc.messages[0].sender_id === data?.user.id
+                      dc.messages![0].sender_id === data?.user.id
                         ? "text-slate-500"
-                        : dc.messages[0].seen
+                        : dc.messages![0].seen
                         ? "text-slate-500"
                         : "text-secondary-foreground"
                     )}
                   >
-                    {dc.messages[0].type === "text"
-                      ? dc.messages[0].text_message?.content
+                    {dc.messages![0].type === "TEXT"
+                      ? dc.messages![0].text_message?.content
                       : "null"}
                   </p>
                 </div>

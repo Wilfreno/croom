@@ -1,20 +1,19 @@
 "use client";
 
+import { useWebsocketInstance } from "@/components/Websocket";
 import useServerUrl from "@/components/hooks/useServerUrl";
-import useWebsocket from "@/components/hooks/useWebsocket";
-import UserMessage, { MessageSent } from "@/components/page/main/UserMessage";
+import UserMessage from "@/components/page/main/UserMessage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { Message, User } from "@/lib/types/client-types";
+import { DirectMessage, User } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
   WebSocketSeverMessage,
   WebsocketClientMessage,
 } from "@/lib/types/websocket-type";
-import { cn } from "@/lib/utils";
 import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -26,21 +25,24 @@ export default function page() {
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { data } = useSession();
-  const websocket = useWebsocket();
+  const websocket = useWebsocketInstance();
 
   const [text_message, setTextMessage] = useState("");
   const [friend, setFriend] = useState<User>();
   const [textarea_height, setTextareaHeight] = useState<number>();
-  const [direct_message, setDirectMessages] = useState<MessageSent[]>([]);
+  const [direct_message, setDirectMessages] = useState<DirectMessage[]>([]);
+  const [sending_message_list, setSendingMessage] = useState<DirectMessage[]>(
+    []
+  );
 
   async function sendTextMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     try {
-      const sending_message: MessageSent = {
+      const sending_message: DirectMessage = {
         id: data?.user.id!,
         conversation_id: data?.user.id!,
         sender_id: data?.user.id!,
-        type: "text",
+        type: "TEXT",
         text_message: {
           id: "",
           content: text_message,
@@ -51,13 +53,12 @@ export default function page() {
         receiver_id: friend?.id!,
         receiver: friend!,
         date_created: new Date(),
-        sending: true,
       };
 
-      setDirectMessages((prev) => [...prev, sending_message]);
+      setSendingMessage((prev) => [...prev, sending_message]);
 
       const response = await fetch(
-        server_url + "/create/v1/direct-message/text",
+        server_url + "/create/v1/direct-conversation/message/text",
         {
           method: "POST",
           headers: {
@@ -73,7 +74,6 @@ export default function page() {
 
       const response_json = (await response.json()) as ServerResponse;
 
-      console.log(response_json);
       if (response_json.status !== "OK") {
         toast({
           title: "Oops! Something went wrong.",
@@ -82,8 +82,14 @@ export default function page() {
         return;
       }
 
-      const message = response_json.data as Message;
-      setDirectMessages((prev) => prev.toSpliced(prev.length - 1, 1));
+      const message = response_json.data as DirectMessage;
+
+      setSendingMessage((prev) =>
+        prev.filter(
+          (msg) =>
+            msg.text_message?.content !== sending_message.text_message!.content!
+        )
+      );
       setDirectMessages((prev) => [...prev, message]);
 
       websocket?.send(
@@ -128,7 +134,7 @@ export default function page() {
       try {
         const response = await fetch(
           server_url +
-            "/get/v1/direct-message?user_id=" +
+            "/get/v1/direct-conversation/messages?user_id=" +
             data?.user.id +
             "&friend_id=" +
             params.friend_id +
@@ -144,7 +150,7 @@ export default function page() {
           });
           return;
         }
-        setDirectMessages(response_json.data as Message[]);
+        setDirectMessages(response_json.data as DirectMessage[]);
       } catch (error) {
         throw error;
       }
@@ -159,7 +165,7 @@ export default function page() {
     websocket.addEventListener("message", (socket) => {
       const message = JSON.parse(socket.data) as WebSocketSeverMessage;
 
-      const payload = message.payload as Message;
+      const payload = message.payload as DirectMessage;
       if (
         message.type === "send-direct-message" &&
         payload.sender_id === params.friend_id
@@ -188,6 +194,15 @@ export default function page() {
       <ScrollArea className="grow">
         <div className="flex flex-col space-y-5 justify-end p-5">
           {direct_message.map((dm, index) => (
+            <UserMessage
+              user={data?.user!}
+              friend={friend!}
+              message={dm}
+              dm_length={direct_message.length}
+              index={index}
+            />
+          ))}
+          {sending_message_list.map((dm, index) => (
             <UserMessage
               user={data?.user!}
               friend={friend!}

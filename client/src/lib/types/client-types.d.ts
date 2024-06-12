@@ -142,11 +142,11 @@ export type SessionMessage = {
 export type TextMessage = {
   id: string;
   direct_message?: DirectMessage;
-  direct_message_id: string;
+  direct_message_id?: string;
   lounge_message?: LoungeMessage;
-  lounge_message_id: string;
+  lounge_message_id?: string;
   session_message?: SessionMessage;
-  session_message_id: string;
+  session_message_id?: string;
   content: string;
   date_created: DateTime;
 };
@@ -154,11 +154,11 @@ export type TextMessage = {
 export type PhotoMessage = {
   id: string;
   direct_message?: DirectMessage;
-  direct_message_id: string;
+  direct_message_id?: string;
   lounge_message?: LoungeMessage;
-  lounge_message_id: string;
+  lounge_message_id?: string;
   session_message?: SessionMessage;
-  session_message_id: string;
+  session_message_id?: string;
   photo_url: string;
   date_created: DateTime;
 };
@@ -166,11 +166,11 @@ export type PhotoMessage = {
 export type VideoMessage = {
   id: string;
   direct_message?: DirectMessage;
-  direct_message_id: string;
+  direct_message_id?: string;
   lounge_message?: LoungeMessage;
-  lounge_message_id: string;
+  lounge_message_id?: string;
   session_message?: SessionMessage;
-  session_message_id: string;
+  session_message_id?: string;
   video_url: string;
   name: string;
   length: Int;

@@ -1,12 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Message, User } from "@/lib/types/client-types";
+import { DirectMessage, User } from "@/lib/types/client-types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion } from "framer-motion";
-
-export interface MessageSent extends Message {
-  sending?: boolean;
-}
 
 export default function UserMessage({
   user,
@@ -17,7 +13,7 @@ export default function UserMessage({
 }: {
   user: User;
   friend: User;
-  message: MessageSent;
+  message: DirectMessage;
   dm_length: number;
   index: number;
 }) {
