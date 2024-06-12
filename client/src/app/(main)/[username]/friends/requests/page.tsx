@@ -1,6 +1,7 @@
 "use client";
 
 import useFriendRequestHandler from "@/components/hooks/useFriendRequestHandler";
+import useServerUrl from "@/components/hooks/useServerUrl";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +10,7 @@ import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
-export default function page() {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
-
+export default function Page() {
   const { friend_request_list, decline, accept } = useFriendRequestHandler();
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<

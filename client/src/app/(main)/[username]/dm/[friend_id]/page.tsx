@@ -19,7 +19,7 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const server_url = useServerUrl();
   const params = useParams<{ username: string; friend_id: string }>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -195,6 +195,7 @@ export default function page() {
         <div className="flex flex-col space-y-5 justify-end p-5">
           {direct_message.map((dm, index) => (
             <UserMessage
+              key={index}
               user={data?.user!}
               friend={friend!}
               message={dm}
@@ -204,6 +205,7 @@ export default function page() {
           ))}
           {sending_message_list.map((dm, index) => (
             <UserMessage
+              key={index}
               user={data?.user!}
               friend={friend!}
               message={dm}

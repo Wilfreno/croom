@@ -9,7 +9,7 @@ import { WebsocketUserType } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const online_friends = useAppSelector(
     (state) => state.online_friends_reducer
   );
