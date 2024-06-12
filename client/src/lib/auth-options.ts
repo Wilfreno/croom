@@ -104,8 +104,10 @@ const auth_options: AuthOptions = {
             user_name: "",
             email: profile.email!,
             profile_photo: {
+              owner_id: "",
               id: profile.sub!,
               photo_url: profile.picture,
+              date_created: new Date(),
             },
             birth_date: undefined,
             date_created: undefined,

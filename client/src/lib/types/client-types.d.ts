@@ -18,7 +18,7 @@ export type User = {
   room_membership?: RoomMember[];
   lounge_message?: LoungeMessage[];
   session_message?: SessionMessage[];
-  date_created: DateTime;
+  date_created?: DateTime;
 };
 
 export type ProfilePhoto = {

@@ -43,7 +43,7 @@ export default function UserMessage({
           animate={display_date ? { y: -5 } : { y: 0 }}
           className=" max-w-1/2 p-2 w-fit rounded-lg shadow-md bg-primary cursor-default"
         >
-          {message.type === "text" && message.text_message?.content}
+          {message.type === "TEXT" && message.text_message?.content}
         </motion.p>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
@@ -68,15 +68,11 @@ export default function UserMessage({
         <motion.p
           animate={display_date ? { y: -5 } : { y: 0 }}
           className={cn(
-            "relative max-w-1/2 p-2 rounded-lg shadow-md cursor-default w-fit",
-            message.sending ? "bg-primary-foreground" : "bg-primary"
+            "relative max-w-1/2 p-2 rounded-lg shadow-md cursor-default w-fit"
           )}
         >
-          {message.type === "text" && message.text_message?.content}
+          {message.type === "TEXT" && message.text_message?.content}
         </motion.p>
-        {!!message.sending && (
-          <p className="absolute top-full mx-5 text-xs">sending</p>
-        )}
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
             {new Date(message.date_created).toLocaleString()}
