@@ -5,8 +5,7 @@ import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FriendRequest } from "@/lib/types/client-types";
-import { FriendRequestMessageType } from "@/lib/types/websocket-type";
+import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
@@ -18,11 +17,10 @@ export default function page() {
     );
 
   const { friend_request_list, decline, accept } = useFriendRequestHandler();
-
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<FriendRequestMessageType[]>(
-    []
-  );
+  const [search_result, setSearchResult] = useState<
+    WebsocketFriendRequestType[]
+  >([]);
 
   useEffect(() => {
     if (!search || !friend_request_list) return;
@@ -30,8 +28,8 @@ export default function page() {
     setSearchResult(
       friend_request_list.filter(
         (request) =>
-          request.sender.display_name?.startsWith(search) ||
-          request.sender.user_name?.startsWith(search)
+          request.sender.user.display_name?.startsWith(search) ||
+          request.sender.user.user_name?.startsWith(search)
       )
     );
   }, [search]);
@@ -60,7 +58,7 @@ export default function page() {
           {search
             ? search_result.map((request, index) => (
                 <FriendsRequestList
-                  key={request.receiver.id}
+                  key={request.receiver.user.id}
                   request={request}
                   index={index}
                   accept={accept}
@@ -69,7 +67,7 @@ export default function page() {
               ))
             : friend_request_list?.map((request, index) => (
                 <FriendsRequestList
-                  key={request.sender.id}
+                  key={request.sender.user.id}
                   request={request}
                   index={index}
                   accept={accept}

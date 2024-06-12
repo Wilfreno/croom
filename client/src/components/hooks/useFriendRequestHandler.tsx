@@ -8,7 +8,7 @@ import {
 } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
 import useServerUrl from "./useServerUrl";
@@ -71,30 +71,24 @@ export default function useFriendRequestHandler() {
     router.refresh();
   }
 
-  async function accept(sender: FriendRequest["sender"], index: number) {
+  async function accept(
+    sender: WebsocketFriendRequestType["sender"],
+    index: number
+  ) {
     const response = await fetch(server_url + "/accept/friend-request", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: sender?.id,
+        sender: sender?.user.id,
         receiver: data?.user.id,
       }),
     });
     const response_json = (await response.json()) as ServerResponse;
 
     const payload = {
-      sender: {
-        user: {
-          id: sender?.id,
-          display_name: sender?.display_name!,
-          profile_photo: {
-            photo_url: sender?.profile_photo?.photo_url!,
-          },
-          user_name: sender?.user_name!,
-        },
-      },
+      sender,
       receiver: {
         user: {
           id: data?.user.id,
@@ -127,14 +121,17 @@ export default function useFriendRequestHandler() {
     }, 3000);
   }
 
-  async function decline(sender: FriendRequest["sender"], index: number) {
+  async function decline(
+    sender: WebsocketFriendRequestType["sender"],
+    index: number
+  ) {
     const response = await fetch(server_url + "/decline/friend-request", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: sender?.id,
+        sender: sender?.user.id,
         receiver: data?.user.id,
       }),
     });
@@ -149,16 +146,7 @@ export default function useFriendRequestHandler() {
     }
 
     const payload = {
-      sender: {
-        user: {
-          id: sender?.id,
-          display_name: sender?.display_name!,
-          profile_photo: {
-            photo_url: sender?.profile_photo?.photo_url!,
-          },
-          user_name: sender?.user_name!,
-        },
-      },
+      sender,
       receiver: {
         user: {
           id: data?.user.id,
