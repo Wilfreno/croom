@@ -31,6 +31,7 @@ export type WebSocketPayloadType =
 export type WebsocketMessageType =
   | "online-friend"
   | "online-room-member"
+  | "offline"
   | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
@@ -41,8 +42,8 @@ export type WebsocketMessageType =
   | "send-lounge-message"
   | "join-session"
   | "leave-session"
-  | "send-session-message";
-
+  | "send-session-message"
+  | "error";
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;

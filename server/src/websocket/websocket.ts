@@ -5,7 +5,7 @@
  *  this section is the implementation of the websocket server
  */
 
-import http from "http";
+import http, { get } from "http";
 import WebSocket from "ws";
 import { Lounge, RoomMember, Session, User } from "@prisma/client";
 import { parse } from "url";
@@ -32,6 +32,7 @@ import sendLoungeMessage from "./send-lounge-message";
 import joinSession from "./join-session";
 import leaveSession from "./leave-session";
 import sendSessionMessage from "./send-session-message";
+import broadcastOffline from "./broadcast-offline";
 
 const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
 const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
@@ -161,5 +162,6 @@ export default function WebsocketServer(
           return;
       }
     });
+    socket.on("close", () => broadcastOffline(user.id, online, lounge));
   });
 }
