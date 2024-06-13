@@ -12,10 +12,10 @@ import { CheckedState } from "@radix-ui/react-checkbox";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import Birthdate from "./Birthdate";
+import BirthDate from "./BirthDate";
 import useServerUrl from "@/components/hooks/useServerUrl";
 
-export default function SignupForm() {
+export default function SignUpForm() {
   const development_server = useServerUrl();
   const { toast } = useToast();
   const [user, setUser] = useState<User>({
@@ -27,11 +27,11 @@ export default function SignupForm() {
     password: "",
     provider: "",
   });
-  const [agree, setAggree] = useState<CheckedState>(false);
+  const [agree, setAgree] = useState<CheckedState>(false);
   const [view_otp, setViewOTP] = useState(false);
   const [creating_otp, setCreatingOtp] = useState(false);
   const [password, setPassword] = useState({ base: "", verify: "" });
-  const [view_passwrord, setViewPassword] = useState([false, false]);
+  const [view_password, setViewPassword] = useState([false, false]);
 
   useEffect(() => {
     if (password.base && password.verify && password.base === password.verify)
@@ -105,7 +105,7 @@ export default function SignupForm() {
         <div className="relative">
           <Input
             required
-            type={view_passwrord[0] ? "text" : "password"}
+            type={view_password[0] ? "text" : "password"}
             placeholder="Password"
             className={cn(
               "text-base py-5",
@@ -125,7 +125,7 @@ export default function SignupForm() {
             className="aspect-square p-2 absolute right-2 top-1/2 -translate-y-1/2 focus-visible:ring-0"
             onClick={() => setViewPassword((prev) => [!prev[0], prev[1]])}
           >
-            {view_passwrord[0] ? (
+            {view_password[0] ? (
               <EyeOpenIcon className="w-full h-full" />
             ) : (
               <EyeClosedIcon className="w-full h-full" />
@@ -133,14 +133,14 @@ export default function SignupForm() {
           </Button>
           {password.base && password.base.length < 8 && (
             <p className="absolute top-full left-1 text-red-600 text-sm">
-              pasword must be atleast 8 characters long
+              password must be at least 8 characters long
             </p>
           )}
         </div>
         <div className="relative">
           <Input
             required
-            type={view_passwrord[1] ? "text" : "password"}
+            type={view_password[1] ? "text" : "password"}
             placeholder="Password (confirm)"
             className={cn(
               "text-base py-5",
@@ -161,7 +161,7 @@ export default function SignupForm() {
             className="aspect-square p-2 absolute right-2 top-1/2 -translate-y-1/2 focus-visible:ring-0"
             onClick={() => setViewPassword((prev) => [prev[0], !prev[1]])}
           >
-            {view_passwrord[1] ? (
+            {view_password[1] ? (
               <EyeOpenIcon className="w-full h-full" />
             ) : (
               <EyeClosedIcon className="w-full h-full" />
@@ -175,12 +175,12 @@ export default function SignupForm() {
               </p>
             )}
         </div>
-        <Birthdate user={user} setUser={setUser} />
+        <BirthDate user={user} setUser={setUser} />
         <div className="flex items-center justify-center space-x-3 text-sm">
           <Checkbox
             id="terms"
             checked={agree}
-            onCheckedChange={(e) => setAggree(e)}
+            onCheckedChange={(e) => setAgree(e)}
           />
           <Label htmlFor="terms">Accept terms and condition</Label>
         </div>
@@ -195,7 +195,7 @@ export default function SignupForm() {
           }
           className="w-full text-base"
         >
-          {creating_otp ? <LoadingSvg className="h-8" /> : "Signup"}
+          {creating_otp ? <LoadingSvg className="h-8" /> : "SignUp"}
         </Button>
       </form>
       {view_otp && (

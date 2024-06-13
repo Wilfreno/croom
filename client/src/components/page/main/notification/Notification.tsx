@@ -18,7 +18,7 @@ export default function Notification() {
         type: "friend-request",
         content: friend_request_list[i],
         message:
-          friend_request_list[i].sender.display_name +
+          friend_request_list[i].sender.user.display_name +
           " want to make friends with you.",
       });
     }

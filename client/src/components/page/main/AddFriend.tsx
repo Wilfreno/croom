@@ -1,4 +1,5 @@
-import useWebsocket from "@/components/hooks/useWebsocket";
+import { useWebsocketInstance } from "@/components/Websocket";
+import useServerUrl from "@/components/hooks/useServerUrl";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +15,8 @@ import { Input } from "@/components/ui/input";
 import { FriendRequest } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  FriendRequestMessageType,
   WebsocketClientMessage,
+  WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -23,11 +24,8 @@ import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 export default function AddFriend() {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-  if (!server_url)
-    throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
-
-  const websocket = useWebsocket();
+  const server_url = useServerUrl();
+  const websocket = useWebsocketInstance();
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
@@ -77,10 +75,29 @@ export default function AddFriend() {
               JSON.stringify({
                 type: "send-friend-request",
                 payload: {
-                  sender: data?.user,
-                  receiver: friend_request.receiver,
+                  sender: {
+                    user: {
+                      id: data?.user.id,
+                      display_name: data!.user.display_name,
+                      profile_photo: {
+                        photo_url: data?.user.profile_photo?.photo_url,
+                      },
+                      user_name: data?.user.user_name,
+                    },
+                  },
+                  receiver: {
+                    user: {
+                      id: friend_request.receiver!.id,
+                      display_name: friend_request.receiver!.display_name,
+                      profile_photo: {
+                        photo_url:
+                          friend_request.receiver!.profile_photo?.photo_url,
+                      },
+                      user_name: friend_request.receiver!.user_name!,
+                    },
+                  },
                   date_created: friend_request.date_created,
-                } as FriendRequestMessageType,
+                } as WebsocketFriendRequestType,
               } as WebsocketClientMessage)
             );
             setSending(false);

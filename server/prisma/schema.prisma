@@ -76,7 +76,7 @@ model DirectConversation {
 
 model DirectMessage {
   id              String              @id @unique @default(uuid())
-  converstation   DirectConversation? @relation(fields: [conversation_id], references: [id])
+  conversation    DirectConversation? @relation(fields: [conversation_id], references: [id])
   conversation_id String?
   sender          User                @relation("message-sent", fields: [sender_id], references: [id])
   sender_id       String

@@ -1,18 +1,14 @@
-"use client";
-import useWebsocket from "@/components/hooks/useWebsocket";
+import WebsocketMessageHandler from "@/components/Websocket";
 import LayoutSideBar from "@/components/layout/LayoutSideBar";
-import React, { useEffect } from "react";
+import React, { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const websocket = useWebsocket();
-  useEffect(() => {
-    return () => websocket?.close();
-  }, [websocket]);
-
   return (
-    <>
-      <LayoutSideBar />
-      {children}
-    </>
+    <Suspense>
+      <WebsocketMessageHandler>
+        <LayoutSideBar />
+        {children}
+      </WebsocketMessageHandler>
+    </Suspense>
   );
 }

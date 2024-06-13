@@ -1,30 +1,31 @@
 "use client";
-import useWebsocket from "@/components/hooks/useWebsocket";
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  FriendRequestMessageType,
   WebSocketSeverMessage,
   WebsocketClientMessage,
+  WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
-import { setNewFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
-import { NotificationType } from "@/lib/types/notification-type";
 import useServerUrl from "./useServerUrl";
+import { useWebsocketInstance } from "../Websocket";
+import { FriendRequest } from "@/lib/types/client-types";
+import { setFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
 
 export default function useFriendRequestHandler() {
   const server_url = useServerUrl();
   const friend_request_list = useAppSelector(
     (state) => state.friend_request_list_reducer
   );
+
   const dispatch = useDispatch<AppDispatch>();
 
   const { data } = useSession();
-  const websocket = useWebsocket();
+  const websocket = useWebsocketInstance();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -34,21 +35,44 @@ export default function useFriendRequestHandler() {
     );
 
     const response_json = (await response.json()) as ServerResponse;
-    const friend_requests = response_json.data as FriendRequestMessageType[];
+    const friend_requests = response_json.data as FriendRequest[];
+
     if (response_json.status === "OK")
-      dispatch(
-        setNewFriendRequestList(
-          friend_requests.map((request) => ({
-            sender: request.sender,
-            receiver: request.receiver,
-            date_created: request.date_created,
-          }))
-        )
-      );
+      for (const request of friend_requests) {
+        dispatch(
+          setFriendRequestList({
+            operation: "add",
+            content: {
+              sender: {
+                user: {
+                  id: request.sender_id,
+                  display_name: request.sender?.display_name!,
+                  profile_photo: {
+                    photo_url: request.sender?.profile_photo?.photo_url!,
+                  },
+                  user_name: request.sender?.user_name!,
+                },
+              },
+              receiver: {
+                user: {
+                  id: request.receiver_id,
+                  display_name: request.receiver?.display_name!,
+                  profile_photo: {
+                    photo_url: request.receiver?.profile_photo?.photo_url!,
+                  },
+                  user_name: request.receiver?.user_name!,
+                },
+              },
+              date_created: request.date_created,
+            },
+          })
+        );
+      }
+    router.refresh();
   }
 
   async function accept(
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) {
     const response = await fetch(server_url + "/accept/friend-request", {
@@ -57,20 +81,31 @@ export default function useFriendRequestHandler() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: sender.id,
+        sender: sender?.user.id,
         receiver: data?.user.id,
       }),
     });
     const response_json = (await response.json()) as ServerResponse;
 
+    const payload = {
+      sender,
+      receiver: {
+        user: {
+          id: data?.user.id,
+          display_name: data?.user.display_name!,
+          profile_photo: {
+            photo_url: data?.user.profile_photo?.photo_url!,
+          },
+          user_name: data?.user.user_name!,
+        },
+      },
+    } as WebsocketFriendRequestType;
+
     if (response_json.status === "OK") {
       websocket?.send(
         JSON.stringify({
           type: "accept-friend-request",
-          payload: {
-            sender: sender,
-            receiver: data?.user,
-          },
+          payload,
         } as WebsocketClientMessage)
       );
     } else {
@@ -81,15 +116,13 @@ export default function useFriendRequestHandler() {
     }
 
     setTimeout(() => {
-      dispatch(
-        setNewFriendRequestList(friend_request_list.toSpliced(index, 1))
-      );
+      dispatch(setFriendRequestList({ operation: "remove", content: payload }));
       router.refresh();
     }, 3000);
   }
 
   async function decline(
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) {
     const response = await fetch(server_url + "/decline/friend-request", {
@@ -98,7 +131,7 @@ export default function useFriendRequestHandler() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: sender.id,
+        sender: sender?.user.id,
         receiver: data?.user.id,
       }),
     });
@@ -109,26 +142,29 @@ export default function useFriendRequestHandler() {
         title: "Something went wrong!",
         description: response_json.message,
       });
+      return;
     }
 
+    const payload = {
+      sender,
+      receiver: {
+        user: {
+          id: data?.user.id,
+          display_name: data?.user.display_name!,
+          profile_photo: {
+            photo_url: data?.user.profile_photo?.photo_url!,
+          },
+          user_name: data?.user.user_name!,
+        },
+      },
+    } as WebsocketFriendRequestType;
+
     setTimeout(() => {
-      dispatch(
-        setNewFriendRequestList(friend_request_list.toSpliced(index, 1))
-      );
+      dispatch(setFriendRequestList({ operation: "remove", content: payload }));
+
       router.refresh();
     }, 3000);
   }
-
-  useEffect(() => {
-    websocket?.addEventListener("message", (socket) => {
-      const message: WebSocketSeverMessage = JSON.parse(socket.data);
-
-      if (message.type === "send-friend-request") {
-        const payload = message.payload as FriendRequestMessageType;
-        dispatch(setNewFriendRequestList([...friend_request_list, payload]));
-      }
-    });
-  }, [websocket]);
 
   useEffect(() => {
     if (data && friend_request_list.length < 1) getFriendRequest();

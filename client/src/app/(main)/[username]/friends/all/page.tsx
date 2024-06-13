@@ -8,21 +8,17 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import FriendList from "@/components/page/friends/FriendList";
 import { Input } from "@/components/ui/input";
+import useServerUrl from "@/components/hooks/useServerUrl";
 
 export default function Page() {
   const [friends, setFriends] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<User[]>([]);
   const { data } = useSession();
+  const server_url = useServerUrl();
 
   useEffect(() => {
     async function getFriends() {
-      const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
-      if (!server_url)
-        throw new Error(
-          "DEVELOPMENT_SERVER is missing from your .env.local file"
-        );
-
       try {
         const response = await fetch(
           server_url + "/v1/get/friends/" + data?.user.id
@@ -70,20 +66,34 @@ export default function Page() {
       <ScrollArea className="h-[70vh]">
         <ul className="px-3 space-y-5">
           {search
-            ? search_result.map((friend, index) => (
-                <Friege ndList
-                  key={friend.id}
-                  friend={friend}
-                  setFriends={setFriends}
-                  index={index}
-                />
-              ))
-            : friends?.map((friend, index) => (
+            ? search_result.map((friend) => (
                 <FriendList
                   key={friend.id}
-                  friend={friend}
-                  setFriends={setFriends}
-                  index={index}
+                  friend={{
+                    user: {
+                      id: friend.id,
+                      display_name: friend.display_name,
+                      profile_photo: {
+                        photo_url: friend.profile_photo?.photo_url!,
+                      },
+                      user_name: friend.user_name,
+                    },
+                  }}
+                />
+              ))
+            : friends?.map((friend) => (
+                <FriendList
+                  key={friend.id}
+                  friend={{
+                    user: {
+                      id: friend.id,
+                      display_name: friend.display_name,
+                      profile_photo: {
+                        photo_url: friend.profile_photo?.photo_url!,
+                      },
+                      user_name: friend.user_name,
+                    },
+                  }}
                 />
               ))}
         </ul>

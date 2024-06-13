@@ -1,12 +1,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Message, User } from "@/lib/types/client-types";
+import { DirectMessage, User } from "@/lib/types/client-types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { motion } from "framer-motion";
-
-export interface MessageSent extends Message {
-  sending?: boolean;
-}
 
 export default function UserMessage({
   user,
@@ -17,7 +13,7 @@ export default function UserMessage({
 }: {
   user: User;
   friend: User;
-  message: MessageSent;
+  message: DirectMessage;
   dm_length: number;
   index: number;
 }) {
@@ -47,7 +43,7 @@ export default function UserMessage({
           animate={display_date ? { y: -5 } : { y: 0 }}
           className=" max-w-1/2 p-2 w-fit rounded-lg shadow-md bg-primary cursor-default"
         >
-          {message.type === "text" && message.text_message?.content}
+          {message.type === "TEXT" && message.text_message?.content}
         </motion.p>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
@@ -72,15 +68,11 @@ export default function UserMessage({
         <motion.p
           animate={display_date ? { y: -5 } : { y: 0 }}
           className={cn(
-            "relative max-w-1/2 p-2 rounded-lg shadow-md cursor-default w-fit",
-            message.sending ? "bg-primary-foreground" : "bg-primary"
+            "relative max-w-1/2 p-2 rounded-lg shadow-md cursor-default w-fit"
           )}
         >
-          {message.type === "text" && message.text_message?.content}
+          {message.type === "TEXT" && message.text_message?.content}
         </motion.p>
-        {!!message.sending && (
-          <p className="absolute top-full mx-5 text-xs">sending</p>
-        )}
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
             {new Date(message.date_created).toLocaleString()}

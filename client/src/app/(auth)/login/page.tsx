@@ -9,6 +9,7 @@ export default async function page() {
   const session = await getServerSession(auth_options);
 
   if (session) redirect("/");
+
   return (
     <div className="border rounded p-5  bg-primary-foreground shadow-lg relative">
       <ThemeToggler className="absolute top-1 right-2" />

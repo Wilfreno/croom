@@ -10,7 +10,7 @@ import {
 import { User } from "@/lib/types/client-types";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
-export default function Birthdate({
+export default function BirthDate({
   user,
   setUser,
 }: {

@@ -2,7 +2,7 @@ import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { FriendRequestMessageType } from "@/lib/types/websocket-type";
+import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 
@@ -12,14 +12,14 @@ export default function FriendsRequestList({
   accept,
   decline,
 }: {
-  request: FriendRequestMessageType;
+  request: WebsocketFriendRequestType;
   index: number;
   accept: (
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) => Promise<void>;
   decline: (
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) => Promise<void>;
 }) {
@@ -32,21 +32,21 @@ export default function FriendsRequestList({
           <Button className="flex items-center space-x-5 grow bg-transparent justify-start text-secondary-foreground hover:bg-transparent hover:shadow-none shadow-none focus-visible:ring-0">
             <Avatar>
               <AvatarImage
-                src={request.sender.profile_photo?.photo_url}
-                alt={request.sender.display_name!.slice(0, 1).toUpperCase()}
+                src={request.sender.user!.profile_photo?.photo_url}
+                alt={request.sender.user!.display_name!.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback>
-                {request.sender.display_name!.slice(0, 1).toUpperCase()}
+                {request.sender.user.display_name!.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p>{request.sender.display_name}</p>
+            <p>{request.sender.user!.display_name}</p>
           </Button>
         </DialogTrigger>
         <DialogContent>
           <p>hello</p>
         </DialogContent>
       </Dialog>
-      <div className="flex imtex-center space-x-3">
+      <div className="flex text-center space-x-3">
         <Button
           className="h-fit w-auto bg-green-600 p-2 text-secondary-foreground"
           onClick={async () => {

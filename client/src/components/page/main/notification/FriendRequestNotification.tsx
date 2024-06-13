@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useMemo, useState } from "react";
-import { FriendRequestMessageType } from "@/lib/types/websocket-type";
+import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 
 export default function FriendRequestNotification({
   notification,
@@ -26,11 +26,11 @@ export default function FriendRequestNotification({
 }: {
   notification: NotificationType;
   accept: (
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) => Promise<void>;
   decline: (
-    sender: FriendRequestMessageType["sender"],
+    sender: WebsocketFriendRequestType["sender"],
     index: number
   ) => Promise<void>;
   index: number;
