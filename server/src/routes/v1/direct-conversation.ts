@@ -96,6 +96,63 @@ router
   })
 
   //read routes
+
+  .get("/messages", async (request, response) => {
+    try {
+      const query = request.query;
+
+      if (!query.user_id || !query.friend_id)
+        return response
+          .status(400)
+          .json(
+            responseWithoutData(
+              "BAD_REQUEST",
+              "user_id and friend_id is required as a query parameter; /direct-message?user_id=&friend_id="
+            )
+          );
+
+      const user_id = query.user_id as string;
+      const friend_id = query.friend_id as string;
+
+      let count = 20;
+      let skip = 0;
+
+      if (query.page) {
+        count *= Number(query.page);
+        skip = count - 20;
+      }
+
+      const dm_id = [user_id, friend_id].sort().join("-");
+
+      const messages = await prisma.directMessage.findMany({
+        where: { conversation_id: dm_id },
+        include: {
+          text_message: true,
+          photo_message: true,
+          video_message: true,
+        },
+        orderBy: {
+          date_created: "asc",
+        },
+        take: count,
+        skip,
+      });
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "request successful", messages));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
   .get("/:id", async (request, response) => {
     try {
       const user_id = request.params.id;
@@ -159,65 +216,6 @@ router
         );
     }
   })
-  .get("/messages", async (request, response) => {
-    try {
-      const query = request.query;
-
-      if (!query.user_id || !query.friend_id)
-        return response
-          .status(400)
-          .json(
-            responseWithoutData(
-              "BAD_REQUEST",
-              "user_id and friend_id is required as a query parameter; /direct-message?user_id=&friend_id="
-            )
-          );
-
-      const user_id = query.user_id as string;
-      const friend_id = query.friend_id as string;
-
-      let count = 20;
-      let skip = 0;
-
-      if (query.page) {
-        count *= Number(query.page);
-        skip = count - 20;
-      }
-
-      const dm_id = [user_id, friend_id].sort().join("-");
-      const m = await prisma.directConversation.findFirst({
-        where: { id: dm_id },
-        select: {
-          messages: {
-            include: {
-              text_message: true,
-              photo_message: true,
-              video_message: true,
-            },
-            orderBy: {
-              date_created: "asc",
-            },
-            take: count,
-            skip,
-          },
-        },
-      });
-
-      return response
-        .status(200)
-        .json(responseWithData("OK", "request successful", m!.messages));
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-      return response
-        .status(500)
-        .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
-        );
-    }
-  })
 
   //delete routes
   .delete("/", async (request, response) => {
@@ -260,8 +258,56 @@ router
           )
         );
     }
-  });
+  })
+  .delete("/message", async (request, response) => {
+    try {
+      const request_body = request.body;
 
+      if (!request_body.message_id)
+        return response
+          .status(400)
+          .json(
+            responseWithoutData(
+              "BAD_REQUEST",
+              "message_id field on the request body is required "
+            )
+          );
+
+      const found_message = await prisma.directMessage.findFirst({
+        where: { id: request_body.message_id },
+      });
+
+      if (!found_message)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete message; message does not exist"
+            )
+          );
+
+      await prisma.directMessage.delete({
+        where: {
+          id: request_body.message_id,
+        },
+      });
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "message deleted", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  });
 const v1_direct_conversation = router;
 
 export default v1_direct_conversation;

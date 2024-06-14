@@ -14,7 +14,6 @@ import { usePathname, useRouter } from "next/navigation";
 export default function MainSideBarNavigation() {
   const { data } = useSession();
   const path_name = usePathname();
-  const router = useRouter();
 
   const nav_list = [
     { name: "Notes", link: "/notes", icon: <BookmarkIcon className="h-5" /> },

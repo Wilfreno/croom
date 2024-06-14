@@ -1,5 +1,6 @@
 "use client";
 import useServerUrl from "@/components/hooks/useServerUrl";
+import { useWebsocket } from "@/components/hooks/useWebsocket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { DirectConversation } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
+import {
+  WebSocketSeverMessage,
+  WebsocketDirectMessageType,
+} from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import {
   MagnifyingGlassIcon,
@@ -21,38 +26,75 @@ export default function DirectMessages() {
   const server_url = useServerUrl();
   const { data } = useSession();
   const { toast } = useToast();
+  const websocket = useWebsocket();
   const [direct_conversation, setDirectConversation] = useState<
     DirectConversation[]
   >([]);
 
-  useEffect(() => {
-    if (!data) return;
+  async function getDirectConversations() {
+    try {
+      const response = await fetch(
+        server_url + "/get/v1/direct-conversation/" + data?.user.id
+      );
 
-    async function getDirectConversations() {
-      try {
-        const response = await fetch(
-          server_url + "/get/v1/direct-conversation/" + data?.user.id
-        );
+      const response_json = (await response.json()) as ServerResponse;
 
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status !== "OK") {
-          toast({
-            title: "Oops! something went wrong.",
-            description: response_json.message,
-          });
-          return;
-        }
-
-        setDirectConversation(response_json.data as DirectConversation[]);
-      } catch (error) {
-        throw error;
+      if (response_json.status !== "OK") {
+        toast({
+          title: "Oops! something went wrong.",
+          description: response_json.message,
+        });
+        return;
       }
-    }
 
-    getDirectConversations();
+      setDirectConversation(response_json.data as DirectConversation[]);
+    } catch (error) {
+      throw error;
+    }
+  }
+  useEffect(() => {
+    if (data) getDirectConversations();
   }, [data]);
 
+  useEffect(() => {
+    websocket?.addEventListener("message", async (websocket_message) => {
+      const message = JSON.parse(
+        websocket_message.data
+      ) as WebSocketSeverMessage;
+
+      const payload = message.payload as WebsocketDirectMessageType;
+      if (message.type === "send-direct-message") {
+        switch (payload.type) {
+          case "TEXT": {
+            const msg = direct_conversation.find(
+              (d_msg) =>
+                d_msg.messages![0].receiver_id === payload.receiver_id &&
+                d_msg.messages![0].sender_id === payload.sender_id
+            );
+
+            if (!msg) {
+              await getDirectConversations();
+              return;
+            }
+            setDirectConversation((prev) =>
+              prev.filter(
+                (msg) =>
+                  msg.messages![0].receiver_id === payload.receiver_id &&
+                  msg.messages![0].sender_id === payload.sender_id
+              )
+            );
+            setDirectConversation((prev) => [
+              { ...msg!, messages: [payload!] },
+              ...prev,
+            ]);
+            break;
+          }
+          default:
+            return;
+        }
+      }
+    });
+  }, [websocket]);
   return (
     <div className="flex flex-col space-y-5 mx-2">
       <div className="flex items-center justify-between">
@@ -118,20 +160,22 @@ export default function DirectMessages() {
                       ? dc.user2!.display_name
                       : dc.user1!.display_name}
                   </h1>
-                  <p
-                    className={cn(
-                      "text-xs truncate",
-                      dc.messages![0].sender_id === data?.user.id
-                        ? "text-slate-500"
-                        : dc.messages![0].seen
-                        ? "text-slate-500"
-                        : "text-secondary-foreground"
-                    )}
-                  >
-                    {dc.messages![0].type === "TEXT"
-                      ? dc.messages![0].text_message?.content
-                      : "null"}
-                  </p>
+                  {dc.messages!.length > 0 && (
+                    <p
+                      className={cn(
+                        "text-xs truncate",
+                        dc.messages![0].sender_id === data?.user.id
+                          ? "text-slate-500"
+                          : dc.messages![0].seen
+                          ? "text-slate-500"
+                          : "text-secondary-foreground"
+                      )}
+                    >
+                      {dc.messages![0].type === "TEXT"
+                        ? dc.messages![0].text_message?.content
+                        : "null"}
+                    </p>
+                  )}
                 </div>
               </Button>
             </Link>

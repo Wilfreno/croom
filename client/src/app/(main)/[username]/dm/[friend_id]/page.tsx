@@ -1,7 +1,7 @@
 "use client";
 
-import { useWebsocketInstance } from "@/components/Websocket";
 import useServerUrl from "@/components/hooks/useServerUrl";
+import { useWebsocket } from "@/components/hooks/useWebsocket";
 import UserMessage from "@/components/page/main/UserMessage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,13 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 export default function Page() {
   const server_url = useServerUrl();
   const params = useParams<{ username: string; friend_id: string }>();
-  const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { data } = useSession();
-  const websocket = useWebsocketInstance();
+  const websocket = useWebsocket();
+  const textarea_ref = useRef<HTMLTextAreaElement>(null);
 
   const [text_message, setTextMessage] = useState("");
   const [friend, setFriend] = useState<User>();
-  const [textarea_height, setTextareaHeight] = useState<number>();
   const [direct_message, setDirectMessages] = useState<DirectMessage[]>([]);
   const [sending_message_list, setSendingMessage] = useState<DirectMessage[]>(
     []
@@ -85,10 +84,7 @@ export default function Page() {
       const message = response_json.data as DirectMessage;
 
       setSendingMessage((prev) =>
-        prev.filter(
-          (msg) =>
-            msg.text_message?.content !== sending_message.text_message!.content!
-        )
+        prev.filter((msg) => msg.date_created !== sending_message.date_created)
       );
       setDirectMessages((prev) => [...prev, message]);
 
@@ -100,6 +96,10 @@ export default function Page() {
       );
 
       setTextMessage("");
+
+      if (textarea_ref.current) textarea_ref.current.style.height = "auto";
+
+      
     } catch (error) {
       throw error;
     }
@@ -191,8 +191,8 @@ export default function Page() {
           <p className="text-xs">{friend?.user_name}</p>
         </div>
       </div>
-      <ScrollArea className="grow">
-        <div className="flex flex-col space-y-5 justify-end p-5">
+      <ScrollArea className="h-[80dvh] justify-self-start">
+        <div className="flex flex-col justify-end space-y-5 p-5 grow min-h-[77dvh] max-w-full">
           {direct_message.map((dm, index) => (
             <UserMessage
               key={index}
@@ -201,17 +201,32 @@ export default function Page() {
               message={dm}
               dm_length={direct_message.length}
               index={index}
+              setDirectMessages={setDirectMessages}
             />
           ))}
           {sending_message_list.map((dm, index) => (
-            <UserMessage
-              key={index}
-              user={data?.user!}
-              friend={friend!}
-              message={dm}
-              dm_length={direct_message.length}
-              index={index}
-            />
+            <div
+              key={dm.id}
+              className="flex items-end ml-auto space-x-3 relative"
+              onLoad={(e) =>
+                index === sending_message_list.length - 1 &&
+                e.currentTarget.scrollIntoView({ behavior: "instant" })
+              }
+            >
+              <p className="relative max-w-1/2 p-2 bg-primary-foreground rounded-lg shadow-md cursor-default w-fit">
+                {dm.type === "TEXT" && dm.text_message?.content}
+              </p>
+              <Avatar>
+                <AvatarImage
+                  src={data?.user.profile_photo?.photo_url}
+                  alt={data?.user.display_name.slice(0, 1).toUpperCase()}
+                />
+                <AvatarFallback>
+                  {data?.user.display_name.slice(0, 1).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <p className="absolute top-full left-0 text-xs mx-5">sending</p>
+            </div>
           ))}
         </div>
       </ScrollArea>
@@ -229,18 +244,14 @@ export default function Page() {
         </Button>
         <Textarea
           ref={textarea_ref}
-          style={{
-            height: textarea_height ? textarea_height + "px" : undefined,
-          }}
           placeholder="Message"
           rows={1}
           className="resize-none border-none focus-visible:ring-0 leading-4 margin-b-0 border bg-secondary h-auto max-h-[40dvh] overflow-y-auto "
           value={text_message}
           onChange={(e) => {
             setTextMessage(e.currentTarget.value);
-            if (!e.currentTarget.value)
-              textarea_ref.current!.style.height = "auto";
-            setTextareaHeight(e.currentTarget.scrollHeight);
+            e.currentTarget.style.height = "auto";
+            e.currentTarget.style.height = e.currentTarget.scrollHeight + "px";
           }}
         />
         <Button

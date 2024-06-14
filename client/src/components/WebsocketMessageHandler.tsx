@@ -8,40 +8,16 @@ import {
   WebsocketFriendRequestType,
   WebsocketUserType,
 } from "@/lib/types/websocket-type";
-import { useSession } from "next-auth/react";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
-
-let websocket_instance: WebSocket | null = null;
-
-export function useWebsocketInstance() {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_WEBSOCKET_SERVER!;
-  if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_WEBSOCKET_SERVER is missing from your .env.local file"
-    );
-  const { data } = useSession();
-
-  const websocket_ref = useRef<WebSocket>();
-
-  useEffect(() => {
-    if (!data) return;
-    if (!websocket_instance)
-      websocket_instance = new WebSocket(
-        server_url + "?user_id=" + data?.user.id
-      );
-    websocket_ref.current = websocket_instance;
-  }, [data]);
-
-  return websocket_ref.current;
-}
+import { useWebsocket } from "./hooks/useWebsocket";
 
 export default function WebsocketMessageHandler({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const websocket = useWebsocketInstance();
+  const websocket = useWebsocket();
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {

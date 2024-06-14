@@ -1,4 +1,4 @@
-import WebsocketMessageHandler from "@/components/Websocket";
+import WebsocketMessageHandler from "@/components/WebsocketMessageHandler";
 import LayoutSideBar from "@/components/layout/LayoutSideBar";
 import React, { Suspense } from "react";
 

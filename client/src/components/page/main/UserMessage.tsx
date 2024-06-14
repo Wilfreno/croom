@@ -1,8 +1,19 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DirectMessage, User } from "@/lib/types/client-types";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { EllipsisHorizontalIcon, TrashIcon } from "@heroicons/react/24/solid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import useServerUrl from "@/components/hooks/useServerUrl";
+import { ServerResponse } from "@/lib/types/sever-response";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function UserMessage({
   user,
@@ -10,14 +21,48 @@ export default function UserMessage({
   message,
   dm_length,
   index,
+  setDirectMessages,
 }: {
   user: User;
   friend: User;
   message: DirectMessage;
   dm_length: number;
   index: number;
+  setDirectMessages: Dispatch<SetStateAction<DirectMessage[]>>;
 }) {
   const [display_date, setDisplayDate] = useState(false);
+  const [display_option, setDisplayOption] = useState(false);
+  const server_url = useServerUrl();
+  const { toast } = useToast();
+
+  async function deleteMessage() {
+    try {
+      const response = await fetch(
+        server_url + "/delete/v1/direct-conversation/message",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message_id: message.id }),
+        }
+      );
+
+      const response_json = (await response.json()) as ServerResponse;
+
+      if (response_json.status !== "OK") {
+        toast({
+          title: "oops! something went wrong",
+          description: response_json.message,
+        });
+        return;
+      }
+
+      setDirectMessages((prev) => prev.toSpliced(index, 1));
+    } catch (error) {
+      throw error;
+    }
+  }
   return message.sender_id === friend?.id ? (
     <div
       key={message.id}
@@ -61,18 +106,42 @@ export default function UserMessage({
         e.currentTarget.scrollIntoView({ behavior: "instant" })
       }
     >
-      <div
-        className="flex flex-col items-end"
-        onClick={() => setDisplayDate((prev) => !prev)}
-      >
-        <motion.p
-          animate={display_date ? { y: -5 } : { y: 0 }}
-          className={cn(
-            "relative max-w-1/2 p-2 rounded-lg shadow-md cursor-default w-fit"
-          )}
-        >
-          {message.type === "TEXT" && message.text_message?.content}
-        </motion.p>
+      <div className="flex flex-col justify-end group ">
+        <div className="flex items-center space-x-1">
+          <DropdownMenu onOpenChange={(open) => open && setDisplayOption(open)}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "hidden aspect-square p-1 h-fit group-hover:inline-flex hover:bg-primary-foreground mx-1 focus-visible:ring-0",
+                  display_option && "inline-flex"
+                )}
+              >
+                <EllipsisHorizontalIcon className="h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="left">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={deleteMessage}
+              >
+                delete
+                <TrashIcon className="h-4 fill-red-600 mx-1" />
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <motion.div
+            animate={display_date ? { y: -5 } : { y: 0 }}
+            className="max-w-[30vw] p-2 rounded-lg shadow-md cursor-default  bg-primary text-sm text-wrap whitespace-pre-line"
+          >
+            <p
+              onClick={() => setDisplayDate((prev) => !prev)}
+              className="break-all"
+            >
+              {message.type === "TEXT" && message.text_message?.content}
+            </p>
+          </motion.div>
+        </div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
             {new Date(message.date_created).toLocaleString()}
@@ -82,8 +151,8 @@ export default function UserMessage({
       <Avatar>
         <AvatarImage
           src={user.profile_photo?.photo_url}
-          alt={user.display_name.slice(0, 1).toUpperCase()}
-        />
+          alt={user.display_name.slice(0, 1).toUpperCase()}   
+        />  
         <AvatarFallback>
           {user.display_name.slice(0, 1).toUpperCase()}
         </AvatarFallback>

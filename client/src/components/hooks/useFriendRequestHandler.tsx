@@ -2,7 +2,6 @@
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  WebSocketSeverMessage,
   WebsocketClientMessage,
   WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
@@ -12,9 +11,9 @@ import { useEffect } from "react";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
 import useServerUrl from "./useServerUrl";
-import { useWebsocketInstance } from "../Websocket";
 import { FriendRequest } from "@/lib/types/client-types";
 import { setFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
+import { useWebsocket } from "./useWebsocket";
 
 export default function useFriendRequestHandler() {
   const server_url = useServerUrl();
@@ -25,13 +24,13 @@ export default function useFriendRequestHandler() {
   const dispatch = useDispatch<AppDispatch>();
 
   const { data } = useSession();
-  const websocket = useWebsocketInstance();
+  const websocket = useWebsocket();
   const { toast } = useToast();
   const router = useRouter();
 
   async function getFriendRequest() {
     const response = await fetch(
-      server_url + "/get/v1/friend-request/" + data?.user.id
+      server_url + "/get/v1/friend-request/received/" + data?.user.id
     );
 
     const response_json = (await response.json()) as ServerResponse;
@@ -71,10 +70,7 @@ export default function useFriendRequestHandler() {
     router.refresh();
   }
 
-  async function accept(
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) {
+  async function accept(sender: WebsocketFriendRequestType["sender"]) {
     const response = await fetch(server_url + "/accept/friend-request", {
       method: "POST",
       headers: {
@@ -121,10 +117,7 @@ export default function useFriendRequestHandler() {
     }, 3000);
   }
 
-  async function decline(
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) {
+  async function decline(sender: WebsocketFriendRequestType["sender"]) {
     const response = await fetch(server_url + "/decline/friend-request", {
       method: "DELETE",
       headers: {
@@ -167,7 +160,7 @@ export default function useFriendRequestHandler() {
   }
 
   useEffect(() => {
-    if (data && friend_request_list.length < 1) getFriendRequest();
+    if (data) getFriendRequest();
   }, [data]);
 
   return {

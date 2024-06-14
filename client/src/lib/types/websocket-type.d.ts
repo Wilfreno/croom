@@ -1,4 +1,6 @@
 import {
+  DirectMessage,
+  LoungeMessage,
   PhotoMessage,
   ProfilePhoto,
   RoomMember,

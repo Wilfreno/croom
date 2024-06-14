@@ -1,5 +1,5 @@
-import { useWebsocketInstance } from "@/components/Websocket";
 import useServerUrl from "@/components/hooks/useServerUrl";
+import { useWebsocket } from "@/components/hooks/useWebsocket";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +25,7 @@ import { useState } from "react";
 
 export default function AddFriend() {
   const server_url = useServerUrl();
-  const websocket = useWebsocketInstance();
+  const websocket = useWebsocket();
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();

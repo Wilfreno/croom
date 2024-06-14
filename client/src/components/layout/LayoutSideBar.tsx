@@ -29,7 +29,7 @@ export default function LayoutSideBar() {
       name: "home",
       link: path_name.startsWith("/" + data?.user.user_name)
         ? path_name + "?drawer=" + (drawer === "open" ? "close" : "open")
-        : "/" + data?.user.user_name,
+        : "/" + (data ? data.user.user_name : ""),
       icon: <HomeIcon className={cn("h-full fill-secondary-foreground")} />,
     },
     {

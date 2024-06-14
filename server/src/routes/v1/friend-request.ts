@@ -110,7 +110,7 @@ router
         })
       );
     } catch (error) {
-      if (environment_mode === "development") console.error(error);
+    if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
