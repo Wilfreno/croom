@@ -66,7 +66,7 @@ export default function UserMessage({
   return message.sender_id === friend?.id ? (
     <div
       key={message.id}
-      className="flex items-start mr-auto space-x-5 max-w-[40vw]"
+      className="flex items-end mr-auto space-x-5 max-w-[40vw]"
       onLoad={(e) =>
         index === dm_length - 1 &&
         e.currentTarget.scrollIntoView({
@@ -83,13 +83,18 @@ export default function UserMessage({
           {friend?.display_name.slice(0, 1).toUpperCase()}
         </AvatarFallback>
       </Avatar>
-      <div onClick={() => setDisplayDate((prev) => !prev)}>
-        <motion.p
+      <div>
+        <motion.div
           animate={display_date ? { y: -5 } : { y: 0 }}
-          className=" max-w-1/2 p-2 w-fit rounded-lg shadow-md bg-primary cursor-default"
+          className="max-w-[30vw] p-2 rounded-lg shadow-md cursor-default  bg-primary text-sm text-wrap whitespace-pre-line"
         >
-          {message.type === "TEXT" && message.text_message?.content}
-        </motion.p>
+          <p
+            onClick={() => setDisplayDate((prev) => !prev)}
+            className="break-all"
+          >
+            {message.type === "TEXT" && message.text_message?.content}
+          </p>
+        </motion.div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
             {new Date(message.date_created).toLocaleString()}
@@ -100,13 +105,13 @@ export default function UserMessage({
   ) : (
     <div
       key={message.id}
-      className="flex items-start ml-auto space-x-3"
+      className="flex items-end  ml-auto space-x-3"
       onLoad={(e) =>
         index === dm_length - 1 &&
         e.currentTarget.scrollIntoView({ behavior: "instant" })
       }
     >
-      <div className="flex flex-col justify-end group ">
+      <div className="flex flex-col items-end group ">
         <div className="flex items-center space-x-1">
           <DropdownMenu onOpenChange={(open) => open && setDisplayOption(open)}>
             <DropdownMenuTrigger asChild>
@@ -143,7 +148,7 @@ export default function UserMessage({
           </motion.div>
         </div>
         {display_date && (
-          <p className="text-xs w-fit whitespace-nowrap">
+          <p className="text-xs w-fit whitespace-nowrap mx-5 my-1">
             {new Date(message.date_created).toLocaleString()}
           </p>
         )}
@@ -151,8 +156,8 @@ export default function UserMessage({
       <Avatar>
         <AvatarImage
           src={user.profile_photo?.photo_url}
-          alt={user.display_name.slice(0, 1).toUpperCase()}   
-        />  
+          alt={user.display_name.slice(0, 1).toUpperCase()}
+        />
         <AvatarFallback>
           {user.display_name.slice(0, 1).toUpperCase()}
         </AvatarFallback>

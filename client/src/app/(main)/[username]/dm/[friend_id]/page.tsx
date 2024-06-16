@@ -54,6 +54,7 @@ export default function Page() {
         date_created: new Date(),
       };
 
+      setTextMessage("");
       setSendingMessage((prev) => [...prev, sending_message]);
 
       const response = await fetch(
@@ -95,11 +96,7 @@ export default function Page() {
         } as WebsocketClientMessage)
       );
 
-      setTextMessage("");
-
       if (textarea_ref.current) textarea_ref.current.style.height = "auto";
-
-      
     } catch (error) {
       throw error;
     }
@@ -213,9 +210,11 @@ export default function Page() {
                 e.currentTarget.scrollIntoView({ behavior: "instant" })
               }
             >
-              <p className="relative max-w-1/2 p-2 bg-primary-foreground rounded-lg shadow-md cursor-default w-fit">
-                {dm.type === "TEXT" && dm.text_message?.content}
-              </p>
+              <div className="max-w-[30vw] p-2 rounded-lg shadow-md cursor-default  bg-primary-foreground text-sm text-wrap whitespace-pre-line">
+                <p className="break-all">
+                  {dm.type === "TEXT" && dm.text_message?.content}
+                </p>
+              </div>
               <Avatar>
                 <AvatarImage
                   src={data?.user.profile_photo?.photo_url}

@@ -113,7 +113,7 @@ export default function DirectMessages() {
         </Label>
       </div>
       <ScrollArea className="h-[35dvh] my-2">
-        <div className="mx-3 space-y-1">
+        <div className="mx-1 space-y-1">
           {direct_conversation.map((dc) => (
             <Link
               key={dc.id}
@@ -133,7 +133,7 @@ export default function DirectMessages() {
             >
               <Button
                 variant="ghost"
-                className="space-x-5 w-full justify-start h-fit"
+                className="space-x-5 w-full h-fit overflow-x-clip"
               >
                 <Avatar>
                   <AvatarImage
@@ -154,7 +154,7 @@ export default function DirectMessages() {
                       : dc.user1!.display_name.slice(0, 1).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-1">
+                <div className="space-y-1 flex flex-col items-start text-ellipsis">
                   <h1 className="font-bold">
                     {data?.user.id === dc.user1_id
                       ? dc.user2!.display_name
@@ -163,7 +163,7 @@ export default function DirectMessages() {
                   {dc.messages!.length > 0 && (
                     <p
                       className={cn(
-                        "text-xs truncate",
+                        "text-xs truncate w-[10rem] text-start",
                         dc.messages![0].sender_id === data?.user.id
                           ? "text-slate-500"
                           : dc.messages![0].seen
