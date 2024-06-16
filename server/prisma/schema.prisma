@@ -98,11 +98,26 @@ enum MessageType {
 
 model Room {
   id            String       @id @unique @default(uuid())
+  room_photo     RoomPhoto?
   room_name     String       @unique
+  room_type     RoomType
   members       RoomMember[]
   lounge        Lounge?
   room_sessions Session[]
   date_created  DateTime     @default(now())
+}
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
+}
+
+model RoomPhoto {
+  id           String   @id @unique @default(uuid())
+  room         Room?    @relation(fields: [room_id], references: [id])
+  room_id      String?  @unique
+  photo_url    String
+  date_created DateTime @default(now())
 }
 
 model RoomMember {

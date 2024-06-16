@@ -1,12 +1,20 @@
 import { PlusIcon } from "@radix-ui/react-icons";
-import { Button } from "../ui/button";
+import { Button } from "../../ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../ui/tooltip";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+} from "../../ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../ui/dialog";
+import NewRoomForm from "./NewRoomForm";
 
 export default function CreateNewRoomButton() {
   return (
@@ -22,7 +30,14 @@ export default function CreateNewRoomButton() {
                 <PlusIcon className="h-5 " />
               </Button>
             </DialogTrigger>
-            <DialogContent>eyy</DialogContent>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-center">
+                  Create New Room
+                </DialogTitle>
+              </DialogHeader>
+              <NewRoomForm />
+            </DialogContent>
           </Dialog>
         </TooltipTrigger>
         <TooltipContent

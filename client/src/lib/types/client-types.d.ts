@@ -3,7 +3,7 @@ export type User = {
   email: string;
   password?: string;
   profile_photo?: ProfilePhoto;
-  birth_date?: DateTime;
+  birth_date?: Date;
   display_name: string;
   user_name: string;
   provider?: string;
@@ -18,7 +18,7 @@ export type User = {
   room_membership?: RoomMember[];
   lounge_message?: LoungeMessage[];
   session_message?: SessionMessage[];
-  date_created?: DateTime;
+  date_created?: Date;
 };
 
 export type ProfilePhoto = {
@@ -26,7 +26,7 @@ export type ProfilePhoto = {
   owner?: User;
   owner_id: string;
   photo_url: string;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type FriendRequest = {
@@ -35,7 +35,7 @@ export type FriendRequest = {
   receiver_id: string;
   sender?: User;
   sender_id: string;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type Friendship = {
@@ -44,7 +44,7 @@ export type Friendship = {
   friend_1_id: string;
   friend_2?: User;
   friend_2_id: string;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type DirectConversation = {
@@ -54,7 +54,7 @@ export type DirectConversation = {
   user2?: User;
   user2_id: string;
   messages?: DirectMessage[];
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type DirectMessage = {
@@ -70,18 +70,30 @@ export type DirectMessage = {
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 type MessageType = "TEXT" | "PHOTO" | "VIDEO";
 
 export type Room = {
-  id: string;
+  id?: string;
+  room_photo: RoomPhoto;
   room_name: string;
+  room_type: RoomType;
   members?: RoomMember[];
-  lounge: Lounge;
-  room_sessions: Session[];
-  date_created: DateTime;
+  lounge?: Lounge;
+  room_sessions?: Session[];
+  date_created?: DateTime;
+};
+
+type RoomType = "PUBLIC" | "PRIVATE";
+
+export type RoomPhoto = {
+  id?: string;
+  room?: Room;
+  room_id?: string;
+  photo_url: string;
+  date_created?: Date;
 };
 
 export type RoomMember = {
@@ -90,7 +102,7 @@ export type RoomMember = {
   room?: Room;
   room_id: string;
   role: Role;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 type Role = "MEMBER" | "MODERATOR";
@@ -99,7 +111,7 @@ export type Lounge = {
   id: string;
   room?: Room;
   messages?: LoungeMessage[];
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type LoungeMessage = {
@@ -112,7 +124,7 @@ export type LoungeMessage = {
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 //Session refers to room sessions
@@ -122,7 +134,7 @@ export type Session = {
   room_id: string;
   name: string;
   messages?: SessionMessage[];
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type SessionMessage = {
@@ -136,7 +148,7 @@ export type SessionMessage = {
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type TextMessage = {
@@ -148,7 +160,7 @@ export type TextMessage = {
   session_message?: SessionMessage;
   session_message_id?: string;
   content: string;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type PhotoMessage = {
@@ -160,7 +172,7 @@ export type PhotoMessage = {
   session_message?: SessionMessage;
   session_message_id?: string;
   photo_url: string;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type VideoMessage = {
@@ -174,12 +186,12 @@ export type VideoMessage = {
   video_url: string;
   name: string;
   length: Int;
-  date_created: DateTime;
+  date_created: Date;
 };
 
 export type Otp = {
   id: string;
   email: string;
   value: string;
-  date_created: DateTime;
+  date_created: Date;
 };

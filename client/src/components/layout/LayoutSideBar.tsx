@@ -17,7 +17,7 @@ import CompassSvg from "../svg/CompassSvg";
 import { useEffect } from "react";
 import HomePageLink from "./HomePageLink";
 import DiscoverPageLink from "./DiscoverPageLink";
-import CreateNewRoomButton from "./CreateNewRoomButton";
+import CreateNewRoomButton from "./create-new-room/CreateNewRoomButton";
 
 export default function LayoutSideBar() {
   const path_name = usePathname();
