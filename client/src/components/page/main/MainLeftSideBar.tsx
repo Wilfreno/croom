@@ -12,7 +12,7 @@ export default function MainLeftSideBar() {
   return (
     <section
       className={cn(
-        "min-w-[18rem] w-[18rem]  h-full flex-col border-r justify-between",
+        "min-w-[18rem] w-[18rem]  h-full flex-col border-r justify-between bg-primary-foreground",
         drawer === "open" && "flex",
         drawer === "close" && "hidden"
       )}

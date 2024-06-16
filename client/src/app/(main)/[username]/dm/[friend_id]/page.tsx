@@ -232,7 +232,7 @@ export default function Page() {
       <form
         onSubmit={sendTextMessage}
         autoComplete="off"
-        className="flex items-end space-x-5 w-[95%] mx-auto my-3 bg-primary-foreground py-3 px-2 h-fit border rounded-lg"
+        className="flex items-end space-x-5 w-[95%] mx-auto my-3 bg-primary-foreground py-3 px-2 h-fit border rounded-lg shadow-md "
       >
         <Button
           type="button"
