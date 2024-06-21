@@ -32,7 +32,6 @@ export default function NewRoomPhoto() {
     );
   }, [photo_info]);
 
-  console.log(new_room);
   return (
     <section>
       <CldUploadWidget
