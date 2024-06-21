@@ -5,6 +5,8 @@ const initialState: Room = {
   room_name: "",
   room_photo: {
     photo_url: "",
+    height: 0,
+    width: 0,
   },
   room_type: "PRIVATE",
 };

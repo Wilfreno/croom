@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../server";
-import { RoomMember } from "@prisma/client";
+import { Room, RoomMember } from "@prisma/client";
 import { responseWithData, responseWithoutData } from "../../lib/response-json";
 
 const router = Router();
@@ -11,13 +11,14 @@ router
   .post("/", async (request, response) => {
     try {
       const {
-        room_name,
+        new_room,
         creator: { user_id },
-      } = request.body;
+      }: { new_room: Room; creator: { user_id: string } } = request.body;
 
       const room = await prisma.room.create({
         data: {
-          room_name,
+          room_name: new_room.room_name,
+          room_type: new_room.room_type,
           members: {
             create: {
               id: user_id,

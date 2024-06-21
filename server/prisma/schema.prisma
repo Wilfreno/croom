@@ -98,7 +98,7 @@ enum MessageType {
 
 model Room {
   id            String       @id @unique @default(uuid())
-  room_photo     RoomPhoto?
+  room_photo    RoomPhoto?
   room_name     String       @unique
   room_type     RoomType
   members       RoomMember[]
@@ -117,6 +117,8 @@ model RoomPhoto {
   room         Room?    @relation(fields: [room_id], references: [id])
   room_id      String?  @unique
   photo_url    String
+  height       Int
+  width        Int
   date_created DateTime @default(now())
 }
 

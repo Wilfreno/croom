@@ -33,7 +33,7 @@ export default function LayoutSideBar() {
         <HomePageLink />
         <Separator className="h-1 w-4/5 bg-secondary rounded-full mx-auto" />
       </nav>
-      <div className="space-y-3 flex flex-col items-center">
+      <div className="space-y-3 flex flex-col items-center ">
         <div
           className="overflow-y-auto max-h-[27rem] scroll-m-0 scroll-p-0 w-full"
           style={{

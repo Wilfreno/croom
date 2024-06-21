@@ -92,6 +92,8 @@ export type RoomPhoto = {
   id?: string;
   room?: Room;
   room_id?: string;
+  height: number;
+  width: number;
   photo_url: string;
   date_created?: Date;
 };
