@@ -12,6 +12,8 @@ import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import LoadingSvg from "@/components/svg/LoadingSvg";
+import useServerUrl from "@/components/hooks/useServerUrl";
+import { ServerResponse } from "@/lib/types/sever-response";
 
 export default function OtpVerification({
   user,
@@ -22,22 +24,17 @@ export default function OtpVerification({
   view_otp: boolean;
   setViewOTP: Dispatch<SetStateAction<boolean>>;
 }) {
-  const development_server = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER;
-  if (!development_server)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
-
+  const server_url = useServerUrl();
   const { toast } = useToast();
   const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const resend_inital = { time: 30, open: true, interval_id: undefined };
+  const resend_initial = { time: 30, open: true, interval_id: undefined };
   const [resend, setResend] = useState<{
     time: number;
     open: boolean;
     interval_id?: NodeJS.Timeout;
-  }>(resend_inital);
+  }>(resend_initial);
 
   async function handleResend() {
     const id = setInterval(() => {
@@ -47,7 +44,7 @@ export default function OtpVerification({
 
     setResend((prev) => ({ ...prev, interval_id: id }));
     try {
-      const response = await fetch(development_server + "/create/v1/otp", {
+      const response = await fetch(server_url + "/v1/otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +69,7 @@ export default function OtpVerification({
 
   if (resend.time < 1) {
     clearInterval(resend.interval_id);
-    setResend(resend_inital);
+    setResend(resend_initial);
   }
   console.log(resend);
   return (
@@ -82,60 +79,55 @@ export default function OtpVerification({
         e.preventDefault();
         setSubmitting(true);
         try {
-          const response = await fetch(
-            development_server + "/authenticate/otp",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ otp: value, email: user.email }),
-            }
-          );
-          const otp_reponse = await response.json();
+          const response = await fetch(server_url + "/v1/otp/authenticate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ otp: value, email: user.email }),
+          });
+          const otp_response = await response.json();
 
-          if (otp_reponse.status !== "OK") {
+          if (otp_response.status !== "OK") {
             toast({
-              title: otp_reponse.message,
+              title: otp_response.message,
               action: <ToastAction altText="OK">OK</ToastAction>,
             });
             setSubmitting(false);
             return;
           }
 
-          const create_user_response = await fetch(
-            development_server + "/create/v1/user",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
+          const create_user_response = await fetch(server_url + "/v1/user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: user.email,
+              display_name: user.display_name,
+              user_name: user.user_name,
+              password: user.password,
+              birth_date: user.birth_date,
+              profile_pic: {
+                photo_url: "",
               },
-              body: JSON.stringify({
-                email: user.email,
-                display_name: user.display_name,
-                user_name: user.user_name,
-                password: user.password,
-                birth_date: user.birth_date,
-                profile_pic: {
-                  photo_url: "",
-                },
-              }),
-            }
-          );
+            }),
+          });
 
-          const create_user = await create_user_response.json();
+          const create_user =
+            (await create_user_response.json()) as ServerResponse;
           if (create_user.status !== "OK")
             toast({
               title: "Oops! Something went wrong",
               description: create_user.message,
               action: <ToastAction altText="OK">OK</ToastAction>,
             });
-
+          const new_user = create_user.data as User;
           const sign_in = await signIn("credentials", {
             email: user.email,
             password: user.password,
             redirect: true,
-            callbackUrl: "/chat",
+            callbackUrl: "/" + new_user.user_name,
           });
 
           if (sign_in?.error) {

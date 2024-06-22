@@ -34,7 +34,7 @@ export default function DirectMessages() {
   async function getDirectConversations() {
     try {
       const response = await fetch(
-        server_url + "/get/v1/direct-conversation/" + data?.user.id
+        server_url + "/v1/direct-conversation/" + data?.user.id
       );
 
       const response_json = (await response.json()) as ServerResponse;

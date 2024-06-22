@@ -58,7 +58,7 @@ export default function Page() {
       setSendingMessage((prev) => [...prev, sending_message]);
 
       const response = await fetch(
-        server_url + "/create/v1/direct-conversation/message/text",
+        server_url + "/v1/direct-conversation/message/text",
         {
           method: "POST",
           headers: {
@@ -108,7 +108,7 @@ export default function Page() {
     async function getFriend() {
       try {
         const response = await fetch(
-          server_url + "/get/v1/user/" + params.friend_id
+          server_url + "/v1/user/" + params.friend_id
         );
 
         const response_json = (await response.json()) as ServerResponse;
@@ -131,7 +131,7 @@ export default function Page() {
       try {
         const response = await fetch(
           server_url +
-            "/get/v1/direct-conversation/messages?user_id=" +
+            "/v1/direct-conversation/messages?user_id=" +
             data?.user.id +
             "&friend_id=" +
             params.friend_id +

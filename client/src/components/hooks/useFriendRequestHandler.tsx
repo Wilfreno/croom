@@ -30,7 +30,7 @@ export default function useFriendRequestHandler() {
 
   async function getFriendRequest() {
     const response = await fetch(
-      server_url + "/get/v1/friend-request/received/" + data?.user.id
+      server_url + "/v1/friend-request/received/" + data?.user.id
     );
 
     const response_json = (await response.json()) as ServerResponse;
@@ -71,7 +71,7 @@ export default function useFriendRequestHandler() {
   }
 
   async function accept(sender: WebsocketFriendRequestType["sender"]) {
-    const response = await fetch(server_url + "/accept/friend-request", {
+    const response = await fetch(server_url + "/v1/friend-request/accept", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -118,7 +118,7 @@ export default function useFriendRequestHandler() {
   }
 
   async function decline(sender: WebsocketFriendRequestType["sender"]) {
-    const response = await fetch(server_url + "/decline/friend-request", {
+    const response = await fetch(server_url + "/v1/friend-request/decline", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

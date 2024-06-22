@@ -50,19 +50,16 @@ export default function AddFriend() {
           onSubmit={async (e) => {
             e.preventDefault();
             setSending(true);
-            const response = await fetch(
-              server_url + "/v1/create/friend-request",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  sender: data?.user.user_name,
-                  receiver: username,
-                }),
-              }
-            );
+            const response = await fetch(server_url + "/v1/friend-request", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                sender: data?.user.user_name,
+                receiver: username,
+              }),
+            });
 
             const response_json = (await response.json()) as ServerResponse;
             setServerResponse(response_json);

@@ -21,7 +21,7 @@ export default function Page() {
     async function getFriends() {
       try {
         const response = await fetch(
-          server_url + "/v1/get/friends/" + data?.user.id
+          server_url + "/v1/friends/" + data?.user.id
         );
         const response_json = (await response.json()) as ServerResponse;
 
