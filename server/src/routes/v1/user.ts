@@ -1,5 +1,5 @@
 import { ProfilePhoto, User } from "@prisma/client";
-import { hash } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
 import { prisma } from "../../server";
@@ -49,6 +49,44 @@ router
             "OK",
             "user created",
             exclude(new_user, ["password"])
+          )
+        );
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+  .post("/authenticate", async (request, response) => {
+    try {
+      const { email, password } = await request.body;
+      const found_user = await prisma.user.findFirst({
+        where: { email: { contains: email } },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(responseWithoutData("NOT_FOUND", "user does not exist"));
+
+      if (!(await compare(password, found_user.password!)))
+        return response
+          .status(401)
+          .json(responseWithoutData("UNAUTHORIZED", "password incorrect"));
+
+      return response
+        .status(200)
+        .json(
+          responseWithData(
+            "OK",
+            "user verified",
+            exclude(found_user, ["password"])
           )
         );
     } catch (error) {
@@ -167,11 +205,13 @@ router
         },
       });
 
-      return response
-        .status(200)
-        .json(
-          responseWithData("OK", "request successful", user?.room_membership.map(room => ({...room.room})))
-        );
+      return response.status(200).json(
+        responseWithData(
+          "OK",
+          "request successful",
+          user?.room_membership.map((room) => ({ ...room.room }))
+        )
+      );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response

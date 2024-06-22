@@ -110,9 +110,60 @@ router
         })
       );
     } catch (error) {
-    if (environment_mode === "development") console.error(error);
+      if (environment_mode === "development") console.error(error);
       return response
         .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+  .post("/accept", async (request, response) => {
+    try {
+      const { sender, receiver }: Record<string, string> = request.body;
+
+      const found_request = await prisma.friendRequest.findFirst({
+        where: {
+          receiver_id: receiver,
+          sender_id: sender,
+        },
+      });
+
+      if (!found_request)
+        response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot add friend; request does not exist"
+            )
+          );
+
+      await prisma.friendship.create({
+        data: {
+          friend_1_id: sender,
+          friend_2_id: receiver,
+        },
+      });
+
+      await prisma.friendRequest.delete({
+        where: {
+          sender_id_receiver_id: {
+            sender_id: sender,
+            receiver_id: receiver,
+          },
+        },
+      });
+      return response
+        .status(200)
+        .json(responseWithData("OK", "friend request accepted", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(400)
         .json(
           responseWithoutData(
             "INTERNAL_SERVER_ERROR",
@@ -237,6 +288,55 @@ router
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+
+  //update routes
+
+  //delete routes
+  .delete("/decline", async (request, response) => {
+    try {
+      const { sender, receiver }: Record<string, User["id"]> = request.body;
+
+      const found_request = await prisma.friendRequest.findFirst({
+        where: {
+          sender_id: sender,
+          receiver_id: receiver,
+        },
+      });
+
+      if (!found_request)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot delete request; request does not exist"
+            )
+          );
+
+      await prisma.friendRequest.delete({
+        where: {
+          sender_id_receiver_id: {
+            sender_id: sender,
+            receiver_id: receiver,
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "friend request declined", null));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(400)
         .json(
           responseWithoutData(
             "INTERNAL_SERVER_ERROR",

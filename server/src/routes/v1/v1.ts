@@ -14,6 +14,6 @@ router.use("/friend-request", v1_friend_request);
 router.use("/friend", v1_friend);
 router.use("/direct-conversation", v1_direct_conversation);
 router.use("/room", v1_room);
-const v1 = router;
+const v1_router = router;
 
-export default v1;
+export default v1_router;
