@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import NewRoomNameAndPhoto from "./NewRoomNameAndPhoto";
 import NewRoomType from "./NewRoomType";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { useAppSelector } from "@/lib/redux/store";
+import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import useServerUrl from "@/components/hooks/useServerUrl";
 import { ServerResponse } from "@/lib/types/sever-response";
@@ -22,6 +22,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { Room } from "@/lib/types/client-types";
 import { useSession } from "next-auth/react";
+import { useDispatch } from "react-redux";
+import { setCreatedRoom } from "@/lib/redux/slices/created-room-slice";
 
 export default function CreateNewRoomButton() {
   const [open, setOpen] = useState(false);
@@ -32,7 +34,7 @@ export default function CreateNewRoomButton() {
   const { toast } = useToast();
   const { data } = useSession();
   const router = useRouter();
-
+  const dispatch = useDispatch<AppDispatch>();
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -58,7 +60,7 @@ export default function CreateNewRoomButton() {
 
     setOpen(false);
     router.push("/room/" + room_created.id!);
-    router.refresh();
+    dispatch(setCreatedRoom(room_created));
     setSubmitting(false);
   }
   return (

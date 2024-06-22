@@ -9,12 +9,14 @@ import { useToast } from "../ui/use-toast";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { useAppSelector } from "@/lib/redux/store";
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState<Room[]>();
+  const [rooms, setRooms] = useState<Room[]>([]);
   const { data } = useSession();
   const server_url = useServerUrl();
   const { toast } = useToast();
+  const created_room = useAppSelector((state) => state.created_room_reducer);
 
   useEffect(() => {
     if (!data) return;
@@ -43,6 +45,11 @@ export default function Rooms() {
     getRooms();
   }, [data]);
 
+  useEffect(() => {
+    if (!created_room) return;
+
+    setRooms((prev) => [...prev!, created_room]);
+  }, [created_room]);
   console.log(rooms);
   return (
     <div
@@ -53,7 +60,7 @@ export default function Rooms() {
       }}
     >
       <div className="space-y-2 w-full">
-        {rooms?.map((room) => (
+        {rooms.map((room) => (
           <Link
             href={"/room/" + room.id}
             as={"/room/" + room.id}

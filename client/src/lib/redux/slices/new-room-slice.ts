@@ -11,7 +11,7 @@ const initialState: Room = {
   room_type: "PRIVATE",
 };
 
-export const new_room = createSlice({
+const new_room = createSlice({
   name: "new-room",
   initialState,
   reducers: {
