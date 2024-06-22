@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../../server";
-import { Room, RoomMember } from "@prisma/client";
+import { Room, RoomMember, RoomPhoto } from "@prisma/client";
 import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { connect } from "http2";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -13,12 +14,33 @@ router
       const {
         new_room,
         creator: { user_id },
-      }: { new_room: Room; creator: { user_id: string } } = request.body;
+      }: {
+        new_room: Room & { room_photo: RoomPhoto };
+        creator: { user_id: string };
+      } = request.body;
+
+      const room_name = await prisma.room.findFirst({
+        where: {
+          room_name: new_room.room_name,
+        },
+      });
+
+      if (room_name)
+        return response
+          .status(409)
+          .json(responseWithoutData("CONFLICT", "room name already taken"));
 
       const room = await prisma.room.create({
         data: {
           room_name: new_room.room_name,
           room_type: new_room.room_type,
+          room_photo: {
+            create: {
+              height: new_room.room_photo.height,
+              width: new_room.room_photo.width,
+              photo_url: new_room.room_photo.photo_url,
+            },
+          },
           members: {
             create: {
               id: user_id,
@@ -26,7 +48,9 @@ router
             },
           },
           lounge: {
-            create: true,
+            create: {
+              date_created: new Date()
+            }
           },
         },
         include: {
@@ -35,6 +59,7 @@ router
               id: true,
             },
           },
+          lounge: true,
         },
       });
 

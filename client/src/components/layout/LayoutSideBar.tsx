@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import HomePageLink from "./HomePageLink";
 import DiscoverPageLink from "./DiscoverPageLink";
 import CreateNewRoomButton from "./create-new-room/CreateNewRoomButton";
+import Rooms from "./Rooms";
 
 export default function LayoutSideBar() {
   const path_name = usePathname();
@@ -34,15 +35,7 @@ export default function LayoutSideBar() {
         <Separator className="h-1 w-4/5 bg-secondary rounded-full mx-auto" />
       </nav>
       <div className="space-y-3 flex flex-col items-center ">
-        <div
-          className="overflow-y-auto max-h-[27rem] scroll-m-0 scroll-p-0 w-full"
-          style={{
-            msOverflowStyle: "none",
-            scrollbarWidth: "none",
-          }}
-        >
-          <div className="space-y-2 w-full"></div>
-        </div>
+        <Rooms />
         <DiscoverPageLink />
         <CreateNewRoomButton />
       </div>

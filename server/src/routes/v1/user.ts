@@ -9,6 +9,7 @@ const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
 router
+  //create routes
   .post("/", async (request, response) => {
     try {
       const user: User & { profile_photo: ProfilePhoto } = request.body;
@@ -62,6 +63,8 @@ router
         );
     }
   })
+
+  //read routes
   .get("/email/:email", async (request, response) => {
     try {
       const user_email = request.params.email;
@@ -131,6 +134,60 @@ router
         );
     }
   })
+  .get("/room/:id", async (request, response) => {
+    try {
+      const user_id = request.params.id;
+
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; user does not exist"
+            )
+          );
+
+      const user = await prisma.user.findFirst({
+        where: { id: user_id },
+        select: {
+          room_membership: {
+            select: {
+              room: {
+                include: {
+                  room_photo: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(
+          responseWithData("OK", "request successful", user?.room_membership.map(room => ({...room.room})))
+        );
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+
+  //update routes
+
+  //delete routes
   .delete("/", async (request, response) => {
     try {
       const user: User = await request.body;

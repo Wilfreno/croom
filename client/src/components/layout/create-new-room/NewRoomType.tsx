@@ -23,7 +23,7 @@ export default function NewRoomType({
       </p>
       <div className="space-y-3">
         <Button
-          type="button"
+          type="submit"
           variant="outline"
           className="w-full h-fit justify-start py-2"
           onClick={() => {
@@ -39,7 +39,7 @@ export default function NewRoomType({
           </div>
         </Button>
         <Button
-          type="button"
+          type="submit"
           variant="outline"
           className="w-full h-fit justify-start py-2"
           onClick={() => {
