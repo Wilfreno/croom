@@ -50,7 +50,6 @@ export default function Rooms() {
 
     setRooms((prev) => [...prev!, created_room]);
   }, [created_room]);
-  console.log(rooms);
   return (
     <div
       className="overflow-y-auto max-h-[27rem] scroll-m-0 scroll-p-0 w-full"
@@ -62,8 +61,8 @@ export default function Rooms() {
       <div className="space-y-2 w-full">
         {rooms.map((room) => (
           <Link
-            href={"/room/" + room.id}
-            as={"/room/" + room.id}
+            href={"/room/" + room.id + "/lounge/text-chat"}
+            as={"/room/" + room.id + "/lounge/text-chat"}
             prefetch
             key={room.id}
           >

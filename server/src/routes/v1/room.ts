@@ -53,7 +53,7 @@ router
             },
           },
         },
-        include: {   
+        include: {
           room_photo: true,
         },
       });
@@ -328,11 +328,7 @@ router
       const room = await prisma.room.findFirst({
         where: { id: room_id },
         include: {
-          members: {
-            select: {
-              id: true,
-            },
-          },
+          room_photo: true,
         },
       });
 
@@ -342,7 +338,7 @@ router
           .json("cannot find room; room does not exist");
 
       return response
-        .json(200)
+        .status(200)
         .json(responseWithData("OK", "request successful", room));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
