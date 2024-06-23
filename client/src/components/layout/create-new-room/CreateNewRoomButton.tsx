@@ -39,7 +39,7 @@ export default function CreateNewRoomButton() {
     e.preventDefault();
 
     setSubmitting(true);
-    const response = await fetch(server_url + "/create/v1/room", {
+    const response = await fetch(server_url + "/v1/room", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

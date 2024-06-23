@@ -23,7 +23,7 @@ export default function Rooms() {
     async function getRooms() {
       try {
         const response = await fetch(
-          server_url + "/get/v1/user/room/" + data?.user.id
+          server_url + "/v1/user/room/" + data?.user.id
         );
 
         const response_json = (await response.json()) as ServerResponse;
@@ -71,7 +71,7 @@ export default function Rooms() {
               variant="outline"
               className="p-0 aspect-square h-auto w-full relative font-bold text-xl"
             >
-              {room.room_photo.photo_url ? (
+              {room.room_photo!.photo_url ? (
                 <Image
                   src={room.room_photo.photo_url}
                   alt={room.room_name.slice(0, 1).toUpperCase()}

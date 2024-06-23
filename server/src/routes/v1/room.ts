@@ -49,17 +49,12 @@ router
           },
           lounge: {
             create: {
-              date_created: new Date()
-            }
-          },
-        },
-        include: {
-          members: {
-            select: {
-              id: true,
+              date_created: new Date(),
             },
           },
-          lounge: true,
+        },
+        include: {   
+          room_photo: true,
         },
       });
 
