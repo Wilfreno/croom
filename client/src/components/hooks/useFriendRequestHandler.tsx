@@ -2,7 +2,7 @@
 import { useToast } from "@/components/ui/use-toast";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  WebsocketClientMessage,
+  WebsocketMessage,
   WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
@@ -102,7 +102,7 @@ export default function useFriendRequestHandler() {
         JSON.stringify({
           type: "accept-friend-request",
           payload,
-        } as WebsocketClientMessage)
+        } as WebsocketMessage)
       );
     } else {
       toast({

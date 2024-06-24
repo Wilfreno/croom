@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DirectMessage, User } from "@/lib/types/client-types";
+import { DirectMessage, LoungeMessage } from "@/lib/types/client-types";
 import { cn } from "@/lib/utils";
 import { Dispatch, SetStateAction, useState } from "react";
 import { motion } from "framer-motion";
@@ -14,26 +14,24 @@ import {
 import useServerUrl from "@/components/hooks/useServerUrl";
 import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "@/components/ui/use-toast";
+import { useSession } from "next-auth/react";
 
-export default function UserMessage({
-  user,
-  friend,
+export default function LoungeMsg({
   message,
-  dm_length,
+  messages_length,
   index,
-  setDirectMessages,
+  setMessages,
 }: {
-  user: User;
-  friend: User;
-  message: DirectMessage;
-  dm_length: number;
+  message: LoungeMessage;
+  messages_length: number;
   index: number;
-  setDirectMessages: Dispatch<SetStateAction<DirectMessage[]>>;
+  setMessages: Dispatch<SetStateAction<LoungeMessage[]>>;
 }) {
   const [display_date, setDisplayDate] = useState(false);
   const [display_option, setDisplayOption] = useState(false);
   const server_url = useServerUrl();
   const { toast } = useToast();
+  const { data } = useSession();
 
   async function deleteMessage() {
     try {
@@ -58,17 +56,18 @@ export default function UserMessage({
         return;
       }
 
-      setDirectMessages((prev) => prev.toSpliced(index, 1));
+      setMessages((prev) => prev.toSpliced(index, 1));
     } catch (error) {
       throw error;
     }
   }
-  return message.sender_id === friend?.id ? (
+
+  return message.sender_id !== data!.user.id ? (
     <div
       key={message.id}
       className="flex items-end mr-auto space-x-5 max-w-[40vw]"
       onLoad={(e) =>
-        index === dm_length - 1 &&
+        index === messages_length - 1 &&
         e.currentTarget.scrollIntoView({
           behavior: "instant",
         })
@@ -76,11 +75,11 @@ export default function UserMessage({
     >
       <Avatar>
         <AvatarImage
-          src={friend?.profile_photo?.photo_url}
-          alt={friend?.display_name.slice(0, 1).toUpperCase()}
+          src={message.sender!.profile_photo?.photo_url}
+          alt={message.sender!.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>
-          {friend?.display_name.slice(0, 1).toUpperCase()}
+          {message.sender!.display_name.slice(0, 1).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div>
@@ -107,7 +106,7 @@ export default function UserMessage({
       key={message.id}
       className="flex items-end  ml-auto space-x-3"
       onLoad={(e) =>
-        index === dm_length - 1 &&
+        index === messages_length - 1 &&
         e.currentTarget.scrollIntoView({ behavior: "instant" })
       }
     >
@@ -155,11 +154,11 @@ export default function UserMessage({
       </div>
       <Avatar>
         <AvatarImage
-          src={user.profile_photo?.photo_url}
-          alt={user.display_name.slice(0, 1).toUpperCase()}
+          src={data?.user.profile_photo?.photo_url}
+          alt={data?.user.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>
-          {user.display_name.slice(0, 1).toUpperCase()}
+          {data?.user.display_name.slice(0, 1).toUpperCase()}
         </AvatarFallback>
       </Avatar>
     </div>

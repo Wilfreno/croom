@@ -329,6 +329,23 @@ router
         where: { id: room_id },
         include: {
           room_photo: true,
+          members: {
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  display_name: true,
+                  user_name: true,
+                  profile_photo: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+            },
+          },
         },
       });
 

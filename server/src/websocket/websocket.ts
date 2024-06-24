@@ -5,19 +5,19 @@
  *  this section is the implementation of the websocket server
  */
 
-import http, { get } from "http";
+import http from "http";
 import WebSocket from "ws";
 import { Lounge, RoomMember, Session, User } from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
   WebsocketFriendRequestType,
-  WebsocketClientMessage as WebsocketClientMessageType,
   WebsocketUserType,
   WebsocketLoungeMessageType,
   WebsocketDirectMessageType,
   WebsocketRoomSessionType,
   WebsocketSessionMessageType,
+  WebSocketMessage,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -95,7 +95,7 @@ export default function WebsocketServer(
 
     //websocket event handlers
     socket.on("message", (client_message) => {
-      const parsed_message: WebsocketClientMessageType = JSON.parse(
+      const parsed_message: WebSocketMessage = JSON.parse(
         client_message.toString()
       );
       switch (parsed_message.type) {

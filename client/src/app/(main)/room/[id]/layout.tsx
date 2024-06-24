@@ -1,6 +1,6 @@
 import Lounge from "@/components/page/room/Lounge";
 import RoomSessions from "@/components/page/room/RoomSessions";
-import RoomSideBar from "@/components/page/room/RoomSideBar";
+import RoomSideBar from "@/components/page/room/RoomLeftSideBar";
 import { Separator } from "@/components/ui/separator";
 
 export default function page({ children }: { children: React.ReactNode }) {

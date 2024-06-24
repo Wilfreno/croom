@@ -10,12 +10,7 @@ import {
   VideoMessage,
 } from "./client-types";
 
-export type WebsocketClientMessage = {
-  type: WebsocketMessageType;
-  payload: WebSocketPayloadType;
-};
-
-export type WebSocketSeverMessage = {
+export type WebsocketMessage = {
   type: WebsocketMessageType;
   payload: WebSocketPayloadType;
 };

@@ -10,10 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { DirectMessage, User } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
-import {
-  WebSocketSeverMessage,
-  WebsocketClientMessage,
-} from "@/lib/types/websocket-type";
+import { WebsocketMessage } from "@/lib/types/websocket-type";
+import websocketMessage from "@/lib/websocket-message";
 import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -89,12 +87,7 @@ export default function Page() {
       );
       setDirectMessages((prev) => [...prev, message]);
 
-      websocket?.send(
-        JSON.stringify({
-          type: "send-direct-message",
-          payload: message,
-        } as WebsocketClientMessage)
-      );
+      websocket?.send(websocketMessage("send-direct-message", message));
 
       if (textarea_ref.current) textarea_ref.current.style.height = "auto";
     } catch (error) {
@@ -160,7 +153,7 @@ export default function Page() {
     if (!websocket) return;
 
     websocket.addEventListener("message", (socket) => {
-      const message = JSON.parse(socket.data) as WebSocketSeverMessage;
+      const message = JSON.parse(socket.data) as WebsocketMessage;
 
       const payload = message.payload as DirectMessage;
       if (

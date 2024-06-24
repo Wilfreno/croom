@@ -13,12 +13,7 @@ import {
 import sendLoungeMessage from "src/websocket/send-lounge-message";
 import { WebSocket } from "ws";
 
-export type WebsocketClientMessage = {
-  type: WebsocketMessageType;
-  payload: WebSocketPayloadType;
-};
-
-export type WebSocketSeverMessage = {
+export type WebSocketMessage = {
   type: WebsocketMessageType;
   payload: WebSocketPayloadType;
 };
@@ -48,7 +43,7 @@ export type WebsocketMessageType =
   | "join-session"
   | "leave-session"
   | "send-session-message"
-  | "error"
+  | "error";
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;

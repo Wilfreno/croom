@@ -9,9 +9,10 @@ export default function sendLoungeMessage(
   lounge: Map<Lounge["id"], Map<User["id"], WebsocketUserType>>,
   payload: WebsocketLoungeMessageType
 ) {
-
   lounge.get(payload.lounge_id)?.forEach((member) => {
     if (member.user.id !== payload.sender_id)
-      member.websocket!.send(createMessage("send-lounge-message", payload));
+      member.websocket!.send(
+        createMessage("send-general-lounge-message", payload)
+      );
   });
 }

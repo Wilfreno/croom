@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { FriendRequest } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  WebsocketClientMessage,
+  WebsocketMessage,
   WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
@@ -95,7 +95,7 @@ export default function AddFriend() {
                   },
                   date_created: friend_request.date_created,
                 } as WebsocketFriendRequestType,
-              } as WebsocketClientMessage)
+              } as WebsocketMessage)
             );
             setSending(false);
           }}

@@ -1,8 +1,8 @@
-import { WebSocketSeverMessage } from "src/lib/types/websocket-types";
+import { WebSocketMessage } from "src/lib/types/websocket-types";
 
 export default function createMessage(
-  type: WebSocketSeverMessage["type"],
-  payload: WebSocketSeverMessage["payload"]
+  type: WebSocketMessage["type"],
+  payload: WebSocketMessage["payload"]
 ): string {
   return JSON.stringify({
     type,
