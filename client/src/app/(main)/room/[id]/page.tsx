@@ -3,5 +3,5 @@ import { redirect, usePathname } from "next/navigation";
 
 export default function page() {
   const pathname = usePathname();
-  redirect(pathname + "/lounge");
+  redirect(pathname + "/lounge/text-chat");
 }

@@ -1,7 +1,9 @@
-import React from 'react'
+"use client";
+
+import { redirect, usePathname } from "next/navigation";
 
 export default function page() {
-  return (
-    <div>page</div>
-  )
+  const pathname = usePathname();
+
+  redirect(pathname + "/text-chat");
 }
