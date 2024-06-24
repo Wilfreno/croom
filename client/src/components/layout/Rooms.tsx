@@ -61,8 +61,8 @@ export default function Rooms() {
       <div className="space-y-2 w-full">
         {rooms.map((room) => (
           <Link
-            href={"/room/" + room.id + "/lounge/text-chat"}
-            as={"/room/" + room.id + "/lounge/text-chat"}
+            href={"/room/" + room.id + "/lounge/general-chat"}
+            as={"/room/" + room.id + "/lounge/general-chat"}
             prefetch
             key={room.id}
           >

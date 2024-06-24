@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "NODE_ENV=development nodemon --delay 1500ms ./src/server.ts ",
-    "build": "tsc --build && pnpm start",
+    "dev": "NODE_ENV=development  npx prisma generate && nodemon --delay 1500ms ./src/server.ts ",
+    "build": "npx prisma generate && --build && pnpm start",
     "start": "NODE_ENV=production node build/server.js"
   },
   "keywords": [],

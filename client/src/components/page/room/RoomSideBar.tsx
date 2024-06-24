@@ -52,7 +52,10 @@ export default function RoomSideBar() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full h-fit py-1">
+        <Button
+          variant="outline"
+          className="w-full h-fit py-1 rounded border-x-0 "
+        >
           <div className="flex items-center space-x-3 truncate w-[18rem]">
             <Avatar>
               <AvatarImage

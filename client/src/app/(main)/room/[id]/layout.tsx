@@ -8,13 +8,14 @@ export default function page({ children }: { children: React.ReactNode }) {
     <main className="grow flex">
       <section className="min-w-[18rem] w-[18rem]  h-full flex-col border-r justify-between bg-primary-foreground  py-2">
         <RoomSideBar />
-        <Separator className="mt-8 mb-3" />
+        <Separator className="mt-10 mb-3" />
         <Lounge />
         <Separator className="mt-8 mb-3" />
         <RoomSessions />
       </section>
 
       {children}
+      <section className="min-w-[18rem] w-[18rem]  h-full flex-col border-r justify-between bg-primary-foreground  py-2"></section>
     </main>
   );
 }

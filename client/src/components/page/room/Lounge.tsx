@@ -36,16 +36,16 @@ export default function Lounge() {
       </CollapsibleTrigger>
       <CollapsibleContent className="flex flex-col ml-5 my-1 space-y-1">
         <Link
-          href={"/room/" + params.id + "/lounge/text-chat"}
-          as={"/room/" + params.id + "/lounge/text-chat"}
+          href={"/room/" + params.id + "/lounge/general"}
+          as={"/room/" + params.id + "/lounge/general"}
           prefetch
         >
           <Button
-            variant={pathname.endsWith("/text-chat") ? "secondary" : "ghost"}
+            variant={pathname.endsWith("/general") ? "secondary" : "ghost"}
             className="justify-start rounded space-x-3 h-fit py-1 w-full"
           >
             <ChatBubbleOvalLeftEllipsisIcon className="h-4" />
-            <p className="font-bold">TEXT CHAT</p>
+            <p>GENERAL CHAT</p>
           </Button>
         </Link>
         <Link
@@ -58,7 +58,7 @@ export default function Lounge() {
             className="justify-start rounded space-x-3 h-fit py-1 w-full"
           >
             <SpeakerLoudIcon className="h-4" />
-            <p className="font-bold">VOICE CHAT</p>
+            <p>VOICE CHAT</p>
           </Button>
         </Link>
       </CollapsibleContent>

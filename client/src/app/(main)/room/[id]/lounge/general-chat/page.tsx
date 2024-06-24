@@ -14,7 +14,7 @@ export default function page() {
   const [messages, setMessages] = useState<LoungeMessage[]>();
 
   useEffect(() => {
-    if (!params) return;
+    if (!params || !params.id) return;
     async function getMessages() {
       try {
         const response = await fetch(
@@ -35,8 +35,21 @@ export default function page() {
         throw error;
       }
     }
+    async function getRoom() {
+      try {
+        const response = await 
+      } catch (error) {
+        throw error
+      }
+    }
     getMessages();
   }, [params]);
 
-  return <div>page</div>;
+
+
+  return <section className="grow bg-secondary">
+    <div>
+
+    </div>
+  </section>;
 }

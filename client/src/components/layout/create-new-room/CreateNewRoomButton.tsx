@@ -59,7 +59,7 @@ export default function CreateNewRoomButton() {
     }
 
     setOpen(false);
-    router.push("/room/" + room_created.id!);
+    router.push("/room/" + room_created.id! + "/lounge/general-chat");
     dispatch(setCreatedRoom(room_created));
     setSubmitting(false);
   }
