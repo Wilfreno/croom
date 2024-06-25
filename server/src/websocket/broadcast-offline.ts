@@ -1,12 +1,15 @@
 import { Lounge, User } from "@prisma/client";
 import { prisma } from "../server";
 import createMessage from "./make-message";
-import { WebsocketUserType } from "src/lib/types/websocket-types";
+import {
+  WebsocketRoomMemberType,
+  WebsocketUserType,
+} from "src/lib/types/websocket-types";
 
 export default async function broadcastOffline(
   user_id: User["id"],
   online: Map<string, WebsocketUserType>,
-  lounge: Map<Lounge["id"], Map<User["id"], WebsocketUserType>>
+  lounge: Map<Lounge["id"], Map<User["id"], WebsocketRoomMemberType>>
 ) {
   const room_member_list = await prisma.roomMember.findMany({
     where: {

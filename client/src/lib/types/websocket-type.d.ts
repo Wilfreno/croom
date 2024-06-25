@@ -72,6 +72,8 @@ export interface WebsocketLoungeMessageType extends LoungeMessage {
   video_message?: VideoMessage;
 }
 
+export type WebsocketRoomMemberType = RoomMember & WebsocketUserType;
+
 export type WebsocketRoomSessionType = {
   room_member: RoomMember;
   session: Session;

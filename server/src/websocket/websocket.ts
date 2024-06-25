@@ -18,6 +18,7 @@ import {
   WebsocketRoomSessionType,
   WebsocketSessionMessageType,
   WebSocketMessage,
+  WebsocketRoomMemberType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -34,7 +35,11 @@ import leaveSession from "./leave-session";
 import sendSessionMessage from "./send-session-message";
 import broadcastOffline from "./broadcast-offline";
 
-const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
+const lounge = new Map<
+  Lounge["id"],
+  Map<User["id"], WebsocketRoomMemberType>
+>();
+
 const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
 const online = new Map<User["id"], WebsocketUserType>();
 

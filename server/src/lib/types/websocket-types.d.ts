@@ -26,7 +26,8 @@ export type WebSocketPayloadType =
   | RoomMember
   | WebsocketLoungeMessageType
   | WebsocketRoomSessionType
-  | WebsocketSessionMessageType;
+  | WebsocketSessionMessageType
+  | WebsocketRoomMemberType;
 
 export type WebsocketMessageType =
   | "online-friend"
@@ -67,6 +68,8 @@ export interface WebsocketDirectMessageType extends DirectMessage {
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
 }
+
+export type WebsocketRoomMemberType = RoomMember & WebsocketUserType;
 
 export interface WebsocketLoungeMessageType extends LoungeMessage {
   sender: WebsocketUserType;

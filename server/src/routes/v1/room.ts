@@ -321,6 +321,63 @@ router
         );
     }
   })
+  .get("/:id/members", async (request, response) => {
+    try {
+      const room_id = request.params.id;
+
+      const found_room = await prisma.room.findFirst({
+        where: {
+          id: room_id,
+        },
+      });
+
+      if (!found_room)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; room does not exist"
+            )
+          );
+
+      const room_members = await prisma.roomMember.findMany({
+        where: {
+          room_id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              user_name: true,
+              display_name: true,
+              profile_photo: true,
+            },
+          },
+        },
+        orderBy: {
+          role: "desc",
+          user: {
+            user_name: "asc",
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "request successful", room_members));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
   .get("/:id", async (request, response) => {
     try {
       const room_id = request.params.id;

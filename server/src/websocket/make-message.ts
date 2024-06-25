@@ -1,8 +1,11 @@
-import { WebSocketMessage } from "src/lib/types/websocket-types";
+import {
+  WebSocketMessage,
+  WebSocketPayloadType,
+} from "src/lib/types/websocket-types";
 
 export default function createMessage(
   type: WebSocketMessage["type"],
-  payload: WebSocketMessage["payload"]
+  payload: WebSocketPayloadType
 ): string {
   return JSON.stringify({
     type,
