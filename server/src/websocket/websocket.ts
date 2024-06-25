@@ -70,7 +70,7 @@ export default function WebsocketServer(
       include: {
         profile_photo: {
           select: {
-            photo_url: true,
+            url: true,
           },
         },
       },
@@ -90,7 +90,7 @@ export default function WebsocketServer(
         display_name: user.display_name,
         user_name: user.user_name,
         profile_photo: {
-          photo_url: user.profile_photo?.photo_url!,
+          photo_url: user.profile_photo?.url!,
         },
       },
       websocket: socket,

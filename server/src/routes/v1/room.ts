@@ -2,7 +2,6 @@ import { Router } from "express";
 import { prisma } from "../../server";
 import { Room, RoomMember, RoomPhoto } from "@prisma/client";
 import { responseWithData, responseWithoutData } from "../../lib/response-json";
-import { connect } from "http2";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -15,30 +14,30 @@ router
         new_room,
         creator: { user_id },
       }: {
-        new_room: Room & { room_photo: RoomPhoto };
+        new_room: Room & { photo: RoomPhoto };
         creator: { user_id: string };
       } = request.body;
 
-      const room_name = await prisma.room.findFirst({
+      const name = await prisma.room.findFirst({
         where: {
-          room_name: new_room.room_name,
+          name: new_room.name,
         },
       });
 
-      if (room_name)
+      if (name)
         return response
           .status(409)
           .json(responseWithoutData("CONFLICT", "room name already taken"));
 
       const room = await prisma.room.create({
         data: {
-          room_name: new_room.room_name,
-          room_type: new_room.room_type,
-          room_photo: {
+          name: new_room.name,
+          type: new_room.type,
+          photo: {
             create: {
-              height: new_room.room_photo.height,
-              width: new_room.room_photo.width,
-              photo_url: new_room.room_photo.photo_url,
+              height: new_room.photo.height,
+              width: new_room.photo.width,
+              url: new_room.photo.url,
             },
           },
           members: {
@@ -54,7 +53,7 @@ router
           },
         },
         include: {
-          room_photo: true,
+          photo: true,
         },
       });
 
@@ -282,10 +281,10 @@ router
   //read routes
   .get("/list/:name", async (request, response) => {
     try {
-      const room_name = request.params.name;
+      const name = request.params.name;
 
       const room = await prisma.room.findMany({
-        where: { room_name: { contains: room_name } },
+        where: { name: { contains: name } },
         include: {
           members: {
             take: 5,
@@ -385,7 +384,7 @@ router
       const room = await prisma.room.findFirst({
         where: { id: room_id },
         include: {
-          room_photo: true,
+          photo: true,
           members: {
             select: {
               user: {

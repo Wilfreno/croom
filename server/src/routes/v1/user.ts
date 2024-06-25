@@ -30,8 +30,8 @@ router
           birth_date: user.birth_date ? user.birth_date : null,
           profile_photo: {
             create: {
-              photo_url: user.profile_photo.photo_url
-                ? user.profile_photo.photo_url
+              url: user.profile_photo.url
+                ? user.profile_photo.url
                 : "",
             },
           },
@@ -197,7 +197,7 @@ router
             select: {
               room: {
                 include: {
-                  room_photo: true,
+                  photo: true,
                 },
               },
             },

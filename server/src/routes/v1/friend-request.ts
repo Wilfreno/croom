@@ -8,7 +8,6 @@ const router = Router();
 const environment_mode = process.env.NODE_ENV;
 
 router
-
   //create routes
   .post("/", async (request, response) => {
     try {
@@ -37,22 +36,11 @@ router
           .status(404)
           .json(responseWithoutData("NOT_FOUND", "user cannot be found"));
 
+      const friendship_id = [found_sender, found_sender].sort().join("-");
+
       const found_friendship = await prisma.friendship.findFirst({
         where: {
-          AND: [
-            {
-              OR: [
-                { friend_1_id: found_sender.id },
-                { friend_1_id: found_receiver.id },
-              ],
-            },
-            {
-              OR: [
-                { friend_2_id: found_sender.id },
-                { friend_2_id: found_receiver.id },
-              ],
-            },
-          ],
+          id: friendship_id,
         },
       });
 
@@ -70,10 +58,7 @@ router
           );
 
       const found_request = await prisma.friendRequest.findFirst({
-        where: {
-          sender_id: found_sender.id,
-          receiver_id: found_receiver.id,
-        },
+        where: { id: friendship_id },
       });
 
       if (found_request)
@@ -85,6 +70,7 @@ router
 
       const friend_request = await prisma.friendRequest.create({
         data: {
+          id: friendship_id,
           sender_id: found_sender.id,
           receiver_id: found_receiver.id,
         },
@@ -123,13 +109,12 @@ router
   })
   .post("/accept", async (request, response) => {
     try {
-      const { sender, receiver }: Record<string, string> = request.body;
+      const { sender_id, receiver_id }: Record<string, string> = request.body;
+
+      const friendship_id = [sender_id, receiver_id].sort().join("-");
 
       const found_request = await prisma.friendRequest.findFirst({
-        where: {
-          receiver_id: receiver,
-          sender_id: sender,
-        },
+        where: { id: friendship_id },
       });
 
       if (!found_request)
@@ -144,19 +129,18 @@ router
 
       await prisma.friendship.create({
         data: {
-          friend_1_id: sender,
-          friend_2_id: receiver,
+          id: friendship_id,
+          friend_1_id: sender_id,
+          friend_2_id: receiver_id,
         },
       });
 
       await prisma.friendRequest.delete({
         where: {
-          sender_id_receiver_id: {
-            sender_id: sender,
-            receiver_id: receiver,
-          },
+          id: friendship_id,
         },
       });
+
       return response
         .status(200)
         .json(responseWithData("OK", "friend request accepted", null));
@@ -302,13 +286,12 @@ router
   //delete routes
   .delete("/decline", async (request, response) => {
     try {
-      const { sender, receiver }: Record<string, User["id"]> = request.body;
+      const { sender_id, receiver_id }: Record<string, User["id"]> =
+        request.body;
 
+      const friendship_id = [sender_id, receiver_id].sort().join("-");
       const found_request = await prisma.friendRequest.findFirst({
-        where: {
-          sender_id: sender,
-          receiver_id: receiver,
-        },
+        where: { id: friendship_id },
       });
 
       if (!found_request)
@@ -323,10 +306,7 @@ router
 
       await prisma.friendRequest.delete({
         where: {
-          sender_id_receiver_id: {
-            sender_id: sender,
-            receiver_id: receiver,
-          },
+          id: friendship_id,
         },
       });
 

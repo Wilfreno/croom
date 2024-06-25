@@ -104,7 +104,7 @@ export default function page() {
         })
       );
 
-      // if (textarea_ref.current) textarea_ref.current.style.height = "auto";
+      if (textarea_ref.current) textarea_ref.current.style.height = "auto";
     } catch (error) {
       throw error;
     }
@@ -143,6 +143,7 @@ export default function page() {
         user: data!.user!,
       } as WebsocketUserType)
     );
+    
     websocket.addEventListener("message", ({ data }) => {
       const message = JSON.parse(data) as WebsocketMessage;
 

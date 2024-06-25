@@ -77,8 +77,8 @@ export default function useFriendRequestHandler() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        sender: sender?.user.id,
-        receiver: data?.user.id,
+        sender_id: sender?.user.id,
+        receiver_id: data?.user.id,
       }),
     });
     const response_json = (await response.json()) as ServerResponse;

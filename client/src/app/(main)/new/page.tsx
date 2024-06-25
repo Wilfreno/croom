@@ -48,7 +48,6 @@ export default function Page() {
     }
   }
 
-  console.log("Sesion::", data);
   return (
     <section className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg border shadow-lg bg-primary-foreground p-10 space-y-5">
       <div className="grid place-items-center space-y-5">
