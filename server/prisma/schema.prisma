@@ -28,7 +28,6 @@ model User {
   direct_messages_sent     DirectMessage[]      @relation("message-sent")
   direct_messages_received DirectMessage[]      @relation("message-received")
 
-  room_invites    RoomInvite[]
   room_membership RoomMember[]
   lounge_message  LoungeMessage[]  @relation("lounge-message-sent")
   session_message SessionMessage[] @relation("session-message-sent")
@@ -105,7 +104,7 @@ model Room {
   photo        RoomPhoto?
   name         String       @unique
   type         RoomType
-  invites      RoomInvite[]
+  invite      RoomInvite?
   members      RoomMember[]
   lounge       Lounge?
   sessions     Session[]
@@ -119,10 +118,10 @@ enum RoomType {
 
 model RoomInvite {
   id           String   @id @unique @default(uuid())
-  room         Room     @relation(fields: [room_id], references: [id])
-  room_id      String
-  user         User     @relation(fields: [user_id], references: [id])
-  user_id      String
+  room         Room?     @relation(fields: [room_id], references: [id])
+  room_id      String? @unique
+  code         String
+  last_updated DateTime @default(now())
   date_created DateTime @default(now())
 }
 

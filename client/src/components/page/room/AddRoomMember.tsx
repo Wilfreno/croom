@@ -1,5 +1,5 @@
 "use client";
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,19 +11,17 @@ import { useEffect, useState } from "react";
 
 export default function AddRoomMember() {
   const [friends, setFriends] = useState<Friend[]>([]);
+  
   const { data } = useSession();
-  const server_url = useServerUrl();
   const { toast } = useToast();
+  const http_request = useHTTPRequest()
 
   async function sendRoomInvite() {
     try {
-      const response = await fetch(server_url + "/v1/room/send-invite", {
-        method: "POST",
-        headers: {
-          "Content-Type" : "application/json"
-        },
-        body: JSON.stringify({})
-      })
+      
+      const room_invite = await http_request.POST("/v1/room/invite", {
+
+      }) as 
     } catch (error) {
       throw error
     }

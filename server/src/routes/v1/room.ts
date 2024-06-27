@@ -72,6 +72,64 @@ router
         );
     }
   })
+  .post("/invite", async (request, response) => {
+    try {
+      const { user_id, room_id }: Record<string, string> = request.body;
+
+      if (!user_id)
+        return response
+          .status(400)
+          .json(
+            responseWithoutData(
+              "BAD_REQUEST",
+              " user_id and room_id field on the request body is required"
+            )
+          );
+
+      const found_user = await prisma.user.findFirst({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; user does not exist"
+            )
+          );
+
+      let code = "";
+
+      for (let i = 0; i < 12; i++) {
+        code += room_id[Math.floor(Math.random() * room_id.length)];
+      }
+
+      const room_invite = await prisma.roomInvite.create({
+        data: {
+          code,
+          room_id,
+        },
+      });
+
+      return response
+        .status(200)
+        .json(responseWithData("OK", "room invite created", room_invite));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
   .post("/lounge/message/text", async (request, response) => {
     try {
       const { sender_id, room_id, text } = request.body;
