@@ -4,8 +4,8 @@ import { setFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
 import { setOnlineFriends } from "@/lib/redux/slices/online-friends-slice";
 import { AppDispatch } from "@/lib/redux/store";
 import {
-  WebSocketSeverMessage,
   WebsocketFriendRequestType,
+  WebsocketMessage,
   WebsocketUserType,
 } from "@/lib/types/websocket-type";
 import React, { useEffect } from "react";
@@ -21,10 +21,10 @@ export default function WebsocketMessageHandler({
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    websocket?.addEventListener("message", (websocket_message) => {
+    websocket?.addEventListener("message", ({data}) => {
       const message = JSON.parse(
-        websocket_message.data
-      ) as WebSocketSeverMessage;
+        data
+      ) as WebsocketMessage;
 
       switch (message.type) {
         case "online-friend": {

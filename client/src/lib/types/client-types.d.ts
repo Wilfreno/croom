@@ -25,7 +25,7 @@ export type ProfilePhoto = {
   id: string;
   owner?: User;
   owner_id: string;
-  photo_url: string;
+  url: string;
   date_created: Date;
 };
 
@@ -40,13 +40,22 @@ export type FriendRequest = {
 
 export type Friendship = {
   id: string;
-  friend_1?: User;
-  friend_1_id: string;
-  friend_2?: User;
-  friend_2_id: string;
+  user_1?: User;
+  user_1_id: string;
+  user_2?: User;
+  user_2_id: string;
   date_created: Date;
 };
 
+export type Friend = {
+  id: string;
+  user_name: string;
+  display_name: string;
+  profile_photo: {
+    url: string;
+  };
+  friends_since: Date;
+};
 export type DirectConversation = {
   id: string;
   user1?: User;
@@ -77,12 +86,12 @@ type MessageType = "TEXT" | "PHOTO" | "VIDEO";
 
 export type Room = {
   id?: string;
-  room_photo: RoomPhoto;
-  room_name: string;
-  room_type: RoomType;
+  photo: RoomPhoto;
+  name: string;
+  type: RoomType;
   members?: RoomMember[];
   lounge?: Lounge;
-  room_sessions?: Session[];
+  sessions?: Session[];
   date_created?: DateTime;
 };
 
@@ -94,7 +103,7 @@ export type RoomPhoto = {
   room_id?: string;
   height: number;
   width: number;
-  photo_url: string;
+  url: string;
   date_created?: Date;
 };
 
@@ -173,7 +182,7 @@ export type PhotoMessage = {
   lounge_message_id?: string;
   session_message?: SessionMessage;
   session_message_id?: string;
-  photo_url: string;
+  url: string;
   date_created: Date;
 };
 

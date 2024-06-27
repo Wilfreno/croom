@@ -90,7 +90,7 @@ export default function WebsocketServer(
         display_name: user.display_name,
         user_name: user.user_name,
         profile_photo: {
-          photo_url: user.profile_photo?.url!,
+          url: user.profile_photo?.url!,
         },
       },
       websocket: socket,

@@ -23,8 +23,8 @@ export default function NewRoomPhoto() {
     dispatch(
       setNewRoom({
         ...new_room,
-        room_photo: {
-          photo_url: photo_info?.secure_url || "",
+        photo: {
+          url: photo_info?.secure_url || "",
           height: photo_info?.height || 0,
           width: photo_info?.width || 0,
         },

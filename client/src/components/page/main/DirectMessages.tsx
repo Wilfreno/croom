@@ -1,5 +1,5 @@
 "use client";
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { DirectConversation } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  WebSocketSeverMessage,
+  WebsocketMessage,
   WebsocketDirectMessageType,
 } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
@@ -23,31 +22,22 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function DirectMessages() {
-  const server_url = useServerUrl();
-  const { data } = useSession();
-  const { toast } = useToast();
-  const websocket = useWebsocket();
   const [direct_conversation, setDirectConversation] = useState<
     DirectConversation[]
   >([]);
 
+  const { data } = useSession();
+  const { toast } = useToast();
+  const websocket = useWebsocket();
+  const http_request = useHTTPRequest();
+
   async function getDirectConversations() {
     try {
-      const response = await fetch(
-        server_url + "/v1/direct-conversation/" + data?.user.id
+      setDirectConversation(
+        (await http_request.GET(
+          "/v1/direct-conversation/" + data?.user.id
+        )) as DirectConversation[]
       );
-
-      const response_json = (await response.json()) as ServerResponse;
-
-      if (response_json.status !== "OK") {
-        toast({
-          title: "Oops! something went wrong.",
-          description: response_json.message,
-        });
-        return;
-      }
-
-      setDirectConversation(response_json.data as DirectConversation[]);
     } catch (error) {
       throw error;
     }
@@ -58,9 +48,7 @@ export default function DirectMessages() {
 
   useEffect(() => {
     websocket?.addEventListener("message", async (websocket_message) => {
-      const message = JSON.parse(
-        websocket_message.data
-      ) as WebSocketSeverMessage;
+      const message = JSON.parse(websocket_message.data) as WebsocketMessage;
 
       const payload = message.payload as WebsocketDirectMessageType;
       if (message.type === "send-direct-message") {
@@ -139,8 +127,8 @@ export default function DirectMessages() {
                   <AvatarImage
                     src={
                       data?.user.id === dc.user1_id
-                        ? dc.user2!.profile_photo?.photo_url
-                        : dc.user1!.profile_photo?.photo_url
+                        ? dc.user2!.profile_photo?.url
+                        : dc.user1!.profile_photo?.url
                     }
                     alt={
                       data?.user.id === dc.user1_id

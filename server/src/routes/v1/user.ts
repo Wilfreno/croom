@@ -30,9 +30,7 @@ router
           birth_date: user.birth_date ? user.birth_date : null,
           profile_photo: {
             create: {
-              url: user.profile_photo.url
-                ? user.profile_photo.url
-                : "",
+              url: user.profile_photo.url ? user.profile_photo.url : "",
             },
           },
           password: user.password ? await hash(user.password, 14) : null,
@@ -137,42 +135,7 @@ router
         );
     }
   })
-  .get("/:id", async (request, response) => {
-    try {
-      const user_id = request.params.id;
-
-      const user = await prisma.user.findFirst({
-        where: { id: user_id },
-        include: { profile_photo: true },
-      });
-
-      if (!user)
-        return response
-          .status(404)
-          .send(responseWithoutData("NOT_FOUND", "user not found"));
-
-      return response
-        .status(200)
-        .send(
-          responseWithData(
-            "OK",
-            "request successful",
-            exclude(user, ["password"])
-          )
-        );
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-      return response
-        .status(500)
-        .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
-        );
-    }
-  })
-  .get("/room/:id", async (request, response) => {
+  .get("/:id/rooms", async (request, response) => {
     try {
       const user_id = request.params.id;
 
@@ -224,7 +187,132 @@ router
         );
     }
   })
+  .get("/:id/friends", async (request, response) => {
+    try {
+      const user_id = request.params.id;
 
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(
+            responseWithoutData(
+              "CONFLICT",
+              "cannot process request; user does not exist"
+            )
+          );
+
+      const friendships = await prisma.friendship.findMany({
+        where: {
+          OR: [{ user_1_id: user_id }, { user_2_id: user_id }],
+        },
+        include: {
+          user_1: {
+            select: {
+              id: true,
+              user_name: true,
+              display_name: true,
+              profile_photo: true,
+            },
+          },
+          user_2: {
+            select: {
+              id: true,
+              user_name: true,
+              display_name: true,
+              profile_photo: true,
+            },
+          },
+        },
+      });
+
+      const friends: {
+        id: string;
+        user_name: string;
+        display_name: string;
+        profile_photo: {
+          url: string;
+        };
+        friends_since: Date;
+      }[] = [];
+
+      for (const friendship of friendships) {
+        if (friendship.user_1_id !== user_id) {
+          friends.push({
+            id: friendship.user_1.id,
+            display_name: friendship.user_1.display_name,
+            user_name: friendship.user_1.user_name,
+            profile_photo: {
+              url: friendship.user_1.profile_photo?.url!,
+            },
+            friends_since: friendship.date_created,
+          });
+        }
+        if (friendship.user_2_id !== user_id) {
+          friends.push({
+            id: friendship.user_2.id,
+            display_name: friendship.user_2.display_name,
+            user_name: friendship.user_2.user_name,
+            profile_photo: {
+              url: friendship.user_2.profile_photo?.url!,
+            },
+            friends_since: friendship.date_created,
+          });
+        }
+      }
+      return response
+        .status(200)
+        .json(responseWithData("OK", "request successful", friends));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
+  .get("/:id", async (request, response) => {
+    try {
+      const user_id = request.params.id;
+
+      const user = await prisma.user.findFirst({
+        where: { id: user_id },
+        include: { profile_photo: true },
+      });
+
+      if (!user)
+        return response
+          .status(404)
+          .send(responseWithoutData("NOT_FOUND", "user not found"));
+
+      return response
+        .status(200)
+        .send(
+          responseWithData(
+            "OK",
+            "request successful",
+            exclude(user, ["password"])
+          )
+        );
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          responseWithoutData(
+            "INTERNAL_SERVER_ERROR",
+            "oops! something went wrong"
+          )
+        );
+    }
+  })
   //update routes
 
   //delete routes

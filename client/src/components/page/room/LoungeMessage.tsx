@@ -11,10 +11,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import useServerUrl from "@/components/hooks/useServerUrl";
 import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from "next-auth/react";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function LoungeMsg({
   message,
@@ -29,32 +29,16 @@ export default function LoungeMsg({
 }) {
   const [display_date, setDisplayDate] = useState(false);
   const [display_option, setDisplayOption] = useState(false);
-  const server_url = useServerUrl();
+
   const { toast } = useToast();
   const { data } = useSession();
+  const http_request = useHTTPRequest();
 
   async function deleteMessage() {
     try {
-      const response = await fetch(
-        server_url + "/v1/direct-conversation/message",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message_id: message.id }),
-        }
-      );
-
-      const response_json = (await response.json()) as ServerResponse;
-
-      if (response_json.status !== "OK") {
-        toast({
-          title: "oops! something went wrong",
-          description: response_json.message,
-        });
-        return;
-      }
+      await http_request.DELETE("/v1/direct-conversation/message", {
+        message_id: message.id,
+      });
 
       setMessages((prev) => prev.toSpliced(index, 1));
     } catch (error) {
@@ -75,7 +59,7 @@ export default function LoungeMsg({
     >
       <Avatar>
         <AvatarImage
-          src={message.sender!.profile_photo?.photo_url}
+          src={message.sender!.profile_photo?.url}
           alt={message.sender!.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>
@@ -154,7 +138,7 @@ export default function LoungeMsg({
       </div>
       <Avatar>
         <AvatarImage
-          src={data?.user.profile_photo?.photo_url}
+          src={data?.user.profile_photo?.url}
           alt={data?.user.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>

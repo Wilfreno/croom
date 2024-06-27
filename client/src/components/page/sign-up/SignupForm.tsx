@@ -13,11 +13,9 @@ import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import BirthDate from "./BirthDate";
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function SignUpForm() {
-  const development_server = useServerUrl();
-  const { toast } = useToast();
   const [user, setUser] = useState<User>({
     id: "",
     display_name: "",
@@ -33,6 +31,9 @@ export default function SignUpForm() {
   const [password, setPassword] = useState({ base: "", verify: "" });
   const [view_password, setViewPassword] = useState([false, false]);
 
+  const { toast } = useToast();
+  const http_request = useHTTPRequest();
+
   useEffect(() => {
     if (password.base && password.verify && password.base === password.verify)
       setUser((prev) => ({ ...prev, password: password.base }));
@@ -46,32 +47,13 @@ export default function SignUpForm() {
           e.preventDefault();
           setCreatingOtp(true);
           try {
-            const response = await fetch(
-              development_server + "/create/v1/otp",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email: user.email }),
-              }
-            );
+            await http_request.POST("/create/v1/otp", { email: user.email });
             setCreatingOtp(false);
-            if (!response.ok) {
-              const otp_response = await response.json();
-              toast({
-                title: otp_response.message,
-                action: <ToastAction altText="OK">OK</ToastAction>,
-              });
-              return;
-            }
+
             setViewOTP(true);
           } catch (error) {
-            toast({
-              title: "Oops! Something went wrong",
-              action: <ToastAction altText="OK">OK</ToastAction>,
-            });
             setCreatingOtp(false);
+            throw error;
           }
         }}
       >
@@ -198,13 +180,7 @@ export default function SignUpForm() {
           {creating_otp ? <LoadingSvg className="h-8" /> : "SignUp"}
         </Button>
       </form>
-      {view_otp && (
-        <OtpVerification
-          user={user}
-          view_otp={view_otp}
-          setViewOTP={setViewOTP}
-        />
-      )}
+      {view_otp && <OtpVerification user={user} setViewOTP={setViewOTP} />}
     </>
   );
 }

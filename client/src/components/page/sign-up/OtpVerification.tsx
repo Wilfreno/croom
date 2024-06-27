@@ -12,29 +12,27 @@ import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import LoadingSvg from "@/components/svg/LoadingSvg";
-import useServerUrl from "@/components/hooks/useServerUrl";
-import { ServerResponse } from "@/lib/types/sever-response";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function OtpVerification({
   user,
-  view_otp,
   setViewOTP,
 }: {
   user: User;
-  view_otp: boolean;
   setViewOTP: Dispatch<SetStateAction<boolean>>;
 }) {
-  const server_url = useServerUrl();
-  const { toast } = useToast();
-  const [value, setValue] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
   const resend_initial = { time: 30, open: true, interval_id: undefined };
+
+  const [submitting, setSubmitting] = useState(false);
+  const [value, setValue] = useState("");
   const [resend, setResend] = useState<{
     time: number;
     open: boolean;
     interval_id?: NodeJS.Timeout;
   }>(resend_initial);
+
+  const { toast } = useToast();
+  const http_request = useHTTPRequest();
 
   async function handleResend() {
     const id = setInterval(() => {
@@ -44,26 +42,9 @@ export default function OtpVerification({
 
     setResend((prev) => ({ ...prev, interval_id: id }));
     try {
-      const response = await fetch(server_url + "/v1/otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: user.email }),
-      });
-      if (!response.ok) {
-        const otp_response = await response.json();
-        toast({
-          title: otp_response.message,
-          action: <ToastAction altText="OK">OK</ToastAction>,
-        });
-        return;
-      }
+      await http_request.POST("/v1/otp", { email: user.email });
     } catch (error) {
-      toast({
-        title: "Oops! Something went wrong",
-        action: <ToastAction altText="OK">OK</ToastAction>,
-      });
+      throw error;
     }
   }
 
@@ -71,7 +52,7 @@ export default function OtpVerification({
     clearInterval(resend.interval_id);
     setResend(resend_initial);
   }
-  console.log(resend);
+
   return (
     <form
       className="grow flex flex-col justify-evenly space-y-5"
@@ -79,55 +60,27 @@ export default function OtpVerification({
         e.preventDefault();
         setSubmitting(true);
         try {
-          const response = await fetch(server_url + "/v1/otp/authenticate", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ otp: value, email: user.email }),
-          });
-          const otp_response = await response.json();
-
-          if (otp_response.status !== "OK") {
-            toast({
-              title: otp_response.message,
-              action: <ToastAction altText="OK">OK</ToastAction>,
-            });
-            setSubmitting(false);
-            return;
-          }
-
-          const create_user_response = await fetch(server_url + "/v1/user", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: user.email,
-              display_name: user.display_name,
-              user_name: user.user_name,
-              password: user.password,
-              birth_date: user.birth_date,
-              profile_pic: {
-                photo_url: "",
-              },
-            }),
+          await http_request.POST("/v1/otp/authenticate", {
+            otp: value,
+            email: user.email,
           });
 
-          const create_user =
-            (await create_user_response.json()) as ServerResponse;
-          if (create_user.status !== "OK")
-            toast({
-              title: "Oops! Something went wrong",
-              description: create_user.message,
-              action: <ToastAction altText="OK">OK</ToastAction>,
-            });
-          const new_user = create_user.data as User;
+          await http_request.POST("/v1/user", {
+            email: user.email,
+            display_name: user.display_name,
+            user_name: user.user_name,
+            password: user.password,
+            birth_date: user.birth_date,
+            profile_pic: {
+              photo_url: "",
+            },
+          });
+
           const sign_in = await signIn("credentials", {
             email: user.email,
             password: user.password,
             redirect: true,
-            callbackUrl: "/" + new_user.user_name,
+            callbackUrl: "/" + user.user_name,
           });
 
           if (sign_in?.error) {
@@ -137,13 +90,11 @@ export default function OtpVerification({
               action: <ToastAction altText="OK">OK</ToastAction>,
             });
           }
+
           setSubmitting(false);
         } catch (error) {
-          toast({
-            title: "Oops! Something went wrong",
-            action: <ToastAction altText="OK">OK</ToastAction>,
-          });
           setSubmitting(false);
+          throw error;
         }
       }}
     >

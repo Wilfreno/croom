@@ -1,4 +1,5 @@
 "use client";
+
 import { Dispatch, SetStateAction } from "react";
 import NewRoomPhoto from "./NewRoomPhoto";
 import NewRoomName from "./NewRoomName";
@@ -23,12 +24,12 @@ export default function NewRoomNameAndPhoto({
       </p>
       <NewRoomPhoto />
       <NewRoomName />
-      {!new_room.room_name && (
+      {!new_room.name && (
         <p className="text-xs text-red-500"> Room name is required</p>
       )}
       <div className="flex items-center justify-end mt-10 ">
         <Button
-          disabled={!new_room.room_name}
+          disabled={!new_room.name}
           type="button"
           onClick={() => setComponentView((prev) => prev + 1)}
           className="text-secondary-foreground"

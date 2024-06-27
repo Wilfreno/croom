@@ -1,19 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { PlusIcon, HomeIcon } from "@heroicons/react/24/solid";
-import { Button } from "../ui/button";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { usePathname, useRouter} from "next/navigation";
 import { Separator } from "../ui/separator";
-import { ThemeToggler } from "../dark-mode/ThemeToggler";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
-import CompassSvg from "../svg/CompassSvg";
 import { useEffect } from "react";
 import HomePageLink from "./HomePageLink";
 import DiscoverPageLink from "./DiscoverPageLink";

@@ -1,4 +1,4 @@
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Button } from "@/components/ui/button";
@@ -19,17 +19,19 @@ import {
   WebsocketFriendRequestType,
 } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
+import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
 export default function AddFriend() {
-  const server_url = useServerUrl();
-  const websocket = useWebsocket();
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
+
+  const websocket = useWebsocket();
   const { data } = useSession();
+  const http_request = useHTTPRequest();
 
   return (
     <Dialog>
@@ -50,53 +52,41 @@ export default function AddFriend() {
           onSubmit={async (e) => {
             e.preventDefault();
             setSending(true);
-            const response = await fetch(server_url + "/v1/friend-request", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
+
+            const friend_request = (await http_request.POST(
+              "/v1/friend-request",
+              {
                 sender: data?.user.user_name,
                 receiver: username,
-              }),
-            });
+              }
+            )) as FriendRequest;
 
-            const response_json = (await response.json()) as ServerResponse;
-            setServerResponse(response_json);
-
-            const friend_request = response_json.data as FriendRequest;
-            if (response_json.status !== "OK") return;
-
-            console.log(friend_request);
             websocket?.send(
-              JSON.stringify({
-                type: "send-friend-request",
-                payload: {
-                  sender: {
-                    user: {
-                      id: data?.user.id,
-                      display_name: data!.user.display_name,
-                      profile_photo: {
-                        photo_url: data?.user.profile_photo?.photo_url,
-                      },
-                      user_name: data?.user.user_name,
+              websocketMessage("send-friend-request", {
+                sender: {
+                  user: {
+                    id: data?.user.id,
+                    display_name: data!.user.display_name,
+                    profile_photo: {
+                      url: data?.user.profile_photo?.url,
                     },
+                    user_name: data?.user.user_name,
                   },
-                  receiver: {
-                    user: {
-                      id: friend_request.receiver!.id,
-                      display_name: friend_request.receiver!.display_name,
-                      profile_photo: {
-                        photo_url:
-                          friend_request.receiver!.profile_photo?.photo_url,
-                      },
-                      user_name: friend_request.receiver!.user_name!,
+                },
+                receiver: {
+                  user: {
+                    id: friend_request.receiver!.id,
+                    display_name: friend_request.receiver!.display_name,
+                    profile_photo: {
+                      url: friend_request.receiver!.profile_photo?.url,
                     },
+                    user_name: friend_request.receiver!.user_name!,
                   },
-                  date_created: friend_request.date_created,
-                } as WebsocketFriendRequestType,
-              } as WebsocketMessage)
+                },
+                date_created: friend_request.date_created,
+              } as WebsocketFriendRequestType)
             );
+
             setSending(false);
           }}
           autoComplete="off"

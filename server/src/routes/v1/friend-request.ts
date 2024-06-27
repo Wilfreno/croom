@@ -130,8 +130,8 @@ router
       await prisma.friendship.create({
         data: {
           id: friendship_id,
-          friend_1_id: sender_id,
-          friend_2_id: receiver_id,
+          user_1_id: sender_id,
+          user_2_id: receiver_id,
         },
       });
 

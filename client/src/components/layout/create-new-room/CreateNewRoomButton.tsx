@@ -16,53 +16,42 @@ import NewRoomType from "./NewRoomType";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import LoadingSvg from "@/components/svg/LoadingSvg";
-import useServerUrl from "@/components/hooks/useServerUrl";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { Room } from "@/lib/types/client-types";
 import { useSession } from "next-auth/react";
 import { useDispatch } from "react-redux";
 import { setCreatedRoom } from "@/lib/redux/slices/created-room-slice";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function CreateNewRoomButton() {
   const [open, setOpen] = useState(false);
   const [component_view, setComponentView] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
   const new_room = useAppSelector((state) => state.new_room_reducer);
-  const server_url = useServerUrl();
   const { toast } = useToast();
   const { data } = useSession();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
+  const http_request = useHTTPRequest();
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setSubmitting(true);
-    const response = await fetch(server_url + "/v1/room", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ new_room, creator: { user_id: data?.user.id } }),
-    });
 
-    const response_json = (await response.json()) as ServerResponse;
-
-    const room_created = response_json.data as Room;
-    if (response_json.status !== "OK") {
-      toast({
-        title: "Oops! Something went wrong",
-        description: response_json.message,
-      });
-      return;
-    }
+    const room_created = (await http_request.POST("/v1/room", {
+      new_room,
+      creator: { user_id: data?.user.id },
+    })) as Room;
 
     setOpen(false);
     router.push("/room/" + room_created.id! + "/lounge/general-chat");
     dispatch(setCreatedRoom(room_created));
     setSubmitting(false);
   }
+
   return (
     <TooltipProvider>
       <Tooltip>

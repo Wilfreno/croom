@@ -32,7 +32,7 @@ export default function FriendsRequestList({
           <Button className="flex items-center space-x-5 grow bg-transparent justify-start text-secondary-foreground hover:bg-transparent hover:shadow-none shadow-none focus-visible:ring-0">
             <Avatar>
               <AvatarImage
-                src={request.sender.user!.profile_photo?.photo_url}
+                src={request.sender.user!.profile_photo?.url}
                 alt={request.sender.user!.display_name!.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback>

@@ -57,7 +57,7 @@ export type WebsocketUserType = {
     user_name: User["user_name"];
     display_name: User["display_name"];
     profile_photo: {
-      photo_url: ProfilePhoto["photo_url"];
+      url: ProfilePhoto["photo_url"];
     };
   };
   websocket?: WebSocket;

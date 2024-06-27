@@ -11,9 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import useServerUrl from "@/components/hooks/useServerUrl";
 import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "@/components/ui/use-toast";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function UserMessage({
   user,
@@ -32,32 +32,15 @@ export default function UserMessage({
 }) {
   const [display_date, setDisplayDate] = useState(false);
   const [display_option, setDisplayOption] = useState(false);
-  const server_url = useServerUrl();
+
   const { toast } = useToast();
+  const http_request = useHTTPRequest();
 
   async function deleteMessage() {
     try {
-      const response = await fetch(
-        server_url + "/v1/direct-conversation/message",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message_id: message.id }),
-        }
-      );
-
-      const response_json = (await response.json()) as ServerResponse;
-
-      if (response_json.status !== "OK") {
-        toast({
-          title: "oops! something went wrong",
-          description: response_json.message,
-        });
-        return;
-      }
-
+      await http_request.DELETE("/v1/direct-conversation/message", {
+        message_id: message.id,
+      });
       setDirectMessages((prev) => prev.toSpliced(index, 1));
     } catch (error) {
       throw error;
@@ -76,7 +59,7 @@ export default function UserMessage({
     >
       <Avatar>
         <AvatarImage
-          src={friend?.profile_photo?.photo_url}
+          src={friend?.profile_photo?.url}
           alt={friend?.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>
@@ -155,7 +138,7 @@ export default function UserMessage({
       </div>
       <Avatar>
         <AvatarImage
-          src={user.profile_photo?.photo_url}
+          src={user.profile_photo?.url}
           alt={user.display_name.slice(0, 1).toUpperCase()}
         />
         <AvatarFallback>

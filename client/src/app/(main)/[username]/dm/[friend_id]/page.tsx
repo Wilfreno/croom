@@ -1,6 +1,6 @@
 "use client";
 
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import UserMessage from "@/components/page/main/UserMessage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,11 +18,11 @@ import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 export default function Page() {
-  const server_url = useServerUrl();
   const params = useParams<{ username: string; friend_id: string }>();
   const { toast } = useToast();
   const { data } = useSession();
   const websocket = useWebsocket();
+  const http_request = useHTTPRequest();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
 
   const [text_message, setTextMessage] = useState("");
@@ -55,36 +55,19 @@ export default function Page() {
       setTextMessage("");
       setSendingMessage((prev) => [...prev, sending_message]);
 
-      const response = await fetch(
-        server_url + "/v1/direct-conversation/message/text",
+      const message = (await http_request.POST(
+        "/v1/direct-conversation/message/text",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sender_id: data?.user.id,
-            receiver_id: params.friend_id,
-            text: text_message,
-          }),
+          sender_id: data?.user.id,
+          receiver_id: params.friend_id,
+          text: text_message,
         }
-      );
-
-      const response_json = (await response.json()) as ServerResponse;
-
-      if (response_json.status !== "OK") {
-        toast({
-          title: "Oops! Something went wrong.",
-          description: response_json.message,
-        });
-        return;
-      }
-
-      const message = response_json.data as DirectMessage;
+      )) as DirectMessage;
 
       setSendingMessage((prev) =>
         prev.filter((msg) => msg.date_created !== sending_message.date_created)
       );
+
       setDirectMessages((prev) => [...prev, message]);
 
       websocket?.send(websocketMessage("send-direct-message", message));
@@ -100,21 +83,9 @@ export default function Page() {
 
     async function getFriend() {
       try {
-        const response = await fetch(
-          server_url + "/v1/user/" + params.friend_id
+        setFriend(
+          (await http_request.GET("/v1/user/" + params.friend_id)) as User
         );
-
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status !== "OK") {
-          toast({
-            title: "Oops! Something went wrong.",
-            description: response_json.message,
-          });
-          return;
-        }
-
-        setFriend(response_json.data as User);
       } catch (error) {
         throw error;
       }
@@ -122,29 +93,20 @@ export default function Page() {
 
     async function getDirectMessages() {
       try {
-        const response = await fetch(
-          server_url +
+        setDirectMessages(
+          (await http_request.GET(
             "/v1/direct-conversation/messages?user_id=" +
-            data?.user.id +
-            "&friend_id=" +
-            params.friend_id +
-            "&page=1"
+              data?.user.id +
+              "&friend_id=" +
+              params.friend_id +
+              "&page=1"
+          )) as DirectMessage[]
         );
-
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status !== "OK") {
-          toast({
-            title: "Oops! Something went wrong.",
-            description: response_json.message,
-          });
-          return;
-        }
-        setDirectMessages(response_json.data as DirectMessage[]);
       } catch (error) {
         throw error;
       }
     }
+
     getDirectMessages();
     getFriend();
   }, [params.friend_id, data]);
@@ -164,12 +126,13 @@ export default function Page() {
       }
     });
   }, [websocket]);
+
   return (
     <div className="grow flex flex-col bg-secondary">
       <div className="px-5 flex items-center py-2 w-full shadow-lg space-x-5 border-b bg-primary-foreground">
         <Avatar>
           <AvatarImage
-            src={friend?.profile_photo?.photo_url}
+            src={friend?.profile_photo?.url}
             alt={friend?.display_name?.slice(0, 1).toUpperCase()}
           />
           <AvatarFallback>
@@ -210,7 +173,7 @@ export default function Page() {
               </div>
               <Avatar>
                 <AvatarImage
-                  src={data?.user.profile_photo?.photo_url}
+                  src={data?.user.profile_photo?.url}
                   alt={data?.user.display_name.slice(0, 1).toUpperCase()}
                 />
                 <AvatarFallback>

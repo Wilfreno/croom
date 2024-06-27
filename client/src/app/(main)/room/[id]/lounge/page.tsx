@@ -1,6 +1,6 @@
 "use client";
 
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import LoungeMsg from "@/components/page/room/LoungeMessage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,11 +30,11 @@ export default function page() {
   const [text_message, setTextMessage] = useState("");
 
   const params = useParams<{ id: string }>();
-  const server_url = useServerUrl();
   const { toast } = useToast();
   const websocket = useWebsocket();
   const { data } = useSession();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
+  const http_request = useHTTPRequest();
 
   async function sendTextMessage(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,32 +56,11 @@ export default function page() {
       setTextMessage("");
       setSendingMessage((prev) => [...prev, sending_message]);
 
-      const response = await fetch(
-        server_url + "/v1/room/lounge/message/text",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sender_id: data?.user.id,
-            room_id: params.id,
-            text: text_message,
-          }),
-        }
-      );
-
-      const response_json = (await response.json()) as ServerResponse;
-
-      if (response_json.status !== "OK") {
-        toast({
-          title: "Oops! Something went wrong.",
-          description: response_json.message,
-        });
-        return;
-      }
-
-      const message = response_json.data as LoungeMessage;
+      const message = (await http_request.POST("/v1/room/lounge/message/text", {
+        sender_id: data?.user.id,
+        room_id: params.id,
+        text: sending_message.text_message?.content,
+      })) as LoungeMessage;
 
       setSendingMessage((prev) =>
         prev.filter((msg) => msg.date_created !== sending_message.date_created)
@@ -96,7 +75,7 @@ export default function page() {
               display_name: data?.user.display_name!,
               user_name: data?.user.user_name!,
               profile_photo: {
-                photo_url: data?.user.profile_photo?.photo_url!,
+                url: data?.user.profile_photo?.url!,
               },
             },
           },
@@ -112,26 +91,19 @@ export default function page() {
 
   useEffect(() => {
     if (!params || !params.id) return;
+
     async function getMessages() {
       try {
-        const response = await fetch(
-          server_url + "/v1/room/lounge/messages/" + params.id
+        setMessages(
+          (await http_request.GET(
+            "/v1/room/lounge/messages/" + params.id
+          )) as LoungeMessage[]
         );
-
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status !== "OK") {
-          toast({
-            title: "Oop! something went wrong",
-            description: response_json.message,
-          });
-          return;
-        }
-        setMessages(response_json.data as LoungeMessage[]);
       } catch (error) {
         throw error;
       }
     }
+
     getMessages();
   }, [params]);
 
@@ -143,7 +115,7 @@ export default function page() {
         user: data!.user!,
       } as WebsocketUserType)
     );
-    
+
     websocket.addEventListener("message", ({ data }) => {
       const message = JSON.parse(data) as WebsocketMessage;
 
@@ -204,7 +176,7 @@ export default function page() {
               </div>
               <Avatar>
                 <AvatarImage
-                  src={data?.user.profile_photo?.photo_url}
+                  src={data?.user.profile_photo?.url}
                   alt={data?.user.display_name.slice(0, 1).toUpperCase()}
                 />
                 <AvatarFallback>

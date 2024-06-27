@@ -1,32 +1,29 @@
 "use client";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ServerResponse } from "@/lib/types/sever-response";
-import { User } from "@/lib/types/client-types";
+import { Friend } from "@/lib/types/client-types";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import FriendList from "@/components/page/friends/FriendList";
 import { Input } from "@/components/ui/input";
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
 export default function Page() {
-  const [friends, setFriends] = useState<User[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<User[]>([]);
+  const [search_result, setSearchResult] = useState<Friend[]>([]);
   const { data } = useSession();
-  const server_url = useServerUrl();
+  const http_request = useHTTPRequest();
 
   useEffect(() => {
     async function getFriends() {
       try {
-        const response = await fetch(
-          server_url + "/v1/friends/" + data?.user.id
+        setFriends(
+          (await http_request.GET(
+            "/user" + data?.user.id + "/friends"
+          )) as Friend[]
         );
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status === "OK")
-          setFriends(response_json.data as User[]);
       } catch (error) {
         throw error;
       }
@@ -74,7 +71,7 @@ export default function Page() {
                       id: friend.id,
                       display_name: friend.display_name,
                       profile_photo: {
-                        photo_url: friend.profile_photo?.photo_url!,
+                      url: friend.profile_photo?.url!,
                       },
                       user_name: friend.user_name,
                     },
@@ -89,7 +86,7 @@ export default function Page() {
                       id: friend.id,
                       display_name: friend.display_name,
                       profile_photo: {
-                        photo_url: friend.profile_photo?.photo_url!,
+                        url: friend.profile_photo?.url!,
                       },
                       user_name: friend.user_name,
                     },
