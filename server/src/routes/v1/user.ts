@@ -3,7 +3,7 @@ import { compare, hash } from "bcrypt";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
 import { prisma } from "../../server";
-import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { JSONResponse, JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -20,7 +20,7 @@ router
       if (found_user)
         return response
           .status(409)
-          .json(responseWithoutData("CONFLICT", "email already used"));
+          .json(JSONResponse("CONFLICT", "email already used"));
 
       const new_user = await prisma.user.create({
         data: {
@@ -43,21 +43,14 @@ router
       return response
         .status(200)
         .json(
-          responseWithData(
-            "OK",
-            "user created",
-            exclude(new_user, ["password"])
-          )
+          JSONResponse("OK", "user created", exclude(new_user, ["password"]))
         );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -71,31 +64,24 @@ router
       if (!found_user)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "user does not exist"));
+          .json(JSONResponse("NOT_FOUND", "user does not exist"));
 
       if (!(await compare(password, found_user.password!)))
         return response
           .status(401)
-          .json(responseWithoutData("UNAUTHORIZED", "password incorrect"));
+          .json(JSONResponse("UNAUTHORIZED", "password incorrect"));
 
       return response
         .status(200)
         .json(
-          responseWithData(
-            "OK",
-            "user verified",
-            exclude(found_user, ["password"])
-          )
+          JSONResponse("OK", "user verified", exclude(found_user, ["password"]))
         );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -112,26 +98,19 @@ router
       if (!user)
         return response
           .status(404)
-          .send(responseWithoutData("NOT_FOUND", "user not found"));
+          .send(JSONResponse("NOT_FOUND", "user not found"));
 
       return response
         .status(200)
         .send(
-          responseWithData(
-            "OK",
-            "request successful",
-            exclude(user, ["password"])
-          )
+          JSONResponse("OK", "request successful", exclude(user, ["password"]))
         );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -147,7 +126,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot process request; user does not exist"
             )
@@ -169,7 +148,7 @@ router
       });
 
       return response.status(200).json(
-        responseWithData(
+        JSONResponse(
           "OK",
           "request successful",
           user?.room_membership.map((room) => ({ ...room.room }))
@@ -180,10 +159,7 @@ router
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -199,7 +175,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot process request; user does not exist"
             )
@@ -265,16 +241,13 @@ router
       }
       return response
         .status(200)
-        .json(responseWithData("OK", "request successful", friends));
+        .json(JSONResponse("OK", "request successful", friends));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -290,26 +263,19 @@ router
       if (!user)
         return response
           .status(404)
-          .send(responseWithoutData("NOT_FOUND", "user not found"));
+          .send(JSONResponse("NOT_FOUND", "user not found"));
 
       return response
         .status(200)
         .send(
-          responseWithData(
-            "OK",
-            "request successful",
-            exclude(user, ["password"])
-          )
+          JSONResponse("OK", "request successful", exclude(user, ["password"]))
         );
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -328,26 +294,20 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
-              "CONFLICT",
-              "cannot delete user; user does not exist"
-            )
+            JSONResponse("CONFLICT", "cannot delete user; user does not exist")
           );
 
       await prisma.user.delete({ where: { id: user.id } });
 
       return response
         .status(200)
-        .json(responseWithData("OK", "user deleted", null));
+        .json(JSONResponse("OK", "user deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   });

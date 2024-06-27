@@ -4,7 +4,7 @@ import { Router } from "express";
 import { createTransport } from "nodemailer";
 import OTPEmail from "../../lib/email/OTP";
 import { prisma } from "../../server";
-import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { JSONResponse, JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -61,18 +61,13 @@ router
           if (error) throw new Error(JSON.stringify(info));
         }
       );
-      return response
-        .status(200)
-        .json(responseWithData("OK", "OTP created", null));
+      return response.status(200).json(JSONResponse("OK", "OTP created", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -89,26 +84,23 @@ router
       if (!found_otp)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "OTP does not exist"));
+          .json(JSONResponse("NOT_FOUND", "OTP does not exist"));
 
       if (!found_otp.find((f_otp) => f_otp.value === otp))
         return response
           .status(401)
-          .json(responseWithoutData("UNAUTHORIZED", "OTP incorrect"));
+          .json(JSONResponse("UNAUTHORIZED", "OTP incorrect"));
 
       await prisma.otp.deleteMany({ where: { email } });
       return response
         .status(200)
-        .json(responseWithData("OK", "OTP verified", null));
+        .json(JSONResponse("OK", "OTP verified", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   });

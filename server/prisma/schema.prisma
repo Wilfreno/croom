@@ -10,10 +10,11 @@ datasource db {
 }
 
 model User {
-  id            String        @id @unique @default(uuid())
-  email         String        @unique
+  id            String         @id @unique @default(uuid())
+  email         String         @unique
   password      String?
   profile_photo ProfilePhoto?
+  notifications Notification[]
   birth_date    DateTime?
   display_name  String
   user_name     String
@@ -35,6 +36,21 @@ model User {
   date_created DateTime @default(now())
 }
 
+model Notification {
+  id                String           @id @unique
+  owner             User             @relation(fields: [id], references: [id])
+  type              NotificationType
+  friend_request    FriendRequest?   @relation(fields: [friend_request_id], references: [id])
+  friend_request_id String?          @unique
+  room_invite       RoomInvite?       @relation(fields: [room_invite_id], references: [id])
+  room_invite_id    String?           @unique
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  ROOM_INVITE
+}
+
 model ProfilePhoto {
   id           String   @id @unique @default(uuid())
   owner        User     @relation(fields: [owner_id], references: [id])
@@ -44,12 +60,13 @@ model ProfilePhoto {
 }
 
 model FriendRequest {
-  id           String   @id @unique
-  receiver     User     @relation("friend-request-receiver", fields: [receiver_id], references: [id])
+  id           String        @id @unique
+  receiver     User          @relation("friend-request-receiver", fields: [receiver_id], references: [id])
   receiver_id  String
-  sender       User     @relation("friend-request-sender", fields: [sender_id], references: [id])
+  sender       User          @relation("friend-request-sender", fields: [sender_id], references: [id])
   sender_id    String
-  date_created DateTime @default(now())
+  notification Notification?
+  date_created DateTime      @default(now())
 
   @@unique([sender_id, receiver_id])
 }
@@ -104,7 +121,7 @@ model Room {
   photo        RoomPhoto?
   name         String       @unique
   type         RoomType
-  invite      RoomInvite?
+  invite       RoomInvite?
   members      RoomMember[]
   lounge       Lounge?
   sessions     Session[]
@@ -117,10 +134,12 @@ enum RoomType {
 }
 
 model RoomInvite {
-  id           String   @id @unique @default(uuid())
-  room         Room?     @relation(fields: [room_id], references: [id])
-  room_id      String? @unique
+  id           String        @id @unique @default(uuid())
+  room         Room?         @relation(fields: [room_id], references: [id])
+  room_id      String?       @unique
   code         String
+  notification Notification?
+
   last_updated DateTime @default(now())
   date_created DateTime @default(now())
 }

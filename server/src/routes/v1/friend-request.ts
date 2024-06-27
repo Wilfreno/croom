@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../server";
 import { User } from "@prisma/client";
 import exclude from "../../lib/exclude";
-import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { JSONResponse, JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -18,7 +18,7 @@ router
         return response
           .status(400)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "BAD_REQUEST",
               "sender and receiver on request body is required; {sender:username, receiver: username}"
             )
@@ -34,7 +34,7 @@ router
       if (!found_sender || !found_receiver)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "user cannot be found"));
+          .json(JSONResponse("NOT_FOUND", "user cannot be found"));
 
       const friendship_id = [found_sender, found_sender].sort().join("-");
 
@@ -48,7 +48,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               found_sender.display_name +
                 " and " +
@@ -64,9 +64,7 @@ router
       if (found_request)
         return response
           .status(409)
-          .json(
-            responseWithoutData("CONFLICT", "already sent a friend request")
-          );
+          .json(JSONResponse("CONFLICT", "already sent a friend request"));
 
       const friend_request = await prisma.friendRequest.create({
         data: {
@@ -89,7 +87,7 @@ router
       });
 
       return response.status(200).json(
-        responseWithData("OK", "friend request sent", {
+        JSONResponse("OK", "friend request sent", {
           sender: exclude(friend_request.sender, ["password"]),
           receiver: exclude(friend_request.receiver, ["password"]),
           date_created: friend_request.date_created,
@@ -100,10 +98,7 @@ router
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -121,7 +116,7 @@ router
         response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot add friend; request does not exist"
             )
@@ -143,16 +138,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "friend request accepted", null));
+        .json(JSONResponse("OK", "friend request accepted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(400)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -166,7 +158,7 @@ router
         return response
           .status(400)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "BAD_REQUEST",
               "user id as params is needed; /friend-request/:id"
             )
@@ -179,7 +171,7 @@ router
       if (!found_user)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "user not found"));
+          .json(JSONResponse("NOT_FOUND", "user not found"));
 
       const friend_request = await prisma.friendRequest.findMany({
         where: {
@@ -208,16 +200,13 @@ router
       }
       return response
         .status(200)
-        .json(responseWithData("OK", "request successful", user_list));
+        .json(JSONResponse("OK", "request successful", user_list));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -229,7 +218,7 @@ router
         return response
           .status(400)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "BAD_REQUEST",
               "user id as params is needed; /friend-request/:id"
             )
@@ -242,7 +231,7 @@ router
       if (!found_user)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "user not found"));
+          .json(JSONResponse("NOT_FOUND", "user not found"));
 
       const friend_request = await prisma.friendRequest.findMany({
         where: { receiver_id: user_id },
@@ -267,16 +256,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "request successful", user_list));
+        .json(JSONResponse("OK", "request successful", user_list));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -298,7 +284,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot delete request; request does not exist"
             )
@@ -312,16 +298,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "friend request declined", null));
+        .json(JSONResponse("OK", "friend request declined", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(400)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   });

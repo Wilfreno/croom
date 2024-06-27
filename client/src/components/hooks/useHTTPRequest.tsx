@@ -17,13 +17,17 @@ export default function useHTTPRequest() {
   async function responseJSON(response: Response) {
     try {
       const response_json = (await response.json()) as ServerResponse;
-      if (response_json.status !== "OK") {
+
+      if (
+        response_json.status !== "OK" &&
+        response_json.status !== "NOT_FOUND"
+      ) {
         toast({
           title: "Oops! something went wrong",
           description: response_json.message,
         });
-        return;
       }
+
       return response_json.data;
     } catch (error) {
       throw error;

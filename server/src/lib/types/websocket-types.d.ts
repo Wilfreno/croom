@@ -3,8 +3,10 @@ import {
   FriendRequest,
   Lounge,
   LoungeMessage,
+  Notification,
   ProfilePhoto,
   Room,
+  RoomInvite,
   RoomMember,
   Session,
   SessionMessage,
@@ -23,6 +25,7 @@ export type WebSocketPayloadType =
   | WebsocketUserType
   | WebsocketFriendRequestType
   | WebsocketDirectMessageType
+  | Notification
   | RoomMember
   | WebsocketLoungeMessageType
   | WebsocketRoomSessionType
@@ -33,6 +36,7 @@ export type WebsocketMessageType =
   | "online-friend"
   | "online-room-member"
   | "offline"
+  | "notification"
   | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
@@ -45,6 +49,7 @@ export type WebsocketMessageType =
   | "leave-session"
   | "send-session-message"
   | "error";
+
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;
@@ -57,7 +62,7 @@ export type WebsocketUserType = {
     user_name: User["user_name"];
     display_name: User["display_name"];
     profile_photo: {
-      url: ProfilePhoto["photo_url"];
+      url: ProfilePhoto["url"];
     };
   };
   websocket?: WebSocket;

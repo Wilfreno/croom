@@ -3,6 +3,7 @@ export type User = {
   email: string;
   password: string;
   profile_photo?: ProfilePhoto;
+  notifications: Notification[];
   birth_date?: Date;
   display_name: string;
   user_name: string;
@@ -24,6 +25,18 @@ export type User = {
   date_created?: Date;
 };
 
+export type Notification = {
+  id: string;
+  owner?: User;
+  type?: NotificationType;
+  friend_request?: FriendRequest;
+  friend_request_id?: string;
+  room_invite?: RoomInvite;
+  room_invite_id?: string;
+};
+
+type NotificationType = "FRIEND_REQUEST" | "ROOM_INVITE";
+
 export type ProfilePhoto = {
   id: string;
   owner?: User;
@@ -38,6 +51,7 @@ export type FriendRequest = {
   receiver_id: string;
   sender?: User;
   sender_id: string;
+  notification?: Notification;
   date_created?: Date;
 };
 
@@ -97,6 +111,7 @@ export type RoomInvite = {
   room?: Room;
   room_id: string;
   code: string;
+  notification?: Notification;
   last_updated?: Date;
   date_created?: Date;
 };
@@ -209,4 +224,15 @@ export type Otp = {
   email: string;
   value: string;
   date_created?: Date;
+};
+
+//client side only entity
+export type Friend = {
+  id: string;
+  user_name: string;
+  display_name: string;
+  profile_photo: {
+    url: string;
+  };
+  friends_since: Date;
 };

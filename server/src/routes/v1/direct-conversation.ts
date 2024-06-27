@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../server";
 import { DirectConversation, DirectMessage } from "@prisma/client";
-import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { JSONResponse, JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -81,16 +81,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "message sent", conversation.messages[0]));
+        .json(JSONResponse("OK", "message sent", conversation.messages[0]));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -105,7 +102,7 @@ router
         return response
           .status(400)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "BAD_REQUEST",
               "user_id and friend_id is required as a query parameter; /direct-message?user_id=&friend_id="
             )
@@ -140,16 +137,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "request successful", messages));
+        .json(JSONResponse("OK", "request successful", messages));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -164,7 +158,7 @@ router
       if (!found_user)
         return response
           .status(404)
-          .json(responseWithoutData("NOT_FOUND", "user does not exist"));
+          .json(JSONResponse("NOT_FOUND", "user does not exist"));
 
       const direct_conversation = await prisma.directConversation.findMany({
         where: {
@@ -201,18 +195,13 @@ router
 
       return response
         .status(200)
-        .json(
-          responseWithData("OK", "request successful", direct_conversation)
-        );
+        .json(JSONResponse("OK", "request successful", direct_conversation));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -232,7 +221,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot delete message; message does not exist"
             )
@@ -246,16 +235,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "message deleted", null));
+        .json(JSONResponse("OK", "message deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   })
@@ -267,7 +253,7 @@ router
         return response
           .status(400)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "BAD_REQUEST",
               "message_id field on the request body is required "
             )
@@ -281,7 +267,7 @@ router
         return response
           .status(409)
           .json(
-            responseWithoutData(
+            JSONResponse(
               "CONFLICT",
               "cannot delete message; message does not exist"
             )
@@ -295,16 +281,13 @@ router
 
       return response
         .status(200)
-        .json(responseWithData("OK", "message deleted", null));
+        .json(JSONResponse("OK", "message deleted", null));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response
         .status(500)
         .json(
-          responseWithoutData(
-            "INTERNAL_SERVER_ERROR",
-            "oops! something went wrong"
-          )
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
         );
     }
   });

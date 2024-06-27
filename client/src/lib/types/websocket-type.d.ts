@@ -1,8 +1,10 @@
 import {
   DirectMessage,
   LoungeMessage,
+  Notification,
   PhotoMessage,
   ProfilePhoto,
+  RoomInvite,
   RoomMember,
   Session,
   TextMessage,
@@ -10,7 +12,7 @@ import {
   VideoMessage,
 } from "./client-types";
 
-export type WebsocketMessage = {
+export type WebSocketMessage = {
   type: WebsocketMessageType;
   payload: WebSocketPayloadType;
 };
@@ -20,15 +22,18 @@ export type WebSocketPayloadType =
   | WebsocketUserType
   | WebsocketFriendRequestType
   | WebsocketDirectMessageType
+  | Notification
   | RoomMember
   | WebsocketLoungeMessageType
   | WebsocketRoomSessionType
-  | WebsocketSessionMessageType;
+  | WebsocketSessionMessageType
+  | WebsocketRoomMemberType;
 
 export type WebsocketMessageType =
   | "online-friend"
   | "online-room-member"
   | "offline"
+  | "notification"
   | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
@@ -41,6 +46,7 @@ export type WebsocketMessageType =
   | "leave-session"
   | "send-session-message"
   | "error";
+
 export type WebsocketFriendRequestType = {
   sender: WebsocketUserType;
   receiver: WebsocketUserType;
@@ -65,14 +71,14 @@ export interface WebsocketDirectMessageType extends DirectMessage {
   video_message?: VideoMessage;
 }
 
+export type WebsocketRoomMemberType = RoomMember & WebsocketUserType;
+
 export interface WebsocketLoungeMessageType extends LoungeMessage {
   sender: WebsocketUserType;
   text_message?: TextMessage;
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
 }
-
-export type WebsocketRoomMemberType = RoomMember & WebsocketUserType;
 
 export type WebsocketRoomSessionType = {
   room_member: RoomMember;

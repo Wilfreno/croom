@@ -2,7 +2,7 @@ import { User } from "@prisma/client";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
 import { prisma } from "../../server";
-import { responseWithData, responseWithoutData } from "../../lib/response-json";
+import { JSONResponse, JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;
@@ -21,7 +21,7 @@ router.delete("/", async (request, response) => {
       return response
         .status(409)
         .json(
-          responseWithoutData(
+          JSONResponse(
             "CONFLICT",
             "cannot delete friendship; friendship does not exist"
           )
@@ -35,16 +35,13 @@ router.delete("/", async (request, response) => {
 
     return response
       .status(200)
-      .json(responseWithData("OK", "friendship deleted", null));
+      .json(JSONResponse("OK", "friendship deleted", null));
   } catch (error) {
     if (environment_mode === "development") console.error(error);
     return response
       .status(500)
       .json(
-        responseWithoutData(
-          "INTERNAL_SERVER_ERROR",
-          "oops! something went wrong"
-        )
+        JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
       );
   }
 });
