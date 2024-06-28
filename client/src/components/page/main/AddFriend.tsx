@@ -14,10 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { FriendRequest } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
-import {
-  WebsocketMessage,
-  WebsocketFriendRequestType,
-} from "@/lib/types/websocket-type";
+import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
 import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -60,32 +57,6 @@ export default function AddFriend() {
                 receiver: username,
               }
             )) as FriendRequest;
-
-            websocket?.send(
-              websocketMessage("send-friend-request", {
-                sender: {
-                  user: {
-                    id: data?.user.id,
-                    display_name: data!.user.display_name,
-                    profile_photo: {
-                      url: data?.user.profile_photo?.url,
-                    },
-                    user_name: data?.user.user_name,
-                  },
-                },
-                receiver: {
-                  user: {
-                    id: friend_request.receiver!.id,
-                    display_name: friend_request.receiver!.display_name,
-                    profile_photo: {
-                      url: friend_request.receiver!.profile_photo?.url,
-                    },
-                    user_name: friend_request.receiver!.user_name!,
-                  },
-                },
-                date_created: friend_request.date_created,
-              } as WebsocketFriendRequestType)
-            );
 
             setSending(false);
           }}

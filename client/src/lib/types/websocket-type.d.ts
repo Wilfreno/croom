@@ -48,8 +48,8 @@ export type WebsocketMessageType =
   | "error";
 
 export type WebsocketFriendRequestType = {
-  sender: WebsocketUserType;
-  receiver: WebsocketUserType;
+  sender_id: WebsocketUserType[""];
+  receiver_id: WebsocketUserType;
   date_created?: Date;
 };
 

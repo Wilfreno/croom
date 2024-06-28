@@ -1,16 +1,16 @@
 "use client";
 
-import { setFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
 import { setOnlineFriends } from "@/lib/redux/slices/online-friends-slice";
 import { AppDispatch } from "@/lib/redux/store";
 import {
-  WebsocketFriendRequestType,
-  WebsocketMessage,
+  WebSocketMessage,
   WebsocketUserType,
 } from "@/lib/types/websocket-type";
 import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useWebsocket } from "./hooks/useWebsocket";
+import { Notification } from "@/lib/types/client-types";
+import { setNotification } from "@/lib/redux/slices/notification-slice";
 
 export default function WebsocketMessageHandler({
   children,
@@ -21,10 +21,8 @@ export default function WebsocketMessageHandler({
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    websocket?.addEventListener("message", ({data}) => {
-      const message = JSON.parse(
-        data
-      ) as WebsocketMessage;
+    websocket?.addEventListener("message", ({ data }) => {
+      const message = JSON.parse(data) as WebSocketMessage;
 
       switch (message.type) {
         case "online-friend": {
@@ -38,13 +36,11 @@ export default function WebsocketMessageHandler({
           dispatch(setOnlineFriends({ operation: "remove", content: payload }));
           break;
         }
-        case "send-friend-request": {
-          const payload = message.payload as WebsocketFriendRequestType;
+        case "notification": {
+          const payload = message.payload as Notification;
           dispatch(
-            setFriendRequestList({ operation: "add", content: payload })
+            setNotification({ operation: "add", notification: payload })
           );
-
-          break;
         }
         default:
           return;

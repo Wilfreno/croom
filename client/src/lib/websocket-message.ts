@@ -1,6 +1,5 @@
 import {
   WebSocketPayloadType,
-  WebsocketMessage,
   WebsocketMessageType,
 } from "./types/websocket-type";
 

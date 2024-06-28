@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../server";
 import { User } from "@prisma/client";
 import exclude from "../../lib/exclude";
-import { JSONResponse, JSONResponse } from "../../lib/response-json";
+import { JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;

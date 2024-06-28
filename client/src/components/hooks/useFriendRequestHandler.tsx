@@ -1,29 +1,26 @@
 "use client";
 import { useToast } from "@/components/ui/use-toast";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
 import { FriendRequest } from "@/lib/types/client-types";
-import { setFriendRequestList } from "@/lib/redux/slices/friend-requests-slice";
 import { useWebsocket } from "./useWebsocket";
 import useHTTPRequest from "./useHTTPRequest";
 import websocketMessage from "@/lib/websocket-message";
+import { setNotification } from "@/lib/redux/slices/notification-slice";
 
 export default function useFriendRequestHandler() {
-  const friend_request_list = useAppSelector(
-    (state) => state.friend_request_list_reducer
+  const [friend_request_list, setFriendRequestList] = useState<FriendRequest[]>(
+    []
   );
 
+  const notifications = useAppSelector((state) => state.notification_reducer);
   const dispatch = useDispatch<AppDispatch>();
-
   const { data } = useSession();
   const websocket = useWebsocket();
-  const { toast } = useToast();
-  const router = useRouter();
   const http_request = useHTTPRequest();
 
   async function getFriendRequest() {
@@ -32,37 +29,7 @@ export default function useFriendRequestHandler() {
         "/v1/user/" + data!.user.id + "/friend-request/received"
       )) as FriendRequest[];
 
-      for (const request of friend_requests) {
-        dispatch(
-          setFriendRequestList({
-            operation: "add",
-            content: {
-              sender: {
-                user: {
-                  id: request.sender_id,
-                  display_name: request.sender?.display_name!,
-                  profile_photo: {
-                    url: request.sender?.profile_photo?.url!,
-                  },
-                  user_name: request.sender?.user_name!,
-                },
-              },
-              receiver: {
-                user: {
-                  id: request.receiver_id,
-                  display_name: request.receiver?.display_name!,
-                  profile_photo: {
-                    url: request.receiver?.profile_photo?.url!,
-                  },
-                  user_name: request.receiver?.user_name!,
-                },
-              },
-              date_created: request.date_created,
-            },
-          })
-        );
-      }
-      router.refresh();
+      setFriendRequestList((prev) => [...prev, ...friend_requests]);
     } catch (error) {
       throw error;
     }
@@ -92,10 +59,17 @@ export default function useFriendRequestHandler() {
       websocket?.send(websocketMessage("accept-friend-request", payload));
 
       setTimeout(() => {
-        dispatch(
-          setFriendRequestList({ operation: "remove", content: payload })
+        setFriendRequestList((prev) =>
+          prev.filter((fr) => fr.sender_id !== sender.user.id)
         );
-        router.refresh();
+        dispatch(
+          setNotification({
+            operation: "remove",
+            notification: notifications.find(
+              (nt) => nt.friend_request?.sender_id === sender.user.id
+            )!,
+          })
+        );
       }, 3000);
     } catch (error) {
       throw error;
@@ -124,11 +98,19 @@ export default function useFriendRequestHandler() {
       } as WebsocketFriendRequestType;
 
       setTimeout(() => {
-        dispatch(
-          setFriendRequestList({ operation: "remove", content: payload })
-        );
-
-        router.refresh();
+        setTimeout(() => {
+          setFriendRequestList((prev) =>
+            prev.filter((fr) => fr.sender_id !== sender.user.id)
+          );
+          dispatch(
+            setNotification({
+              operation: "remove",
+              notification: notifications.find(
+                (nt) => nt.friend_request?.sender_id === sender.user.id
+              )!,
+            })
+          );
+        }, 3000);
       }, 3000);
     } catch (error) {
       throw error;
@@ -138,6 +120,15 @@ export default function useFriendRequestHandler() {
   useEffect(() => {
     if (data) getFriendRequest();
   }, [data]);
+
+  useEffect(() => {
+    setFriendRequestList((prev) => [
+      ...prev,
+      ...notifications
+        .filter((n) => n.type === "FRIEND_REQUEST")
+        .map((n) => n.friend_request!)!,
+    ]);
+  }, [notifications]);
 
   return {
     friend_request_list,
