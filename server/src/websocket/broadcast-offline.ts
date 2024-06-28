@@ -22,11 +22,11 @@ export default async function broadcastOffline(
 
   const friendship = await prisma.friendship.findMany({
     where: {
-      OR: [{ friend_1_id: user_id }, { friend_2_id: user_id }],
+      OR: [{ user_1_id: user_id }, { user_2_id: user_id }],
     },
     select: {
-      friend_1_id: true,
-      friend_2_id: true,
+      user_1_id: true,
+      user_2_id: true,
     },
   });
 
@@ -35,28 +35,24 @@ export default async function broadcastOffline(
   const current_user = online.get(user_id);
 
   for (let i = 0; i < friendship.length!; i++) {
-    if (friendship[i].friend_1_id !== user_id)
-      friends.add(friendship[i].friend_1_id);
-    if (friendship[i].friend_2_id !== user_id)
-      friends.add(friendship[i].friend_2_id);
+    if (friendship[i].user_1_id !== user_id)
+      friends.add(friendship[i].user_1_id);
+    if (friendship[i].user_2_id !== user_id)
+      friends.add(friendship[i].user_2_id);
   }
 
   for (const friend_id of friends) {
     const friend = online.get(friend_id);
 
     if (friend) {
-      friend.websocket!.send(
-        createMessage("offline", { user: current_user!.user })
-      );
+      friend.websocket!.send(createMessage("offline", current_user!));
     }
   }
 
   for (const room_member of room_member_list) {
     lounge.get(room_member.room_id)?.forEach((member) => {
-      if (member.user.id !== current_user?.user.id) {
-        member.websocket?.send(
-          createMessage("offline", { user: current_user?.user! })
-        );
+      if (member.id !== current_user?.id) {
+        member.websocket?.send(createMessage("offline", current_user!));
       }
     });
   }

@@ -4,7 +4,7 @@ import { Router } from "express";
 import { createTransport } from "nodemailer";
 import OTPEmail from "../../lib/email/OTP";
 import { prisma } from "../../server";
-import { JSONResponse, JSONResponse } from "../../lib/response-json";
+import {  JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;

@@ -85,18 +85,16 @@ export default function WebsocketServer(
 
     //enlisting the user to the online map and broadcasting it to every room the user is in
     online.set(user.id, {
-      user: {
-        id: user.id,
-        display_name: user.display_name,
-        user_name: user.user_name,
-        profile_photo: {
-          url: user.profile_photo?.url!,
-        },
+      id: user.id,
+      display_name: user.display_name,
+      user_name: user.user_name,
+      profile_photo: {
+        url: user.profile_photo?.url!,
       },
       websocket: socket,
     });
 
-    await broadcastOnline(user.id, online, lounge);
+     await broadcastOnline(user.id, online, lounge);
 
     //websocket event handlers
     socket.on("message", (client_message) => {

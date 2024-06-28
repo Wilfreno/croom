@@ -3,7 +3,7 @@ import { compare, hash } from "bcrypt";
 import { Router } from "express";
 import exclude from "../../lib/exclude";
 import { prisma } from "../../server";
-import { JSONResponse, JSONResponse } from "../../lib/response-json";
+import { JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;

@@ -51,19 +51,17 @@ export type WebsocketMessageType =
   | "error";
 
 export type WebsocketFriendRequestType = {
-  sender: WebsocketUserType;
-  receiver: WebsocketUserType;
+  sender_id: WebsocketUserType["id"];
+  receiver_id: WebsocketUserType["id"];
   date_created?: Date;
 };
 
 export type WebsocketUserType = {
-  user: {
-    id: User["id"];
-    user_name: User["user_name"];
-    display_name: User["display_name"];
-    profile_photo: {
-      url: ProfilePhoto["url"];
-    };
+  id: User["id"];
+  user_name: User["user_name"];
+  display_name: User["display_name"];
+  profile_photo: {
+    url: ProfilePhoto["url"];
   };
   websocket?: WebSocket;
 };

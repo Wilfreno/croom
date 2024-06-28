@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../server";
 import { DirectConversation, DirectMessage } from "@prisma/client";
-import { JSONResponse, JSONResponse } from "../../lib/response-json";
+import {  JSONResponse } from "../../lib/response-json";
 
 const router = Router();
 const environment_mode = process.env.NODE_ENV;

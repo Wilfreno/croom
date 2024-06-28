@@ -8,16 +8,13 @@ export default function acceptFriendRequest(
   payload: WebsocketFriendRequestType,
   online: Map<string, WebsocketUserType>
 ) {
-  if (!online.has(payload.sender.user.id)) return;
+  if (!online.has(payload.sender_id)) return;
 
-  online
-    .get(payload.sender.user.id)
-    ?.websocket!.send(
-      createMessage("online-friend", { user: payload.receiver.user })
-    );
-  online
-    .get(payload.receiver.user.id)
-    ?.websocket!.send(
-      createMessage("online-friend", { user: payload.sender.user })
-    );
+  const sender = online.get(payload.sender_id);
+
+  sender?.websocket!.send(createMessage("online-friend", sender!));
+
+  const receiver = online.get(payload.receiver_id);
+
+  receiver?.websocket!.send(createMessage("online-friend", receiver!));
 }

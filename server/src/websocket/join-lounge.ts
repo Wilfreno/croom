@@ -20,13 +20,9 @@ export default function joinLounge(
     ?.set(payload.id, { ...payload, ...current_user! });
 
   lounge.get(payload.room_id)?.forEach((member) => {
-    if (member.user.id !== current_user?.user.id) {
-      member.websocket!.send(
-        createMessage("join-lounge", { user: current_user?.user! })
-      );
-      current_user?.websocket?.send(
-        createMessage("join-lounge", { user: member.user })
-      );
+    if (member.id !== current_user?.id) {
+      member.websocket!.send(createMessage("join-lounge", current_user!));
+      current_user?.websocket?.send(createMessage("join-lounge", member));
     }
   });
 }
