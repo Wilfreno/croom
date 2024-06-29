@@ -47,7 +47,7 @@ export default function RoomSideBar() {
           <div className="flex items-center space-x-3 truncate w-[18rem]">
             <Avatar>
               <AvatarImage
-                src={room?.photo.url}
+                src={room?.photo!.url}
                 alt={room?.name.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback>

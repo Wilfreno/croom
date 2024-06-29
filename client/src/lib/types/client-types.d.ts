@@ -1,9 +1,9 @@
 export type User = {
   id: string;
   email: string;
-  password: string;
+  password?: string;
   profile_photo?: ProfilePhoto;
-  notifications: Notification[];
+  notifications?: Notification[];
   birth_date?: Date;
   display_name: string;
   user_name: string;
@@ -119,7 +119,7 @@ export type RoomInvite = {
 export type RoomPhoto = {
   id: string;
   room?: Room;
-  room_id: string;
+  room_id?: string;
   url: string;
   height: Int;
   width: Int;
@@ -184,11 +184,11 @@ export type SessionMessage = {
 export type TextMessage = {
   id: string;
   direct_message?: DirectMessage;
-  direct_message_id: string;
+  direct_message_id?: string;
   lounge_message?: LoungeMessage;
-  lounge_message_id: string;
+  lounge_message_id?: string;
   session_message?: SessionMessage;
-  session_message_id: string;
+  session_message_id?: string;
   content: string;
   date_created?: Date;
 };

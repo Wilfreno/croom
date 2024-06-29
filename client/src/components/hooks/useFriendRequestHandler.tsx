@@ -35,38 +35,29 @@ export default function useFriendRequestHandler() {
     }
   }
 
-  async function accept(sender: WebsocketFriendRequestType["sender"]) {
+  async function accept(sender: FriendRequest["sender"]) {
     try {
       await http_request.POST("/v1/friend-request/accept", {
-        sender_id: sender.user.id,
+        sender_id: sender!.id,
         receiver_id: data?.user.id,
       });
 
       const payload = {
-        sender,
-        receiver: {
-          user: {
-            id: data?.user.id,
-            display_name: data?.user.display_name!,
-            profile_photo: {
-              url: data?.user.profile_photo?.url!,
-            },
-            user_name: data?.user.user_name!,
-          },
-        },
+        sender_id: sender!.id,
+        receiver_id: data!.user.id,
       } as WebsocketFriendRequestType;
 
       websocket?.send(websocketMessage("accept-friend-request", payload));
 
       setTimeout(() => {
         setFriendRequestList((prev) =>
-          prev.filter((fr) => fr.sender_id !== sender.user.id)
+          prev.filter((fr) => fr.sender_id !== sender!.id)
         );
         dispatch(
           setNotification({
             operation: "remove",
             notification: notifications.find(
-              (nt) => nt.friend_request?.sender_id === sender.user.id
+              (nt) => nt.friend_request?.sender_id === sender!.id
             )!,
           })
         );
@@ -76,37 +67,23 @@ export default function useFriendRequestHandler() {
     }
   }
 
-  async function decline(sender: WebsocketFriendRequestType["sender"]) {
+  async function decline(sender: FriendRequest["sender"]) {
     try {
       await http_request.DELETE("/v1/friend-request/decline", {
-        sender_id: sender.user.id,
-        receiver_id: data?.user.id,
+        sender_id: sender!.id,
+        receiver_id: data!.user.id,
       });
-
-      const payload = {
-        sender,
-        receiver: {
-          user: {
-            id: data?.user.id,
-            display_name: data?.user.display_name!,
-            profile_photo: {
-              url: data?.user.profile_photo?.url!,
-            },
-            user_name: data?.user.user_name!,
-          },
-        },
-      } as WebsocketFriendRequestType;
 
       setTimeout(() => {
         setTimeout(() => {
           setFriendRequestList((prev) =>
-            prev.filter((fr) => fr.sender_id !== sender.user.id)
+            prev.filter((fr) => fr.sender_id !== sender!.id)
           );
           dispatch(
             setNotification({
               operation: "remove",
               notification: notifications.find(
-                (nt) => nt.friend_request?.sender_id === sender.user.id
+                (nt) => nt.friend_request?.sender_id === sender!.id
               )!,
             })
           );

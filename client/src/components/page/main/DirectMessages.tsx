@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/ui/use-toast";
 import { DirectConversation } from "@/lib/types/client-types";
 import {
-  WebsocketMessage,
+  WebSocketMessage,
   WebsocketDirectMessageType,
 } from "@/lib/types/websocket-type";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ export default function DirectMessages() {
 
   useEffect(() => {
     websocket?.addEventListener("message", async (websocket_message) => {
-      const message = JSON.parse(websocket_message.data) as WebsocketMessage;
+      const message = JSON.parse(websocket_message.data) as WebSocketMessage;
 
       const payload = message.payload as WebsocketDirectMessageType;
       if (message.type === "send-direct-message") {

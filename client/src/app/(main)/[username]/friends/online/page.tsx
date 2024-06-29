@@ -22,7 +22,7 @@ export default function Page() {
 
     setSearchResult(
       online_friends.filter((friend) =>
-        friend.user.display_name.startsWith("search")
+        friend.display_name.startsWith("search")
       )
     );
   }, [search]);
@@ -50,10 +50,10 @@ export default function Page() {
         <ul className="px-3 space-y-3">
           {search
             ? search_result?.map((friend, index) => (
-                <FriendList key={friend.user.id} friend={friend} />
+                <FriendList key={friend.id} friend={friend} />
               ))
             : online_friends?.map((friend, index) => (
-                <FriendList key={friend.user.id} friend={friend} />
+                <FriendList key={friend.id} friend={friend} />
               ))}
         </ul>
       </ScrollArea>

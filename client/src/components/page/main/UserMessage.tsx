@@ -11,7 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "@/components/ui/use-toast";
 import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
@@ -80,7 +79,7 @@ export default function UserMessage({
         </motion.div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
-            {new Date(message.date_created).toLocaleString()}
+            {new Date(message.date_created!).toLocaleString()}
           </p>
         )}
       </div>
@@ -132,7 +131,7 @@ export default function UserMessage({
         </div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap mx-5 my-1">
-            {new Date(message.date_created).toLocaleString()}
+            {new Date(message.date_created!).toLocaleString()}
           </p>
         )}
       </div>

@@ -18,12 +18,12 @@ export default function NewRoomName() {
     dispatch(
       setNewRoom({
         ...new_room,
-        room_name: data?.user.display_name + "'s room",
+        name: data?.user.display_name + "'s room",
       })
     );
   }, [data]);
 
-    return (
+  return (
     <div className="flex flex-col items-start space-y-3">
       <Label htmlFor="room-name" className="font-bold mx-3">
         Room name
@@ -34,9 +34,7 @@ export default function NewRoomName() {
         value={name}
         onChange={(e) => {
           setName(e.currentTarget.value);
-          dispatch(
-            setNewRoom({ ...new_room, room_name: e.currentTarget.value })
-          );
+          dispatch(setNewRoom({ ...new_room, name: e.currentTarget.value }));
         }}
         className="h-10"
       />

@@ -80,7 +80,7 @@ export default function LoungeMsg({
         </motion.div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap">
-            {new Date(message.date_created).toLocaleString()}
+            {new Date(message.date_created!).toLocaleString()}
           </p>
         )}
       </div>
@@ -132,7 +132,7 @@ export default function LoungeMsg({
         </div>
         {display_date && (
           <p className="text-xs w-fit whitespace-nowrap mx-5 my-1">
-            {new Date(message.date_created).toLocaleString()}
+            {new Date(message.date_created!).toLocaleString()}
           </p>
         )}
       </div>

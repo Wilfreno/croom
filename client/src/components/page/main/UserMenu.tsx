@@ -14,7 +14,7 @@ export default function UserMenu() {
       >
         <Avatar>
           <AvatarImage
-            src={data?.user.profile_photo?.photo_url!}
+            src={data?.user.profile_photo?.url!}
             alt={data?.user.user_name?.slice(0, 1).toUpperCase()}
           />
           <AvatarFallback>

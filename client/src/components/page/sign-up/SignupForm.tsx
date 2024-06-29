@@ -11,7 +11,6 @@ import OtpVerification from "./OtpVerification";
 import { CheckedState } from "@radix-ui/react-checkbox";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useToast } from "@/components/ui/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import BirthDate from "./BirthDate";
 import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 
@@ -23,8 +22,8 @@ export default function SignUpForm() {
     email: "",
     birth_date: undefined,
     password: "",
-    provider: "",
   });
+
   const [agree, setAgree] = useState<CheckedState>(false);
   const [view_otp, setViewOTP] = useState(false);
   const [creating_otp, setCreatingOtp] = useState(false);

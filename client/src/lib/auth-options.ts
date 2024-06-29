@@ -106,12 +106,11 @@ const auth_options: AuthOptions = {
             profile_photo: {
               owner_id: "",
               id: profile.sub!,
-              photo_url: profile.picture,
+              url: profile.picture,
               date_created: new Date(),
             },
             birth_date: undefined,
             date_created: undefined,
-            provider: account?.provider!,
           };
         }
 

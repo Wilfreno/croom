@@ -18,7 +18,7 @@ const online_friends = createSlice({
         }
         case "remove":
           return prev.filter(
-            (friend) => friend.user.id !== action.payload.content.user.id
+            (friend) => friend.id !== action.payload.content.id
           );
       }
     },

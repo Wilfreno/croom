@@ -67,14 +67,12 @@ export default function Page() {
                 <FriendList
                   key={friend.id}
                   friend={{
-                    user: {
-                      id: friend.id,
-                      display_name: friend.display_name,
-                      profile_photo: {
+                    id: friend.id,
+                    display_name: friend.display_name,
+                    profile_photo: {
                       url: friend.profile_photo?.url!,
-                      },
-                      user_name: friend.user_name,
                     },
+                    user_name: friend.user_name,
                   }}
                 />
               ))
@@ -82,14 +80,12 @@ export default function Page() {
                 <FriendList
                   key={friend.id}
                   friend={{
-                    user: {
-                      id: friend.id,
-                      display_name: friend.display_name,
-                      profile_photo: {
-                        url: friend.profile_photo?.url!,
-                      },
-                      user_name: friend.user_name,
+                    id: friend.id,
+                    display_name: friend.display_name,
+                    profile_photo: {
+                      url: friend.profile_photo?.url!,
                     },
+                    user_name: friend.user_name,
                   }}
                 />
               ))}

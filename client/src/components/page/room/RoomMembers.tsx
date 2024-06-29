@@ -1,12 +1,12 @@
 "use client";
 
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import { useToast } from "@/components/ui/use-toast";
 import { RoomMember } from "@/lib/types/client-types";
 import { ServerResponse } from "@/lib/types/sever-response";
 import {
-  WebsocketMessage,
+  WebSocketMessage,
   WebsocketRoomMemberType,
   WebsocketUserType,
 } from "@/lib/types/websocket-type";
@@ -18,33 +18,24 @@ interface OnlineMember extends RoomMember {
 }
 
 export default function RoomMembers() {
-  const params = useParams<{ id: string }>();
-  const server_url = useServerUrl();
-  const { toast } = useToast();
-  const websocket = useWebsocket();
-
   const [room_members, setRoomMembers] = useState<OnlineMember[]>();
   const member_status_ref = useRef(new Map<OnlineMember["id"], number>());
+
+  const params = useParams<{ id: string }>();
+  const { toast } = useToast();
+  const websocket = useWebsocket();
+  const http_request = useHTTPRequest();
 
   useEffect(() => {
     if (!params.id) return;
 
     async function getRoomMembers() {
       try {
-        const response = await fetch(
-          server_url + "/room/" + params.id + "/members"
+        setRoomMembers(
+          (await http_request.GET(
+            "/room/" + params.id + "/members"
+          )) as RoomMember[]
         );
-
-        const response_json = (await response.json()) as ServerResponse;
-
-        if (response_json.status !== "OK") {
-          toast({
-            title: "Oops! something went wrong",
-            description: response_json.message,
-          });
-          return;
-        }
-        setRoomMembers(response_json.data as RoomMember[]);
       } catch (error) {
         throw error;
       }
@@ -64,7 +55,7 @@ export default function RoomMembers() {
     if (!websocket) return;
 
     websocket.addEventListener("message", ({ data }) => {
-      const message = JSON.parse(data) as WebsocketMessage;
+      const message = JSON.parse(data) as WebSocketMessage;
       switch (message.type) {
         case "online-room-member": {
           const payload = message.payload as WebsocketRoomMemberType;
@@ -79,8 +70,8 @@ export default function RoomMembers() {
         case "offline": {
           const payload = message.payload as WebsocketUserType;
           setRoomMembers((prev) =>
-            prev?.toSpliced(member_status_ref.current.get(payload.user.id)!, 1, {
-              ...prev[member_status_ref.current.get(payload.user.id)!],
+            prev?.toSpliced(member_status_ref.current.get(payload.id)!, 1, {
+              ...prev[member_status_ref.current.get(payload.id)!],
               online: false,
             })
           );

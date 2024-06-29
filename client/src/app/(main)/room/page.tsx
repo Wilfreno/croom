@@ -7,7 +7,7 @@ import { ServerResponse } from "@/lib/types/sever-response";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const [rooms, setRooms] = useState<Room[]>();
 
   const { data } = useSession();

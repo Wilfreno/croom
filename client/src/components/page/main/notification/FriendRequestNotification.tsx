@@ -17,6 +17,7 @@ import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useMemo, useState } from "react";
 import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
+import { FriendRequest } from "@/lib/types/client-types";
 
 export default function FriendRequestNotification({
   notification,
@@ -25,14 +26,8 @@ export default function FriendRequestNotification({
   index,
 }: {
   notification: NotificationType;
-  accept: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
-  decline: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
+  accept: (sender: FriendRequest["sender"], index: number) => Promise<void>;
+  decline: (sender: FriendRequest["sender"], index: number) => Promise<void>;
   index: number;
 }) {
   const [loading, setLoading] = useState({ accept: false, decline: false });

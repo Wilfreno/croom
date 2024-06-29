@@ -2,13 +2,15 @@ import { Room } from "@/lib/types/client-types";
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 
 const initialState: Room = {
-  room_name: "",
-  room_photo: {
-    photo_url: "",
+  id: "",
+  name: "",
+  photo: {
+    id: "",
+    url: "",
     height: 0,
     width: 0,
   },
-  room_type: "PRIVATE",
+  type: "PRIVATE",
 };
 
 const new_room = createSlice({

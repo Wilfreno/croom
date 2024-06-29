@@ -7,10 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { LoungeMessage, Room } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
+import { LoungeMessage } from "@/lib/types/client-types";
 import {
-  WebsocketMessage,
+  WebSocketMessage,
   WebsocketUserType,
 } from "@/lib/types/websocket-type";
 import websocketMessage from "@/lib/websocket-message";
@@ -19,18 +18,15 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-export default function page() {
+export default function Page() {
   const [messages, setMessages] = useState<LoungeMessage[]>([]);
-  const [online_members, setOnlineMember] = useState<
-    WebsocketUserType["user"][]
-  >([]);
+  const [online_members, setOnlineMember] = useState<WebsocketUserType[]>([]);
   const [sending_message_list, setSendingMessage] = useState<LoungeMessage[]>(
     []
   );
   const [text_message, setTextMessage] = useState("");
 
   const params = useParams<{ id: string }>();
-  const { toast } = useToast();
   const websocket = useWebsocket();
   const { data } = useSession();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -70,13 +66,11 @@ export default function page() {
       websocket?.send(
         websocketMessage("send-lounge-message", {
           sender: {
-            user: {
-              id: data?.user.id!,
-              display_name: data?.user.display_name!,
-              user_name: data?.user.user_name!,
-              profile_photo: {
-                url: data?.user.profile_photo?.url!,
-              },
+            id: data?.user.id!,
+            display_name: data?.user.display_name!,
+            user_name: data?.user.user_name!,
+            profile_photo: {
+              url: data?.user.profile_photo?.url!,
             },
           },
           text_message: message.text_message,
@@ -112,18 +106,21 @@ export default function page() {
 
     websocket.send(
       websocketMessage("join-lounge", {
-        user: data!.user!,
+        id: data.user.id!,
+        display_name: data.user.display_name,
+        user_name: data.user.user_name,
+        profile_photo: data.user.profile_photo,
       } as WebsocketUserType)
     );
 
     websocket.addEventListener("message", ({ data }) => {
-      const message = JSON.parse(data) as WebsocketMessage;
+      const message = JSON.parse(data) as WebSocketMessage;
 
       switch (message.type) {
         case "join-lounge": {
           const payload = message.payload as WebsocketUserType;
           setOnlineMember((prev) =>
-            [...prev!, payload.user].toSorted((a, b) =>
+            [...prev!, payload].toSorted((a, b) =>
               a.display_name.localeCompare(b.display_name)
             )
           );
@@ -132,9 +129,7 @@ export default function page() {
         case "leave-lounge": {
           const payload = message.payload as WebsocketUserType;
 
-          setOnlineMember((prev) =>
-            prev.toSpliced(prev.indexOf(payload.user), 1)
-          );
+          setOnlineMember((prev) => prev.toSpliced(prev.indexOf(payload), 1));
           break;
         }
       }
@@ -153,6 +148,7 @@ export default function page() {
         <div className="space-y-2 w-full">
           {messages?.map((message, index) => (
             <LoungeMsg
+              key={message.id}
               index={index}
               message={message}
               messages_length={messages.length}

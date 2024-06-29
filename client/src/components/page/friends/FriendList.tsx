@@ -39,7 +39,7 @@ export default function FriendList({ friend }: { friend: WebsocketUserType }) {
     try {
       await http_request.DELETE("/v1/friend", {
         user_1_id: data?.user.id,
-        user_2_id: friend.user.id,
+        user_2_id: friend.id,
       });
       dispatch(setOnlineFriends({ operation: "remove", content: friend }));
       router.refresh();
@@ -58,14 +58,14 @@ export default function FriendList({ friend }: { friend: WebsocketUserType }) {
           >
             <Avatar>
               <AvatarImage
-                src={friend.user.profile_photo?.url}
-                alt={friend.user.display_name?.slice(0, 1).toUpperCase()}
+                src={friend.profile_photo?.url}
+                alt={friend.display_name?.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback className="group-hover:bg-background">
-                {friend.user.display_name?.slice(0, 1).toUpperCase()}
+                {friend.display_name?.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p>{friend.user.display_name}</p>
+            <p>{friend.display_name}</p>
           </Button>
         </DialogTrigger>
         <DialogContent>hey</DialogContent>
@@ -75,8 +75,8 @@ export default function FriendList({ friend }: { friend: WebsocketUserType }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href={"/" + params.username + "/dm/" + friend.user.id}
-                as={"/" + params.username + "/dm/" + friend.user.id}
+                href={"/" + params.username + "/dm/" + friend.id}
+                as={"/" + params.username + "/dm/" + friend.id}
                 prefetch
               >
                 <Button

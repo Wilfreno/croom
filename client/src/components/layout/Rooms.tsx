@@ -58,12 +58,12 @@ export default function Rooms() {
               variant="outline"
               className="p-0 aspect-square h-auto w-full relative font-bold text-xl"
             >
-              {room.photo!.url ? (
+              {room.photo!!.url ? (
                 <Image
-                  src={room.photo.url}
+                  src={room.photo!.url}
                   alt={room.name.slice(0, 1).toUpperCase()}
-                  height={room.photo.height}
-                  width={room.photo.width}
+                  height={room.photo!.height}
+                  width={room.photo!.width}
                   className="aspect-square w-full h-auto object-cover"
                 />
               ) : (

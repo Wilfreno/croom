@@ -24,6 +24,8 @@ export default function NewRoomPhoto() {
       setNewRoom({
         ...new_room,
         photo: {
+          id: photo_info?.id!,
+          
           url: photo_info?.secure_url || "",
           height: photo_info?.height || 0,
           width: photo_info?.width || 0,

@@ -27,7 +27,7 @@ export default function NewRoomType({
           variant="outline"
           className="w-full h-fit justify-start py-2"
           onClick={() => {
-            dispatch(setNewRoom({ ...new_room, room_type: "PRIVATE" }));
+            dispatch(setNewRoom({ ...new_room, type: "PRIVATE" }));
             setComponentView(1);
           }}
         >
@@ -43,7 +43,7 @@ export default function NewRoomType({
           variant="outline"
           className="w-full h-fit justify-start py-2"
           onClick={() => {
-            dispatch(setNewRoom({ ...new_room, room_type: "PUBLIC" }));
+            dispatch(setNewRoom({ ...new_room, type: "PUBLIC" }));
             setComponentView(1);
           }}
         >

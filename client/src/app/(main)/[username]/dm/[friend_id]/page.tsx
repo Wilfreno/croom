@@ -9,8 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { DirectMessage, User } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
-import { WebsocketMessage } from "@/lib/types/websocket-type";
+import { WebSocketMessage } from "@/lib/types/websocket-type";
 import websocketMessage from "@/lib/websocket-message";
 import { PaperAirplaneIcon, PaperClipIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
@@ -19,7 +18,6 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 export default function Page() {
   const params = useParams<{ username: string; friend_id: string }>();
-  const { toast } = useToast();
   const { data } = useSession();
   const websocket = useWebsocket();
   const http_request = useHTTPRequest();
@@ -115,7 +113,7 @@ export default function Page() {
     if (!websocket) return;
 
     websocket.addEventListener("message", (socket) => {
-      const message = JSON.parse(socket.data) as WebsocketMessage;
+      const message = JSON.parse(socket.data) as WebSocketMessage;
 
       const payload = message.payload as DirectMessage;
       if (
