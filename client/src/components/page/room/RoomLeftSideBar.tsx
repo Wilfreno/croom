@@ -10,25 +10,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/components/ui/use-toast";
 import { Room } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { ChevronUpDownIcon } from "@heroicons/react/24/solid";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import AddRoomMember from "./AddRoomMember";
 
 export default function RoomSideBar() {
   const [room, setRoom] = useState<Room>();
 
-  const { toast } = useToast();
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ room_id: string }>();
   const http_request = useHTTPRequest();
 
   useEffect(() => {
-    if (!params.id) return;
+    if (!params.room_id) return;
+
     async function getRoom() {
       try {
-        setRoom((await http_request.GET("/v1/room/" + params.id)) as Room);
+        setRoom((await http_request.GET("/v1/room/" + params.room_id)) as Room);
       } catch (error) {
         throw error;
       }
@@ -36,13 +35,13 @@ export default function RoomSideBar() {
 
     getRoom();
   }, [params]);
-
+  console.log(room);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="w-full h-fit py-1 rounded border-x-0 "
+          className="w-full h-fit py-1 rounded border-x-0 group"
         >
           <div className="flex items-center space-x-3 truncate w-[18rem]">
             <Avatar>
@@ -50,29 +49,16 @@ export default function RoomSideBar() {
                 src={room?.photo!.url}
                 alt={room?.name.slice(0, 1).toUpperCase()}
               />
-              <AvatarFallback>
+              <AvatarFallback className="group-hover:bg-primary">
                 {room?.name.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p className="truncate">{room?.name}</p>
+            <p className="truncate w-full">{room?.name}</p>
           </div>
           <ChevronUpDownIcon className="h-5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[17rem]">
-        <DropdownMenuGroup>
-          <DropdownMenuItem>invite member + </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuGroup>
-          <DropdownMenuItem>Change room name </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuGroup>
-          <DropdownMenuItem>Change room photo </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuGroup>
-          <DropdownMenuItem>Delete Room</DropdownMenuItem>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
+      <DropdownMenuContent className="w-[17rem]"></DropdownMenuContent>
     </DropdownMenu>
   );
 }

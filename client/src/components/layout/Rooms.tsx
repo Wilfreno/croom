@@ -23,7 +23,9 @@ export default function Rooms() {
     async function getRooms() {
       try {
         setRooms(
-          (await http_request.GET("/v1/user/room/" + data?.user.id)) as Room[]
+          (await http_request.GET(
+            "/v1/user/" + data?.user.id + "/rooms"
+          )) as Room[]
         );
       } catch (error) {
         throw error;
@@ -47,7 +49,7 @@ export default function Rooms() {
       }}
     >
       <div className="space-y-2 w-full">
-        {rooms.map((room) => (
+        {rooms?.map((room) => (
           <Link
             href={"/room/" + room.id + "/lounge"}
             as={"/room/" + room.id + "/lounge"}

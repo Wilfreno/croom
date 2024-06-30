@@ -94,7 +94,7 @@ export default function WebsocketServer(
       websocket: socket,
     });
 
-     await broadcastOnline(user.id, online, lounge);
+    await broadcastOnline(user.id, online, lounge);
 
     //websocket event handlers
     socket.on("message", (client_message) => {

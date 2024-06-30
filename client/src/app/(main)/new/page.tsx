@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { User } from "@/lib/types/client-types";
+import { UserIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
@@ -50,7 +51,7 @@ export default function Page() {
             alt={data?.user.email.slice(0, 1).toUpperCase()}
           />
           <AvatarFallback>
-            data?.user.email.slice(0, 1).toUpperCase()
+            <UserIcon className="h-12 fill-primary" />
           </AvatarFallback>
         </Avatar>
         <p> {data?.user.email}</p>

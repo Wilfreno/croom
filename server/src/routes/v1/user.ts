@@ -124,12 +124,9 @@ router
 
       if (!found_user)
         return response
-          .status(409)
+          .status(404)
           .json(
-            JSONResponse(
-              "CONFLICT",
-              "cannot process request; user does not exist"
-            )
+            JSONResponse("NOT_FOUND", "cannot find user; user does not exist")
           );
 
       const user = await prisma.user.findFirst({
@@ -279,6 +276,57 @@ router
         );
     }
   })
+  .get("/:id/friend-request/received", async (request, response) => {
+    try {
+      const user_id = request.params.id;
+
+      if (!user_id)
+        return response
+          .status(400)
+          .json(
+            JSONResponse(
+              "BAD_REQUEST",
+              "user id as params is needed; /friend-request/:id"
+            )
+          );
+
+      const found_user = await prisma.user.findFirst({
+        where: { id: user_id },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(JSONResponse("NOT_FOUND", "user not found"));
+
+      const friend_request = await prisma.friendRequest.findMany({
+        where: { receiver_id: user_id },
+        select: {
+          sender: {
+            select: {
+              id: true,
+              display_name: true,
+              user_name: true,
+              profile_photo: true,
+            },
+          },
+          date_created: true,
+        },
+      });
+
+      return response
+        .status(200)
+        .json(JSONResponse("OK", "request successful", friend_request));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
+        );
+    }
+  })
+
   //update routes
 
   //delete routes

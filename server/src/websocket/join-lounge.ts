@@ -25,4 +25,5 @@ export default function joinLounge(
       current_user?.websocket?.send(createMessage("join-lounge", member));
     }
   });
+  console.log("lounge:: ", lounge.get(payload.room_id));
 }

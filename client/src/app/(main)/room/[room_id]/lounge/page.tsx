@@ -104,13 +104,15 @@ export default function Page() {
   useEffect(() => {
     if (!websocket || !data) return;
 
-    websocket.send(
-      websocketMessage("join-lounge", {
-        id: data.user.id!,
-        display_name: data.user.display_name,
-        user_name: data.user.user_name,
-        profile_photo: data.user.profile_photo,
-      } as WebsocketUserType)
+    websocket.addEventListener("open", () =>
+      websocket.send(
+        websocketMessage("join-lounge", {
+          id: data.user.id!,
+          display_name: data.user.display_name,
+          user_name: data.user.user_name,
+          profile_photo: data.user.profile_photo,
+        } as WebsocketUserType)
+      )
     );
 
     websocket.addEventListener("message", ({ data }) => {

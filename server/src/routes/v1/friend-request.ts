@@ -210,63 +210,6 @@ router
         );
     }
   })
-  .get("/received/:id", async (request, response) => {
-    try {
-      const user_id = request.params.id;
-
-      if (!user_id)
-        return response
-          .status(400)
-          .json(
-            JSONResponse(
-              "BAD_REQUEST",
-              "user id as params is needed; /friend-request/:id"
-            )
-          );
-
-      const found_user = await prisma.user.findFirst({
-        where: { id: user_id },
-      });
-
-      if (!found_user)
-        return response
-          .status(404)
-          .json(JSONResponse("NOT_FOUND", "user not found"));
-
-      const friend_request = await prisma.friendRequest.findMany({
-        where: { receiver_id: user_id },
-        select: {
-          sender: {
-            include: {
-              profile_photo: true,
-            },
-          },
-          date_created: true,
-        },
-      });
-
-      let user_list = [];
-
-      for (let i = 0; i < friend_request.length; i++) {
-        user_list.push({
-          sender: exclude(friend_request[i].sender, ["password"]),
-          date_created: friend_request[i].date_created,
-        });
-      }
-
-      return response
-        .status(200)
-        .json(JSONResponse("OK", "request successful", user_list));
-    } catch (error) {
-      if (environment_mode === "development") console.error(error);
-      return response
-        .status(500)
-        .json(
-          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
-        );
-    }
-  })
-
   //update routes
 
   //delete routes

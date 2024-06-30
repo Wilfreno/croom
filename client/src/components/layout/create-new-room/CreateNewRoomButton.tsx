@@ -16,7 +16,6 @@ import NewRoomType from "./NewRoomType";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import LoadingSvg from "@/components/svg/LoadingSvg";
-import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { Room } from "@/lib/types/client-types";
 import { useSession } from "next-auth/react";
@@ -30,7 +29,6 @@ export default function CreateNewRoomButton() {
   const [submitting, setSubmitting] = useState(false);
 
   const new_room = useAppSelector((state) => state.new_room_reducer);
-  const { toast } = useToast();
   const { data } = useSession();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -47,7 +45,7 @@ export default function CreateNewRoomButton() {
     })) as Room;
 
     setOpen(false);
-    router.push("/room/" + room_created.id! + "/lounge/general-chat");
+    router.push("/room/" + room_created.id! + "/lounge");
     dispatch(setCreatedRoom(room_created));
     setSubmitting(false);
   }

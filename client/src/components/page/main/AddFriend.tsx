@@ -21,7 +21,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
-export default function AddFriend() {
+export default function   AddFriend() {
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
