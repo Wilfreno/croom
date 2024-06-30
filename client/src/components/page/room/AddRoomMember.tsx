@@ -36,11 +36,11 @@ export default function AddRoomMember() {
     }
   }
 
-  async function inviteFriend() {
+  async function inviteFriend(receiver_id: string) {
     try {
       const notification = (await http_request.POST("/notification", {
         room_invite_id: room_invite?.id,
-        receiver_id: "",
+        receiver_id,
       })) as Notification;
 
       websocket?.send(websocketMessage("notification", notification!));
@@ -48,6 +48,7 @@ export default function AddRoomMember() {
       throw error;
     }
   }
+
   useEffect(() => {
     if (!data) return;
 
@@ -64,11 +65,15 @@ export default function AddRoomMember() {
     }
     async function getRoomInvite() {
       try {
-        setRoomInvite(
-          (await http_request.GET(
-            "/v1/room/" + params.room_id + "/invite"
-          )) as RoomInvite
-        );
+        const invite = (await http_request.GET(
+          "/v1/room/" + params.room_id + "/invite"
+        )) as RoomInvite;
+
+        if (!invite) {
+          await generateRoomInvite();
+        } else {
+          setRoomInvite(invite);
+        }
       } catch (error) {
         throw error;
       }
@@ -96,7 +101,10 @@ export default function AddRoomMember() {
             <ScrollArea className="p-5 h-[15dvh] rounded-lg bg-primary-foreground w-full">
               <div className="flex flex-wrap gap-3">
                 {friends.map((friend) => (
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    onClick={() => inviteFriend(friend.id)}
+                  >
                     <Avatar>
                       <AvatarImage
                         src={friend.profile_photo.url}
