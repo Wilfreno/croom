@@ -21,7 +21,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
-export default function   AddFriend() {
+export default function AddFriend() {
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
   const [server_response, setServerResponse] = useState<ServerResponse>();
@@ -43,7 +43,7 @@ export default function   AddFriend() {
             <XMarkIcon className="h-5 " />
           </DialogClose>
           <DialogTitle>Add Friend</DialogTitle>
-          <DialogDescription>Add friend with their username</DialogDescription>
+          <DialogDescription>Add friend with username</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={async (e) => {

@@ -35,7 +35,6 @@ export default function RoomSideBar() {
 
     getRoom();
   }, [params]);
-  console.log(room);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
