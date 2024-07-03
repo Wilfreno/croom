@@ -35,7 +35,6 @@ export default function AddRoomMemberViaFriends({
 
   useEffect(() => {
     if (!data) return;
-
     async function getFriends() {
       try {
         setFriends(

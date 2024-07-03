@@ -114,6 +114,39 @@ router
         );
     }
   })
+  .get("/username/:username", async (request, response) => {
+    try {
+      const username = request.params.username;
+
+      const found_user = await prisma.user.findFirst({
+        where: {
+          user_name: username,
+        },
+        select: {
+          id: true,
+          user_name: true,
+          display_name: true,
+          profile_photo: true,
+        },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(JSONResponse("NOT_FOUND", "user not found"));
+
+      return response
+        .status(200)
+        .json(JSONResponse("OK", "request successful", found_user));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
+        );
+    }
+  })
   .get("/:id/rooms", async (request, response) => {
     try {
       const user_id = request.params.id;

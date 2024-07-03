@@ -1,7 +1,5 @@
 "use client";
 import useHTTPRequest from "@/components/hooks/useHTTPRequest";
-import { useWebsocket } from "@/components/hooks/useWebsocket";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -92,7 +90,7 @@ export default function AddRoomMember() {
             invite_link={invite_link}
             generateRoomInvite={generateRoomInvite}
           />
-          <AddRoomUserViaUsername />
+          <AddRoomUserViaUsername room_invite={ room_invite!} />
         </div>
       </DialogContent>
     </Dialog>

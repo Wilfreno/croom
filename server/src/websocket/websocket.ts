@@ -126,7 +126,11 @@ export default function WebsocketServer(
             parsed_message.payload as WebsocketDirectMessageType,
             online
           );
-          break;
+          break
+        case "notification": {
+          
+          break
+        }
         case "new-room-member": {
           const payload = parsed_message.payload as RoomMember;
           newRoomMember(lounge, online, payload);

@@ -29,10 +29,22 @@ router
                   "room_invite_id field is required to be on the request body"
                 )
               );
+          const found_invite = await prisma.notification.findFirst({
+            where: {
+              owner_id: receiver_id,
+              type: "ROOM_INVITE",
+              room_invite_id,
+            },
+          });
+
+          if (found_invite)
+            return response
+              .status(409)
+              .json(JSONResponse("CONFLICT", "already sent a room invite"));
 
           notification = await prisma.notification.create({
             data: {
-              id: receiver_id,
+              owner_id: receiver_id,
               type: "ROOM_INVITE",
               room_invite_id,
             },
