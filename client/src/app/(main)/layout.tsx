@@ -4,9 +4,9 @@ import React, { Suspense } from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <WebsocketMessageHandler>
-      <LayoutSideBar />
-      {children}
-    </WebsocketMessageHandler>
+      <WebsocketMessageHandler>
+        <LayoutSideBar />
+        {children}
+      </WebsocketMessageHandler>
   );
 }

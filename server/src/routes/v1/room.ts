@@ -142,6 +142,91 @@ router
         );
     }
   })
+  .post("/invite/accept", async (request, response) => {
+    try {
+      const { user_id, room_id, invite_code } = request.body;
+
+      if (!user_id || !invite_code)
+        return response
+          .status(400)
+          .json(
+            JSONResponse(
+              "BAD_REQUEST",
+              "user_id & invite_code field is required on the request body"
+            )
+          );
+
+      const found_user = await prisma.user.findFirst({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!found_user)
+        return response
+          .status(409)
+          .json(
+            JSONResponse("NOT_FOUND", "cannot process request; user not found")
+          );
+
+      const found_room = await prisma.room.findFirst({
+        where: {
+          id: room_id,
+        },
+      });
+
+      if (!found_room)
+        return response
+          .status(404)
+          .json(
+            JSONResponse(
+              "NOT_FOUND",
+              "cannot find room; room might not be exist or has been deleted"
+            )
+          );
+
+      const room_invite = await prisma.roomInvite.findFirst({
+        where: {
+          room_id: room_id,
+        },
+      });
+
+      if (!room_invite?.code !== invite_code)
+        return response
+          .status(401)
+          .json(
+            JSONResponse(
+              "UNAUTHORIZED",
+              "invite_code is incorrect; the invite code might not exist or have been change. recheck the invite link or ask for new invite link from teh room moderator"
+            )
+          );
+
+      await prisma.room.update({
+        where: {
+          id: room_id,
+        },
+        data: {
+          members: {
+            connect: {
+              id: user_id,
+              role: "MEMBER",
+            },
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(JSONResponse("OK", "joined the room successfully", room_invite));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
+        );
+    }
+  })
   .post("/lounge/message/text", async (request, response) => {
     try {
       const { sender_id, room_id, text } = request.body;

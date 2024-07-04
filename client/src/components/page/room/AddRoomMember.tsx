@@ -62,9 +62,9 @@ export default function AddRoomMember() {
     setInviteLink(
       window.location.href +
         "/room/invite/" +
-        room_invite?.id +
-        "?room_code=" +
-        room_invite?.code
+        room_invite?.code +
+        "?room_id=" +
+        room_invite.room_id
     );
   }, [room_invite]);
 
@@ -90,7 +90,7 @@ export default function AddRoomMember() {
             invite_link={invite_link}
             generateRoomInvite={generateRoomInvite}
           />
-          <AddRoomUserViaUsername room_invite={ room_invite!} />
+          <AddRoomUserViaUsername room_invite={room_invite!} />
         </div>
       </DialogContent>
     </Dialog>

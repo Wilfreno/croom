@@ -139,7 +139,7 @@ model RoomInvite {
   id           String        @id @unique @default(uuid())
   room         Room?         @relation(fields: [room_id], references: [id])
   room_id      String?       @unique
-  code         String
+  code         String        @unique
   notification Notification?
 
   last_updated DateTime @default(now())
