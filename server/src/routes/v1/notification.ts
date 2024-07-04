@@ -78,7 +78,7 @@ router
   //read routes
   //update routes
   // delete routes
-  .delete("/notification", async (request, response) => {
+  .delete("/", async (request, response) => {
     try {
       const {
         type,
@@ -136,6 +136,9 @@ router
           });
           break;
         }
+        case "FRIEND_REQUEST" :{
+          
+          }
 
         default:
           return response

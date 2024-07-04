@@ -41,9 +41,9 @@ model Notification {
   owner             User             @relation(fields: [owner_id], references: [id])
   owner_id          String
   type              NotificationType
-  friend_request    FriendRequest?   @relation(fields: [friend_request_id], references: [id])
+  friend_request    FriendRequest?   @relation(fields: [friend_request_id], references: [id], onDelete: Cascade)
   friend_request_id String?          @unique
-  room_invite       RoomInvite?      @relation(fields: [room_invite_id], references: [id])
+  room_invite       RoomInvite?      @relation(fields: [room_invite_id], references: [id], onDelete: Cascade)
   room_invite_id    String?          @unique
   date_created      DateTime         @default(now())
 }

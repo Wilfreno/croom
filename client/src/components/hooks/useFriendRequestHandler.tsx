@@ -41,7 +41,6 @@ export default function useFriendRequestHandler() {
         sender_id: sender!.id,
         receiver_id: data?.user.id,
       });
-
       const payload = {
         sender_id: sender!.id,
         receiver_id: data!.user.id,
