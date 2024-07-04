@@ -14,14 +14,11 @@ export default function useHTTPRequest() {
     if (!url.startsWith("/")) throw new Error("url must start with /");
   }
 
-  async function responseJSON(response: Response): {
+  async function responseJSON(response: Response) {
     try {
       const response_json = (await response.json()) as ServerResponse;
 
-      if (
-        response_json.status !== "OK" &&
-        response_json.status !== "NOT_FOUND"
-      ) {
+      if (response_json.status !== "OK") {
         toast({
           title: "Oops! something went wrong",
           description: response_json.message,

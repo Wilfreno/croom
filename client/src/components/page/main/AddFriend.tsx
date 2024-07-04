@@ -24,7 +24,6 @@ import { useState } from "react";
 export default function AddFriend() {
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
-  const [server_response, setServerResponse] = useState<ServerResponse>();
 
   const websocket = useWebsocket();
   const { data } = useSession();
@@ -47,24 +46,29 @@ export default function AddFriend() {
         </DialogHeader>
         <form
           onSubmit={async (e) => {
-            e.preventDefault();
-            setSending(true);
+            try {
+              e.preventDefault();
+              setSending(true);
 
-            const friend_request = (await http_request.POST(
-              "/v1/friend-request",
-              {
-                sender: data?.user.user_name,
-                receiver: username,
-              }
-            )) as FriendRequest;
+              const friend_request = (await http_request.POST(
+                "/v1/friend-request",
+                {
+                  sender: data?.user.user_name,
+                  receiver: username,
+                }
+              )) as FriendRequest;
 
-            websocket?.send(
-              websocketMessage("send-friend-request", {
-                receiver_id: friend_request.receiver_id,
-                sender_id: data!.user.id
-              } as WebsocketFriendRequestType)
-            );
-            setSending(false);
+              websocket?.send(
+                websocketMessage("send-friend-request", {
+                  receiver_id: friend_request.receiver_id,
+                  sender_id: data!.user.id,
+                } as WebsocketFriendRequestType)
+              );
+              setSending(false);
+            } catch (error) {
+              setSending(false);
+              throw error;
+            }
           }}
           autoComplete="off"
         >
@@ -80,18 +84,6 @@ export default function AddFriend() {
               {sending ? <LoadingSvg className="h-6" /> : "Send Friend request"}
             </Button>
           </div>
-          {server_response && (
-            <p
-              className={cn(
-                "text-xs mx-3 my-1",
-                server_response.status === "OK"
-                  ? "text-green-600 text-xs"
-                  : "text-red-600"
-              )}
-            >
-              {server_response.message}
-            </p>
-          )}
         </form>
       </DialogContent>
     </Dialog>
