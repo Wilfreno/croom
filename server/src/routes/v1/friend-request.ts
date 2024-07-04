@@ -74,25 +74,27 @@ router
         },
         include: {
           sender: {
-            include: {
+            select: {
+              id: true,
+              user_name: true,
+              display_name: true,
               profile_photo: true,
             },
           },
           receiver: {
-            include: {
+            select: {
+              id: true,
+              user_name: true,
+              display_name: true,
               profile_photo: true,
             },
           },
         },
       });
 
-      return response.status(200).json(
-        JSONResponse("OK", "friend request sent", {
-          sender: exclude(friend_request.sender, ["password"]),
-          receiver: exclude(friend_request.receiver, ["password"]),
-          date_created: friend_request.date_created,
-        })
-      );
+      return response
+        .status(200)
+        .json(JSONResponse("OK", "friend request sent", friend_request));
     } catch (error) {
       if (environment_mode === "development") console.error(error);
       return response

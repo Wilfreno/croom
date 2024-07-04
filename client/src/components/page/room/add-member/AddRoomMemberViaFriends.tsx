@@ -23,6 +23,7 @@ export default function AddRoomMemberViaFriends({
   async function inviteFriend(receiver_id: string) {
     try {
       const notification = (await http_request.POST("/notification", {
+        type: "ROOM_INVITE",
         room_invite_id: room_invite?.id,
         receiver_id,
       })) as Notification;

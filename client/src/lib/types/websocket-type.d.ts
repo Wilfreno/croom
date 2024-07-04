@@ -34,7 +34,6 @@ export type WebsocketMessageType =
   | "online-room-member"
   | "offline"
   | "notification"
-  | "send-friend-request"
   | "accept-friend-request"
   | "send-direct-message"
   | "delete-direct-message"

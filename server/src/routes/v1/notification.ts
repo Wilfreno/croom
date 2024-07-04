@@ -98,7 +98,6 @@ router
 
       let found_notification: Notification | null;
 
-      
       switch (type) {
         case "ROOM_INVITE": {
           if (!user_id || !room_id)

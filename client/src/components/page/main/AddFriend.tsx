@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FriendRequest } from "@/lib/types/client-types";
+import { FriendRequest, Notification } from "@/lib/types/client-types";
 import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -56,12 +56,17 @@ export default function AddFriend() {
                 }
               )) as FriendRequest;
 
-              websocket?.send(
-                websocketMessage("send-friend-request", {
-                  receiver_id: friend_request.receiver_id,
-                  sender_id: data!.user.id,
-                } as WebsocketFriendRequestType)
-              );
+              const notification = (await http_request.POST(
+                "/v1/notification",
+                {
+                  type: "FRIEND_REQUEST",
+                  friend_request_id: friend_request.id,
+                  receiver_id: friend_request.receiver?.id,
+                }
+              )) as Notification;
+
+              websocket?.send(websocketMessage("notification", notification));
+
               setSending(false);
             } catch (error) {
               setSending(false);

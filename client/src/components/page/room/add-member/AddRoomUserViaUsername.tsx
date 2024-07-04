@@ -26,6 +26,7 @@ export default function AddRoomUserViaUsername({
           "/user/username/" + username
         )) as User;
         const notification = (await http_request.POST("/notification", {
+          type: "ROOM_INVITE",
           room_invite_id: room_invite?.id,
           receiver_id: user.user_name,
         })) as Notification;

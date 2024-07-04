@@ -7,11 +7,16 @@
 
 import http from "http";
 import WebSocket from "ws";
-import { Lounge, RoomMember, Session, User } from "@prisma/client";
+import {
+  Lounge,
+  Notification,
+  RoomMember,
+  Session,
+  User,
+} from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
-  WebsocketFriendRequestType,
   WebsocketUserType,
   WebsocketLoungeMessageType,
   WebsocketDirectMessageType,
@@ -19,6 +24,7 @@ import {
   WebsocketSessionMessageType,
   WebSocketMessage,
   WebsocketRoomMemberType,
+  WebsocketFriendRequestType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -34,6 +40,7 @@ import joinSession from "./join-session";
 import leaveSession from "./leave-session";
 import sendSessionMessage from "./send-session-message";
 import broadcastOffline from "./broadcast-offline";
+import sendNotification from "./send-notification";
 
 const lounge = new Map<
   Lounge["id"],
@@ -102,10 +109,9 @@ export default function WebsocketServer(
         client_message.toString()
       );
       switch (parsed_message.type) {
-        case "send-friend-request": {
-          const friend_request =
-            parsed_message.payload as WebsocketFriendRequestType;
-          sendFriendRequest(friend_request, online);
+        case "notification": {
+          const notification = parsed_message.payload as Notification;
+          sendNotification(notification, online);
           break;
         }
         case "accept-friend-request": {
@@ -126,11 +132,7 @@ export default function WebsocketServer(
             parsed_message.payload as WebsocketDirectMessageType,
             online
           );
-          break
-        case "notification": {
-          
-          break
-        }
+          break;
         case "new-room-member": {
           const payload = parsed_message.payload as RoomMember;
           newRoomMember(lounge, online, payload);
