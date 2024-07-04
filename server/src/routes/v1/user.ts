@@ -359,6 +359,61 @@ router
         );
     }
   })
+  .get("/:id/notifications", async (request, response) => {
+    try {
+      const user_id = request.params.id;
+
+      const found_user = await prisma.user.findFirst({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!found_user)
+        return response
+          .status(404)
+          .json(JSONResponse("NOT_FOUND", "user not found"));
+
+      const notifications = await prisma.notification.findMany({
+        where: {
+          owner_id: user_id,
+        },
+        orderBy: {
+          date_created: "asc",
+        },
+        include: {
+          friend_request: {
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  user_name: true,
+                  display_name: true,
+                  profile_photo: true,
+                },
+              },
+            },
+          },
+          room_invite: {
+            include: {
+              room: true,
+            },
+          },
+        },
+      });
+
+      return response
+        .status(200)
+        .json(JSONResponse("OK", "request successful", notifications));
+    } catch (error) {
+      if (environment_mode === "development") console.error(error);
+      return response
+        .status(500)
+        .json(
+          JSONResponse("INTERNAL_SERVER_ERROR", "oops! something went wrong")
+        );
+    }
+  })
 
   //update routes
 

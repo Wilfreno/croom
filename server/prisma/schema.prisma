@@ -45,6 +45,7 @@ model Notification {
   friend_request_id String?          @unique
   room_invite       RoomInvite?      @relation(fields: [room_invite_id], references: [id])
   room_invite_id    String?          @unique
+  date_created      DateTime         @default(now())
 }
 
 enum NotificationType {
