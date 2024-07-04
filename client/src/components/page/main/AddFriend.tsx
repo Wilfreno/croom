@@ -58,6 +58,12 @@ export default function AddFriend() {
               }
             )) as FriendRequest;
 
+            websocket?.send(
+              websocketMessage("send-friend-request", {
+                receiver_id: friend_request.receiver_id,
+                sender_id: data!.user.id
+              } as WebsocketFriendRequestType)
+            );
             setSending(false);
           }}
           autoComplete="off"

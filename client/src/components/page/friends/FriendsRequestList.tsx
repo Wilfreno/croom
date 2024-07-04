@@ -3,7 +3,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { FriendRequest } from "@/lib/types/client-types";
-import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 

@@ -396,7 +396,11 @@ router
           },
           room_invite: {
             include: {
-              room: true,
+              room: {
+                include: {
+                  photo: true,
+                },
+              },
             },
           },
         },

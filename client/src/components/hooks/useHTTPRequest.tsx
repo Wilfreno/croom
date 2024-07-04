@@ -14,7 +14,7 @@ export default function useHTTPRequest() {
     if (!url.startsWith("/")) throw new Error("url must start with /");
   }
 
-  async function responseJSON(response: Response) {
+  async function responseJSON(response: Response): {
     try {
       const response_json = (await response.json()) as ServerResponse;
 

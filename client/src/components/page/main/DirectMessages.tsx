@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/components/ui/use-toast";
-import { DirectConversation } from "@/lib/types/client-types";
+  import { DirectConversation } from "@/lib/types/client-types";
 import {
   WebSocketMessage,
   WebsocketDirectMessageType,
@@ -27,7 +26,6 @@ export default function DirectMessages() {
   >([]);
 
   const { data } = useSession();
-  const { toast } = useToast();
   const websocket = useWebsocket();
   const http_request = useHTTPRequest();
 
@@ -102,7 +100,7 @@ export default function DirectMessages() {
       </div>
       <ScrollArea className="h-[35dvh] my-2">
         <div className="mx-1 space-y-1">
-          {direct_conversation.map((dc) => (
+          {direct_conversation?.map((dc) => (
             <Link
               key={dc.id}
               href={
