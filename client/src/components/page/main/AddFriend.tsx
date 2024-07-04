@@ -13,9 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FriendRequest } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
-import { cn } from "@/lib/utils";
 import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
