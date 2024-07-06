@@ -10,7 +10,7 @@ import React, { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useWebsocket } from "./hooks/useWebsocket";
 import { Notification } from "@/lib/types/client-types";
-import { setNotification } from "@/lib/redux/slices/notification-slice";
+import { setWSFriendRequest } from "@/lib/redux/slices/ws-friend-request-slice";
 
 export default function WebsocketMessageHandler({
   children,
@@ -38,9 +38,12 @@ export default function WebsocketMessageHandler({
         }
         case "notification": {
           const payload = message.payload as Notification;
-          dispatch(
-            setNotification({ operation: "add", notification: payload })
-          );
+
+          switch (payload.type) {
+            case "FRIEND_REQUEST":
+              dispatch(setWSFriendRequest(payload.friend_request!));
+              break;
+          }
         }
         default:
           return;

@@ -20,7 +20,10 @@ export default function FriendsRequestList({
   const [loading, setLoading] = useState({ accept: false, decline: false });
 
   return (
-    <li className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10">
+    <li
+      key={request.sender_id}
+      className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10"
+    >
       <Dialog>
         <DialogTrigger asChild>
           <Button className="flex items-center space-x-5 grow bg-transparent justify-start text-secondary-foreground hover:bg-transparent hover:shadow-none shadow-none focus-visible:ring-0">

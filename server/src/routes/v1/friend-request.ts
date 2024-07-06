@@ -108,10 +108,8 @@ router
     try {
       const { sender_id, receiver_id }: Record<string, string> = request.body;
 
-      const friendship_id = [sender_id, receiver_id].sort().join("-");
-
       const found_request = await prisma.friendRequest.findFirst({
-        where: { id: friendship_id },
+        where: { sender_id, receiver_id },
       });
 
       if (!found_request)
@@ -126,7 +124,7 @@ router
 
       await prisma.friendship.create({
         data: {
-          id: friendship_id,
+          id: found_request!.id,
           user_1_id: sender_id,
           user_2_id: receiver_id,
         },
@@ -134,7 +132,7 @@ router
 
       await prisma.friendRequest.delete({
         where: {
-          id: friendship_id,
+          id: found_request!.id,
         },
       });
 
@@ -220,9 +218,11 @@ router
       const { sender_id, receiver_id }: Record<string, User["id"]> =
         request.body;
 
-      const friendship_id = [sender_id, receiver_id].sort().join("-");
       const found_request = await prisma.friendRequest.findFirst({
-        where: { id: friendship_id },
+        where: {
+          sender_id,
+          receiver_id,
+        },
       });
 
       if (!found_request)
@@ -237,7 +237,7 @@ router
 
       await prisma.friendRequest.delete({
         where: {
-          id: friendship_id,
+          id: found_request.id,
         },
       });
 

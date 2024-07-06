@@ -11,7 +11,7 @@ import { setNewRoom } from "@/lib/redux/slices/new-room-slice";
 
 export default function NewRoomPhoto() {
   const dispatch = useDispatch<AppDispatch>();
-  const new_room = useAppSelector((state) => state.new_room_reducer);
+  const new_room = useAppSelector((state) => state.new_room);
   const upload_preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
   const [photo_info, setRoomPhoto] = useState<CloudinaryUploadWidgetInfo>();
   if (!upload_preset)
@@ -25,7 +25,7 @@ export default function NewRoomPhoto() {
         ...new_room,
         photo: {
           id: photo_info?.id!,
-          
+
           url: photo_info?.secure_url || "",
           height: photo_info?.height || 0,
           width: photo_info?.width || 0,

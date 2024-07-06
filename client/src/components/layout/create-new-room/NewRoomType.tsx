@@ -13,7 +13,7 @@ export default function NewRoomType({
   setComponentView: Dispatch<SetStateAction<number>>;
 }) {
   const dispatch = useDispatch<AppDispatch>();
-  const new_room = useAppSelector((state) => state.new_room_reducer);
+  const new_room = useAppSelector((state) => state.new_room);
 
   return (
     <div className={cn("w-full space-y-5", component_view !== 1 && "hidden")}>

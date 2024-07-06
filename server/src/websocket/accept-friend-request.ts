@@ -11,10 +11,9 @@ export default function acceptFriendRequest(
   if (!online.has(payload.sender_id)) return;
 
   const sender = online.get(payload.sender_id);
-
-  sender?.websocket!.send(createMessage("online-friend", sender!));
-
   const receiver = online.get(payload.receiver_id);
 
-  receiver?.websocket!.send(createMessage("online-friend", receiver!));
+  sender?.websocket!.send(createMessage("online-friend", receiver!));
+
+  receiver?.websocket!.send(createMessage("online-friend", sender!));
 }

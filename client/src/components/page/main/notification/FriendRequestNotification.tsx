@@ -35,17 +35,17 @@ export default function FriendRequestNotification({
   return (
     <AnimatePresence>
       {!after_loading.accept && !after_loading.decline ? (
-        <Collapsible>
+        <Collapsible key={friend_request.sender!.id}>
           <CollapsibleTrigger asChild>
             <li>
               <MotionButton
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, repeat: 1 }}
+                transition={{ duration: 0.5 }}
                 variant="ghost"
-                className="w-full justify-start space-x-5 h-fit"
+                className="w-full justify-start space-x-5 h-fit p-1"
               >
-                <Avatar>
+                <Avatar className="aspect-square w-auto h-10">
                   <AvatarImage
                     src={friend_request!.sender!.profile_photo!.url!}
                     alt={friend_request!
@@ -59,7 +59,7 @@ export default function FriendRequestNotification({
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start space-y-1">
-                  <p className="font-bold">
+                  <p className="font-bold text-sm">
                     {friend_request!.sender!.display_name}
                   </p>
                   <p className="text-xs text-wrap text-start">

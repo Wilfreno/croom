@@ -28,7 +28,7 @@ export default function CreateNewRoomButton() {
   const [component_view, setComponentView] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
-  const new_room = useAppSelector((state) => state.new_room_reducer);
+  const new_room = useAppSelector((state) => state.new_room);
   const { data } = useSession();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();

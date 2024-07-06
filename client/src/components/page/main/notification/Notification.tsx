@@ -2,43 +2,50 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import FriendRequestNotification from "./FriendRequestNotification";
-import { useAppSelector } from "@/lib/redux/store";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { Notification } from "@/lib/types/client-types";
 import RoomInviteNotification from "./RoomInviteNotification";
+import { useAppSelector } from "@/lib/redux/store";
 
 export default function Notifications() {
-  const websocket_notification = useAppSelector(
-    (state) => state.notification_reducer
-  );
-
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const ws_friend_request = useAppSelector((state) => state.ws_friend_request);
+
   const { data } = useSession();
   const http_request = useHTTPRequest();
 
   useEffect(() => {
     if (!data) return;
-
     async function getNotifications() {
       try {
         setNotifications(
           (await http_request.GET(
-            "/user/" + data?.user.id + "/notifications"
+            "/v1/user/" + data?.user.id + "/notifications"
           )) as Notification[]
         );
       } catch (error) {
         throw error;
       }
     }
+
+    getNotifications();
   }, [data]);
 
   useEffect(() => {
-    if (websocket_notification.length < 1) return;
+    console.log(ws_friend_request);
+    if (!ws_friend_request) return;
 
-    setNotifications((prev) => [...prev, ...websocket_notification]);
-  }, [websocket_notification]);
+    setNotifications((prev) => [
+      ...prev,
+      {
+        id: ws_friend_request.id,
+        friend_request: ws_friend_request,
+        type: "FRIEND_REQUEST",
+      },
+    ]);
+  }, [ws_friend_request]);
 
   return (
     <div className="grid grid-rows-[auto_1fr] space-y-5">

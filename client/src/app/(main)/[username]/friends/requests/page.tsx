@@ -16,7 +16,6 @@ export default function Page() {
 
   useEffect(() => {
     if (!search || !friend_request_list) return;
-
     setSearchResult(
       friend_request_list.filter(
         (request) =>
@@ -46,11 +45,11 @@ export default function Page() {
         </Label>
       </div>
       <ScrollArea className="h-[70vh]">
-        <div className="px-5">
+        <ul className="px-5">
           {search
             ? search_result.map((request, index) => (
                 <FriendsRequestList
-                  key={request.receiver_id}
+                  key={request.sender!.id}
                   request={request}
                   index={index}
                   accept={accept}
@@ -59,14 +58,14 @@ export default function Page() {
               ))
             : friend_request_list?.map((request, index) => (
                 <FriendsRequestList
-                  key={request.sender_id}
+                  key={request.sender!.id}
                   request={request}
                   index={index}
                   accept={accept}
                   decline={decline}
                 />
               ))}
-        </div>
+        </ul>
       </ScrollArea>
     </div>
   );

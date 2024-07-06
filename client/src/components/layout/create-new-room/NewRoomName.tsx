@@ -10,7 +10,7 @@ import { useDispatch } from "react-redux";
 export default function NewRoomName() {
   const { data } = useSession();
   const dispatch = useDispatch<AppDispatch>();
-  const new_room = useAppSelector((state) => state.new_room_reducer);
+  const new_room = useAppSelector((state) => state.new_room);
   const [name, setName] = useState("");
 
   useEffect(() => {

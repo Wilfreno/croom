@@ -14,7 +14,7 @@ export default function NewRoomNameAndPhoto({
   component_view: number;
   setComponentView: Dispatch<SetStateAction<number>>;
 }) {
-  const new_room = useAppSelector((state) => state.new_room_reducer);
+  const new_room = useAppSelector((state) => state.new_room);
 
   return (
     <div className={cn("space-y-5", component_view !== 0 && "hidden")}>

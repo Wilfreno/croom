@@ -8,19 +8,20 @@ import { FriendRequest } from "@/lib/types/client-types";
 import { useWebsocket } from "./useWebsocket";
 import useHTTPRequest from "./useHTTPRequest";
 import websocketMessage from "@/lib/websocket-message";
-import { setNotification } from "@/lib/redux/slices/notification-slice";
+import { setWSFriendRequest } from "@/lib/redux/slices/ws-friend-request-slice";
+import { useRouter } from "next/navigation";
 
 export default function useFriendRequestHandler() {
   const [friend_request_list, setFriendRequestList] = useState<FriendRequest[]>(
     []
   );
 
-  const notifications = useAppSelector((state) => state.notification_reducer);
-
+  const ws_friend_request = useAppSelector((state) => state.ws_friend_request);
   const dispatch = useDispatch<AppDispatch>();
   const { data } = useSession();
   const websocket = useWebsocket();
   const http_request = useHTTPRequest();
+  const router = useRouter();
 
   async function getFriendRequest() {
     try {
@@ -33,6 +34,7 @@ export default function useFriendRequestHandler() {
       throw error;
     }
   }
+
   async function accept(sender: FriendRequest["sender"]) {
     try {
       await http_request.POST("/v1/friend-request/accept", {
@@ -48,17 +50,11 @@ export default function useFriendRequestHandler() {
 
       setTimeout(() => {
         setFriendRequestList((prev) =>
-          prev.filter((fr) => fr.sender_id !== sender!.id)
+          prev.filter(
+            (friend_request) => friend_request.sender!.id !== sender!.id
+          )
         );
-        dispatch(
-          setNotification({
-            operation: "remove",
-            notification: notifications.find(
-              (nt) => nt.friend_request?.sender_id === sender!.id
-            )!,
-          })
-        );
-      }, 3000);
+      }, 1000);
     } catch (error) {
       throw error;
     }
@@ -70,22 +66,13 @@ export default function useFriendRequestHandler() {
         sender_id: sender!.id,
         receiver_id: data!.user.id,
       });
-
       setTimeout(() => {
-        setTimeout(() => {
-          setFriendRequestList((prev) =>
-            prev.filter((fr) => fr.sender_id !== sender!.id)
-          );
-          dispatch(
-            setNotification({
-              operation: "remove",
-              notification: notifications.find(
-                (nt) => nt.friend_request?.sender_id === sender!.id
-              )!,
-            })
-          );
-        }, 3000);
-      }, 3000);
+        setFriendRequestList((prev) =>
+          prev.filter(
+            (friend_request) => friend_request.sender!.id !== sender!.id
+          )
+        );
+      }, 1000); 
     } catch (error) {
       throw error;
     }
@@ -98,15 +85,10 @@ export default function useFriendRequestHandler() {
   }, [data]);
 
   useEffect(() => {
-    if (notifications.length < 1) return;
+    if (!ws_friend_request) return;
 
-    setFriendRequestList((prev) => [
-      ...prev,
-      ...notifications
-        .filter((n) => n.type === "FRIEND_REQUEST")
-        .map((n) => n.friend_request!)!,
-    ]);
-  }, [notifications]);
+    setFriendRequestList((prev) => [...prev, ws_friend_request]);
+  }, [ws_friend_request]);
 
   return {
     friend_request_list,

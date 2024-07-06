@@ -10,9 +10,7 @@ import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
 export default function Page() {
-  const online_friends = useAppSelector(
-    (state) => state.online_friends_reducer
-  );
+  const online_friends = useAppSelector((state) => state.online_friends);
 
   const [search, setSearch] = useState("");
   const [search_result, setSearchResult] = useState<WebsocketUserType[]>();

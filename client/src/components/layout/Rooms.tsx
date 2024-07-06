@@ -15,7 +15,7 @@ export default function Rooms() {
 
   const { data } = useSession();
   const { toast } = useToast();
-  const created_room = useAppSelector((state) => state.created_room_reducer);
+  const created_room = useAppSelector((state) => state.created_room);
   const http_request = useHTTPRequest();
 
   useEffect(() => {
