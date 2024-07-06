@@ -77,13 +77,8 @@ export default function AddRoomMember() {
       </DialogTrigger>
       <DialogContent>
         <div className="space-y-5 relative">
-          <DialogClose className="absolute -top-3 -right-3">
-            <Button
-              variant="ghost"
-              className="  aspect-square h-fit w-auto p-0"
-            >
-              <XMarkIcon className="h-6 stroke-2" />
-            </Button>
+          <DialogClose className="absolute -top-3 -right-3 rounded-full">
+            <XMarkIcon className="h-6 stroke-2" />
           </DialogClose>
           <AddRoomMemberViaFriends room_invite={room_invite!} />
           <AddRoomMemberViaLink

@@ -36,7 +36,7 @@ router
           .status(404)
           .json(JSONResponse("NOT_FOUND", "user cannot be found"));
 
-      const friendship_id = [found_sender, found_sender].sort().join("-");
+      const friendship_id = [found_sender.id, found_sender.id].sort().join("-");
 
       const found_friendship = await prisma.friendship.findFirst({
         where: {

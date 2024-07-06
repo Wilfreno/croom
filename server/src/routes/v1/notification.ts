@@ -14,6 +14,7 @@ router
         type,
         room_invite_id,
         receiver_id,
+        friend_request_id,
       }: { type: NotificationType } & Record<string, string> = request.body;
 
       let notification: Notification;
@@ -54,6 +55,58 @@ router
                   room: {
                     include: {
                       photo: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+        case "FRIEND_REQUEST": {
+          if (!receiver_id || !friend_request_id)
+            return response
+              .status(400)
+              .json(
+                JSONResponse(
+                  "BAD_REQUEST",
+                  "receiver_id & friend_request_id field is required on the request body"
+                )
+              );
+          const found_receiver = await prisma.user.findFirst({
+            where: {
+              id: receiver_id,
+            },
+          });
+
+          if (!found_receiver)
+            return response
+              .status(404)
+              .json(JSONResponse("NOT_FOUND", "receiver user does not exist"));
+
+          const found_friend_request = await prisma.friendRequest.findFirst({
+            where: { id: friend_request_id },
+          });
+
+          if (!found_friend_request)
+            return response
+              .status(404)
+              .json(JSONResponse("NOT_FOUND", "friend request does not exist"));
+
+          notification = await prisma.notification.create({
+            data: {
+              type: "FRIEND_REQUEST",
+              friend_request_id,
+              owner_id: receiver_id,
+            },
+            include: {
+              friend_request: {
+                include: {
+                  sender: {
+                    select: {
+                      id: true,
+                      user_name: true,
+                      display_name: true,
+                      profile_photo: true,
                     },
                   },
                 },
@@ -136,9 +189,8 @@ router
           });
           break;
         }
-        case "FRIEND_REQUEST" :{
-          
-          }
+        case "FRIEND_REQUEST": {
+        }
 
         default:
           return response

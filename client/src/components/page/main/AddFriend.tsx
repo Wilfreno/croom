@@ -12,8 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 import { FriendRequest, Notification } from "@/lib/types/client-types";
-import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
@@ -26,7 +26,7 @@ export default function AddFriend() {
   const websocket = useWebsocket();
   const { data } = useSession();
   const http_request = useHTTPRequest();
-
+  const { toast } = useToast();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -67,6 +67,7 @@ export default function AddFriend() {
 
               websocket?.send(websocketMessage("notification", notification));
 
+              toast({ title: "Friend request sent" });
               setSending(false);
             } catch (error) {
               setSending(false);
