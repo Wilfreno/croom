@@ -30,5 +30,7 @@ express_app.get("/ready", (_, response) => {
 
 //server listen
 http_server.listen(8000, () =>
-  console.log(`server running in ${process.env.NODE_ENV} mode ...`)
+  console.log(
+    `server running on http://127.0.0.1:8000/ in ${process.env.NODE_ENV} mode ...`
+  )
 );
