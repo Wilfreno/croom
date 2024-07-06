@@ -1,8 +1,6 @@
 "use client";
-import { useToast } from "@/components/ui/use-toast";
 import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppDispatch, useAppSelector } from "@/lib/redux/store";
 import { useDispatch } from "react-redux";
@@ -18,6 +16,7 @@ export default function useFriendRequestHandler() {
   );
 
   const notifications = useAppSelector((state) => state.notification_reducer);
+
   const dispatch = useDispatch<AppDispatch>();
   const { data } = useSession();
   const websocket = useWebsocket();
@@ -29,12 +28,11 @@ export default function useFriendRequestHandler() {
         "/v1/user/" + data!.user.id + "/friend-request/received"
       )) as FriendRequest[];
 
-      setFriendRequestList((prev) => [...prev, ...friend_requests]);
+      setFriendRequestList(friend_requests);
     } catch (error) {
       throw error;
     }
   }
-
   async function accept(sender: FriendRequest["sender"]) {
     try {
       await http_request.POST("/v1/friend-request/accept", {
@@ -94,10 +92,14 @@ export default function useFriendRequestHandler() {
   }
 
   useEffect(() => {
-    if (data) getFriendRequest();
+    if (!data) return;
+
+    getFriendRequest();
   }, [data]);
 
   useEffect(() => {
+    if (notifications.length < 1) return;
+
     setFriendRequestList((prev) => [
       ...prev,
       ...notifications
