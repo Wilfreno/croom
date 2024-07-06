@@ -19,7 +19,7 @@ export default function Rooms() {
   const http_request = useHTTPRequest();
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || !data.user.display_name || data.user.user_name) return;
     async function getRooms() {
       try {
         setRooms(
