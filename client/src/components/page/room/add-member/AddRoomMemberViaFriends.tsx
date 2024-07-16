@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { useWebsocket } from "@/components/hooks/useWebsocket";
 import websocketMessage from "@/lib/websocket-message";
+import AddRoomMemberViaFriendButton from "./AddRoomMemberViaFriendButton";
 
 export default function AddRoomMemberViaFriends({
   room_invite,
@@ -19,20 +20,6 @@ export default function AddRoomMemberViaFriends({
   const { data } = useSession();
   const http_request = useHTTPRequest();
   const websocket = useWebsocket();
-
-  async function inviteFriend(receiver_id: string) {
-    try {
-      const notification = (await http_request.POST("/notification", {
-        type: "ROOM_INVITE",
-        room_invite_id: room_invite?.id,
-        receiver_id,
-      })) as Notification;
-
-      websocket?.send(websocketMessage("notification", notification!));
-    } catch (error) {
-      throw error;
-    }
-  }
 
   useEffect(() => {
     if (!data) return;
@@ -60,21 +47,14 @@ export default function AddRoomMemberViaFriends({
         </h2>
       </span>
       {friends.length > 0 ? (
-        <ScrollArea className="p-5 h-[15dvh] rounded-lg bg-primary-foreground w-full">
+        <ScrollArea className="p-2 h-[15dvh] rounded-lg bg-primary-foreground w-full">
           <div className="flex flex-wrap gap-3">
             {friends.map((friend) => (
-              <Button variant="outline" onClick={() => inviteFriend(friend.id)}>
-                <Avatar>
-                  <AvatarImage
-                    src={friend.profile_photo.url}
-                    alt={friend.display_name.slice(0, 1).toUpperCase()}
-                  />
-                  <AvatarFallback>
-                    {friend.display_name.slice(0, 1).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <p>{friend.display_name}</p>
-              </Button>
+              <AddRoomMemberViaFriendButton
+                key={friend.id}
+                friend={friend}
+                room_invite={room_invite}
+              />
             ))}
           </div>
         </ScrollArea>

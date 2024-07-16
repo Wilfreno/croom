@@ -17,6 +17,7 @@ import { FriendRequest, Notification } from "@/lib/types/client-types";
 import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AddFriend() {
@@ -27,6 +28,8 @@ export default function AddFriend() {
   const { data } = useSession();
   const http_request = useHTTPRequest();
   const { toast } = useToast();
+  const router = useRouter();
+
   return (
     <Dialog>
       <DialogTrigger asChild>

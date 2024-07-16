@@ -17,6 +17,16 @@ router
         friend_request_id,
       }: { type: NotificationType } & Record<string, string> = request.body;
 
+      if (!type)
+        return response
+          .status(400)
+          .json(
+            JSONResponse(
+              "BAD_REQUEST",
+              "type field is required on the request body"
+            )
+          );
+
       let notification: Notification;
 
       switch (type) {
@@ -61,6 +71,7 @@ router
               },
             },
           });
+          break;
         }
         case "FRIEND_REQUEST": {
           if (!receiver_id || !friend_request_id)
@@ -113,7 +124,17 @@ router
               },
             },
           });
+          break;
         }
+        default:
+          return response
+            .status(400)
+            .json(
+              JSONResponse(
+                "BAD_REQUEST",
+                "field type can only contain NotificationType"
+              )
+            );
       }
 
       return response
