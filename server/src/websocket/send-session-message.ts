@@ -10,7 +10,7 @@ export default function sendSessionMessage(
   payload: WebsocketSessionMessageType
 ) {
   session.get(payload.session_id)?.forEach((member) => {
-    if (member.user.id !== payload.sender_id)
+    if (member.id !== payload.sender_id)
       member.websocket!.send(createMessage("send-session-message", payload));
   });
 }

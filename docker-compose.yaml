@@ -1,0 +1,12 @@
+services:
+  client:
+    build: ./client
+    ports:
+      - 3000:3000
+    environment:
+      - PORT=8000
+      - NODE_ENV=production
+  server:
+    build: ./server
+    ports:
+      - 8000:8000

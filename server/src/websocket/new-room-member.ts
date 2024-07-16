@@ -8,17 +8,14 @@ export default function newRoomMember(
   payload: RoomMember
 ) {
   const current_user = online.get(payload.id)!;
+  
   if (!lounge.has(payload.room_id)) {
     lounge.set(payload.room_id, new Map());
   }
   lounge.get(payload.room_id)?.set(payload.id, current_user);
 
   lounge.get(payload.room_id)?.forEach((member) => {
-    if (member.user.id !== current_user.user.id)
-      member.websocket!.send(
-        createMessage("new-room-member", {
-          user: current_user.user,
-        })
-      );
+    if (member.id !== current_user.id)
+      member.websocket!.send(createMessage("new-room-member", current_user));
   });
 }

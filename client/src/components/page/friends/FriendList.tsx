@@ -1,4 +1,4 @@
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -18,7 +18,6 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { setOnlineFriends } from "@/lib/redux/slices/online-friends-slice";
 import { AppDispatch } from "@/lib/redux/store";
-import { ServerResponse } from "@/lib/types/sever-response";
 import { WebsocketUserType } from "@/lib/types/websocket-type";
 import {
   ChatBubbleOvalLeftIcon,
@@ -31,36 +30,22 @@ import { useDispatch } from "react-redux";
 
 export default function FriendList({ friend }: { friend: WebsocketUserType }) {
   const dispatch = useDispatch<AppDispatch>();
-  const server_url = useServerUrl();
   const { data } = useSession();
-  const { toast } = useToast();
   const params = useParams<{ username: string }>();
   const router = useRouter();
+  const http_request = useHTTPRequest();
 
   async function unfriend() {
-    const response = await fetch(server_url + "/v1/delete/friend", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        friend_1: data?.user.id,
-        friend_2: friend.user.id,
-      }),
-    });
-
-    const response_json = (await response.json()) as ServerResponse;
-
-    if (response_json.status !== "OK") {
-      toast({
-        title: "Something went wrong",
-        description: response_json.message,
+    try {
+      await http_request.DELETE("/v1/friend", {
+        user_1_id: data?.user.id,
+        user_2_id: friend.id,
       });
-      return;
+      dispatch(setOnlineFriends({ operation: "remove", content: friend }));
+      router.refresh();
+    } catch (error) {
+      throw error;
     }
-
-    dispatch(setOnlineFriends({ operation: "remove", content: friend }));
-    router.refresh();
   }
 
   return (
@@ -73,14 +58,14 @@ export default function FriendList({ friend }: { friend: WebsocketUserType }) {
           >
             <Avatar>
               <AvatarImage
-                src={friend.user.profile_photo?.photo_url}
-                alt={friend.user.display_name?.slice(0, 1).toUpperCase()}
+                src={friend.profile_photo?.url}
+                alt={friend.display_name?.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback className="group-hover:bg-background">
-                {friend.user.display_name?.slice(0, 1).toUpperCase()}
+                {friend.display_name?.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p>{friend.user.display_name}</p>
+            <p>{friend.display_name}</p>
           </Button>
         </DialogTrigger>
         <DialogContent>hey</DialogContent>
@@ -90,8 +75,8 @@ export default function FriendList({ friend }: { friend: WebsocketUserType }) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href={"/" + params.username + "/dm/" + friend.user.id}
-                as={"/" + params.username + "/dm/" + friend.user.id}
+                href={"/" + params.username + "/dm/" + friend.id}
+                as={"/" + params.username + "/dm/" + friend.id}
                 prefetch
               >
                 <Button

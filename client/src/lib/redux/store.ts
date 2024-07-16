@@ -1,9 +1,17 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useSelector } from "react-redux";
-import friend_request_list_reducer from "./slices/friend-requests-slice";
-import online_friends_reducer from "./slices/online-friends-slice";
+import online_friends from "./slices/online-friends-slice";
+import new_room from "./slices/new-room-slice";
+import created_room from "./slices/created-room-slice";
+import ws_friend_request from "./slices/ws-friend-request-slice";
+
 export const store = configureStore({
-  reducer: { friend_request_list_reducer, online_friends_reducer },
+  reducer: {
+    online_friends,
+    new_room,
+    created_room,
+    ws_friend_request,
+  },
 });
 
 export type RootState = ReturnType<typeof store.getState>;

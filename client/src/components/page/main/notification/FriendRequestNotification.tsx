@@ -13,67 +13,58 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NotificationType } from "@/lib/types/notification-type";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { useMemo, useState } from "react";
-import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
+import useFriendRequestHandler from "@/components/hooks/useFriendRequestHandler";
+import { FriendRequest } from "@/lib/types/client-types";
 
 export default function FriendRequestNotification({
-  notification,
-  accept,
-  decline,
-  index,
+  friend_request,
 }: {
-  notification: NotificationType;
-  accept: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
-  decline: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
-  index: number;
+  friend_request: FriendRequest;
 }) {
   const [loading, setLoading] = useState({ accept: false, decline: false });
   const [after_loading, setAfterLoading] = useState({
     accept: false,
     decline: false,
   });
+
+  const { accept, decline } = useFriendRequestHandler();
   const MotionButton = useMemo(() => motion(Button), []);
 
   return (
     <AnimatePresence>
       {!after_loading.accept && !after_loading.decline ? (
-        <Collapsible>
+        <Collapsible key={friend_request.sender!.id}>
           <CollapsibleTrigger asChild>
             <li>
               <MotionButton
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, repeat: 1 }}
+                transition={{ duration: 0.5 }}
                 variant="ghost"
-                className="w-full justify-start space-x-5 h-fit"
+                className="w-full justify-start space-x-5 h-fit p-1"
               >
-                <Avatar>
+                <Avatar className="aspect-square w-auto h-10">
                   <AvatarImage
-                    src={notification.content!.sender.profile_photo!.photo_url!}
-                    alt={notification
-                      .content!.sender.display_name?.slice(0, 1)
+                    src={friend_request!.sender!.profile_photo!.url!}
+                    alt={friend_request!
+                      .sender!.display_name?.slice(0, 1)
                       .toUpperCase()}
                   />
                   <AvatarFallback>
-                    {notification
-                      .content!.sender.display_name?.slice(0, 1)
+                    {friend_request!
+                      .sender!.display_name?.slice(0, 1)
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start space-y-1">
-                  <p className="font-bold">
-                    {notification.content!.sender.display_name}
+                  <p className="font-bold text-sm">
+                    {friend_request!.sender!.display_name}
                   </p>
                   <p className="text-xs text-wrap text-start">
-                    {notification.message}
+                    {friend_request.sender?.display_name} wants to be friends
+                    with you
                   </p>
                 </div>
               </MotionButton>
@@ -81,7 +72,7 @@ export default function FriendRequestNotification({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <motion.div
-              key={notification.message}
+              key={friend_request.id}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -94,7 +85,7 @@ export default function FriendRequestNotification({
                       className="h-fit w-auto p-2 bg-green-600 "
                       onClick={async () => {
                         setLoading((prev) => ({ ...prev, accept: true }));
-                        await accept(notification.content?.sender!, index);
+                        await accept(friend_request!.sender!!);
                         setLoading((prev) => ({ ...prev, accept: false }));
                         setAfterLoading((prev) => ({ ...prev, accept: true }));
                       }}
@@ -123,7 +114,7 @@ export default function FriendRequestNotification({
                       className="h-fit w-auto p-2 bg-red-600"
                       onClick={async () => {
                         setLoading((prev) => ({ ...prev, decline: true }));
-                        await decline(notification.content?.sender!, index);
+                        await decline(friend_request?.sender!!);
                         setLoading((prev) => ({ ...prev, decline: false }));
                         setAfterLoading((prev) => ({ ...prev, decline: true }));
                       }}

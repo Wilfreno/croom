@@ -2,7 +2,7 @@ import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { CheckIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 
@@ -12,34 +12,31 @@ export default function FriendsRequestList({
   accept,
   decline,
 }: {
-  request: WebsocketFriendRequestType;
+  request: FriendRequest;
   index: number;
-  accept: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
-  decline: (
-    sender: WebsocketFriendRequestType["sender"],
-    index: number
-  ) => Promise<void>;
+  accept: (sender: FriendRequest["sender"], index: number) => Promise<void>;
+  decline: (sender: FriendRequest["sender"], index: number) => Promise<void>;
 }) {
   const [loading, setLoading] = useState({ accept: false, decline: false });
 
   return (
-    <li className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10">
+    <li
+      key={request.sender_id}
+      className="rounded-lg hover:bg-accent list-none p-2 flex items-center justify-between space-x-10"
+    >
       <Dialog>
         <DialogTrigger asChild>
           <Button className="flex items-center space-x-5 grow bg-transparent justify-start text-secondary-foreground hover:bg-transparent hover:shadow-none shadow-none focus-visible:ring-0">
             <Avatar>
               <AvatarImage
-                src={request.sender.user!.profile_photo?.photo_url}
-                alt={request.sender.user!.display_name!.slice(0, 1).toUpperCase()}
+                src={request.sender!.profile_photo?.url}
+                alt={request.sender!.display_name!.slice(0, 1).toUpperCase()}
               />
               <AvatarFallback>
-                {request.sender.user.display_name!.slice(0, 1).toUpperCase()}
+                {request.sender!.display_name!.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p>{request.sender.user!.display_name}</p>
+            <p>{request.sender!.display_name}</p>
           </Button>
         </DialogTrigger>
         <DialogContent>

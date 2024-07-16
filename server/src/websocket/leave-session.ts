@@ -25,9 +25,7 @@ export default function leaveSession(
     session.delete(payload.session.id);
 
   session.get(payload.session.id)?.forEach((member) => {
-    if (member.user.id !== current_user?.user.id)
-      member.websocket?.send(
-        createMessage("leave-session", { user: current_user?.user! })
-      );
+    if (member.id !== current_user?.id)
+      member.websocket?.send(createMessage("leave-session", current_user!));
   });
 }

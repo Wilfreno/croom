@@ -5,9 +5,11 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "NODE_ENV=development nodemon --delay 1500ms ./src/server.ts ",
-    "build": "tsc --build && pnpm start",
-    "start": "NODE_ENV=production node build/server.js"
+    "dev": "pnpm pre-run && pnpm development_server",
+    "build": "pnpm pre-run && tsc --build &&  pnpm production_server",
+    "pre-run": "npx prisma generate",
+    "production_server": "NODE_ENV=production node build/server.js",
+    "development_server": "NODE_ENV=development nodemon --delay 1500ms ./src/server.ts"
   },
   "keywords": [],
   "author": "Wilfreno Gayongan",

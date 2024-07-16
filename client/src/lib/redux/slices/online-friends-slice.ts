@@ -1,7 +1,7 @@
 import { WebsocketUserType } from "@/lib/types/websocket-type";
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 
-export const online_friends = createSlice({
+const online_friends = createSlice({
   name: "online-friends",
   initialState: [] as WebsocketUserType[],
   reducers: {
@@ -18,7 +18,7 @@ export const online_friends = createSlice({
         }
         case "remove":
           return prev.filter(
-            (friend) => friend.user.id !== action.payload.content.user.id
+            (friend) => friend.id !== action.payload.content.id
           );
       }
     },

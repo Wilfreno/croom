@@ -18,9 +18,7 @@ export default function joinSession(
   session.get(payload.session.id)?.set(payload.room_member.id, current_user!);
 
   session.get(payload.session.id)?.forEach((member) => {
-    if (member.user.id !== payload.room_member.id)
-      member.websocket!.send(
-        createMessage("join-session", { user: current_user?.user! })
-      );
+    if (member.id !== payload.room_member.id)
+      member.websocket!.send(createMessage("join-session", current_user!));
   });
 }

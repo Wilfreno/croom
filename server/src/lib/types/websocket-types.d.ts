@@ -3,8 +3,10 @@ import {
   FriendRequest,
   Lounge,
   LoungeMessage,
+  Notification,
   ProfilePhoto,
   Room,
+  RoomInvite,
   RoomMember,
   Session,
   SessionMessage,
@@ -13,12 +15,7 @@ import {
 import sendLoungeMessage from "src/websocket/send-lounge-message";
 import { WebSocket } from "ws";
 
-export type WebsocketClientMessage = {
-  type: WebsocketMessageType;
-  payload: WebSocketPayloadType;
-};
-
-export type WebSocketSeverMessage = {
+export type WebSocketMessage = {
   type: WebsocketMessageType;
   payload: WebSocketPayloadType;
 };
@@ -28,16 +25,18 @@ export type WebSocketPayloadType =
   | WebsocketUserType
   | WebsocketFriendRequestType
   | WebsocketDirectMessageType
+  | Notification
   | RoomMember
   | WebsocketLoungeMessageType
   | WebsocketRoomSessionType
-  | WebsocketSessionMessageType;
+  | WebsocketSessionMessageType
+  | WebsocketRoomMemberType;
 
 export type WebsocketMessageType =
   | "online-friend"
   | "online-room-member"
   | "offline"
-  | "send-friend-request"
+  | "notification"
   | "accept-friend-request"
   | "send-direct-message"
   | "delete-direct-message"
@@ -48,21 +47,20 @@ export type WebsocketMessageType =
   | "join-session"
   | "leave-session"
   | "send-session-message"
-  | "error"
+  | "error";
+
 export type WebsocketFriendRequestType = {
-  sender: WebsocketUserType;
-  receiver: WebsocketUserType;
+  sender_id: WebsocketUserType["id"];
+  receiver_id: WebsocketUserType["id"];
   date_created?: Date;
 };
 
 export type WebsocketUserType = {
-  user: {
-    id: User["id"];
-    user_name: User["user_name"];
-    display_name: User["display_name"];
-    profile_photo: {
-      photo_url: ProfilePhoto["photo_url"];
-    };
+  id: User["id"];
+  user_name: User["user_name"];
+  display_name: User["display_name"];
+  profile_photo: {
+    url: ProfilePhoto["url"];
   };
   websocket?: WebSocket;
 };
@@ -72,6 +70,8 @@ export interface WebsocketDirectMessageType extends DirectMessage {
   photo_message?: PhotoMessage;
   video_message?: VideoMessage;
 }
+
+export type WebsocketRoomMemberType = RoomMember & WebsocketUserType;
 
 export interface WebsocketLoungeMessageType extends LoungeMessage {
   sender: WebsocketUserType;

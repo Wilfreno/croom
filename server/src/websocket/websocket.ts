@@ -5,19 +5,26 @@
  *  this section is the implementation of the websocket server
  */
 
-import http, { get } from "http";
+import http from "http";
 import WebSocket from "ws";
-import { Lounge, RoomMember, Session, User } from "@prisma/client";
+import {
+  Lounge,
+  Notification,
+  RoomMember,
+  Session,
+  User,
+} from "@prisma/client";
 import { parse } from "url";
 import { prisma } from "../server";
 import {
-  WebsocketFriendRequestType,
-  WebsocketClientMessage as WebsocketClientMessageType,
   WebsocketUserType,
   WebsocketLoungeMessageType,
   WebsocketDirectMessageType,
   WebsocketRoomSessionType,
   WebsocketSessionMessageType,
+  WebSocketMessage,
+  WebsocketRoomMemberType,
+  WebsocketFriendRequestType,
 } from "src/lib/types/websocket-types";
 import createMessage from "./make-message";
 import broadcastOnline from "./broadcast-online";
@@ -33,8 +40,13 @@ import joinSession from "./join-session";
 import leaveSession from "./leave-session";
 import sendSessionMessage from "./send-session-message";
 import broadcastOffline from "./broadcast-offline";
+import sendNotification from "./send-notification";
 
-const lounge = new Map<Lounge["id"], Map<User["id"], WebsocketUserType>>();
+const lounge = new Map<
+  Lounge["id"],
+  Map<User["id"], WebsocketRoomMemberType>
+>();
+
 const session = new Map<Session["id"], Map<User["id"], WebsocketUserType>>();
 const online = new Map<User["id"], WebsocketUserType>();
 
@@ -65,7 +77,7 @@ export default function WebsocketServer(
       include: {
         profile_photo: {
           select: {
-            photo_url: true,
+            url: true,
           },
         },
       },
@@ -80,13 +92,11 @@ export default function WebsocketServer(
 
     //enlisting the user to the online map and broadcasting it to every room the user is in
     online.set(user.id, {
-      user: {
-        id: user.id,
-        display_name: user.display_name,
-        user_name: user.user_name,
-        profile_photo: {
-          photo_url: user.profile_photo?.photo_url!,
-        },
+      id: user.id,
+      display_name: user.display_name,
+      user_name: user.user_name,
+      profile_photo: {
+        url: user.profile_photo?.url!,
       },
       websocket: socket,
     });
@@ -95,14 +105,13 @@ export default function WebsocketServer(
 
     //websocket event handlers
     socket.on("message", (client_message) => {
-      const parsed_message: WebsocketClientMessageType = JSON.parse(
+      const parsed_message: WebSocketMessage = JSON.parse(
         client_message.toString()
       );
       switch (parsed_message.type) {
-        case "send-friend-request": {
-          const friend_request =
-            parsed_message.payload as WebsocketFriendRequestType;
-          sendFriendRequest(friend_request, online);
+        case "notification": {
+          const notification = parsed_message.payload as Notification;
+          sendNotification(notification, online);
           break;
         }
         case "accept-friend-request": {

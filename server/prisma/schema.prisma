@@ -10,56 +10,78 @@ datasource db {
 }
 
 model User {
-  id                      String               @id @unique @default(uuid())
-  email                   String               @unique
-  password                String?
-  profile_photo           ProfilePhoto?
-  birth_date              DateTime?
-  display_name            String
-  user_name               String
-  provider                String?
-  friend_request_sent     FriendRequest[]      @relation("friend-request-sender")
-  friend_request_received FriendRequest[]      @relation("friend-request-receiver")
-  friends                 Friendship[]         @relation("friend1")
-  friends_with            Friendship[]         @relation("friend2")
-  direct_messages         DirectConversation[] @relation("direct-message1")
-  direct_messages_        DirectConversation[] @relation("direct-message2")
-  messages_sent           DirectMessage[]      @relation("message-sent")
-  messages_received       DirectMessage[]      @relation("message-received")
-  room_membership         RoomMember[]
-  lounge_message          LoungeMessage[]      @relation("lounge-message-sent")
-  session_message         SessionMessage[]     @relation("session-message-sent")
-  date_created            DateTime             @default(now())
+  id            String         @id @unique @default(uuid())
+  email         String         @unique
+  password      String?
+  profile_photo ProfilePhoto?
+  notifications Notification[]
+  birth_date    DateTime?
+  display_name  String
+  user_name     String
+
+  friend_request_sent     FriendRequest[] @relation("friend-request-sender")
+  friend_request_received FriendRequest[] @relation("friend-request-receiver")
+  friends                 Friendship[]    @relation("friend1")
+  friends_with            Friendship[]    @relation("friend2")
+
+  direct_conversations     DirectConversation[] @relation("direct-message1")
+  direct_conversations_    DirectConversation[] @relation("direct-message2")
+  direct_messages_sent     DirectMessage[]      @relation("message-sent")
+  direct_messages_received DirectMessage[]      @relation("message-received")
+
+  room_membership RoomMember[]
+  lounge_message  LoungeMessage[]  @relation("lounge-message-sent")
+  session_message SessionMessage[] @relation("session-message-sent")
+
+  date_created DateTime @default(now())
+}
+
+model Notification {
+  id                String           @id @unique @default(uuid())
+  owner             User             @relation(fields: [owner_id], references: [id])
+  owner_id          String
+  type              NotificationType
+  friend_request    FriendRequest?   @relation(fields: [friend_request_id], references: [id], onDelete: Cascade)
+  friend_request_id String?          @unique
+  room_invite       RoomInvite?      @relation(fields: [room_invite_id], references: [id], onDelete: Cascade)
+  room_invite_id    String?          @unique
+  date_created      DateTime         @default(now())
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  ROOM_INVITE
 }
 
 model ProfilePhoto {
   id           String   @id @unique @default(uuid())
   owner        User     @relation(fields: [owner_id], references: [id])
   owner_id     String   @unique
-  photo_url    String
+  url          String
   date_created DateTime @default(now())
 }
 
 model FriendRequest {
-  id           String   @id @unique @default(uuid())
-  receiver     User     @relation("friend-request-receiver", fields: [receiver_id], references: [id])
+  id           String        @id @unique
+  receiver     User          @relation("friend-request-receiver", fields: [receiver_id], references: [id])
   receiver_id  String
-  sender       User     @relation("friend-request-sender", fields: [sender_id], references: [id])
+  sender       User          @relation("friend-request-sender", fields: [sender_id], references: [id])
   sender_id    String
-  date_created DateTime @default(now())
+  notification Notification?
+  date_created DateTime      @default(now())
 
   @@unique([sender_id, receiver_id])
 }
 
 model Friendship {
-  id           String   @id @unique @default(uuid())
-  friend_1     User     @relation("friend1", fields: [friend_1_id], references: [id], onDelete: Cascade)
-  friend_1_id  String
-  friend_2     User     @relation("friend2", fields: [friend_2_id], references: [id], onDelete: Cascade)
-  friend_2_id  String
+  id           String   @id @unique
+  user_1       User     @relation("friend1", fields: [user_1_id], references: [id], onDelete: Cascade)
+  user_1_id    String
+  user_2       User     @relation("friend2", fields: [user_2_id], references: [id], onDelete: Cascade)
+  user_2_id    String
   date_created DateTime @default(now())
 
-  @@unique([friend_1_id, friend_2_id])
+  @@unique([user_1_id, user_2_id])
 }
 
 model DirectConversation {
@@ -97,12 +119,41 @@ enum MessageType {
 }
 
 model Room {
-  id            String       @id @unique @default(uuid())
-  room_name     String       @unique
-  members       RoomMember[]
-  lounge        Lounge?
-  room_sessions Session[]
-  date_created  DateTime     @default(now())
+  id           String       @id @unique @default(uuid())
+  photo        RoomPhoto?
+  name         String       @unique
+  type         RoomType
+  invite       RoomInvite?
+  members      RoomMember[]
+  lounge       Lounge?
+  sessions     Session[]
+  date_created DateTime     @default(now())
+}
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
+}
+
+model RoomInvite {
+  id           String        @id @unique @default(uuid())
+  room         Room?         @relation(fields: [room_id], references: [id])
+  room_id      String?       @unique
+  code         String        @unique
+  notification Notification?
+
+  last_updated DateTime @default(now())
+  date_created DateTime @default(now())
+}
+
+model RoomPhoto {
+  id           String   @id @unique @default(uuid())
+  room         Room?    @relation(fields: [room_id], references: [id])
+  room_id      String?  @unique
+  url          String
+  height       Int
+  width        Int
+  date_created DateTime @default(now())
 }
 
 model RoomMember {
@@ -183,7 +234,7 @@ model PhotoMessage {
   lounge_message_id  String         @unique
   session_message    SessionMessage @relation(fields: [session_message_id], references: [id])
   session_message_id String         @unique
-  photo_url          String
+  url                String
   date_created       DateTime       @default(now())
 }
 
@@ -195,7 +246,7 @@ model VideoMessage {
   lounge_message_id  String         @unique
   session_message    SessionMessage @relation(fields: [session_message_id], references: [id])
   session_message_id String         @unique
-  video_url          String
+  url                String
   name               String
   length             Int
   date_created       DateTime       @default(now())

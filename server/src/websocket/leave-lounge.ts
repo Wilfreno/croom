@@ -15,9 +15,7 @@ export default function leaveLounge(
   if (lounge.get(payload.room_id)?.size === 0) lounge.delete(payload.room_id);
 
   lounge.get(payload.room_id)?.forEach(async (member) => {
-    if (member.user.id !== current_user?.user.id)
-      member.websocket!.send(
-        createMessage("leave-lounge", { user: current_user?.user! })
-      );
+    if (member.id !== current_user?.id)
+      member.websocket!.send(createMessage("leave-lounge", current_user!));
   });
 }

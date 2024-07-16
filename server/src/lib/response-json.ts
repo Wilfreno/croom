@@ -1,3 +1,5 @@
+import { nightOwl } from "@react-email/components";
+
 type HTTPStatusResponse =
   | "OK"
   | "NOT_FOUND"
@@ -6,24 +8,14 @@ type HTTPStatusResponse =
   | "BAD_REQUEST"
   | "UNAUTHORIZED";
 
-export function responseWithData<T>(
+export function JSONResponse<T>(
   status: HTTPStatusResponse,
   message: string,
-  data: T
+  data: T | null = null
 ) {
   return {
     status,
     message,
     data,
-  };
-}
-
-export function responseWithoutData(
-  status: HTTPStatusResponse,
-  message: string
-) {
-  return {
-    status,
-    message,
   };
 }

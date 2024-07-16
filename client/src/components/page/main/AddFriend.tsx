@@ -1,5 +1,5 @@
-import { useWebsocketInstance } from "@/components/Websocket";
-import useServerUrl from "@/components/hooks/useServerUrl";
+import useHTTPRequest from "@/components/hooks/useHTTPRequest";
+import { useWebsocket } from "@/components/hooks/useWebsocket";
 import LoadingSvg from "@/components/svg/LoadingSvg";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,24 +12,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FriendRequest } from "@/lib/types/client-types";
-import { ServerResponse } from "@/lib/types/sever-response";
-import {
-  WebsocketClientMessage,
-  WebsocketFriendRequestType,
-} from "@/lib/types/websocket-type";
-import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
+import { FriendRequest, Notification } from "@/lib/types/client-types";
+import websocketMessage from "@/lib/websocket-message";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AddFriend() {
-  const server_url = useServerUrl();
-  const websocket = useWebsocketInstance();
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
-  const [server_response, setServerResponse] = useState<ServerResponse>();
+
+  const websocket = useWebsocket();
   const { data } = useSession();
+  const http_request = useHTTPRequest();
+  const { toast } = useToast();
+  const router = useRouter();
 
   return (
     <Dialog>
@@ -44,63 +43,39 @@ export default function AddFriend() {
             <XMarkIcon className="h-5 " />
           </DialogClose>
           <DialogTitle>Add Friend</DialogTitle>
-          <DialogDescription>Add friend with their username</DialogDescription>
+          <DialogDescription>Add friend with username</DialogDescription>
         </DialogHeader>
         <form
           onSubmit={async (e) => {
-            e.preventDefault();
-            setSending(true);
-            const response = await fetch(
-              server_url + "/v1/create/friend-request",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
+            try {
+              e.preventDefault();
+              setSending(true);
+
+              const friend_request = (await http_request.POST(
+                "/v1/friend-request",
+                {
                   sender: data?.user.user_name,
                   receiver: username,
-                }),
-              }
-            );
+                }
+              )) as FriendRequest;
 
-            const response_json = (await response.json()) as ServerResponse;
-            setServerResponse(response_json);
+              const notification = (await http_request.POST(
+                "/v1/notification",
+                {
+                  type: "FRIEND_REQUEST",
+                  friend_request_id: friend_request.id,
+                  receiver_id: friend_request.receiver?.id,
+                }
+              )) as Notification;
 
-            const friend_request = response_json.data as FriendRequest;
-            if (response_json.status !== "OK") return;
+              websocket?.send(websocketMessage("notification", notification));
 
-            console.log(friend_request);
-            websocket?.send(
-              JSON.stringify({
-                type: "send-friend-request",
-                payload: {
-                  sender: {
-                    user: {
-                      id: data?.user.id,
-                      display_name: data!.user.display_name,
-                      profile_photo: {
-                        photo_url: data?.user.profile_photo?.photo_url,
-                      },
-                      user_name: data?.user.user_name,
-                    },
-                  },
-                  receiver: {
-                    user: {
-                      id: friend_request.receiver!.id,
-                      display_name: friend_request.receiver!.display_name,
-                      profile_photo: {
-                        photo_url:
-                          friend_request.receiver!.profile_photo?.photo_url,
-                      },
-                      user_name: friend_request.receiver!.user_name!,
-                    },
-                  },
-                  date_created: friend_request.date_created,
-                } as WebsocketFriendRequestType,
-              } as WebsocketClientMessage)
-            );
-            setSending(false);
+              toast({ title: "Friend request sent" });
+              setSending(false);
+            } catch (error) {
+              setSending(false);
+              throw error;
+            }
           }}
           autoComplete="off"
         >
@@ -116,18 +91,6 @@ export default function AddFriend() {
               {sending ? <LoadingSvg className="h-6" /> : "Send Friend request"}
             </Button>
           </div>
-          {server_response && (
-            <p
-              className={cn(
-                "text-xs mx-3 my-1",
-                server_response.status === "OK"
-                  ? "text-green-600 text-xs"
-                  : "text-red-600"
-              )}
-            >
-              {server_response.message}
-            </p>
-          )}
         </form>
       </DialogContent>
     </Dialog>

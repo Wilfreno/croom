@@ -1,30 +1,26 @@
 "use client";
 
 import useFriendRequestHandler from "@/components/hooks/useFriendRequestHandler";
-import useServerUrl from "@/components/hooks/useServerUrl";
 import FriendsRequestList from "@/components/page/friends/FriendsRequestList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { WebsocketFriendRequestType } from "@/lib/types/websocket-type";
+import { FriendRequest } from "@/lib/types/client-types";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 
 export default function Page() {
   const { friend_request_list, decline, accept } = useFriendRequestHandler();
   const [search, setSearch] = useState("");
-  const [search_result, setSearchResult] = useState<
-    WebsocketFriendRequestType[]
-  >([]);
+  const [search_result, setSearchResult] = useState<FriendRequest[]>([]);
 
   useEffect(() => {
     if (!search || !friend_request_list) return;
-
     setSearchResult(
       friend_request_list.filter(
         (request) =>
-          request.sender.user.display_name?.startsWith(search) ||
-          request.sender.user.user_name?.startsWith(search)
+          request.sender!.display_name?.startsWith(search) ||
+          request.sender!.user_name?.startsWith(search)
       )
     );
   }, [search]);
@@ -49,11 +45,11 @@ export default function Page() {
         </Label>
       </div>
       <ScrollArea className="h-[70vh]">
-        <div className="px-5">
+        <ul className="px-5">
           {search
             ? search_result.map((request, index) => (
                 <FriendsRequestList
-                  key={request.receiver.user.id}
+                  key={request.sender!.id}
                   request={request}
                   index={index}
                   accept={accept}
@@ -62,14 +58,14 @@ export default function Page() {
               ))
             : friend_request_list?.map((request, index) => (
                 <FriendsRequestList
-                  key={request.sender.user.id}
+                  key={request.sender!.id}
                   request={request}
                   index={index}
                   accept={accept}
                   decline={decline}
                 />
               ))}
-        </div>
+        </ul>
       </ScrollArea>
     </div>
   );
