@@ -4,23 +4,18 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
   const path_name = request.nextUrl.pathname;
-  const dev_url = process.env.DEVELOPMENT_URL!;
-  const production_url = process.env.PRODUCTION_URL!;
+  const client_url = process.env.CLIENT_URL!;
 
   try {
-    if (!dev_url && !production_url)
-      throw new Error(
-        "DEVELOPMENT_URL or PRODUCTION_URL is missing from your .env.local file"
-      );
+    if (!client_url)
+      throw new Error("CLIENT_URL is missing from your .env.local file");
 
     if (
       !token &&
       !path_name.startsWith("/login") &&
       !path_name.startsWith("/signup")
     )
-      return process.env.NODE_ENV === "development"
-        ? NextResponse.redirect(dev_url + "/login")
-        : NextResponse.redirect(production_url + "/login");
+      return NextResponse.redirect(client_url + "/login");
 
     if (
       path_name.startsWith("/login") ||
@@ -28,11 +23,9 @@ export async function middleware(request: NextRequest) {
       path_name.startsWith("/new")
     )
       if (token?.user_name && token.display_name)
-        return process.env.NODE_ENV === "development"
-          ? NextResponse.redirect(dev_url + "/" + token?.user_name + "/notes")
-          : NextResponse.redirect(
-              production_url + "/" + token?.user_name + "/notes"
-            );
+        return NextResponse.redirect(
+          client_url + "/" + token?.user_name + "/notes"
+        );
 
     if (
       !path_name.startsWith("/new") &&
@@ -41,21 +34,15 @@ export async function middleware(request: NextRequest) {
       !token?.user_name &&
       !token?.display_name
     )
-      return process.env.NODE_ENV === "development"
-        ? NextResponse.redirect(dev_url + "/new")
-        : NextResponse.redirect(production_url + "/new");
+      return NextResponse.redirect(client_url + "/new");
 
     if (path_name === "/" && token?.user_name)
-      return process.env.NODE_ENV === "development"
-        ? NextResponse.redirect(dev_url + "/" + token.user_name)
-        : NextResponse.redirect(production_url + "/" + token.user_name);
+      return NextResponse.redirect(client_url + "/" + token.user_name);
 
     if (path_name === "/" + token?.user_name)
-      return process.env.NODE_ENV === "development"
-        ? NextResponse.redirect(dev_url + "/" + token?.user_name + "/notes")
-        : NextResponse.redirect(
-            production_url + "/" + token?.user_name + "/notes"
-          );
+      return NextResponse.redirect(
+        client_url + "/" + token?.user_name + "/notes"
+      );
   } catch (error) {
     throw error;
   }
