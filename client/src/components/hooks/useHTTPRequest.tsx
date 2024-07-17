@@ -2,11 +2,9 @@ import { ServerResponse } from "@/lib/types/sever-response";
 import { useToast } from "../ui/use-toast";
 
 export default function useHTTPRequest() {
-  const server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
+  const server_url = process.env.SERVER_URL!;
   if (!server_url)
-    throw new Error(
-      "NEXT_PUBLIC_DEVELOPMENT_SERVER is missing from your .env.local file"
-    );
+    throw new Error("SERVER_URL is missing from your .env.local file");
 
   const { toast } = useToast();
 
