@@ -22,7 +22,7 @@ export default function SignUpForm() {
     email: "",
     birth_date: undefined,
     password: "",
-  });
+});
 
   const [agree, setAgree] = useState<CheckedState>(false);
   const [view_otp, setViewOTP] = useState(false);

@@ -15,9 +15,7 @@ const secret = process.env.NEXTAUTH_SECRET;
 if (!secret)
   throw new Error(" NEXTAUTH_SECRET is missing from your .env.local file");
 
-let server_url: string;
-
-server_url = process.env.NEXT_PUBLIC_DEVELOPMENT_SERVER!;
+let server_url = process.env.SERVER_URL;
 if (!server_url)
   throw new Error("DEVELOPMENT_SERVER is missing from your .env.local file");
 
@@ -39,7 +37,7 @@ const auth_options: AuthOptions = {
         },
       },
       async authorize(credentials) {
-        const login = await fetch(server_url + "v1/user/authenticate", {
+        const login = await fetch(server_url + "/v1/user/authenticate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

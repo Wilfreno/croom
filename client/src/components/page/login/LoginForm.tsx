@@ -21,7 +21,8 @@ export default function LoginForm() {
         setLoading(true);
         const sign_in = await signIn("credentials", {
           email: credentials.email,
-          password: credentials.password,          redirect: false,
+          password: credentials.password,
+          redirect: false,
         });
         if (sign_in?.error) setSignInError(sign_in.error);
 
