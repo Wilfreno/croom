@@ -3,7 +3,7 @@ import { model, Schema, Types } from "mongoose";
 export type User = {
   username: string;
   password?: string;
-  status: "offline" | "online";
+  status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
   date_created: Date;
   last_updated: Date;
@@ -23,8 +23,8 @@ const userSchema = new Schema<User>({
   },
   status: {
     type: String,
-    enum: ["offline", "online"],
-    default: "online",
+    enum: ["OFFLINE", "ONLINE"],
+    default: "OFFLINE",
   },
   photo: {
     type: Schema.Types.ObjectId,
