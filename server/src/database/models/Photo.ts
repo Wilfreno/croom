@@ -5,7 +5,6 @@ export type Photo = {
   type: "PROFILE";
   url: string;
   date_created: Date;
-  last_updated: Date;
 };
 
 const photoSchema = new Schema<Photo>({
@@ -24,10 +23,6 @@ const photoSchema = new Schema<Photo>({
   date_created: {
     type: Date,
     default: Date.now,
-  },
-  last_updated: {
-    type: Date,
-    required: true,
   },
 });
 
