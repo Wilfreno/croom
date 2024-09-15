@@ -4,6 +4,7 @@ import Photo, { type Photo as PhotoType } from "src/database/models/Photo";
 import User, { type User as UserType } from "src/database/models/User";
 import exclude from "src/lib/exclude";
 import JSONResponse from "src/lib/json-response";
+import JWTValidator from "src/lib/middleware/jwt-validator";
 
 export default async function v1UserRouter(fastify: FastifyInstance) {
   //create user
@@ -155,7 +156,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
   fastify.patch<{
     Params: { key: keyof UserType };
     Body: Omit<UserType, "photo"> & { photo: PhotoType; new_username: string };
-  }>("/:key", async (request, reply) => {
+  }>("/:key", { preValidation: JWTValidator }, async (request, reply) => {
     try {
       const { key } = request.params;
       const { username, new_username, password, photo, status } = request.body;
@@ -297,6 +298,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
 
   fastify.delete<{ Params: { username: string } }>(
     "/:username",
+    { preValidation: JWTValidator },
     async (request, reply) => {
       try {
         const { username } = request.params;

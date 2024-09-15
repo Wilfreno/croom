@@ -4,9 +4,10 @@ import websocket from "@fastify/websocket";
 import "dotenv/config";
 import connectToDB from "./database/connect";
 import websocketServer from "./websocket/websocket-server";
-
+import jwt from "@fastify/jwt";
 const fastify = Fastify({ logger: true });
 
+//middleware
 //Cross-origin resource sharing restriction
 fastify.register(cors, {
   origin:
@@ -16,12 +17,14 @@ fastify.register(cors, {
   methods: ["POST", "GET", "PATCH", "DELETE"],
 });
 
+//JWT
+fastify.register(jwt);
+
 //websocket
 fastify.register(websocket);
 fastify.register(websocketServer);
 
 //routes
-
 fastify.get("/", async (request, reply) => {
   return reply.send("hello");
 });

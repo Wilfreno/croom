@@ -47,3 +47,5 @@ chatSchema.set("toJSON", {
 });
 
 const Chat = model("Chat", chatSchema);
+
+export default Chat;
