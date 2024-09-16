@@ -1,6 +1,6 @@
 import UpdateAccountForm from "@/components/page/new/UpdateAccountForm";
 
-export default function Page() {
+  export default function Page() {
   return (
     <main className="grid grid-rows-[auto_1fr] gap-8 p-10 h-dvh w-screen">
       <div className="justify-self-center">

@@ -6,6 +6,10 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const client_url = process.env.CLIENT_URL;
 
+  let search_params = "";
+
+  if (from) search_params += "?from=" + from;
+
   if (!client_url)
     throw new Error("CLIENT_URL is missing from your .env.local file");
   try {
@@ -14,15 +18,13 @@ export async function middleware(request: NextRequest) {
     if (!token) {
       if (!pathname.startsWith("/login") && !pathname.startsWith("/welcome")) {
         NextResponse.json({ message: "user unauthenticated" }, { status: 401 });
-        return NextResponse.redirect(
-          client_url + "/welcome" + "?from=" + (from ? from : pathname)
-        );
+        return NextResponse.redirect(client_url + "/welcome" + search_params);
       }
     } else {
       if (token.new && !pathname.startsWith("/new"))
         return NextResponse.redirect(client_url + "/new");
       if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) {
-        return NextResponse.redirect(client_url + (from ? from : "/"));
+        return NextResponse.redirect(client_url + search_params);
       }
     }
   } catch (error) {
