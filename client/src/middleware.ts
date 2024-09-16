@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({ req: request });
 
     if (!token) {
-      if (!pathname.startsWith("/login") || !pathname.startsWith("/welcome")) {
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/welcome")) {
         NextResponse.json({ message: "user unauthenticated" }, { status: 401 });
         return NextResponse.redirect(
           client_url + "/welcome" + "?from=" + (from ? from : pathname)
