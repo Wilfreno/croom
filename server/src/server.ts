@@ -5,6 +5,7 @@ import "dotenv/config";
 import connectToDB from "./database/connect";
 import websocketServer from "./websocket/websocket-server";
 import jwt from "@fastify/jwt";
+import v1Router from "./routes/v1/v1";
 const fastify = Fastify({ logger: true });
 
 //middleware
@@ -17,14 +18,13 @@ fastify.register(cors, {
   methods: ["POST", "GET", "PATCH", "DELETE"],
 });
 
-//JWT
-fastify.register(jwt);
-
 //websocket
 fastify.register(websocket);
 fastify.register(websocketServer);
 
 //routes
+
+fastify.register(v1Router, { prefix: "/v1" });
 fastify.get("/", async (request, reply) => {
   return reply.send("hello");
 });

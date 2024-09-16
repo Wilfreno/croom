@@ -1,10 +1,10 @@
 import { compare, hash } from "bcrypt";
 import { FastifyInstance } from "fastify";
-import Photo, { type Photo as PhotoType } from "src/database/models/Photo";
-import User, { type User as UserType } from "src/database/models/User";
-import exclude from "src/lib/exclude";
-import JSONResponse from "src/lib/json-response";
-import JWTValidator from "src/lib/middleware/jwt-validator";
+import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
+import User, { type User as UserType } from "../../database/models/User";
+import exclude from "../../lib/exclude";
+import JSONResponse from "../../lib/json-response";
+import JWTValidator from "../../lib/middleware/jwt-validator";
 
 export default async function v1UserRouter(fastify: FastifyInstance) {
   //create user
@@ -49,6 +49,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
           .send(JSONResponse("CONFLICT", "user already exist"));
 
       const new_user = new User({
+        display_name: username.substring(1),
         username,
         password: provider === "CREDENTIALS" ? await hash(password, 14) : null,
         last_updated: new Date(),
@@ -131,6 +132,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     "/:username",
     async (request, reply) => {
       try {
+        console.log("hahsdasdasdasdas");
         const { username } = request.params;
 
         const found_user = await User.findOne({ username })
@@ -155,23 +157,21 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
   //update user
   fastify.patch<{
     Params: { key: keyof UserType };
-    Body: Omit<UserType, "photo"> & { photo: PhotoType; new_username: string };
-  }>("/:key", { preValidation: JWTValidator }, async (request, reply) => {
+    Body: Omit<UserType, "photo"> & { photo: PhotoType; id: string };
+  }>("/:key", async (request, reply) => {
     try {
       const { key } = request.params;
-      const { username, new_username, password, photo, status } = request.body;
+      const { username, id, display_name, password, photo, status, is_new } =
+        request.body;
 
-      if (!username)
+      if (!id)
         return reply
           .code(400)
           .send(
-            JSONResponse(
-              "BAD_REQUEST",
-              "username is required on the request body"
-            )
+            JSONResponse("BAD_REQUEST", "id is required on the request body")
           );
 
-      const found_user = await User.findOne({ username });
+      const found_user = await User.findOne({ _id: id });
 
       if (!found_user)
         return reply
@@ -180,19 +180,38 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
 
       switch (key) {
         case "username": {
-          if (!new_username)
+          if (!username)
             return reply
               .code(400)
               .send(
                 JSONResponse(
                   "BAD_REQUEST",
-                  "new_username is required on the request body"
+                  "username is required on the request body"
                 )
               );
 
           await User.updateOne(
-            { username },
-            { $set: { username: new_username, last_updated: new Date() } }
+            { _id: id },
+            { $set: { username, last_updated: new Date() } }
+          );
+
+          break;
+        }
+
+        case "display_name": {
+          if (!display_name)
+            return reply
+              .code(400)
+              .send(
+                JSONResponse(
+                  "BAD_REQUEST",
+                  "display_name is required on the request body"
+                )
+              );
+
+          await User.updateOne(
+            { _id: id },
+            { $set: { display_name, last_updated: new Date() } }
           );
 
           break;
@@ -209,7 +228,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
               );
 
           await User.updateOne(
-            { username },
+            { _id: id },
             {
               $set: {
                 password: await hash(password, 14),
@@ -243,7 +262,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
             await Photo.deleteOne({ _id: found_user.photo });
 
           await User.updateOne(
-            { username },
+            { _id: id },
             { $set: { photo: new_photo._id, last_updated: new Date() } }
           );
 
@@ -261,8 +280,26 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
               );
 
           await User.updateOne(
-            { username },
+            { _id: id },
             { $set: { status, last_updated: new Date() } }
+          );
+
+          break;
+        }
+        case "is_new": {
+          if (!is_new)
+            return reply
+              .code(400)
+              .send(
+                JSONResponse(
+                  "BAD_REQUEST",
+                  "is_new is required on the request body"
+                )
+              );
+
+          await User.updateOne(
+            { _id: id },
+            { $set: { is_new, last_updated: new Date() } }
           );
 
           break;

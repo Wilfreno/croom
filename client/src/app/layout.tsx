@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+import { Poppins } from "next/font/google";
+import { ThemeProvider } from "@/components/utils/ThemeProvider";
+import { cn } from "@/lib/utils";
+import NextAuthProvider from "@/components/utils/NextAuthProvider";
+import { Toaster } from "@/components/ui/sonner";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "./api/uploadthing/core";
+import ReactQueryProvider from "@/components/utils/ReactQueryProvider";
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -25,10 +27,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={cn("antialiased", poppins.className)}>
+        <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <NextAuthProvider>
+            <ReactQueryProvider>{children}</ReactQueryProvider>
+          </NextAuthProvider>
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

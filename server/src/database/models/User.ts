@@ -1,10 +1,12 @@
 import { model, Schema, Types } from "mongoose";
 
 export type User = {
+  display_name: string;
   username: string;
   password?: string;
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
+  is_new: boolean;
   date_created: Date;
   last_updated: Date;
 };
@@ -17,9 +19,17 @@ const userSchema = new Schema<User>({
     match: [/^@/, "username must start with @"],
   },
 
+  display_name: {
+    type: String,
+    required: true,
+  },
   password: {
     type: String,
     default: null,
+  },
+  is_new: {
+    type: Boolean,
+    default: true,
   },
   status: {
     type: String,
