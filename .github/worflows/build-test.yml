@@ -1,0 +1,48 @@
+  name: Build Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Build Client
+        run: |
+          cd ./client
+          pnpm install 
+          pnpm build
+        env:
+          CLIENT_URL : "${{secrets.CLIENT_URL}}"
+          GOOGLE_CLIENT_ID: "${{secrets.GOOGLE_CLIENT_ID}}"
+          GOOGLE_CLIENT_SECRET: "${{secrets.GOOGLE_CLIENT_SECRET}}"
+          NEXTAUTH_SECRET: "${{secrets.NEXTAUTH_SECRET}}"
+          NEXTAUTH_URL: "${{secrets.NEXTAUTH_URL}}"
+          NEXT_PUBLIC_SERVER: "${{secrets.NEXT_PUBLIC_SERVER}}"
+          SERVER_URL: "${{secrets.SERVER_URL}}"
+          UPLOADTHING_TOKEN: "${{secrets.UPLOADTHING_TOKEN}}"
+
+
+      - name: Build Server
+        run: |
+          cd ./server
+          pnpm install
+          pnpm build
+        env:
+          GMAIL_2F_AUTH_APP_PASS: "${{secrets.GMAIL_2F_AUTH_APP_PASS}}"
+          JWT_SECRET: "${{secrets.JWT_SECRET}}"
+          MONGODB_URI: "${{secrets.MONGODB_URI}}"
