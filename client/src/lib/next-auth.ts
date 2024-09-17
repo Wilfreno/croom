@@ -76,8 +76,9 @@ const auth_options: AuthOptions = {
             const { data } = await POSTRequest<User>("/v1/user", {
               username: "@" + email!.substring(0, email?.indexOf("@")),
               display_name: email!.substring(0, email?.indexOf("@")),
+              email: email!,
               provider: "GOOGLE",
-            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "new"> & { provider: "GOOGLE" });
+            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "is_new"> & { provider: "GOOGLE" });
 
             await POSTRequest("/v1/user/photo", {
               owner: data.id,
@@ -86,7 +87,7 @@ const auth_options: AuthOptions = {
               },
             });
           } else {
-            if (data.new) {
+            if (data.is_new) {
               await POSTRequest("/v1/user/new", {
                 owner: data.id,
                 new: false,

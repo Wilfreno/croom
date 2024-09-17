@@ -16,15 +16,21 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({ req: request });
 
     if (!token) {
-      if (!pathname.startsWith("/login") && !pathname.startsWith("/welcome")) {
+      if (
+        !pathname.startsWith("/login") &&
+        !pathname.startsWith("/welcome") &&
+        !pathname.startsWith("/sign-up")
+      ) {
         NextResponse.json({ message: "user unauthenticated" }, { status: 401 });
         return NextResponse.redirect(client_url + "/welcome" + search_params);
       }
     } else {
-      if (token.new && !pathname.startsWith("/new"))
+      if (token.is_new && !pathname.startsWith("/new"))
         return NextResponse.redirect(client_url + "/new");
       if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) {
-        return NextResponse.redirect(client_url + search_params);
+        return NextResponse.redirect(
+          client_url + search_params ? search_params : "/"
+        );
       }
     }
   } catch (error) {

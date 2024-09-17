@@ -25,7 +25,7 @@ export default function GoogleSvg(props: SVGProps<SVGSVGElement>) {
         <g
           id="Icons"
           stroke="none"
-          stroke-width="1"
+          strokeWidth="1"
           fill="none"
           fillRule="evenodd"
         >

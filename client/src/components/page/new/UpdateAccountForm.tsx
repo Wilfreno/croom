@@ -8,7 +8,7 @@ import { PATCHRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
 import { AtSign, UserRound } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -18,16 +18,21 @@ export default function UpdateAccountForm() {
   const [uploading, setUploading] = useState(false);
   const [display_name, setDisplayName] = useState("");
   const [username, setUserName] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   const { data, update } = useSession();
   const router = useRouter();
   const from = useSearchParams().get("from");
   useEffect(() => {
     if (data) {
+      setPhotoUrl(data.user.photo.url);
       setDisplayName(data.user.display_name);
       setUserName(data.user.username.substring(1));
     }
   }, [data]);
+  let path = "/";
+
+  if (from) path = from;
 
   return (
     <form
@@ -35,7 +40,7 @@ export default function UpdateAccountForm() {
       className="justify-self-center grid gap-4"
       onSubmit={async (event) => {
         event.preventDefault();
-
+        setUpdating(true);
         const {
           status: new_user_photo_status,
           message: new_user_photo_message,
@@ -80,17 +85,19 @@ export default function UpdateAccountForm() {
           data: old_user,
           status: old_user_status,
           message: old_user_message,
-        } = await PATCHRequest<User>("/v1/user/new", {
+        } = await PATCHRequest<User>("/v1/user/is_new", {
           id: data?.user.id,
-          new: false,
+          is_new: false,
         });
 
-        if (new_user_username_status !== "OK") {
-          toast.warning(new_user_username_message);
+        console.log(old_user);
+        if (old_user_status !== "OK") {
+          toast.warning(old_user_message);
           return;
         }
         await update(old_user);
-        router.push(from ? from : "/");
+
+        router.push(path);
       }}
     >
       <section className="mx-auto space-y-4 grid place-items-center">
@@ -153,10 +160,7 @@ export default function UpdateAccountForm() {
           </div>
         </div>
       </section>
-      <Button>Confirm</Button>
-      <Button type="button" onClick={() => signOut()}>
-        LO
-      </Button>
+      <Button disabled={updating}>Confirm</Button>
     </form>
   );
 }

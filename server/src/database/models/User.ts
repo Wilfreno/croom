@@ -1,9 +1,11 @@
+import { ValidatorProps } from "mongoose";
 import { model, Schema, Types } from "mongoose";
 
 export type User = {
   display_name: string;
   username: string;
   password?: string;
+  email: string;
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
   is_new: boolean;
@@ -26,6 +28,19 @@ const userSchema = new Schema<User>({
   password: {
     type: String,
     default: null,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+
+    validate: {
+      validator: (v: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      },
+      message: (props: ValidatorProps) =>
+        `${props.value} is not a valid email address!`,
+    },
   },
   is_new: {
     type: Boolean,

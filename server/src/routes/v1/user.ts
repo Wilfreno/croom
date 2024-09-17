@@ -12,12 +12,14 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     Body: {
       username: string;
       password: string;
+      email: string;
+      display_name: string;
       provider: "GOOGLE" | "CREDENTIALS";
     };
   }>("/", async (request, reply) => {
     try {
-      const { username, password, provider } = request.body;
-
+      const { username, password, provider, display_name, email } =
+        request.body;
       if (!username)
         return reply
           .code(400)
@@ -27,6 +29,17 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
               "username is required on the request body"
             )
           );
+      if (!email)
+        return reply
+          .code(400)
+          .send(
+            JSONResponse("BAD_REQUEST", "email is required on the request body")
+          );
+
+      if (await User.exists({ email }))
+        return reply
+          .code(400)
+          .send(JSONResponse("BAD_REQUEST", "email already used"));
 
       if (!provider)
         return reply
@@ -48,10 +61,22 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
           .code(409)
           .send(JSONResponse("CONFLICT", "user already exist"));
 
+      if (provider === "CREDENTIALS" && password.length < 8)
+        return reply
+          .code(400)
+          .send(
+            JSONResponse(
+              "BAD_REQUEST",
+              "password must be at least 8 characters long"
+            )
+          );
+
       const new_user = new User({
-        display_name: username.substring(1),
+        display_name:
+          provider === "CREDENTIALS" ? display_name : username.substring(1),
         username,
         password: provider === "CREDENTIALS" ? await hash(password, 14) : null,
+        email,
         last_updated: new Date(),
       });
 
@@ -287,16 +312,6 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
           break;
         }
         case "is_new": {
-          if (!is_new)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse(
-                  "BAD_REQUEST",
-                  "is_new is required on the request body"
-                )
-              );
-
           await User.updateOne(
             { _id: id },
             { $set: { is_new, last_updated: new Date() } }
@@ -316,7 +331,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
         }
       }
 
-      const new_user = await User.findOne({ username })
+      const new_user = await User.findOne({ _id: id })
         .populate("photo")
         .select("-password");
 
