@@ -1,9 +1,7 @@
-  name: Build Test
+name: Build Test
 
 on:
-  pull_request:
-    branches:
-      - main
+  push:
 
 jobs:
   test:
@@ -27,7 +25,7 @@ jobs:
           pnpm install 
           pnpm build
         env:
-          CLIENT_URL : "${{secrets.CLIENT_URL}}"
+          CLIENT_URL: "${{secrets.CLIENT_URL}}"
           GOOGLE_CLIENT_ID: "${{secrets.GOOGLE_CLIENT_ID}}"
           GOOGLE_CLIENT_SECRET: "${{secrets.GOOGLE_CLIENT_SECRET}}"
           NEXTAUTH_SECRET: "${{secrets.NEXTAUTH_SECRET}}"
@@ -36,7 +34,6 @@ jobs:
           SERVER_URL: "${{secrets.SERVER_URL}}"
           UPLOADTHING_TOKEN: "${{secrets.UPLOADTHING_TOKEN}}"
 
-
       - name: Build Server
         run: |
           cd ./server
@@ -44,5 +41,4 @@ jobs:
           pnpm build
         env:
           GMAIL_2F_AUTH_APP_PASS: "${{secrets.GMAIL_2F_AUTH_APP_PASS}}"
-          JWT_SECRET: "${{secrets.JWT_SECRET}}"
           MONGODB_URI: "${{secrets.MONGODB_URI}}"

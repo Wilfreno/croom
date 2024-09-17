@@ -4,7 +4,6 @@ import websocket from "@fastify/websocket";
 import "dotenv/config";
 import connectToDB from "./database/connect";
 import websocketServer from "./websocket/websocket-server";
-import jwt from "@fastify/jwt";
 import v1Router from "./routes/v1/v1";
 const fastify = Fastify({ logger: true });
 
