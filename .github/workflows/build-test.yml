@@ -41,5 +41,4 @@ jobs:
           pnpm build
         env:
           GMAIL_2F_AUTH_APP_PASS: "${{secrets.GMAIL_2F_AUTH_APP_PASS}}"
-          JWT_SECRET: "${{secrets.JWT_SECRET}}"
           MONGODB_URI: "${{secrets.MONGODB_URI}}"
