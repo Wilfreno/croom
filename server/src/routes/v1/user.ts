@@ -324,7 +324,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
             .code(400)
             .send(
               JSONResponse(
-                "BAD_REQUEST",
+                  "BAD_REQUEST",
                 "request parameter mus be a key of User"
               )
             );
