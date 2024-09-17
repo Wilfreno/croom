@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Wilfreno/chatup/compare/v1.0.0...v1.0.1) (2024-09-17)
+
+
+### Bug Fixes
+
+* github action dockerize wrong directory ([b1dbfdc](https://github.com/Wilfreno/chatup/commit/b1dbfdc3c2b18f0ddd74262dc7943ef514cd9778))
+
 # 1.0.0 (2024-09-17)
 
 
