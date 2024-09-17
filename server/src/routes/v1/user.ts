@@ -4,7 +4,6 @@ import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
-import JWTValidator from "../../lib/middleware/jwt-validator";
 
 export default async function v1UserRouter(fastify: FastifyInstance) {
   //create user
@@ -324,7 +323,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
             .code(400)
             .send(
               JSONResponse(
-                  "BAD_REQUEST",
+                "BAD_REQUEST",
                 "request parameter mus be a key of User"
               )
             );
@@ -350,7 +349,6 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
 
   fastify.delete<{ Params: { username: string } }>(
     "/:username",
-    { preValidation: JWTValidator },
     async (request, reply) => {
       try {
         const { username } = request.params;
