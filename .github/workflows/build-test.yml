@@ -1,4 +1,4 @@
-  name: Build Test
+name: Build Test
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
           pnpm install 
           pnpm build
         env:
-          CLIENT_URL : "${{secrets.CLIENT_URL}}"
+          CLIENT_URL: "${{secrets.CLIENT_URL}}"
           GOOGLE_CLIENT_ID: "${{secrets.GOOGLE_CLIENT_ID}}"
           GOOGLE_CLIENT_SECRET: "${{secrets.GOOGLE_CLIENT_SECRET}}"
           NEXTAUTH_SECRET: "${{secrets.NEXTAUTH_SECRET}}"
@@ -33,7 +33,6 @@ jobs:
           NEXT_PUBLIC_SERVER: "${{secrets.NEXT_PUBLIC_SERVER}}"
           SERVER_URL: "${{secrets.SERVER_URL}}"
           UPLOADTHING_TOKEN: "${{secrets.UPLOADTHING_TOKEN}}"
-
 
       - name: Build Server
         run: |
