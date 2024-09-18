@@ -24,8 +24,8 @@ fastify.register(websocketServer);
 //routes
 
 fastify.register(v1Router, { prefix: "/v1" });
-fastify.get("/", async (request, reply) => {
-  return reply.send("hello");
+fastify.get("/health", async (request, reply) => {
+  return reply.code(200).send("hello");
 });
 
 // ensure to connect to the database before the server run
