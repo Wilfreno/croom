@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/Wilfreno/chatup/compare/v1.0.5...v1.0.6) (2024-09-18)
+
+
+### Bug Fixes
+
+* deployment to aws ecs takes a while ([f8aea69](https://github.com/Wilfreno/chatup/commit/f8aea6988aabe8a230162f0018b0076de6dce451))
+
 ## [1.0.5](https://github.com/Wilfreno/chatup/compare/v1.0.4...v1.0.5) (2024-09-18)
 
 
