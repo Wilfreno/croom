@@ -156,7 +156,6 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     "/:username",
     async (request, reply) => {
       try {
-        console.log("hahsdasdasdasdas");
         const { username } = request.params;
 
         const found_user = await User.findOne({ username })
