@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/Wilfreno/chatup/compare/v1.0.2...v1.0.3) (2024-09-18)
+
+
+### Bug Fixes
+
+* sed command to change ecs task definition variables ([7d4739f](https://github.com/Wilfreno/chatup/commit/7d4739f78935216a9e43ac8ac38b0e32fa16a7cc))
+
 ## [1.0.2](https://github.com/Wilfreno/chatup/compare/v1.0.1...v1.0.2) (2024-09-18)
 
 
