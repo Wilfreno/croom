@@ -32,12 +32,12 @@ on:
       - published
 
 env:
-  AWS_REGION: ${{secrets.AWS_REGION}} # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: ${{secrets.ECR_REPOSITORY}} # set this to your Amazon ECR repository name
-  ECS_SERVICE: ${{secrets.ECS_SERVICE}} # set this to your Amazon ECS service name
-  ECS_CLUSTER: ${{secrets.ECS_CLUSTER}} # set this to your Amazon ECS cluster name
+  AWS_REGION: "ap-southeast-1" # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: "wing09/chatup" 
+  ECS_SERVICE: "chat-up-service" # set this to your Amazon ECS service name
+  ECS_CLUSTER: "chatup-server" 
   ECS_TASK_DEFINITION: ".github/workflows/ecs-task-definition.json"
-  CONTAINER_NAME: ${{secrets.CONTAINER_NAME}}
+  CONTAINER_NAME: "chatup-container"
 
 permissions:
   contents: read
