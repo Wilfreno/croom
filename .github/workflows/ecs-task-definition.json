@@ -1,0 +1,67 @@
+{
+  "taskDefinitionArn": "arn:aws:ecs:ap-southeast-1:311141558142:task-definition/chatup-task-definition:2",
+  "containerDefinitions": [
+    {
+      "name": "chatup-container",
+      "image": "311141558142.dkr.ecr.ap-southeast-1.amazonaws.com/wing09/chatup:latest",
+      "cpu": 0,
+      "portMappings": [
+        {
+          "name": "8000",
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "MONGODB_URI",
+          "value": "<mongodb-uri>"
+        },
+        {
+          "name": "GMAIL_2F_AUTH_APP_PASS",
+          "value": "<gmail-2f-auth-app-pass>"
+        }
+      ],
+      "environmentFiles": [],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "ulimits": [],
+      "systemControls": []
+    }
+  ],
+  "family": "chatup-task-definition",
+  "executionRoleArn": "arn:aws:iam::311141558142:role/ecsTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "revision": 2,
+  "volumes": [],
+  "status": "ACTIVE",
+  "requiresAttributes": [
+    {
+      "name": "com.amazonaws.ecs.capability.ecr-auth"
+    },
+    {
+      "name": "ecs.capability.execution-role-ecr-pull"
+    },
+    {
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+    },
+    {
+      "name": "ecs.capability.task-eni"
+    }
+  ],
+  "placementConstraints": [],
+  "compatibilities": ["EC2", "FARGATE"],
+  "requiresCompatibilities": ["EC2"],
+  "cpu": "1024",
+  "memory": "3072",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "registeredAt": "2024-09-17T18:48:35.118Z",
+  "registeredBy": "arn:aws:iam::311141558142:root",
+  "tags": []
+}
