@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Wilfreno/chatup/compare/v1.0.3...v1.0.4) (2024-09-18)
+
+
+### Bug Fixes
+
+* identify task definition path ([0f9f5a4](https://github.com/Wilfreno/chatup/commit/0f9f5a462e24b274e58fd6dcf68f65081b8e60d1))
+
 ## [1.0.3](https://github.com/Wilfreno/chatup/compare/v1.0.2...v1.0.3) (2024-09-18)
 
 
