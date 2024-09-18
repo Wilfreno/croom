@@ -71,8 +71,8 @@ jobs:
 
       - name: Update task definition
         run: |
-          sed -i 's/<mongodb-uri>/${{ secrets.MONGODB_URI }}/g' ecs-task-definition.json
-          sed -i 's/<gmail-2f-auth-app-pass>/${{ secrets.GMAIL_2F_AUTH_APP_PASS }}/g' ecs-task-definition.json
+          sed -i 's|<mongodb-uri> .*|${{ secrets.MONGODB_URI }}|' ecs-task-definition.json
+          sed -i 's|<gmail-2f-auth-app-pass> .*|${{ secrets.GMAIL_2F_AUTH_APP_PASS }}|' ecs-task-definition.json
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
