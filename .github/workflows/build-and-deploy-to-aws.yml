@@ -36,9 +36,7 @@ env:
   ECR_REPOSITORY: ${{secrets.ECR_REPOSITORY}} # set this to your Amazon ECR repository name
   ECS_SERVICE: ${{secrets.ECS_SERVICE}} # set this to your Amazon ECS service name
   ECS_CLUSTER: ${{secrets.ECS_CLUSTER}} # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION:
-    ${{secrets.ECS_TASK_DEFINITION}} # set this to the path to your Amazon ECS task definition
-    # file, e.g. .aws/task-definition.json
+  ECS_TASK_DEFINITION: "./ecs-task-definition.json"
   CONTAINER_NAME: ${{secrets.CONTAINER_NAME}}
 
 permissions:
@@ -70,6 +68,11 @@ jobs:
         run: |
           # Determine the tag based on the repository or branch
           echo "REPO_TAG=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Update task definition with environment variable
+        run: |
+          sed -i 's/<mongodb-uri>/${{ secrets.MONGODB_URI }}/g' ecs-task-definition.json
+          sed -i 's/<gmail-2f-auth-app-pass>/${{ secrets.GMAIL_2F_AUTH_APP_PASS }}/g' ecs-task-definition.json
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
