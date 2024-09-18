@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/Wilfreno/chatup/compare/v1.0.4...v1.0.5) (2024-09-18)
+
+
+### Bug Fixes
+
+* ecs task definition environment variable not updated ([c2e8310](https://github.com/Wilfreno/chatup/commit/c2e8310ce250efa26eec4033b273ed5e23076063))
+
 ## [1.0.4](https://github.com/Wilfreno/chatup/compare/v1.0.3...v1.0.4) (2024-09-18)
 
 
