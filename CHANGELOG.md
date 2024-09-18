@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/Wilfreno/chatup/compare/v1.0.6...v1.0.7) (2024-09-18)
+
+
+### Bug Fixes
+
+* server to have a /health route ([f680d58](https://github.com/Wilfreno/chatup/commit/f680d58f985eba401057e5c5a2032ef75f3f58e6))
+
 ## [1.0.6](https://github.com/Wilfreno/chatup/compare/v1.0.5...v1.0.6) (2024-09-18)
 
 
