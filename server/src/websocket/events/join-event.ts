@@ -1,14 +1,11 @@
 import { WebSocket } from "@fastify/websocket";
 import Chat from "src/database/models/Chat";
-import {
-  ChatPayload,
-  MessagePayload,
-  UserChatPayload,
-} from "src/lib/types/websocket-types";
+import { ChatPayload, UserChatPayload } from "src/lib/types/websocket-types";
 import websocketMessage from "../websocket-message";
 import Message, {
   type Message as MessageType,
 } from "src/database/models/Message";
+import MessageBuffer from "src/lib/classes/message-ring-buffer";
 
 export default async function joinChat(
   payload: UserChatPayload,
@@ -32,21 +29,21 @@ export default async function joinChat(
       .sort({ created_at: -1 })
       .limit(20);
 
-    const messages_map = new Map<string, MessagePayload>();
-    found_messages.forEach((message) => {
-      const msg = message.toJSON() as unknown as MessageType & {
-        id: string;
-      };
-      messages_map.set(msg.id, {
-        ...msg,
-        chat: { id: chat_id },
-        sender: { id: msg.sender.toString() },
-      });
-    });
-
     chats.set(chat_id, {
       online: new Map(),
-      messages: messages_map,
+      messages: new MessageBuffer(
+        found_messages.map((message) => {
+          const msg = message.toJSON() as unknown as MessageType & {
+            id: string;
+          };
+
+          return {
+            ...msg,
+            chat: { id: chat_id },
+            sender: { id: msg.sender.toString() },
+          };
+        })
+      ),
     });
   }
 
@@ -58,7 +55,7 @@ export default async function joinChat(
   online.get(user_id)?.send(
     websocketMessage("chat-info", {
       online: Array.from(chats.get(chat_id)!.online.values()),
-      messages: Array.from(chats.get(chat_id)!.messages.values()),
+      messages: chats.get(chat_id)!.messages.read(),
     })
   );
 }

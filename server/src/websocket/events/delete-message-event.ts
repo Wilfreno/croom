@@ -7,11 +7,7 @@ export default async function deleteMessage(
   chats: Map<string, ChatPayload>,
   online: Map<string, WebSocket>
 ) {
-  const chat = chats.get(payload.chat.id);
-
-  if (!chat) return;
-
-  chat.messages.set(payload.id, null);
+  if (!chats.get(payload.chat.id)) return;
 
   chats.get(payload.chat.id)!.messages.delete(payload.id);
 

@@ -1,4 +1,5 @@
 import { Message } from "src/database/models/Message";
+import MessageBuffer from "../classes/message-ring-buffer";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;
@@ -33,7 +34,7 @@ export type UserChatPayload = {
 
 export type ChatPayload = {
   online: Map<string, string>;
-  messages: Map<string, MessagePayload | null>;
+  messages: MessageBuffer;
 };
 
 export type ChatInfo = {

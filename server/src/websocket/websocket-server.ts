@@ -77,6 +77,10 @@ export default async function websocketServer(fastify: FastifyInstance) {
             }
           }
         });
+        socket.on("error", () => {
+          online.delete(user_id);
+          
+        });
       }
     );
   } catch (error) {

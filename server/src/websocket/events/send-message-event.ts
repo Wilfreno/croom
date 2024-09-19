@@ -5,6 +5,7 @@ import websocketMessage from "../websocket-message";
 import Message, {
   type Message as MessageType,
 } from "src/database/models/Message";
+import MessageBuffer from "src/lib/classes/message-ring-buffer";
 
 export default async function sendMessage(
   payload: MessagePayload,
@@ -36,25 +37,25 @@ export default async function sendMessage(
       .sort({ created_at: -1 })
       .limit(20);
 
-    const messages_map = new Map<string, MessagePayload>();
-    found_messages.forEach((message) => {
-      const msg = message.toJSON() as unknown as MessageType & {
-        id: string;
-      };
-      messages_map.set(msg.id, {
-        ...msg,
-        chat: { id: payload.chat.id },
-        sender: { id: msg.sender.toString() },
-      });
-    });
-
     chats.set(payload.chat.id, {
       online: new Map(),
-      messages: messages_map,
+      messages: new MessageBuffer(
+        found_messages.map((message) => {
+          const msg = message.toJSON() as unknown as MessageType & {
+            id: string;
+          };
+
+          return {
+            ...msg,
+            chat: { id: payload.chat.id },
+            sender: { id: msg.sender.toString() },
+          };
+        })
+      ),
     });
   }
 
-  chats.get(payload.chat.id)!.messages.set(payload.id, payload);
+  chats.get(payload.chat.id)!.messages.insert(payload);
   chats.get(payload.chat.id)!.online.forEach((user) => {
     if (user !== payload.sender.id)
       online.get(user)?.send(websocketMessage("send-message", payload));
