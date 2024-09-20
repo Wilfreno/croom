@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import Chat, { type Chat as ChatType } from "src/database/models/Chat";
+import Lobby, { type Lobby as ChatType } from "src/database/models/Chat";
 import User from "src/database/models/User";
 import JSONResponse from "src/lib/json-response";
 
@@ -16,7 +16,7 @@ export default async function v1ChatRouter(fastify: FastifyInstance) {
           $or: participants.map((id) => ({ _id: id })),
         }).select("username");
 
-        const chat = new Chat({
+        const chat = new Lobby({
           participants,
           is_group_chat: participants.length > 2,
           name: users.join(", "),

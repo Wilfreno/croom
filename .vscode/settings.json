@@ -2,6 +2,9 @@
   "cSpell.words": [
     "chatup",
     "Fastify",
+    "hdel",
+    "hget",
+    "hset",
     "NEXTAUTH",
     "tailwindcss",
     "tanstack",

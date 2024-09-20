@@ -2,21 +2,22 @@ import { FastifyInstance } from "fastify";
 import User from "src/database/models/User";
 import { WebSocket } from "@fastify/websocket";
 import {
-  ChatPayload,
   MessagePayload,
-  UserChatPayload,
+  UserLobbyPayload,
   WebSocketMessage,
 } from "src/lib/types/websocket-types";
 import websocketMessage from "./websocket-message";
 import joinChat from "./events/join-event";
-import leaveChat from "./events/leave-event";
+import leaveLobby from "./events/leave-event";
 import sendMessage from "./events/send-message-event";
 import deleteMessage from "./events/delete-message-event";
 
-const chats = new Map<string, ChatPayload>();
-const online = new Map<string, WebSocket>();
+const lobby_online_user = new Map<string, Set<string>>();
+const online_user = new Map<string, WebSocket>();
 
 export default async function websocketServer(fastify: FastifyInstance) {
+  const redis = fastify.redis;
+
   try {
     fastify.get<{ Params: { user_id: string } }>(
       "/ws/:user_id",
@@ -32,7 +33,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
           return;
         }
 
-        online.set(user_id, socket);
+        online_user.set(user_id, socket);
 
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(
@@ -42,33 +43,33 @@ export default async function websocketServer(fastify: FastifyInstance) {
           switch (parsed_message.type) {
             case "join": {
               await joinChat(
-                parsed_message.payload as UserChatPayload,
-                chats,
-                online
+                parsed_message.payload as UserLobbyPayload,
+                lobby_online_user,
+                online_user
               );
               break;
             }
             case "leave": {
-              await leaveChat(
-                parsed_message.payload as UserChatPayload,
-                chats,
-                online
+              await leaveLobby(
+                parsed_message.payload as UserLobbyPayload,
+                lobby_online_user,
+                online_user
               );
               break;
             }
             case "send-message": {
               await sendMessage(
                 parsed_message.payload as MessagePayload,
-                online,
-                chats
+                lobby_online_user,
+                online_user,
               );
               break;
             }
             case "delete-message": {
               await deleteMessage(
                 parsed_message.payload as MessagePayload,
-                chats,
-                online
+                lobby_online_user,
+                online_user
               );
               break;
             }
@@ -77,14 +78,15 @@ export default async function websocketServer(fastify: FastifyInstance) {
             }
           }
         });
-        socket.on("error", () => {
-          online.delete(user_id);
-          
+        socket.on("error", async () => {
+          await redis.hdel("online_user-" + user_id);
+          socket.close();
         });
       }
     );
   } catch (error) {
     fastify.log.error(error);
+    fastify.websocketServer.close();
     throw error;
   }
 }

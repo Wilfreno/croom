@@ -1,7 +1,7 @@
 import { model, Schema, Types } from "mongoose";
 
 export type Message = {
-  chat: Types.ObjectId;
+  lobby: Types.ObjectId;
   type: "text";
   sender: Types.ObjectId;
   text: string;
@@ -11,9 +11,9 @@ export type Message = {
 };
 
 const messageSchema = new Schema<Message>({
-  chat: {
+  lobby: {
     type: Schema.Types.ObjectId,
-    ref: "Chat",
+    ref: "Lobby",
     required: true,
   },
   type: {

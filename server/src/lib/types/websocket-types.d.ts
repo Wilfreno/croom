@@ -8,10 +8,10 @@ export type WebSocketMessage = {
 
 export type WebSocketPayload =
   | string
-  | UserChatPayload
+  | UserLobbyPayload
   | MessagePayload
-  | ChatPayload
-  | ChatInfo;
+  | LobbyPayload
+  | LobbyInfo;
 
 export type WebsocketPayloadType =
   | "join"
@@ -21,23 +21,23 @@ export type WebsocketPayloadType =
   | "delete-message"
   | "error";
 
-export interface MessagePayload extends Omit<Message, "chat" | "sender"> {
+export interface MessagePayload extends Omit<Message, "lobby" | "sender"> {
   id: string;
-  chat: { id: string };
+  lobby: { id: string };
   sender: { id: string };
 }
 
-export type UserChatPayload = {
+export type UserLobbyPayload = {
   user_id: string;
-  chat_id: string;
+  lobby_id: string;
 };
 
-export type ChatPayload = {
+export type LobbyPayload = {
   online: Map<string, string>;
   messages: MessageBuffer;
 };
 
-export type ChatInfo = {
+export type LobbyInfo = {
   online: string[];
   messages: (MessagePayload | null)[];
 };

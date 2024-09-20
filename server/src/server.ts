@@ -4,7 +4,10 @@ import websocket from "@fastify/websocket";
 import "dotenv/config";
 import connectToDB from "./database/connect";
 import websocketServer from "./websocket/websocket-server";
+import redis from "@fastify/redis";
+
 import v1Router from "./routes/v1/v1";
+
 const fastify = Fastify({ logger: true });
 
 //middleware
@@ -17,6 +20,11 @@ fastify.register(cors, {
   methods: ["POST", "GET", "PATCH", "DELETE"],
 });
 
+//redis
+fastify.register(redis, {
+  host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
+});
+  
 //websocket
 fastify.register(websocket);
 fastify.register(websocketServer);
