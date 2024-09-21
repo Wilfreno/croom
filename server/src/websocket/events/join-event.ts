@@ -1,11 +1,11 @@
 import { WebSocket } from "@fastify/websocket";
-import Chat from "src/database/models/Chat";
-import { ChatPayload, UserChatPayload } from "src/lib/types/websocket-types";
+import Chat from "../../database/models/Chat";
+import { ChatPayload, UserChatPayload } from "../../lib/types/websocket-types";
 import websocketMessage from "../websocket-message";
 import Message, {
   type Message as MessageType,
-} from "src/database/models/Message";
-import MessageBuffer from "src/lib/classes/message-ring-buffer";
+} from "../../database/models/Message";
+import MessageBuffer from "../../lib/classes/message-buffer";
 
 export default async function joinChat(
   payload: UserChatPayload,

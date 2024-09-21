@@ -1,5 +1,5 @@
 import { Message } from "src/database/models/Message";
-import MessageBuffer from "../classes/message-ring-buffer";
+import MessageBuffer from "../classes/message-buffer";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;

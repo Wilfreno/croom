@@ -1,11 +1,11 @@
 import { WebSocket } from "@fastify/websocket";
-import Member from "src/database/models/Member";
-import { ChatPayload, MessagePayload } from "src/lib/types/websocket-types";
+import Member from "../../database/models/Member";
+import { ChatPayload, MessagePayload } from "../../lib/types/websocket-types";
 import websocketMessage from "../websocket-message";
 import Message, {
   type Message as MessageType,
-} from "src/database/models/Message";
-import MessageBuffer from "src/lib/classes/message-ring-buffer";
+} from "../../database/models/Message";
+import MessageBuffer from "../../lib/classes/message-buffer";
 
 export default async function sendMessage(
   payload: MessagePayload,

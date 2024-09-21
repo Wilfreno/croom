@@ -17,13 +17,13 @@ export default class MessageBuffer {
       this.buffer.set(message.id, message);
     });
 
-    this.oldest = this.buffer.keys().next().value;
+    this.oldest = this.buffer.keys().next().value || "";
   }
 
   insert(message: MessagePayload) {
     if (this.buffer.size === this.size) {
       this.buffer.delete(this.oldest);
-      this.oldest = this.buffer.keys().next().value;
+      this.oldest = this.buffer.keys().next().value!;
     }
 
     this.buffer.set(message.id, message);
