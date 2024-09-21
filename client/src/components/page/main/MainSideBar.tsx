@@ -20,7 +20,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -100,7 +100,10 @@ export default function MainSideBar() {
                   </p>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer py-2 flex items-center gap-4 font-medium">
+              <DropdownMenuItem
+                onClick={() => signOut()}
+                className="cursor-pointer py-2 flex items-center gap-4 font-medium"
+              >
                 <LogOut className="h-4" />
                 <span>Logout</span>
               </DropdownMenuItem>

@@ -1,4 +1,3 @@
-import LoginSignUpButton from "@/components/page/main/LoginSignUpButton";
 import { PartyPopper } from "lucide-react";
 
 export default function Page() {
@@ -10,7 +9,6 @@ export default function Page() {
           Connect and Hangout with your friends and Communities
         </h2>
         <PartyPopper className="h-10 w-auto absolute bottom-full right-0 text-primary" />
-        <LoginSignUpButton />
       </div>
     </main>
   );
