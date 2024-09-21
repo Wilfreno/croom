@@ -1,7 +1,8 @@
 import { model, Schema, Types } from "mongoose";
 
 export type Lobby = {
-  participants: Types.ObjectId[];
+  members: Types.ObjectId[];
+  is_private: boolean;
   name: string;
   is_group_chat: boolean;
   messages: Types.ObjectId[];
@@ -9,7 +10,7 @@ export type Lobby = {
 };
 
 const lobbySchema = new Schema<Lobby>({
-  participants: [
+  members: [
     {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -18,7 +19,11 @@ const lobbySchema = new Schema<Lobby>({
   ],
   name: {
     type: String,
-    required: true,
+    default: null,
+  },
+  is_private: {
+    type: Boolean,
+    default: true,
   },
   is_group_chat: {
     type: Boolean,
