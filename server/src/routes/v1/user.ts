@@ -162,7 +162,7 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
             JSONResponse("BAD_REQUEST", "id is required on the request body")
           );
 
-      const found_user = await User.findOne({ _id: id }).select("-passwords");
+      const found_user = await User.findOne({ _id: id }).select("-password");
 
       if (!found_user)
         return reply
@@ -173,14 +173,14 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
 
       return reply
         .code(200)
-        .setCookie("token", token, {
+        .setCookie("chatup-session-token", token, {
           domain:
             process.env.NODE_ENV === "production"
               ? "chatup.vercel.app"
               : "127.0.0.1",
           path: "/",
           secure: process.env.NODE_ENV === "production",
-          sameSite: "none",
+          sameSite: "lax",
           httpOnly: true,
           maxAge: 60 * 60 * 14 * 30,
         })

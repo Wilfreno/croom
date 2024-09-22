@@ -10,7 +10,7 @@ function pathChecker(path: string) {
 
 async function responseJSON<T>(response: Response) {
   try {
-    console.log(response);
+    console.log(response.headers.getSetCookie());
     const response_json = (await response.json()) as ServerResponse<T>;
 
     return response_json;

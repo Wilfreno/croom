@@ -59,12 +59,12 @@ export default function MainSideBar() {
   ];
 
   return (
-    <aside className="fixed inset-y-0 shadow-md py-3 w-64">
+    <aside className="sticky inset-y-0 shadow-md py-3 w-64 h-dvh">
       <span className="space-y-6">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              variant="secondary"
+              variant="ghost"
               className="gap-2 p-2 h-fit w-full justify-start rounded-none"
             >
               <Avatar>
@@ -73,7 +73,13 @@ export default function MainSideBar() {
                   <UserRound className="h-full w-auto" />
                 </AvatarFallback>
               </Avatar>
-              <p className="truncate text-center font-semibold">
+              <p
+                className={cn(
+                  "truncate text-center font-semibold",
+                  !data &&
+                    "bg-muted-foreground h-4 w-full animate-pulse rounded-full"
+                )}
+              >
                 {data?.user.username}
               </p>
             </Button>
