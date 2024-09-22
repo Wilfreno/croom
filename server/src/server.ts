@@ -4,11 +4,14 @@ import websocket from "@fastify/websocket";
 import "dotenv/config";
 import connectToDB from "./database/connect";
 import websocketServer from "./websocket/websocket-server";
+import redis from "@fastify/redis";
+
 import v1Router from "./routes/v1/v1";
 import jwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 
 import JSONResponse from "./lib/json-response";
+
 
 const fastify = Fastify({ logger: true });
 
@@ -39,6 +42,11 @@ if (!cookie_secret)
   throw new Error("COOKIE_SECRET is missing from your .env file");
 fastify.register(cookie, { secret: cookie_secret });
 
+//redis
+fastify.register(redis, {
+  host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
+});
+  
 //websocket
 fastify.register(websocket);
 fastify.register(websocketServer);
