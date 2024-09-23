@@ -1,11 +1,15 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { startSession } from "mongoose";
 import Lobby, { type Lobby as LobbyType } from "src/database/models/Lobby";
 import Member from "src/database/models/Member";
 import User from "src/database/models/User";
 import JSONResponse from "src/lib/json-response";
 
-export default async function v1ChatRouter(fastify: FastifyInstance) {
+export default function v1ChatRouter(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   //create route
 
   fastify.post(
@@ -187,4 +191,5 @@ export default async function v1ChatRouter(fastify: FastifyInstance) {
       }
     }
   );
+  done();
 }

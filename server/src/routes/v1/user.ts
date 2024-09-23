@@ -1,11 +1,15 @@
 import { compare, hash } from "bcrypt";
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
 
-export default async function v1UserRouter(fastify: FastifyInstance) {
+export default function v1UserRouter(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   //create user
   fastify.post<{
     Body: {
@@ -412,4 +416,5 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
       }
     }
   );
+  done();
 }
