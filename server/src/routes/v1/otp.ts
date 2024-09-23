@@ -61,6 +61,7 @@ export default function v1OTPRouter(
         email: email,
         pin: random_string.toUpperCase(),
       });
+
       otp.save();
 
       const html = await render(
@@ -70,7 +71,7 @@ export default function v1OTPRouter(
         })
       );
 
-      await transport.sendMail(
+      transport.sendMail(
         {
           from: "chatup.dev.noreply@gmail.com",
           to: email,

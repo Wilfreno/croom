@@ -18,8 +18,8 @@ const otpSchema = new Schema<OTP>(
     },
     date_created: {
       type: Date,
-
       default: Date.now,
+      expires: 60 * 30,
     },
   },
   { versionKey: false }
