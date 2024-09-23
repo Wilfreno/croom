@@ -90,7 +90,6 @@ export default function UpdateAccountForm() {
           is_new: false,
         });
 
-        console.log(old_user);
         if (old_user_status !== "OK") {
           toast.warning(old_user_message);
           return;

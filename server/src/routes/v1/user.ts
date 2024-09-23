@@ -151,6 +151,45 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post<{ Body: { id: string } }>("/session", async (request, reply) => {
+    try {
+      const { id } = request.body;
+
+      if (!id)
+        return reply
+          .code(400)
+          .send(
+            JSONResponse("BAD_REQUEST", "id is required on the request body")
+          );
+
+      const found_user = await User.findOne({ _id: id }).select("-password");
+
+      if (!found_user)
+        return reply
+          .code(404)
+          .send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+      const token = fastify.jwt.sign(found_user.toJSON());
+
+      return reply
+        .code(200)
+        .setCookie("chatup-session-token", token, {
+          domain:
+            process.env.NODE_ENV === "production"
+              ? "chatup.vercel.app"
+              : "127.0.0.1",
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          httpOnly: true,
+          maxAge: 60 * 60 * 14 * 30,
+        })
+        .send(JSONResponse("OK", "user session is created"));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   //read user
   fastify.get<{ Params: { username: string } }>(
     "/:username",

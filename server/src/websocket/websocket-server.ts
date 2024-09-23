@@ -1,11 +1,11 @@
 import { FastifyInstance } from "fastify";
-import User from "src/database/models/User";
+import User from "../database/models/User";
 import { WebSocket } from "@fastify/websocket";
 import {
   MessagePayload,
   UserLobbyPayload,
   WebSocketMessage,
-} from "src/lib/types/websocket-types";
+} from "../lib/types/websocket-types";
 import websocketMessage from "./websocket-message";
 import joinChat from "./events/join-event";
 import leaveLobby from "./events/leave-event";

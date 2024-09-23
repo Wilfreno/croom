@@ -1,8 +1,8 @@
 import { WebSocket } from "@fastify/websocket";
-import Chat from "src/database/models/Lobby";
+import Chat from "../../database/models/Lobby";
 import websocketMessage from "../websocket-message";
-import { UserLobbyPayload } from "src/lib/types/websocket-types";
-import Member from "src/database/models/Member";
+import { UserLobbyPayload } from "../../lib/types/websocket-types";
+import Member from "../../database/models/Member";
 
 export default async function joinChat(
   payload: UserLobbyPayload,

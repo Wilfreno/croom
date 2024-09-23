@@ -10,6 +10,7 @@ function pathChecker(path: string) {
 
 async function responseJSON<T>(response: Response) {
   try {
+    console.log(response.headers.getSetCookie());
     const response_json = (await response.json()) as ServerResponse<T>;
 
     return response_json;
@@ -29,17 +30,20 @@ async function responseJSON<T>(response: Response) {
  */
 export async function POSTRequest<R>(
   path: string,
-  body: object
+  body?: object
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
     const response = await fetch(server_url + path, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
       body: body && JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);
@@ -98,6 +102,7 @@ export async function PATCHRequest<R>(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);
@@ -128,6 +133,7 @@ export async function DELETERequest<R>(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);

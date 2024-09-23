@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     throw new Error("CLIENT_URL is missing from your .env.local file");
   try {
     const token = await getToken({ req: request });
+    const jwt = await getToken({ req: request });
 
     if (!token) {
       if (
