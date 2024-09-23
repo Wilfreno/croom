@@ -142,4 +142,49 @@ export default async function v1ChatRouter(fastify: FastifyInstance) {
     }
   );
   //delete route
+
+  fastify.delete<{ Body: { id: string } }>(
+    "/",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.body;
+
+        if (!id)
+          return reply
+            .code(400)
+            .send(
+              JSONResponse("BAD_REQUEST", "id is required on the request body")
+            );
+
+        const found_lobby = await Lobby.findOne({ _id: id });
+
+        if (!found_lobby)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+        if (
+          !(await Member.exists({
+            lobby: id,
+            member: request.user.id,
+            role: "ADMIN",
+          }))
+        )
+          return reply
+            .code(401)
+            .send(
+              JSONResponse("UNAUTHORIZED", "user cannot delete this lobby")
+            );
+
+        await Lobby.deleteOne({ _id: id });
+        await Member.deleteMany({ lobby: id });
+        return reply.code(200).send(JSONResponse("OK", "lobby deleted"));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
 }
