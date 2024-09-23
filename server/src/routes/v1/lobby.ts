@@ -1,55 +1,45 @@
 import { FastifyInstance } from "fastify";
 import { startSession } from "mongoose";
 import Lobby, { type Lobby as LobbyType } from "src/database/models/Lobby";
-import User, { type User as UserType } from "src/database/models/User";
+import Member from "src/database/models/Member";
+import User from "src/database/models/User";
 import JSONResponse from "src/lib/json-response";
 
 export default async function v1ChatRouter(fastify: FastifyInstance) {
   //create route
 
-  fastify.post<{ Body: { creator_id: string; members: string[] } }>(
+  fastify.post(
     "/",
+    { preValidation: async (request) => request.jwtVerify() },
     async (request, reply) => {
       try {
-        const session = await startSession()
-        session.startTransaction
-        const { members, creator_id } = request.body;
+        const session = await startSession();
+        session.startTransaction();
 
-        if (!members || !creator_id)
+        if (!(await User.findOne({ _id: request.user.id })))
           return reply
-            .code(400)
+            .code(404)
             .send(
               JSONResponse(
-                "BAD_REQUEST",
-                "creator_id and members is required on the request body"
+                "NOT_FOUND",
+                "cannot create a new lobby; user does not exist"
               )
             );
 
-        let found_users: UserType[] = [];
+        const lobby = new Lobby();
 
-        if (members.length > 2) {
-          found_users = await User.find({
-            $or: [...members.map((id) => ({ _id: id })), { _id: creator_id }],
-          }).select("username");
-        }
+        await lobby.save({ session });
 
-        const lobby = new Lobby({
-          members,
-          is_group_chat: members.length > 2,
-          name:
-            members.length > 2
-              ? found_users.reduce(
-                  (prev, current, index) =>
-                    prev +
-                    (current.username +
-                      (index === found_users.length - 1 ? "" : ", ")),
-                  ""
-                )
-              : null,
+        const member = new Member({
+          lobby: lobby.id,
+          user: request.user.id,
+          role: "ADMIN",
         });
 
-        
-        await lobby.save();
+        await member.save({ session });
+
+        await session.commitTransaction();
+        await session.endSession();
 
         return reply
           .code(201)

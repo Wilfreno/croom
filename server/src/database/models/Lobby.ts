@@ -4,7 +4,6 @@ export type Lobby = {
   members: Types.ObjectId[];
   is_private: boolean;
   name: string;
-  is_group_chat: boolean;
   messages: Types.ObjectId[];
   date_created: Date;
 };
@@ -14,20 +13,16 @@ const lobbySchema = new Schema<Lobby>({
     {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: [],
     },
   ],
   name: {
     type: String,
-    default: null,
+    default: "",
   },
   is_private: {
     type: Boolean,
     default: true,
-  },
-  is_group_chat: {
-    type: Boolean,
-    required: true,
   },
   messages: [
     {

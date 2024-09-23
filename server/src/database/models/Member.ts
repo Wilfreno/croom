@@ -2,7 +2,7 @@ import { model, Schema, Types } from "mongoose";
 
 export type Member = {
   user: Types.ObjectId;
-  chat: Types.ObjectId;
+  lobby: Types.ObjectId;
   role: "ADMIN" | "MEMBER";
   date_created: Date;
   last_updated: Date;
@@ -14,7 +14,7 @@ const memberSchema = new Schema<Member>({
     ref: "User",
     required: true,
   },
-  chat: {
+  lobby: {
     type: Schema.Types.ObjectId,
     ref: "Chat",
     required: true,
