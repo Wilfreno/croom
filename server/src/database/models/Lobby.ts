@@ -6,6 +6,7 @@ export type Lobby = {
   name: string;
   messages: Types.ObjectId[];
   date_created: Date;
+  last_updated: Date;
 };
 
 const lobbySchema = new Schema<Lobby>({
@@ -32,6 +33,10 @@ const lobbySchema = new Schema<Lobby>({
     },
   ],
   date_created: {
+    type: Date,
+    default: Date.now,
+  },
+  last_updated: {
     type: Date,
     default: Date.now,
   },
