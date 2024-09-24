@@ -36,7 +36,7 @@ const inviteSchema = new Schema<Invite>({
   },
 });
 
-inviteSchema.pre("save", function (next) {
+inviteSchema.pre("save", async function (next) {
   let seconds;
   switch (this.expires_in) {
     case "30_MIN":
@@ -55,7 +55,17 @@ inviteSchema.pre("save", function (next) {
       seconds = null;
   }
   this.schema.path("date_created").options.expires = seconds;
+
   next();
+});
+
+inviteSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: (_, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+  },
 });
 
 const Invite = model("Invite", inviteSchema);

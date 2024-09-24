@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { startSession } from "mongoose";
+import Invite from "src/database/models/Invite";
 import Lobby, { type Lobby as LobbyType } from "src/database/models/Lobby";
 import Member from "src/database/models/Member";
 import User from "src/database/models/User";
@@ -83,6 +84,49 @@ export default function v1ChatRouter(
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
   });
+
+  fastify.get<{ Params: { id: string } }>(
+    "/:id/invite",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+
+        const found_lobby = await Lobby.exists({ _id: id });
+
+        if (!found_lobby)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+
+        if (
+          !(await Member.exists({
+            lobby: id,
+            user: request.user.id,
+            role: "ADMIN",
+          }))
+        )
+          return reply
+            .code(403)
+            .send(
+              JSONResponse("FORBIDDEN", "you are not an admin of this lobby")
+            );
+
+        const found_invite = await Invite.find({ lobby: id });
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            found_invite.map((i) => i.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //update route
 
   fastify.patch<{
