@@ -447,5 +447,33 @@ export default function v1UserRouter(
       }
     }
   );
+
+  fastify.delete(
+    "/session",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        return reply
+          .code(200)
+          .setCookie("chatup-session-token", "", {
+            domain:
+              process.env.NODE_ENV === "production"
+                ? "chatup.vercel.app"
+                : "127.0.0.1",
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            httpOnly: true,
+            maxAge: 0,
+          })
+          .send(JSONResponse("OK", "user session is created"));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   done();
 }

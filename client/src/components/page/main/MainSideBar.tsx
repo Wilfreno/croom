@@ -8,6 +8,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DELETERequest } from "@/lib/server/requests";
 import { cn } from "@/lib/utils";
 import {
   Bell,
@@ -119,7 +120,10 @@ export default function MainSideBar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => signOut()}
+                onClick={async () => {
+                  await DELETERequest("/v1/user/session");
+                  await signOut();
+                }}
                 className="cursor-pointer py-2 flex items-center gap-4 font-medium"
               >
                 <LogOut className="h-4" />
