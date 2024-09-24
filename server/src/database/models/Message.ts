@@ -2,7 +2,8 @@ import { model, Schema, Types } from "mongoose";
 
 export type Message = {
   lobby: Types.ObjectId;
-  type: "text";
+  type: "TEXT";
+  status: "DELETED" | "UPDATED";
   sender: Types.ObjectId;
   text: string;
   seen_by: Types.ObjectId[];
@@ -18,7 +19,7 @@ const messageSchema = new Schema<Message>({
   },
   type: {
     type: String,
-    enum: ["text"],
+    enum: ["TEXT"],
     required: true,
   },
   sender: {
@@ -28,6 +29,12 @@ const messageSchema = new Schema<Message>({
   },
   text: {
     type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["DELETED", "UPDATED"],
+    default: null,
   },
   seen_by: [
     {

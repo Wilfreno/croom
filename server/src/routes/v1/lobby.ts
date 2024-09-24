@@ -1,10 +1,11 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { startSession } from "mongoose";
-import Invite from "src/database/models/Invite";
-import Lobby, { type Lobby as LobbyType } from "src/database/models/Lobby";
-import Member from "src/database/models/Member";
-import User from "src/database/models/User";
-import JSONResponse from "src/lib/json-response";
+import Invite from "../../database/models/Invite";
+import Lobby, { type Lobby as LobbyType } from "../../database/models/Lobby";
+import Member from "../../database/models/Member";
+import Message from "../../database/models/Message";
+import User from "../../database/models/User";
+import JSONResponse from "../../lib/json-response";
 
 export default function v1ChatRouter(
   fastify: FastifyInstance,
@@ -119,6 +120,53 @@ export default function v1ChatRouter(
             "OK",
             "request successful",
             found_invite.map((i) => i.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+
+  fastify.get<{ Params: { id: string } }>(
+    "/:id/messages",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+
+        const found_lobby = await Lobby.findOne({ _id: id });
+
+        if (!found_lobby)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+
+        if (
+          !found_lobby.members.some(
+            (user_id) => (user_id as unknown as string) === request.user.id
+          )
+        )
+          return reply
+            .code(403)
+            .send(
+              JSONResponse("FORBIDDEN", "you are not a member of the lobby")
+            );
+
+        const found_messages = await Message.find({ lobby: id })
+          .populate({
+            path: "sender",
+            select: "-password",
+            populate: "photo",
+          })
+          .sort("date_created");
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            found_messages.map((message) => message.toJSON())
           )
         );
       } catch (error) {
