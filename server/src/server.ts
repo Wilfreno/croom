@@ -34,6 +34,9 @@ fastify.register(jwt, {
     cookieName: "chatup-session-token",
     signed: false,
   },
+  formatUser(payload) {
+    return payload;
+  },
 });
 
 //cookies

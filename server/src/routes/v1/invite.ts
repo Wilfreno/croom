@@ -1,12 +1,14 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import Invite, { type Invite as InviteType } from "src/database/models/Invite";
-import Lobby from "src/database/models/Lobby";
-import Member from "src/database/models/Member";
-import Notification from "src/database/models/Notification";
-import User from "src/database/models/User";
-import JSONResponse from "src/lib/json-response";
+import Invite, {
+  type Invite as InviteType,
+} from "../../database/models/Invite";
+import Lobby from "../../database/models/Lobby";
+import Member from "../../database/models/Member";
+import Notification from "../../database/models/Notification";
+import User, { type User as UserType } from "../../database/models/User";
+import JSONResponse from "../../lib/json-response";
 
-export default async function v1InviteRouter(
+export default function v1InviteRouter(
   fastify: FastifyInstance,
   _: FastifyPluginOptions,
   done: () => void
@@ -24,12 +26,14 @@ export default async function v1InviteRouter(
     async (request, reply) => {
       try {
         const { lobby_id, user_ids, expires_in } = request.body;
+        const user = request.user as UserType & { id: string };
+
         if (!(await Lobby.exists({ _id: lobby_id })))
           return reply
             .code(404)
             .send(JSONResponse("BAD_REQUEST", "lobby does not exist"));
 
-        if (!(await Member.exists({ user: request.user.id, lobby: lobby_id })))
+        if (!(await Member.exists({ user: user.id, lobby: lobby_id })))
           return reply
             .code(401)
             .send(
@@ -92,6 +96,7 @@ export default async function v1InviteRouter(
     async (request, reply) => {
       try {
         const { lobby_id, token } = request.body;
+        const user = request.user as UserType & { id: string };
 
         if (!lobby_id || !token)
           return reply
@@ -122,7 +127,7 @@ export default async function v1InviteRouter(
         if (found_lobby.is_private) {
           if (
             !found_invite.invited.some(
-              (user_id) => (user_id as unknown as string) === request.user.id
+              (user_id) => (user_id as unknown as string) === user.id
             )
           )
             return reply
@@ -143,7 +148,7 @@ export default async function v1InviteRouter(
           {
             $set: {
               invited: found_invite.invited.filter(
-                (user_id) => (user_id as unknown as string) !== request.user.id
+                (user_id) => (user_id as unknown as string) !== user.id
               ),
             },
           }
@@ -165,6 +170,7 @@ export default async function v1InviteRouter(
     async (request, reply) => {
       try {
         const { user_id, invite_id } = request.body;
+        const user = request.user as UserType & { id: string };
 
         const found_invite = await Invite.findOne({ _id: invite_id });
         if (!found_invite)
@@ -184,7 +190,7 @@ export default async function v1InviteRouter(
         if (
           !(await Member.exists({
             lobby: found_invite.lobby,
-            user: request.user.id,
+            user: user.id,
             role: "ADMIN",
           }))
         )
@@ -225,6 +231,7 @@ export default async function v1InviteRouter(
     async (request, reply) => {
       try {
         const { invite_id } = request.body;
+        const user = request.user as UserType & { id: string };
 
         if (!invite_id)
           return reply
@@ -246,7 +253,7 @@ export default async function v1InviteRouter(
         if (
           !(await Member.exists({
             lobby: found_invite.lobby,
-            user: request.user.id,
+            user: user.id,
             role: "ADMIN",
           }))
         )

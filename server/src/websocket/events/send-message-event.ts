@@ -1,5 +1,5 @@
 import { WebSocket } from "@fastify/websocket";
-import { MessagePayload } from "src/lib/types/websocket-types";
+import { MessagePayload } from "../../lib/types/websocket-types";
 import websocketMessage from "../websocket-message";
 
 export default async function sendMessage(

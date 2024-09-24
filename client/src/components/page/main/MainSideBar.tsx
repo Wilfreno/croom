@@ -65,7 +65,7 @@ export default function MainSideBar() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="gap-2 p-2 h-fit w-full justify-start rounded-none"
+              className="gap-4 p-2 h-fit w-full justify-start rounded-none"
             >
               <Avatar>
                 <AvatarImage src={data?.user?.photo.url} />
@@ -73,15 +73,27 @@ export default function MainSideBar() {
                   <UserRound className="h-full w-auto" />
                 </AvatarFallback>
               </Avatar>
-              <p
-                className={cn(
-                  "truncate text-center font-semibold",
-                  !data &&
-                    "bg-muted-foreground h-4 w-full animate-pulse rounded-full"
-                )}
-              >
-                {data?.user.username}
-              </p>
+              <div className={cn("text-start w-full", !data && "space-y-2")}>
+                <p
+                  className={cn(
+                    "truncate font-bold",
+                    !data &&
+                      "bg-muted-foreground h-4 w-2/3 animate-pulse rounded-full"
+                  )}
+                >
+                  {data?.user.display_name}
+                </p>
+
+                <p
+                  className={cn(
+                    "truncate text-xs text-muted-foreground",
+                    !data &&
+                      "bg-muted-foreground h-2 w-1/4  animate-pulse rounded-full"
+                  )}
+                >
+                  {data?.user.username}
+                </p>
+              </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent

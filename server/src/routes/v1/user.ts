@@ -4,7 +4,7 @@ import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
-import Lobby from "src/database/models/Lobby";
+import Lobby from "../../database/models/Lobby";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,

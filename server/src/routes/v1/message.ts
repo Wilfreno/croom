@@ -1,10 +1,11 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import Lobby from "src/database/models/Lobby";
-import Member from "src/database/models/Member";
-import Message from "src/database/models/Message";
-import JSONResponse from "src/lib/json-response";
+import Lobby from "../../database/models/Lobby";
+import Member from "../../database/models/Member";
+import Message from "../../database/models/Message";
+import { User } from "../../database/models/User";
+import JSONResponse from "../../lib/json-response";
 
-export default async function v1MessageRouter(
+export default function v1MessageRouter(
   fastify: FastifyInstance,
   _: FastifyPluginOptions,
   done: () => void
@@ -19,13 +20,14 @@ export default async function v1MessageRouter(
     async (request, reply) => {
       try {
         const { lobby_id, message } = request.body;
+        const user = request.user as User & { id: string };
 
         if (!(await Lobby.exists({ _id: lobby_id })))
           return reply
             .code(404)
             .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
 
-        if (!Member.exists({ lobby: lobby_id, user: request.user.id }))
+        if (!Member.exists({ lobby: lobby_id, user: user.id }))
           return reply
             .code(403)
             .send(
@@ -34,7 +36,7 @@ export default async function v1MessageRouter(
 
         const new_message = new Message({
           lobby: lobby_id,
-          sender: request.user.id,
+          sender: user.id,
           type: "TEXT",
           text: message,
         });
@@ -60,6 +62,7 @@ export default async function v1MessageRouter(
     async (request, reply) => {
       try {
         const { message_id, message } = request.body;
+        const user = request.user as User & { id: string };
 
         if (!message_id || !message)
           return reply
@@ -83,7 +86,7 @@ export default async function v1MessageRouter(
             .code(409)
             .send(JSONResponse("CONFLICT", "message already been deleted"));
 
-        if ((found_message.sender as unknown as string) !== request.user.id)
+        if ((found_message.sender as unknown as string) !== user.id)
           return reply
             .code(403)
             .send(
@@ -115,10 +118,11 @@ export default async function v1MessageRouter(
   //delete route
   fastify.delete<{ Body: { message_id: string } }>(
     "/",
-    { preValidation: async (request) => request.jwtVerify() },
+    { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
         const { message_id } = request.body;
+        const user = request.user as User & { id: string };
 
         if (!message_id)
           return reply
@@ -137,7 +141,7 @@ export default async function v1MessageRouter(
             .code(404)
             .send(JSONResponse("NOT_FOUND", "message doe not exist"));
 
-        if ((found_message.sender as unknown as string) !== request.user.id)
+        if ((found_message.sender as unknown as string) !== user.id)
           return reply
             .code(403)
             .send(

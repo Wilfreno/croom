@@ -31,7 +31,7 @@ const inviteSchema = new Schema<Invite>({
     default: "30_MIN",
   },
   date_created: {
-    typed: Date,
+    type: Date,
     default: Date.now,
   },
 });
