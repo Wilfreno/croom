@@ -6,6 +6,7 @@ import Member from "../../database/models/Member";
 import Message from "../../database/models/Message";
 import User from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
+import Photo, { type Photo as PhotoType } from "src/database/models/Photo";
 
 export default function v1ChatRouter(
   fastify: FastifyInstance,
@@ -179,16 +180,16 @@ export default function v1ChatRouter(
 
   fastify.patch<{
     Params: { key: keyof LobbyType };
-    Body: LobbyType & { id: string };
+    Body: LobbyType & { id: string; photo: PhotoType };
   }>(
     "/:key",
     { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
         const { key } = request.params;
-        const { id, name, is_private } = request.body;
+        const { id, name, is_private, photo } = request.body;
 
-        const found_lobby = await Lobby.exists({ _id: id });
+        const found_lobby = await Lobby.findOne({ _id: id });
 
         if (!found_lobby)
           return reply
@@ -217,6 +218,33 @@ export default function v1ChatRouter(
               { $set: { is_private, last_updated: new Date() } }
             );
 
+            break;
+          }
+          case "photo": {
+            if (!photo)
+              return reply
+                .code(400)
+                .send(
+                  JSONResponse(
+                    "BAD_REQUEST",
+                    "photo is required on request body"
+                  )
+                );
+
+            const new_photo = new Photo({
+              owner: photo.owner,
+              type: "LOBBY",
+              url: photo.url,
+            });
+
+            await new_photo.save();
+            await Lobby.updateOne(
+              { _id: id },
+              { $set: { photo: new_photo._id, last_updated: new Date() } }
+            );
+            if (found_lobby.photo) {
+              await Photo.deleteOne({ _id: found_lobby.photo });
+            }
             break;
           }
           default:
