@@ -5,6 +5,7 @@ export type Lobby = {
   is_private: boolean;
   name: string;
   messages: Types.ObjectId[];
+  photo: Types.ObjectId;
   date_created: Date;
   last_updated: Date;
 };
@@ -32,6 +33,11 @@ const lobbySchema = new Schema<Lobby>({
       default: [],
     },
   ],
+  photo: {
+    type: Schema.Types.ObjectId,
+    ref: "Photo",
+    default: null,
+  },
   date_created: {
     type: Date,
     default: Date.now,

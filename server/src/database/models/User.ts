@@ -9,6 +9,7 @@ export type User = {
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
   is_new: boolean;
+  lobbies: Types.ObjectId[];
   date_created: Date;
   last_updated: Date;
 };
@@ -56,6 +57,13 @@ const userSchema = new Schema<User>({
     ref: "Photo",
     default: null,
   },
+  lobbies: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Lobby",
+      default: [],
+    },
+  ],
   date_created: {
     type: Date,
     default: Date.now,

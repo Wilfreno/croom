@@ -4,6 +4,7 @@ import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
+import Lobby from "src/database/models/Lobby";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -220,6 +221,36 @@ export default function v1UserRouter(
     }
   );
 
+  fastify.get<{ Params: { id: string } }>(
+    "/:id/lobbies",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+
+        const found_user = await User.findOne({ _id: id });
+        if (!found_user)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+        const lobbies = [];
+
+        for (const lobby_id of found_user.lobbies) {
+          const found_lobby = await Lobby.findOne({ _id: lobby_id }).populate(
+            "photo"
+          );
+          lobbies.push(found_lobby!.toJSON());
+        }
+
+        return reply
+          .code(200)
+          .send(JSONResponse("OK", "request successful", lobbies));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //update user
   fastify.patch<{
     Params: { key: keyof UserType };
