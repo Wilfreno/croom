@@ -14,18 +14,20 @@ export default function RecentLobbies() {
 
   const { data: lobbies } = useQuery({
     enabled: !!data,
-    queryKey: ["lobbies"],
+    queryKey: ["lobbies", data],
     queryFn: async () => {
-      const { data, status, message } = await GETRequest<Lobby[]>(
-        "/v1/user/:id/lobbies"
-      );
+      const {
+        data: lobbies,
+        status,
+        message,
+      } = await GETRequest<Lobby[]>("/v1/user/" + data!.user.id + "/lobbies");
 
       if (status !== "OK") {
         toast.error(message);
         throw new Error(message);
       }
 
-      return data;
+      return lobbies;
     },
   });
 
@@ -52,11 +54,11 @@ export default function RecentLobbies() {
     <div className="grow h-full grid grid-rows-[auto_1fr]">
       <div className="flex items-center gap-8">
         <h1 className="text-2xl font-semibold">Recent Lobbies</h1>
-        <Button className="gap-1" size="sm">
+        <Button className="gap-1" size="sm" onClick={createLobby}>
           <span>Create</span> <Plus className="h-4" />
         </Button>
       </div>
-      <div className="h-full w-full flex "  >
+      <div className="h-full w-full flex ">
         {lobbies?.length ? (
           <></>
         ) : (
