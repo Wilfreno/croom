@@ -34,10 +34,9 @@ export default async function websocketServer(fastify: FastifyInstance) {
           { _id: user_id },
           {
             $set: { status: "ONLINE" },
-          }
+          } 
         );
         online_user.set(user_id, socket);
-
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(
             raw_data.toString()

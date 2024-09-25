@@ -34,13 +34,18 @@ export default function v1LobbyRouter(
               )
             );
 
-        const lobby = new Lobby();
+        const lobby = new Lobby({ name: user.display_name + "'s lobby" });
 
         const member = new Member({
           lobby: lobby.id,
           user: user.id,
           role: "ADMIN",
         });
+
+        await User.updateOne(
+          { _id: user.id },
+          { $set: { last_updated: new Date() }, $push: { lobbies: lobby._id } }
+        );
 
         lobby.members.push(member._id);
 

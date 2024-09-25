@@ -50,8 +50,8 @@ export default function MainSideBar() {
       icon: <UsersRound className="h-5 w-auto" />,
     },
     {
-      name: "Lobby",
-      link: "/lobby",
+      name: "Lobbies",
+      link: "/lobbies",
       icon: <MessageCircleMore className="h-5 w-auto" />,
     },
     {
@@ -84,7 +84,7 @@ export default function MainSideBar() {
           "w-fit",
           open_sidebar ? "justify-self-end" : "justify-self-center"
         )}
-        onClick={() => {    
+        onClick={() => {
           query_client.setQueryData(["open_sidebar"], !open_sidebar);
         }}
       >
@@ -172,24 +172,24 @@ export default function MainSideBar() {
             {items.map((item) => (
               <Tooltip key={item.name}>
                 <TooltipTrigger asChild>
-                  <Link href={item.link}>
+                  <Link href={"/@me" + item.link}>
                     <Button
                       variant={
                         item.link === "/"
-                          ? pathname === "/"
+                          ? pathname === "/@me"
                             ? "secondary"
                             : "ghost"
-                          : pathname.startsWith(item.link)
+                          : pathname.startsWith("/@me" + item.link)
                           ? "secondary"
                           : "ghost"
                       }
                       className={cn(
                         "gap-3 justify-start h-12 w-full font-medium text-muted-foreground",
                         item.link === "/"
-                          ? pathname === "/"
+                          ? pathname === "/@me"
                             ? "text-primary stroke-primary"
                             : ""
-                          : pathname.startsWith(item.link)
+                          : pathname.startsWith("/@me" + item.link)
                           ? "text-primary stroke-primary"
                           : ""
                       )}

@@ -242,6 +242,7 @@ export default function v1UserRouter(
           lobbies.push(found_lobby!.toJSON());
         }
 
+        console.log("LOBBIES", lobbies)
         return reply
           .code(200)
           .send(JSONResponse("OK", "request successful", lobbies));
