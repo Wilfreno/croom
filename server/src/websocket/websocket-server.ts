@@ -16,8 +16,6 @@ const lobby_online_user = new Map<string, Set<string>>();
 const online_user = new Map<string, WebSocket>();
 
 export default async function websocketServer(fastify: FastifyInstance) {
-  const redis = fastify.redis;
-
   try {
     fastify.get<{ Params: { user_id: string } }>(
       "/ws/:user_id",
@@ -32,7 +30,12 @@ export default async function websocketServer(fastify: FastifyInstance) {
           socket.close();
           return;
         }
-
+        await User.updateOne(
+          { _id: user_id },
+          {
+            $set: { status: "ONLINE" },
+          }
+        );
         online_user.set(user_id, socket);
 
         socket.on("message", async (raw_data) => {
@@ -61,7 +64,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
               await sendMessage(
                 parsed_message.payload as MessagePayload,
                 lobby_online_user,
-                online_user,
+                online_user
               );
               break;
             }
@@ -78,8 +81,17 @@ export default async function websocketServer(fastify: FastifyInstance) {
             }
           }
         });
+        socket.on("close", async () => {
+          await User.updateOne(
+            { _id: user_id },
+            {
+              $set: { status: "OFFLINE" },
+            }
+          );
+          online_user.delete(user_id);
+        });
         socket.on("error", async () => {
-          await redis.hdel("online_user-" + user_id);
+          online_user.delete(user_id);
           socket.close();
         });
       }
