@@ -23,8 +23,8 @@ export default function LobbyHeader() {
   });
 
   return (
-    <header className="bg-primary py-2 px-5">
-      <h1 className="tex-2xl">{lobby?.name}</h1>
+    <header className="absolute inset-x-0 top-0 bg-transparent py-4 px-5">
+      <h1 className="tex-2xl font-semibold">{lobby?.name}</h1>
     </header>
   );
 }

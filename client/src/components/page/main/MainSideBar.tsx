@@ -68,7 +68,7 @@ export default function MainSideBar() {
 
   const { data: open_sidebar } = useQuery({
     queryKey: ["open_sidebar"],
-    initialData: true,
+    initialData: !pathname.startsWith("/lobby"),
   });
   const query_client = useQueryClient();
   return (
