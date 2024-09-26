@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "NODE_ENV=development nodemon --delay 1500ms ./src/server.ts",
+    "redis-start": "sudo service redis-server start",
+    "dev": " NODE_ENV=development pnpm redis-start && nodemon --delay 1500ms ./src/server.ts",
     "production": "pnpm build && pnpm start",
     "build": "tsc --build ",
     "start": "NODE_ENV=production  node build/server.js"
@@ -31,16 +32,16 @@
     "typescript": "^5.6.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.11.0",
+    "@eslint/js": "^9.11.1",
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "^22.5.5",
+    "@types/node": "^22.6.1",
     "@types/nodemailer": "^6.4.16",
-    "@types/react": "^18.3.8",
+    "@types/react": "^18.3.9",
     "@types/ws": "^8.5.12",
-    "eslint": "^9.11.0",
+    "eslint": "^9.11.1",
     "globals": "^15.9.0",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
-    "typescript-eslint": "^8.6.0"
+    "typescript-eslint": "^8.7.0"
   }
 }

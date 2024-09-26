@@ -4,11 +4,11 @@ import Invite from "../../database/models/Invite";
 import Lobby, { type Lobby as LobbyType } from "../../database/models/Lobby";
 import Member from "../../database/models/Member";
 import Message from "../../database/models/Message";
-import User from "../../database/models/User";
+import User, { type User as UserType } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
-import Photo, { type Photo as PhotoType } from "src/database/models/Photo";
+import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 
-export default function v1ChatRouter(
+export default function v1LobbyRouter(
   fastify: FastifyInstance,
   _: FastifyPluginOptions,
   done: () => void
@@ -23,7 +23,8 @@ export default function v1ChatRouter(
         const session = await startSession();
         session.startTransaction();
 
-        if (!(await User.findOne({ _id: request.user.id })))
+        const user = request.user as UserType & { id: string };
+        if (!(await User.findOne({ _id: user.id })))
           return reply
             .code(404)
             .send(
@@ -33,13 +34,18 @@ export default function v1ChatRouter(
               )
             );
 
-        const lobby = new Lobby();
+        const lobby = new Lobby({ name: user.display_name + "'s lobby" });
 
         const member = new Member({
           lobby: lobby.id,
-          user: request.user.id,
+          user: user.id,
           role: "ADMIN",
         });
+
+        await User.updateOne(
+          { _id: user.id },
+          { $set: { last_updated: new Date() }, $push: { lobbies: lobby._id } }
+        );
 
         lobby.members.push(member._id);
 
@@ -95,6 +101,7 @@ export default function v1ChatRouter(
         const { id } = request.params;
 
         const found_lobby = await Lobby.exists({ _id: id });
+        const user = request.user as UserType & { id: string };
 
         if (!found_lobby)
           return reply
@@ -104,7 +111,7 @@ export default function v1ChatRouter(
         if (
           !(await Member.exists({
             lobby: id,
-            user: request.user.id,
+            user: user.id,
             role: "ADMIN",
           }))
         )
@@ -136,6 +143,7 @@ export default function v1ChatRouter(
     async (request, reply) => {
       try {
         const { id } = request.params;
+        const user = request.user as UserType & { id: string };
 
         const found_lobby = await Lobby.findOne({ _id: id });
 
@@ -146,7 +154,7 @@ export default function v1ChatRouter(
 
         if (
           !found_lobby.members.some(
-            (user_id) => (user_id as unknown as string) === request.user.id
+            (user_id) => (user_id as unknown as string) === user.id
           )
         )
           return reply
@@ -188,6 +196,7 @@ export default function v1ChatRouter(
       try {
         const { key } = request.params;
         const { id, name, is_private, photo } = request.body;
+        const user = request.user as UserType & { id: string };
 
         const found_lobby = await Lobby.findOne({ _id: id });
 
@@ -196,7 +205,7 @@ export default function v1ChatRouter(
             .code(404)
             .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
 
-        if (!Member.exists({ user: request.user.id, lobby: id, role: "ADMIN" }))
+        if (!Member.exists({ user: user.id, lobby: id, role: "ADMIN" }))
           return reply
             .code(401)
             .send(
@@ -275,6 +284,7 @@ export default function v1ChatRouter(
     async (request, reply) => {
       try {
         const { id } = request.body;
+        const user = request.user as UserType & { id: string };
 
         if (!id)
           return reply
@@ -292,7 +302,7 @@ export default function v1ChatRouter(
         if (
           !(await Member.exists({
             lobby: id,
-            member: request.user.id,
+            member: user.id,
             role: "ADMIN",
           }))
         )

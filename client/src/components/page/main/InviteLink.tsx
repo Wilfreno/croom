@@ -9,7 +9,7 @@ export default function InviteLink() {
   const [link, setLink] = useState("");
 
   return (
-    <form className="grid gap-4">
+    <form className="grid gap-2">
       <Label htmlFor="join-lobby" className="text-2xl font-semibold ">
         Join a Lobby
       </Label>

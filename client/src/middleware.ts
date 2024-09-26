@@ -30,7 +30,17 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(client_url + "/new");
       if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) {
         return NextResponse.redirect(
-          client_url + search_params ? search_params : "/"
+          client_url + "/@me" + (search_params ? search_params : "")
+        );
+      }
+      if (pathname.startsWith("/@") && !pathname.startsWith("/@me")) {
+        const new_path = pathname
+          .split("/")
+          .map((entry, index) => (index === 1 ? "@me" : entry))
+          .join("/");
+
+        return NextResponse.redirect(
+          client_url + new_path + (search_params ? search_params : "")
         );
       }
     }

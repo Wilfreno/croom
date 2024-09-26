@@ -70,7 +70,7 @@ const userSchema = new Schema<User>({
   },
   last_updated: {
     type: Date,
-    required: true,
+    default: Date.now,
   },
 });
 

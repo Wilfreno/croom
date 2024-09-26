@@ -49,7 +49,7 @@ const messageSchema = new Schema<Message>({
   },
   last_updated: {
     type: Date,
-    required: true,
+    default: Date.now,
   },
 });
 

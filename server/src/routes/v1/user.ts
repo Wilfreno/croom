@@ -4,7 +4,7 @@ import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
-import Lobby from "src/database/models/Lobby";
+import Lobby from "../../database/models/Lobby";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -242,6 +242,7 @@ export default function v1UserRouter(
           lobbies.push(found_lobby!.toJSON());
         }
 
+        console.log("LOBBIES", lobbies)
         return reply
           .code(200)
           .send(JSONResponse("OK", "request successful", lobbies));
@@ -442,6 +443,34 @@ export default function v1UserRouter(
         await User.deleteOne({ username });
 
         return reply.code(200).send(JSONResponse("OK", "user deleted"));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+
+  fastify.delete(
+    "/session",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        return reply
+          .code(200)
+          .setCookie("chatup-session-token", "", {
+            domain:
+              process.env.NODE_ENV === "production"
+                ? "chatup.vercel.app"
+                : "127.0.0.1",
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            httpOnly: true,
+            maxAge: 0,
+          })
+          .send(JSONResponse("OK", "user session is created"));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));

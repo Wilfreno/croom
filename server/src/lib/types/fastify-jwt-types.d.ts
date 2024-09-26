@@ -1,4 +1,5 @@
-import { User } from "src/database/models/User";
+import { User } from "../../database/models/User";
+import "@fastify/jwt";
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {

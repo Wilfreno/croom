@@ -1,4 +1,4 @@
-import { UserLobbyPayload } from "src/lib/types/websocket-types";
+import { UserLobbyPayload } from "../../lib/types/websocket-types";
 import websocketMessage from "../websocket-message";
 import { WebSocket } from "@fastify/websocket";
 

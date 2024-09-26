@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadthingButton } from "@/components/utils/UploadThingButton";
+import { UploadthingButton } from "@/components/providers/UploadThingButton";
 import { PATCHRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server";
 import { cn } from "@/lib/utils";

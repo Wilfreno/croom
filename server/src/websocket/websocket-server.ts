@@ -33,7 +33,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
           { _id: user_id },
           {
             $set: { status: "ONLINE" },
-          }
+          } 
         );
         online_user.set(user_id, socket);
 
