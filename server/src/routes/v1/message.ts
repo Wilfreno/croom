@@ -11,6 +11,7 @@ export default function v1MessageRouter(
   done: () => void
 ) {
   //create route
+  const redis_pub = fastify.redis["pub"];
 
   fastify.post<{ Body: { lobby_id: string; message: string } }>(
     "/",
@@ -45,6 +46,10 @@ export default function v1MessageRouter(
         await Lobby.updateOne(
           { _id: lobby_id },
           { $push: { messages: new_message._id } }
+        );
+        await redis_pub.publish(
+          "MESSAGE",
+          JSON.stringify(new_message.toJSON())
         );
 
         return reply.code(201).send(JSONResponse("CREATED", "message sent"));
@@ -96,7 +101,7 @@ export default function v1MessageRouter(
               )
             );
 
-        await Message.updateOne(
+        const updated_message = await Message.findOneAndUpdate(
           {
             _id: message_id,
           },
@@ -106,7 +111,15 @@ export default function v1MessageRouter(
               status: "UPDATED",
               last_updated: new Date(),
             },
+          },
+          {
+            new: true,
           }
+        );
+
+        await redis_pub.publish(
+          "MESSAGE",
+          JSON.stringify(updated_message!.toJSON())
         );
         return reply.code(200).send(JSONResponse("OK", "message updated"));
       } catch (error) {
@@ -151,11 +164,15 @@ export default function v1MessageRouter(
               )
             );
 
-        await Message.updateOne(
+        const deleted_message = await Message.findOneAndUpdate(
           { _id: message_id },
           { $set: { status: "DELETED", text: null, last_updated: new Date() } }
         );
 
+        await redis_pub.publish(
+          "MESSAGE",
+          JSON.stringify(deleted_message!.toJSON())
+        );
         return reply.code(200).send(JSONResponse("OK", "message deleted"));
       } catch (error) {
         fastify.log.error(error);

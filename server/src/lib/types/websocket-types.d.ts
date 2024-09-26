@@ -2,19 +2,21 @@ import { Message } from "../database/models/Message";
 import MessageBuffer from "../classes/message-buffer";
 import { Lobby } from "../database/models/Lobby";
 import { User } from "../database/models/User";
+import { Notification } from "src/database/models/Notification";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;
   payload: WebSocketPayload;
 };
 
-export type WebSocketPayload = string | UserLobbyPayload | MessagePayload;
+export type WebSocketPayload = string | UserLobbyPayload | MessagePayload | WebsocketNotification;;
 
 export type WebsocketPayloadType =
   | "join"
   | "leave"
   | "send-message"
   | "delete-message"
+  | "notification"
   | "error";
 
 export interface MessagePayload extends Omit<Message, "lobby" | "sender"> {
@@ -27,4 +29,7 @@ export type UserLobbyPayload = {
   user_id: string;
   lobby_id: string;
 };
-3;
+
+export interface WebsocketNotification extends Notification {
+  id: string;
+}

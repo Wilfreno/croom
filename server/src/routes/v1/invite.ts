@@ -13,6 +13,8 @@ export default function v1InviteRouter(
   _: FastifyPluginOptions,
   done: () => void
 ) {
+  const redis_pub = fastify.redis["pub"];
+
   //create route
   fastify.post<{
     Body: {
@@ -76,6 +78,10 @@ export default function v1InviteRouter(
           });
 
           await notification.save();
+          await redis_pub.publish(
+            "NOTIFICATION",
+            JSON.stringify(notification.toJSON())
+          );
         }
 
         return reply
@@ -217,6 +223,10 @@ export default function v1InviteRouter(
         });
 
         await notification.save();
+        await redis_pub.publish(
+          "NOTIFICATION",
+          JSON.stringify(notification.toJSON())
+        );
         return reply.code(200).send(JSONResponse("OK", "invite sent"));
       } catch (error) {
         fastify.log.error(error);

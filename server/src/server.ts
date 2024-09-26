@@ -43,9 +43,19 @@ if (!cookie_secret)
 fastify.register(cookie, { secret: cookie_secret });
 
 //redis
-fastify.register(redis, {
-  host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
-});
+fastify
+  .register(redis, {
+    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
+    namespace: "storage",
+  })
+  .register(redis, {
+    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
+    namespace: "pub",
+  })
+  .register(redis, {
+    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1",
+    namespace: "sub",
+  });
 
 //websocket
 fastify.register(websocket);
@@ -61,6 +71,10 @@ fastify.get("/health", async (request, reply) => {
 fastify.register(connectToDB).then(() =>
   fastify.listen({ port: 8000, host: "0.0.0.0" }).catch((error) => {
     fastify.log.error(error);
+
+    fastify.redis["sub"].unsubscribe("MESSAGE");
+    fastify.redis["sub"].unsubscribe("NOTIFICATION");
+
     process.exit(1);
   })
 );

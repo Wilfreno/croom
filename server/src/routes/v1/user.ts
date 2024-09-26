@@ -252,6 +252,7 @@ export default function v1UserRouter(
       }
     }
   );
+
   //update user
   fastify.patch<{
     Params: { key: keyof UserType };
