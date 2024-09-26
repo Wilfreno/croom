@@ -1,5 +1,5 @@
-"use client";
 import { useWebsocket } from "@/components/providers/WebsocketProvider";
+import { Input } from "@/components/ui/input";
 import { GETRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server";
 import { WebSocketMessage } from "@/lib/types/websocket";
@@ -8,7 +8,7 @@ import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-export default function LobbyChat() {
+export default function LobbyChats() {
   const websocket = useWebsocket();
   const params = useParams<{ id: string }>();
 
@@ -63,5 +63,5 @@ export default function LobbyChat() {
     });
   }, [websocket]);
 
-  return <div className="bg-primary-foreground  w-80"></div>;
+  return <div className="bg-primary-foreground">LobbyChats</div>;
 }

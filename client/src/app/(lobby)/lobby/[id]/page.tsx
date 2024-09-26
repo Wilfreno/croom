@@ -1,5 +1,5 @@
 "use client";
-import LobbyChat from "@/components/page/lobby/LobbyChat";
+import LobbyChatSection from "@/components/page/lobby/LobbyChatSection";
 import LobbyVideoSection from "@/components/page/lobby/LobbyVideoSection";
 import { useWebsocket } from "@/components/providers/WebsocketProvider";
 import websocketMessage from "@/lib/websocket/websocket-message";
@@ -33,7 +33,7 @@ export default function Page({ params }: { params: { id: string } }) {
   return (
     <main className="grid grid-cols-[1fr_auto] w-full h-full">
       <LobbyVideoSection />
-      <LobbyChat />
+      <LobbyChatSection />
     </main>
   );
 }
