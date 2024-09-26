@@ -1,5 +1,6 @@
 import { Message } from "src/database/models/Message";
 import MessageBuffer from "../classes/message-buffer";
+import { Notification } from "src/database/models/Notification";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;
@@ -11,14 +12,15 @@ export type WebSocketPayload =
   | UserLobbyPayload
   | MessagePayload
   | LobbyPayload
-  | LobbyInfo;
+  | LobbyInfo
+  | WebsocketNotification;
 
 export type WebsocketPayloadType =
   | "join"
   | "leave"
-  | "chat-info"
   | "send-message"
   | "delete-message"
+  | "notification"
   | "error";
 
 export interface MessagePayload extends Omit<Message, "lobby" | "sender"> {
@@ -41,3 +43,7 @@ export type LobbyInfo = {
   online: string[];
   messages: (MessagePayload | null)[];
 };
+
+export interface WebsocketNotification extends Notification {
+  id: string;
+}

@@ -41,6 +41,15 @@ const notificationSchema = new Schema<Notification>({
   },
 });
 
+notificationSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: (_, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+  },
+});
+
 const Notification = model("Notification", notificationSchema);
 
 export default Notification;

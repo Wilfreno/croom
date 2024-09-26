@@ -5,13 +5,11 @@ import {
   MessagePayload,
   UserLobbyPayload,
   WebSocketMessage,
+  WebsocketNotification,
 } from "../lib/types/websocket-types";
 import websocketMessage from "./websocket-message";
 import joinChat from "./events/join-event";
 import leaveLobby from "./events/leave-event";
-import sendMessage from "./events/send-message-event";
-import deleteMessage from "./events/delete-message-event";
-
 const lobby_online_user = new Map<string, Set<string>>();
 const online_user = new Map<string, WebSocket>();
 
@@ -22,6 +20,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
       { websocket: true },
       async (socket, request) => {
         const { user_id } = request.params;
+        const redis = fastify.redis;
 
         const found_user = await User.exists({ _id: user_id }).select("_id");
 
@@ -37,6 +36,63 @@ export default async function websocketServer(fastify: FastifyInstance) {
           }
         );
         online_user.set(user_id, socket);
+
+        redis["sub"].subscribe("MESSAGE");
+        redis["sub"].subscribe("NOTIFICATION");
+
+        redis["sub"].on("message", async (channel, message) => {
+          switch (channel) {
+            case "MESSAGE": {
+              const parsed_message = JSON.parse(message) as MessagePayload;
+              switch (parsed_message.status) {
+                case "UPDATED": {
+                  break;
+                }
+                case "DELETED": {
+                  if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+
+                  lobby_online_user
+                    .get(parsed_message.lobby.id)!
+                    .forEach((user) => {
+                      if (user !== parsed_message.sender.id)
+                        online_user
+                          .get(user)
+                          ?.send(
+                            websocketMessage("delete-message", parsed_message)
+                          );
+                    });
+                  break;
+                }
+                default: {
+                  if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+                  lobby_online_user.get(parsed_message.id)!.forEach((user) => {
+                    if (user !== parsed_message.sender.id)
+                      online_user
+                        .get(user)
+                        ?.send(
+                          websocketMessage("send-message", parsed_message)
+                        );
+                  });
+                  break;
+                }
+              }
+              break;
+            }
+            case "NOTIFICATION": {
+              const parsed_message = JSON.parse(
+                message
+              ) as WebsocketNotification;
+
+              if (!online_user.has(parsed_message.id)) return;
+              online_user
+                .get(parsed_message.id)!
+                .send(websocketMessage("notification", parsed_message));
+              break;
+            }
+            default:
+              break;
+          }
+        });
 
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(
@@ -55,22 +111,6 @@ export default async function websocketServer(fastify: FastifyInstance) {
             case "leave": {
               await leaveLobby(
                 parsed_message.payload as UserLobbyPayload,
-                lobby_online_user,
-                online_user
-              );
-              break;
-            }
-            case "send-message": {
-              await sendMessage(
-                parsed_message.payload as MessagePayload,
-                lobby_online_user,
-                online_user
-              );
-              break;
-            }
-            case "delete-message": {
-              await deleteMessage(
-                parsed_message.payload as MessagePayload,
                 lobby_online_user,
                 online_user
               );
