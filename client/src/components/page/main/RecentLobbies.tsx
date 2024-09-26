@@ -75,7 +75,11 @@ export default function RecentLobbies() {
       >
         {lobbies?.length ? (
           lobbies?.map((lobby) => (
-            <Link key={lobby.id} href={"/lobby/" + lobby.id}>
+            <Link
+              key={lobby.id}
+              href={"/lobby/" + lobby.id}
+              onClick={() => query_client.setQueryData<boolean>(["open_sidebar"], false)}
+            >
               <Card className="aspect-video">
                 <CardHeader>
                   <CardTitle>{lobby.name}</CardTitle>

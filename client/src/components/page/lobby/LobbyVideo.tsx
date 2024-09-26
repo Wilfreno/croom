@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -27,7 +28,7 @@ export default function LobbyVideo() {
   });
 
   return (
-    <div className="aspect-video w-full h-auto bg-secondary-foreground relative">
+    <div className="aspect-video grow w-full max-w-[80vw] bg-secondary-foreground relative">
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 gap-12  flex">
         <div className="flex items-center gap-2">
           <span className="h-6">

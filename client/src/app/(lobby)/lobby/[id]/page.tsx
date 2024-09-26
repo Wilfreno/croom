@@ -31,7 +31,7 @@ export default function Page({ params }: { params: { id: string } }) {
   }, [websocket, data]);
 
   return (
-    <main className="grid grid-cols-[1fr_auto] w-full h-full">
+    <main className="flex w-full h-full overflow-hidden">
       <LobbyVideoSection />
       <LobbyChatSection />
     </main>

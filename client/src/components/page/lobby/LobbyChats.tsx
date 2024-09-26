@@ -1,5 +1,6 @@
 import { useWebsocket } from "@/components/providers/WebsocketProvider";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { GETRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server";
 import { WebSocketMessage } from "@/lib/types/websocket";
@@ -63,5 +64,30 @@ export default function LobbyChats() {
     });
   }, [websocket]);
 
-  return <div className="bg-primary-foreground">LobbyChats</div>;
+  return (
+    <div className="bg-primary-foreground p-2 grid gap-6 h-full place-items-end overflow-y-auto">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index}>
+          <p className="gap-4 prose">
+            <strong className="mr-4">name:</strong>
+            <span className="text-sm">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Neque
+              necessitatibus quia repellendus. Adipisci consectetur accusantium
+              tenetur non ex, doloremque ullam qui omnis dolorem voluptas harum
+              iure. Et modi vitae placeat veritatis tempore exercitationem?
+              Expedita esse necessitatibus aperiam cum consectetur ipsum
+              voluptatem, nemo, aliquam vero reprehenderit officia. Placeat
+              quisquam quam quo. Necessitatibus laudantium, error est
+              consequatur consequuntur dolorem asperiores iste? Repudiandae sed
+              deleniti ab fuga quos beatae ducimus tempore aut debitis. Iste
+              expedita iusto ex corrupti, laboriosam illo. Voluptatum vero
+              perspiciatis accusamus minima unde rem consequuntur ab et
+              reprehenderit! Non quas sint doloribus explicabo quae optio
+              tempora. Temporibus quas ipsum sunt.
+            </span>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
 }

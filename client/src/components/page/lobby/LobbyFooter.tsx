@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 
-export default function LobbyHeader() {
+export default function LobbyFooter() {
   const params = useParams<{ id: string }>();
   const { data: lobby } = useQuery({
     queryKey: ["lobby", params.id],
@@ -23,8 +23,8 @@ export default function LobbyHeader() {
   });
 
   return (
-    <header className="absolute inset-x-0 top-0 bg-transparent py-4 px-5">
-      <h1 className="tex-2xl font-semibold">{lobby?.name}</h1>
+    <header className="w-full h-full flex items-center px-10">
+      <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>
     </header>
   );
 }
