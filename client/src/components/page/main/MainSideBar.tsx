@@ -26,7 +26,7 @@ import {
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Tooltip,
@@ -71,6 +71,12 @@ export default function MainSideBar() {
     initialData: !pathname.startsWith("/lobby"),
   });
   const query_client = useQueryClient();
+
+  useEffect(() => {
+    if (pathname.startsWith("/lobby"))
+      query_client.setQueryData<boolean>(["open_sidebar"], false);
+  }, [pathname]);
+
   return (
     <motion.aside
       initial={{ width: !open_sidebar ? "3.5rem" : "16rem" }}
@@ -94,6 +100,7 @@ export default function MainSideBar() {
           <SquareChevronLeft className="h-6 w-auto  stroke-primary" />
         )}
       </Button>
+
       <span className="space-y-6">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

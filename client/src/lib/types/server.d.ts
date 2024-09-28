@@ -38,7 +38,7 @@ export type Photo = {
 
 export type Lobby = {
   id: string;
-  members: User[];
+  members: Member[];
   is_private: boolean;
   name: string;
   messages: Message[];
@@ -57,4 +57,22 @@ export type Message = {
   seen_by: User[];
   date_created: Date;
   last_updated: Date;
+};
+
+export type Member = {
+  id: string;
+  user: User;
+  lobby: Lobby;
+  role: "ADMIN" | "MEMBER";
+  date_created: Date;
+  last_updated: Date;
+};
+
+export type Invite = {
+  id: string;
+  lobby: Lobby;
+  invited: User[];
+  token: string;
+  expires_in: number
+  date_created: Date;
 };

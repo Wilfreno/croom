@@ -14,7 +14,7 @@ const lobbySchema = new Schema<Lobby>({
   members: [
     {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Member",
       default: [],
     },
   ],

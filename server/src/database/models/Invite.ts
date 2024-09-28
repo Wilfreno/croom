@@ -4,8 +4,9 @@ export type Invite = {
   lobby: Types.ObjectId;
   invited: Types.ObjectId[];
   token: string;
-  expires_in: "30_MIN" | "1D" | "1W" | "1M" | "NEVER";
+  expires_in: number;
   date_created: Date;
+  last_updated: Date;
 };
 
 const inviteSchema = new Schema<Invite>({
@@ -26,38 +27,34 @@ const inviteSchema = new Schema<Invite>({
     required: true,
   },
   expires_in: {
-    type: String,
-    enum: ["30_MIN", "1D", "1W", "1M", "NEVER"],
-    default: "30_MIN",
+    type: Number,
+    default: null,
   },
   date_created: {
+    type: Date,
+    default: Date.now,
+  },
+  last_updated: {
     type: Date,
     default: Date.now,
   },
 });
 
 inviteSchema.pre("save", async function (next) {
-  let seconds;
-  switch (this.expires_in) {
-    case "30_MIN":
-      seconds = 30 * 60;
-      break;
-    case "1D":
-      seconds = 24 * 60 * 60;
-      break;
-    case "1W":
-      seconds = 7 * 24 * 60 * 60;
-      break;
-    case "1M":
-      seconds = 30 * 24 * 60 * 60;
-      break;
-    case "NEVER":
-      seconds = null;
-  }
-  this.schema.path("date_created").options.expires = seconds;
+  this.schema.path("date_created").options.expires = this.expires_in;
 
   next();
 });
+
+inviteSchema.pre(
+  "updateOne",
+  { query: false, document: true },
+  async function (next) {
+    this.schema.path("date_created").options.expires = this.expires_in;
+
+    next();
+  }
+);
 
 inviteSchema.set("toJSON", {
   virtuals: true,

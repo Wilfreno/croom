@@ -25,10 +25,6 @@ export default function RecentLobbies() {
         status,
         message,
       } = await GETRequest<Lobby[]>("/v1/user/" + data!.user.id + "/lobbies");
-
-      console.log(server_data);
-      console.log(status);
-      console.log(message);
       if (status !== "OK") {
         toast.error(message);
         throw new Error(message);
@@ -78,7 +74,6 @@ export default function RecentLobbies() {
             <Link
               key={lobby.id}
               href={"/lobby/" + lobby.id}
-              onClick={() => query_client.setQueryData<boolean>(["open_sidebar"], false)}
             >
               <Card className="aspect-video">
                 <CardHeader>
