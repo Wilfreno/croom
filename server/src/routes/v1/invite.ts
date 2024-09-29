@@ -230,7 +230,7 @@ export default function v1InviteRouter(
             await Invite.updateOne(
               { _id: id },
               {
-                $push: { invited: invited },  
+                $push: { invited: invited },
                 $set: { last_updated: new Date() },
               }
             );
@@ -261,13 +261,16 @@ export default function v1InviteRouter(
                     )
                   );
             }
-
-            await Invite.updateOne(
-              { _id: id },
-              {
-                $set: { expires_in, last_updated: new Date() },
-              }
-            );
+            const ms = expires_in * 1000;
+              await Invite.updateOne(
+                { _id: id },
+                {
+                  $set: {
+                    expires_in: ms + new Date().getTime(),
+                    last_updated: new Date(),
+                  },        
+                }
+              );
             break;
           }
           default:

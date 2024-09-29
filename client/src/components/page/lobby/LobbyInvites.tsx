@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import useDebounce from "@/hooks/useDebounce";
-import { GETRequest, PATCHRequest } from "@/lib/server/requests";
+import { DELETERequest, GETRequest, PATCHRequest } from "@/lib/server/requests";
 import { Invite, User } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import {
   Copy,
   LoaderCircle,
   Pencil,
+  Trash,
   UserRound,
 } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -31,6 +32,7 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
     hour: 0,
     minute: 0,
   });
+  const [is_expired, setIsExpired] = useState(false);
 
   const query_client = useQueryClient();
   const params = useParams<{ id: string }>();
@@ -72,9 +74,12 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
     unknown
   >({
     mutationFn: async ({ day, hour, minute }) => {
+      const day_to_seconds = day * 24 * 60 * 60;
+      const hour_to_seconds = hour * 60 * 60;
+      const minute_to_seconds = minute * 60;
       const { status, message } = await PATCHRequest("/v1/invite/expires_in", {
         id: invite.id,
-        expires_in: day * 24 * 60 * 60 + hour * 60 * 60 + minute * 60,
+        expires_in: day_to_seconds + hour_to_seconds + minute_to_seconds,
       });
 
       if (status !== "OK") {
@@ -90,6 +95,31 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
         exact: true,
       });
       setExpiresIn((prev) => ({ ...prev, edit: false }));
+    },
+  });
+
+  const deleteInviteMutation = useMutation<
+    void,
+    Error,
+    { id: string },
+    unknown
+  >({
+    mutationFn: async ({ id }) => {
+      const { status, message } = await DELETERequest("/v1/invite", {
+        id,
+      });
+
+      if (status !== "OK") {
+        toast.error(message);
+        throw new Error(message);
+      }
+
+      return;
+    },
+    onSuccess: (_, { id }) => {
+      query_client.setQueryData<Invite[]>(["invites", params.id], (old_data) =>
+        old_data?.filter((data) => data.id !== id)
+      );
     },
   });
 
@@ -125,58 +155,79 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
   useEffect(() => {
     if (!invite.expires_in) return;
 
-    let excess = invite.expires_in;
-
-    const id = setInterval(() => {
-      excess -= 1000;
-    }, 60000);
-
-    if (excess! <= 0) clearInterval(id);
-
-    const units = {
-      day: 24 * 60 * 60,
-      hour: 60 * 60,
-      minute: 60,
-    };
-
-    let text = "";
-
-    if (excess!) {
-      const day = Math.floor(excess! / units.day);
-      text += `${day} day(s) `;
-      excess! %= units.day;
-      setExpiresIn((prev) => ({ ...prev, day }));
+    let excess = Math.floor((invite.expires_in - new Date().getTime()) / 1000);
+    if (excess <= 0) {
+      setIsExpired(true);
+      return;
     }
 
-    if (excess!) {
+    const id = setInterval(() => {
+      excess -= 1;
+      const units = {
+        day: 24 * 60 * 60 * 1000,
+        hour: 60 * 60 * 1000,
+        minute: 60 * 1000,
+        seconds: 1000,
+      };
+
+      let text = "";
+
+      const day = Math.floor(excess! / units.day);
+      text += `${day} days(s) `;
+      excess! %= units.day;
+      setExpiresIn((prev) => ({ ...prev, day }));
+
       const hour = Math.floor(excess! / units.hour);
       text += `${hour} hour(s) `;
       excess! %= units.hour;
       setExpiresIn((prev) => ({ ...prev, hour }));
-    }
 
-    const minute = Math.floor(excess! / units.minute);
-    text += `${minute} minute(s) `;
-    excess! %= units.minute;
-    setExpiresIn((prev) => ({ ...prev, minute }));
+      const minute = Math.floor(excess! / units.minute);
+      text += `${minute} minute(s) `;
+      excess! %= units.minute;
+      setExpiresIn((prev) => ({ ...prev, minute }));
 
-    setExpiresIn((prev) => ({ ...prev, text }));
+      text += `${excess} second(s) `;
+
+      setExpiresIn((prev) => ({ ...prev, text }));
+      if (excess <= 0) {
+        clearInterval(id);
+        setIsExpired(true);
+        query_client.invalidateQueries({
+          queryKey: ["invites", params.id],
+          exact: true,
+        });
+        return;
+      }
+    }, 1000);
 
     return () => clearInterval(id);
-  }, []);
+  }, [invite]);
 
   return (
     <div className="border rounded-lg p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <span>
-          {client_url}/lobby/invite/{invite.id}?token={invite.token}
-        </span>
-        <Button size="icon" variant="ghost" onClick={copyUrl}>
+        <Button
+          disabled={is_expired}
+          size="icon"
+          variant="secondary"
+          onClick={copyUrl}
+          className="w-fit gap-4 p-1 px-2"
+        >
+          <span>
+            {client_url}/lobby/invite/{invite.id}?token={invite.token}
+          </span>
           {copied ? (
             <Check className="h-4 w-auto stroke-green-500" />
           ) : (
             <Copy className="h-4 w-auto " />
           )}
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={() => deleteInviteMutation.mutate({ id: invite.id })}
+        >
+          <Trash className="h-4 w-auto" />
         </Button>
       </div>
 
@@ -210,23 +261,29 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-4 whitespace-nowrap">
-        <span className="font-medium text-xs text-muted-foreground">
-          Expires in:
+      <div className="grid gap-4">
+        <span className="flex items-center gap-4">
+          <span className="font-medium text-xs text-muted-foreground">
+            Expires in:
+          </span>
+          {is_expired ? ( 
+            <span className="font-bold text-destructive">EXPIRED</span>
+          ) : (
+            <span className="font-medium text-xs">{expires_in.text}</span>
+          )}
+          <Button
+            type="button"
+            className={cn("icon h-fit", expires_in.edit && "hidden")}
+            size="sm"
+            variant="outline"
+            onClick={() => setExpiresIn((prev) => ({ ...prev, edit: true }))}
+          >
+            Edit
+          </Button>
         </span>
-        <span className="font-medium text-xs">{expires_in.text}</span>
-        <Button
-          type="button"
-          className={cn("icon h-fit", expires_in.edit && "hidden")}
-          size="sm"
-          variant="outline"
-          onClick={() => setExpiresIn((prev) => ({ ...prev, edit: true }))}
-        >
-          Edit
-        </Button>
         <form
           className={cn(
-            "items-center gap-4",
+            "items-center gap-4 w-2/3",
             expires_in.edit ? "flex" : "hidden"
           )}
           onSubmit={editExpiresIn}
@@ -235,6 +292,7 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
           <div className="flex items-center gap-2">
             <Label htmlFor="day">Day{"(s)"}</Label>
             <Input
+              className="text-center px-0"
               type="text"
               id="day"
               inputMode="numeric"
@@ -259,12 +317,12 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
           <div className="flex items-center gap-2">
             <Label htmlFor="hour">Hour{"(s)"}</Label>
             <Input
+              className="text-center px-0"
               type="text"
               id="hour"
               inputMode="numeric"
               placeholder="hour"
               value={expires_in.hour}
-              className="text-center px-0"
               onChange={(e) => {
                 if (!e.target.value) {
                   setExpiresIn((prev) => ({
@@ -284,6 +342,7 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
           <div className="flex items-center gap-2">
             <Label htmlFor="minute">Minute{"(s)"}</Label>
             <Input
+              className="text-center"
               type="text"
               id="minute"
               inputMode="numeric"

@@ -24,7 +24,7 @@ import {
 import { GETRequest, PATCHRequest, POSTRequest } from "@/lib/server/requests";
 import { Invite, Lobby } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Info, Plus, Snail } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
@@ -82,24 +82,29 @@ export default function LobbyFooter() {
     placeholderData: [],
   });
 
-  async function generateInvite() {
-    const {
-      data: server_data,
-      status,
-      message,
-    } = await POSTRequest<Invite>("/v1/invite", {
-      lobby_id: lobby?.id,
-    });
+  const createInviteMutation = useMutation({
+    mutationFn: async () => {
+      const {
+        data: server_data,
+        status,
+        message,
+      } = await POSTRequest<Invite>("/v1/invite", {
+        lobby_id: lobby?.id,
+      });
 
-    if (status !== "CREATED") {
-      toast.error(message);
-      throw new Error(message);
-    }
-    query_client.setQueryData<Invite[]>(
-      ["invites", params.id, lobby?.id],
-      (old_data) => [...old_data!, server_data]
-    );
-  }
+      if (status !== "CREATED") {
+        toast.error(message);
+        throw new Error(message);
+      }
+
+      return server_data;
+    },
+    onSuccess: (server_data) => {
+      query_client.setQueryData<Invite[]>(["invites", lobby?.id], (old_data) =>
+        old_data ? [...old_data!, server_data] : [server_data]
+      );
+    },
+  });
 
   async function updateLobbyAccessibility(is_private: boolean) {
     if (lobby?.is_private === is_private) return;
@@ -185,7 +190,10 @@ export default function LobbyFooter() {
             </DialogClose>
           </DialogHeader>
           {!!invites?.length && (
-            <Button className="mr-auto" onClick={generateInvite}>
+            <Button
+              className="mr-auto"
+              onClick={() => createInviteMutation.mutate()}
+            >
               Add invite
             </Button>
           )}
@@ -202,7 +210,9 @@ export default function LobbyFooter() {
               <div className="grid place-items-center gap-2">
                 <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground" />
                 <p className="font-medium text-muted-foreground">no invites</p>
-                <Button onClick={generateInvite}>Generate invite</Button>
+                <Button onClick={() => createInviteMutation.mutate()}>
+                  Generate invite
+                </Button>
               </div>
             </div>
           )}

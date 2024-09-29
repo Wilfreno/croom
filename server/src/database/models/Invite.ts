@@ -33,6 +33,7 @@ const inviteSchema = new Schema<Invite>({
   date_created: {
     type: Date,
     default: Date.now,
+    expires: undefined,
   },
   last_updated: {
     type: Date,
@@ -40,17 +41,13 @@ const inviteSchema = new Schema<Invite>({
   },
 });
 
-inviteSchema.pre("save", async function (next) {
-  this.schema.path("date_created").options.expires = this.expires_in;
-
-  next();
-});
-
 inviteSchema.pre(
   "updateOne",
   { query: false, document: true },
   async function (next) {
-    this.schema.path("date_created").options.expires = this.expires_in;
+    this.schema.path("date_created").options.expires = this.expires_in
+      ? (this.expires_in - new Date().getTime()) / 1000
+      : null;
 
     next();
   }
