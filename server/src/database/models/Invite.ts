@@ -4,7 +4,7 @@ export type Invite = {
   lobby: Types.ObjectId;
   invited: Types.ObjectId[];
   token: string;
-  expires_in: number;
+  expires_in: Date;
   date_created: Date;
   last_updated: Date;
 };
@@ -27,31 +27,19 @@ const inviteSchema = new Schema<Invite>({
     required: true,
   },
   expires_in: {
-    type: Number,
+    type: Date,
     default: null,
+    expires: 0,
   },
   date_created: {
     type: Date,
     default: Date.now,
-    expires: undefined,
   },
   last_updated: {
     type: Date,
     default: Date.now,
   },
 });
-
-inviteSchema.pre(
-  "updateOne",
-  { query: false, document: true },
-  async function (next) {
-    this.schema.path("date_created").options.expires = this.expires_in
-      ? (this.expires_in - new Date().getTime()) / 1000
-      : null;
-
-    next();
-  }
-);
 
 inviteSchema.set("toJSON", {
   virtuals: true,

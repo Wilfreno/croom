@@ -73,6 +73,6 @@ export type Invite = {
   lobby: Lobby;
   invited: User[];
   token: string;
-  expires_in: number
+  expires_in: Date;
   date_created: Date;
 };

@@ -5,7 +5,7 @@ import Invite, {
 import Lobby from "../../database/models/Lobby";
 import Member from "../../database/models/Member";
 import Notification from "../../database/models/Notification";
-import User, { type User as UserType } from "../../database/models/User";
+import { type User as UserType } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 
 export default function v1InviteRouter(
@@ -262,15 +262,15 @@ export default function v1InviteRouter(
                   );
             }
             const ms = expires_in * 1000;
-              await Invite.updateOne(
-                { _id: id },
-                {
-                  $set: {
-                    expires_in: ms + new Date().getTime(),
-                    last_updated: new Date(),
-                  },        
-                }
-              );
+            await Invite.updateOne(
+              { _id: id },
+              {
+                $set: {
+                  expires_in: new Date(ms + new Date().getTime()),
+                  last_updated: new Date(),
+                },
+              }
+            );
             break;
           }
           default:
