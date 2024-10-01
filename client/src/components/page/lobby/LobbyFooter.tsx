@@ -31,6 +31,7 @@ import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import LobbyInvite from "./LobbyInvites";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function LobbyFooter() {
   const params = useParams<{ id: string }>();
@@ -200,11 +201,13 @@ export default function LobbyFooter() {
           {isFetching ? (
             <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground mx-auto" />
           ) : invites!.length ? (
-            <section className="grid gap-2">
-              {invites?.map((invite) => (
-                <LobbyInvite key={invite.id} invite={invite} />
-              ))}
-            </section>
+            <ScrollArea className="h-[60dvh]">
+              <section className="grid gap-2">
+                {invites?.map((invite) => (
+                  <LobbyInvite key={invite.id} invite={invite} />
+                ))}
+              </section>
+            </ScrollArea>
           ) : (
             <div className="grid place-items-center h-full">
               <div className="grid place-items-center gap-2">

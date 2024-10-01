@@ -1,30 +1,19 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import useDebounce from "@/hooks/useDebounce";
-import { DELETERequest, GETRequest, PATCHRequest } from "@/lib/server/requests";
-import { Invite, User } from "@/lib/types/server";
+import { DELETERequest, PATCHRequest } from "@/lib/server/requests";
+import { Invite } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AtSign,
-  Check,
-  Copy,
-  LoaderCircle,
-  Pencil,
-  Trash,
-  UserRound,
-} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check, Copy, Trash } from "lucide-react";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import LobbyInviteUser from "./LobbyInviteUser";
 
 export default function LobbyInvite({ invite }: { invite: Invite }) {
   const [copied, setCopied] = useState(false);
-  const [username, setUsername] = useState("");
-  const debounced_username = useDebounce(username);
   const [expires_in, setExpiresIn] = useState({
     text: "PERMANENT",
     edit: false,
@@ -44,28 +33,6 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
 
     return process.env.NEXT_PUBLIC_CLIENT_URL;
   }, []);
-
-  const { data: search_result, isFetching: isFetchingUser } = useQuery({
-    enabled: !!debounced_username,
-    queryKey: ["invite-search", invite.id, debounced_username],
-    queryFn: async () => {
-      const {
-        data: result,
-        status,
-        message,
-      } = await GETRequest<User[]>(
-        "/v1/user/autocomplete?search=" + "@" + debounced_username
-      );
-
-      if (status !== "OK") {
-        toast(message);
-        throw new Error(message);
-      }
-
-      return result;
-    },
-    placeholderData: [],
-  });
 
   const updateInviteMutation = useMutation<
     void,
@@ -109,8 +76,8 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
         id,
       });
 
+      toast.error(message);
       if (status !== "OK") {
-        toast.error(message);
         throw new Error(message);
       }
 
@@ -155,7 +122,9 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
   useEffect(() => {
     if (!invite.expires_in) return;
 
-    let excess = Math.floor((invite.expires_in - new Date().getTime()) / 1000);
+    let excess = Math.floor(
+      (new Date(invite.expires_in).getTime() - new Date().getTime()) / 1000
+    );
     if (excess <= 0) {
       setIsExpired(true);
       return;
@@ -205,7 +174,7 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
   }, [invite]);
 
   return (
-    <div className="border rounded-lg p-4 space-y-4">
+    <div className="border rounded-lg p-4 space-y-8">
       <div className="flex items-center justify-between">
         <Button
           disabled={is_expired}
@@ -230,43 +199,13 @@ export default function LobbyInvite({ invite }: { invite: Invite }) {
           <Trash className="h-4 w-auto" />
         </Button>
       </div>
-
-      <div className="space-y-2 ">
-        <Label htmlFor={"invite" + invite.id}>Invite people</Label>
-        <div className="w-[40vw]">
-          <div className="relative">
-            <AtSign className="h-4 w-auto absolute left-4 top-1/2 -translate-y-1/2" />
-            <Input
-              id={"invite" + invite.id}
-              placeholder="Username"
-              className="px-10"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            {isFetchingUser && (
-              <LoaderCircle className="h-4 w-auto animate-spin  absolute right-10 top-1/2 -translate-y-1/2" />
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap p-2 bg-">
-            {search_result?.map((result) => (
-              <Button key={result.id} variant="outline">
-                <Avatar>
-                  <AvatarImage src={result.photo.url} />
-                  <AvatarFallback className="p-2">
-                    <UserRound className="h-full w-auto" />
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <LobbyInviteUser invite={invite} />
       <div className="grid gap-4">
         <span className="flex items-center gap-4">
           <span className="font-medium text-xs text-muted-foreground">
             Expires in:
           </span>
-          {is_expired ? ( 
+          {is_expired ? (
             <span className="font-bold text-destructive">EXPIRED</span>
           ) : (
             <span className="font-medium text-xs">{expires_in.text}</span>
