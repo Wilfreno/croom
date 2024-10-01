@@ -75,7 +75,11 @@ export default function v1LobbyRouter(
 
       const found_lobby = await Lobby.findOne({ _id: id }).populate({
         path: "members",
-        populate: { path: "user", select: "-password", populate: "photo" },
+        populate: {
+          path: "user",
+          select: "display_name status photo",
+          populate: "photo",
+        },
       });
 
       if (!found_lobby)
@@ -94,7 +98,7 @@ export default function v1LobbyRouter(
   });
 
   fastify.get<{ Params: { id: string } }>(
-    "/:id/invite",
+    "/:id/invites",
     { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
@@ -121,7 +125,11 @@ export default function v1LobbyRouter(
               JSONResponse("FORBIDDEN", "you are not an admin of this lobby")
             );
 
-        const found_invite = await Invite.find({ lobby: id });
+        const found_invite = await Invite.find({ lobby: id }).populate({
+          path: "invited",
+          select: "username display_name photo",
+          populate: { path: "photo", select: "url" },
+        });
 
         return reply.code(200).send(
           JSONResponse(

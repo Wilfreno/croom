@@ -242,7 +242,6 @@ export default function v1UserRouter(
           lobbies.push(found_lobby!.toJSON());
         }
 
-        console.log("LOBBIES", lobbies)
         return reply
           .code(200)
           .send(JSONResponse("OK", "request successful", lobbies));
@@ -253,6 +252,44 @@ export default function v1UserRouter(
     }
   );
 
+  fastify.get<{ Querystring: { search: string } }>(
+    "/autocomplete",
+    async (request, reply) => {
+      try {
+        const { search } = request.query;
+
+        if (!search)
+          return reply
+            .code(400)
+            .send(
+              JSONResponse(
+                "BAD_REQUEST",
+                "search is required as a search query"
+              )
+            );
+
+        const users = await User.find({
+          username: {
+            $regex: "^" + search,
+            $options: "i",
+          },
+        })
+          .select("display_name username photo")
+          .populate("photo");
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            users.map((user) => user.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //update user
   fastify.patch<{
     Params: { key: keyof UserType };

@@ -25,10 +25,6 @@ export default function RecentLobbies() {
         status,
         message,
       } = await GETRequest<Lobby[]>("/v1/user/" + data!.user.id + "/lobbies");
-
-      console.log(server_data);
-      console.log(status);
-      console.log(message);
       if (status !== "OK") {
         toast.error(message);
         throw new Error(message);
@@ -75,7 +71,10 @@ export default function RecentLobbies() {
       >
         {lobbies?.length ? (
           lobbies?.map((lobby) => (
-            <Link key={lobby.id} href={"/lobby/" + lobby.id}>
+            <Link
+              key={lobby.id}
+              href={"/lobby/" + lobby.id}
+            >
               <Card className="aspect-video">
                 <CardHeader>
                   <CardTitle>{lobby.name}</CardTitle>

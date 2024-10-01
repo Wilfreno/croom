@@ -15,12 +15,65 @@ const online_user = new Map<string, WebSocket>();
 
 export default async function websocketServer(fastify: FastifyInstance) {
   try {
+    const redis = fastify.redis;
+    redis["sub"].subscribe("MESSAGE");
+    redis["sub"].subscribe("NOTIFICATION");
+
+    redis["sub"].on("message", async (channel, message) => {
+      switch (channel) {
+        case "MESSAGE": {
+          const parsed_message = JSON.parse(message) as MessagePayload;
+          switch (parsed_message.status) {
+            case "UPDATED": {
+              break;
+            }
+            case "DELETED": {
+              if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+
+              lobby_online_user
+                .get(parsed_message.lobby.id)!
+                .forEach((user) => {
+                  if (user !== parsed_message.sender.id)
+                    online_user
+                      .get(user)
+                      ?.send(
+                        websocketMessage("delete-message", parsed_message)
+                      );
+                });
+              break;
+            }
+            default: {
+              if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+              lobby_online_user.get(parsed_message.id)!.forEach((user) => {
+                if (user !== parsed_message.sender.id)
+                  online_user
+                    .get(user)
+                    ?.send(websocketMessage("send-message", parsed_message));
+              });
+              break;
+            }
+          }
+          break;
+        }
+        case "NOTIFICATION": {
+          const parsed_message = JSON.parse(message) as WebsocketNotification;
+
+          if (!online_user.has(parsed_message.id)) return;
+          online_user
+            .get(parsed_message.id)!
+            .send(websocketMessage("notification", parsed_message));
+          break;
+        }
+        default:
+          break;
+      }
+    });
+
     fastify.get<{ Params: { user_id: string } }>(
       "/ws/:user_id",
       { websocket: true },
       async (socket, request) => {
         const { user_id } = request.params;
-        const redis = fastify.redis;
 
         const found_user = await User.exists({ _id: user_id }).select("_id");
 
@@ -33,66 +86,9 @@ export default async function websocketServer(fastify: FastifyInstance) {
           { _id: user_id },
           {
             $set: { status: "ONLINE" },
-          } 
+          }
         );
         online_user.set(user_id, socket);
-
-        redis["sub"].subscribe("MESSAGE");
-        redis["sub"].subscribe("NOTIFICATION");
-
-        redis["sub"].on("message", async (channel, message) => {
-          switch (channel) {
-            case "MESSAGE": {
-              const parsed_message = JSON.parse(message) as MessagePayload;
-              switch (parsed_message.status) {
-                case "UPDATED": {
-                  break;
-                }
-                case "DELETED": {
-                  if (!lobby_online_user.get(parsed_message.lobby.id)) return;
-
-                  lobby_online_user
-                    .get(parsed_message.lobby.id)!
-                    .forEach((user) => {
-                      if (user !== parsed_message.sender.id)
-                        online_user
-                          .get(user)
-                          ?.send(
-                            websocketMessage("delete-message", parsed_message)
-                          );
-                    });
-                  break;
-                }
-                default: {
-                  if (!lobby_online_user.get(parsed_message.lobby.id)) return;
-                  lobby_online_user.get(parsed_message.id)!.forEach((user) => {
-                    if (user !== parsed_message.sender.id)
-                      online_user
-                        .get(user)
-                        ?.send(
-                          websocketMessage("send-message", parsed_message)
-                        );
-                  });
-                  break;
-                }
-              }
-              break;
-            }
-            case "NOTIFICATION": {
-              const parsed_message = JSON.parse(
-                message
-              ) as WebsocketNotification;
-
-              if (!online_user.has(parsed_message.id)) return;
-              online_user
-                .get(parsed_message.id)!
-                .send(websocketMessage("notification", parsed_message));
-              break;
-            }
-            default:
-              break;
-          }
-        });
 
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(

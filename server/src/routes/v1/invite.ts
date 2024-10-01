@@ -5,7 +5,7 @@ import Invite, {
 import Lobby from "../../database/models/Lobby";
 import Member from "../../database/models/Member";
 import Notification from "../../database/models/Notification";
-import User, { type User as UserType } from "../../database/models/User";
+import { type User as UserType } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 
 export default function v1InviteRouter(
@@ -19,40 +19,42 @@ export default function v1InviteRouter(
   fastify.post<{
     Body: {
       lobby_id: string;
-      user_ids: string[];
-      expires_in: InviteType["expires_in"];
     };
   }>(
     "/",
     { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
-        const { lobby_id, user_ids, expires_in } = request.body;
+        const { lobby_id } = request.body;
         const user = request.user as UserType & { id: string };
+
+        if (!lobby_id)
+          return reply
+            .code(400)
+            .send(
+              JSONResponse(
+                "BAD_REQUEST",
+                "lobby_id is required on the request body"
+              )
+            );
 
         if (!(await Lobby.exists({ _id: lobby_id })))
           return reply
             .code(404)
             .send(JSONResponse("BAD_REQUEST", "lobby does not exist"));
 
-        if (!(await Member.exists({ user: user.id, lobby: lobby_id })))
+        if (
+          !(await Member.exists({
+            user: user.id,
+            lobby: lobby_id,
+            role: "ADMIN",
+          }))
+        )
           return reply
             .code(401)
             .send(
-              JSONResponse("UNAUTHORIZED", "you are not a member of the lobby")
+              JSONResponse("UNAUTHORIZED", "you are not an admin of this lobby")
             );
-
-        for (const user_id of user_ids) {
-          if (!(await User.exists({ _id: user_id })))
-            return reply
-              .code(404)
-              .send(
-                JSONResponse(
-                  "NOT_FOUND",
-                  "user with id: (" + user_id + ") does not exist"
-                )
-              );
-        }
 
         const chars = "abcdefghijklmnopqrstuvwxyz1234567890";
 
@@ -63,26 +65,10 @@ export default function v1InviteRouter(
 
         const invite = new Invite({
           lobby: lobby_id,
-          invited: user_ids,
           token,
-          expires_in,
         });
+
         await invite.save();
-
-        for (const user_id of user_ids) {
-          const notification = new Notification({
-            lobby: lobby_id,
-            receiver: user_id,
-            type: "INVITE",
-            invite: invite._id,
-          });
-
-          await notification.save();
-          await redis_pub.publish(
-            "NOTIFICATION",
-            JSON.stringify(notification.toJSON())
-          );
-        }
 
         return reply
           .code(201)
@@ -168,30 +154,37 @@ export default function v1InviteRouter(
   //read route
 
   //update route
-  fastify.patch<{ Body: { invite_id: string; user_id: string } }>(
-    "/",
+  fastify.patch<{
+    Params: { key: keyof InviteType };
+    Body: {
+      id: string;
+      invited: string;
+      expires_in: number;
+      action: "DELETE" | "ADD";
+    };
+  }>(
+    "/:key",
     {
       preValidation: async (request) => await request.jwtVerify(),
     },
     async (request, reply) => {
       try {
-        const { user_id, invite_id } = request.body;
+        const { key } = request.params;
+        const { id, invited, expires_in, action } = request.body;
         const user = request.user as UserType & { id: string };
 
-        const found_invite = await Invite.findOne({ _id: invite_id });
+        if (!id)
+          return reply
+            .code(400)
+            .send(
+              JSONResponse("BAD_REQUEST", "id is required on the request body")
+            );
+        const found_invite = await Invite.findOne({ _id: id });
+
         if (!found_invite)
           return reply
             .code(404)
             .send(JSONResponse("NOT_FOUND", "lobby invite does not exist"));
-
-        if (
-          found_invite.invited.some(
-            (id) => (id as unknown as string) === user_id
-          )
-        )
-          return reply
-            .code(409)
-            .send(JSONResponse("CONFLICT", "user already invited"));
 
         if (
           !(await Member.exists({
@@ -209,25 +202,132 @@ export default function v1InviteRouter(
               )
             );
 
-        await Invite.updateOne(
-          { _id: invite_id },
-          {
-            $push: { invited: user_id },
-          }
-        );
-        const notification = new Notification({
-          lobby: found_invite.lobby,
-          receiver: user_id,
-          type: "INVITE",
-          invite: invite_id,
-        });
+        switch (key) {
+          case "invited": {
+            if (!invited)
+              return reply
+                .code(400)
+                .send(
+                  JSONResponse(
+                    "BAD_REQUEST",
+                    "invited is required on the request body"
+                  )
+                );
 
-        await notification.save();
-        await redis_pub.publish(
-          "NOTIFICATION",
-          JSON.stringify(notification.toJSON())
-        );
-        return reply.code(200).send(JSONResponse("OK", "invite sent"));
+            if (!action)
+              return reply
+                .code(400)
+                .send(
+                  JSONResponse(
+                    "BAD_REQUEST",
+                    "action field with value ADD or DELETE is required on the request body"
+                  )
+                );
+
+            switch (action) {
+              case "ADD": {
+                for (let i = 0; i < found_invite.invited.length / 2; i++) {
+                  if (
+                    invited ===
+                      (found_invite.invited[i].toJSON() as unknown as string) ||
+                    invited ===
+                      (found_invite.invited[
+                        found_invite.invited.length - i - 1
+                      ].toJSON() as unknown as string)
+                  )
+                    return reply
+                      .code(409)
+                      .send(
+                        JSONResponse(
+                          "CONFLICT",
+                          "user already invited",
+                          found_invite
+                        )
+                      );
+                }
+
+                await Invite.updateOne(
+                  { _id: id },
+                  {
+                    $push: { invited: invited },
+                    $set: { last_updated: new Date() },
+                  }
+                );
+
+                const notification = new Notification({
+                  lobby: found_invite.lobby,
+                  receiver: invited,
+                  type: "INVITE",
+                  invite: id,
+                });
+
+                await notification.save();
+                await redis_pub.publish(
+                  "NOTIFICATION",
+                  JSON.stringify(notification.toJSON())
+                );
+                return reply.code(200).send(JSONResponse("OK", "invite sent"));
+              }
+              case "DELETE": {
+                await Invite.updateOne(
+                  { _id: id },
+                  {
+                    $set: {
+                      invited: found_invite
+                        .toJSON()
+                        .invited.filter(
+                          (user) => (user as unknown as string) !== invited
+                        ),
+                      last_updated: new Date(),
+                    },
+                  }
+                );
+                return reply
+                  .code(200)
+                  .send(JSONResponse("OK", "invite deleted"));
+              }
+              default:
+                break;
+            }
+
+            break;
+          }
+          case "expires_in": {
+            if (expires_in !== null) {
+              if (!Number(expires_in))
+                return reply
+                  .code(400)
+                  .send(
+                    JSONResponse(
+                      "BAD_REQUEST",
+                      "expires_in must be a valid number or set to null to make it permanent"
+                    )
+                  );
+            }
+            const ms = expires_in * 1000;
+            await Invite.updateOne(
+              { _id: id },
+              {
+                $set: {
+                  expires_in: new Date(ms + new Date().getTime()),
+                  last_updated: new Date(),
+                },
+              }
+            );
+            return reply
+              .code(200)
+              .send(JSONResponse("OK", "expiration updated"));
+          }
+          default:
+            return reply
+              .code(400)
+              .send(
+                JSONResponse(
+                  "BAD_REQUEST",
+                  "only field invited and expires_in is available to update"
+                )
+              );
+        }
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -235,25 +335,22 @@ export default function v1InviteRouter(
     }
   );
   //delete route
-  fastify.delete<{ Body: { invite_id: string } }>(
+  fastify.delete<{ Body: { id: string } }>(
     "/",
     { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
-        const { invite_id } = request.body;
+        const { id } = request.body;
         const user = request.user as UserType & { id: string };
 
-        if (!invite_id)
+        if (!id)
           return reply
             .code(400)
             .send(
-              JSONResponse(
-                "BAD_REQUEST",
-                "invite_id is required on the request body"
-              )
+              JSONResponse("BAD_REQUEST", "id is required on the request body")
             );
 
-        const found_invite = await Invite.findOne({ _id: invite_id });
+        const found_invite = await Invite.findOne({ _id: id });
 
         if (!found_invite)
           return reply
@@ -276,7 +373,7 @@ export default function v1InviteRouter(
               )
             );
 
-        await Invite.deleteOne({ _id: invite_id });
+        await Invite.deleteOne({ _id: id });
 
         return reply.code(200).send(JSONResponse("OK", "invite deleted"));
       } catch (error) {

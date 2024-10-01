@@ -25,7 +25,9 @@ export default function UpdateAccountForm() {
   const from = useSearchParams().get("from");
   useEffect(() => {
     if (data) {
-      setPhotoUrl(data.user.photo.url);
+      if (data.user.photo) {
+        setPhotoUrl(data.user.photo.url);
+      }
       setDisplayName(data.user.display_name);
       setUserName(data.user.username.substring(1));
     }

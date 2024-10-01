@@ -85,7 +85,7 @@ const auth_options: AuthOptions = {
               display_name: email!.substring(0, email?.indexOf("@")),
               email: email!,
               provider: "GOOGLE",
-            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "is_new"> & { provider: "GOOGLE" });
+            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "is_new" | "lobbies"> & { provider: "GOOGLE" });
 
             await POSTRequest("/v1/user/photo", {
               owner: data.id,

@@ -93,7 +93,7 @@ export async function GETRequest<R>(
  */
 export async function PATCHRequest<R>(
   path: string,
-  body: object
+  body?: object
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
