@@ -1,8 +1,9 @@
 import { model, Schema, Types } from "mongoose";
 
 export type Message = {
-  chat: Types.ObjectId;
-  type: "text";
+  lobby: Types.ObjectId;
+  type: "TEXT";
+  status: "DELETED" | "UPDATED";
   sender: Types.ObjectId;
   text: string;
   seen_by: Types.ObjectId[];
@@ -11,14 +12,14 @@ export type Message = {
 };
 
 const messageSchema = new Schema<Message>({
-  chat: {
+  lobby: {
     type: Schema.Types.ObjectId,
-    ref: "Chat",
+    ref: "Lobby",
     required: true,
   },
   type: {
     type: String,
-    enum: ["text"],
+    enum: ["TEXT"],
     required: true,
   },
   sender: {
@@ -28,6 +29,12 @@ const messageSchema = new Schema<Message>({
   },
   text: {
     type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["DELETED", "UPDATED"],
+    default: null,
   },
   seen_by: [
     {
@@ -42,7 +49,7 @@ const messageSchema = new Schema<Message>({
   },
   last_updated: {
     type: Date,
-    required: true,
+    default: Date.now,
   },
 });
 

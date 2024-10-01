@@ -1,11 +1,16 @@
 import { compare, hash } from "bcrypt";
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import Photo, { type Photo as PhotoType } from "../../database/models/Photo";
 import User, { type User as UserType } from "../../database/models/User";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
+import Lobby from "../../database/models/Lobby";
 
-export default async function v1UserRouter(fastify: FastifyInstance) {
+export default function v1UserRouter(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   //create user
   fastify.post<{
     Body: {
@@ -151,12 +156,50 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post<{ Body: { id: string } }>("/session", async (request, reply) => {
+    try {
+      const { id } = request.body;
+
+      if (!id)
+        return reply
+          .code(400)
+          .send(
+            JSONResponse("BAD_REQUEST", "id is required on the request body")
+          );
+
+      const found_user = await User.findOne({ _id: id }).select("-password");
+
+      if (!found_user)
+        return reply
+          .code(404)
+          .send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+      const token = fastify.jwt.sign(found_user.toJSON());
+
+      return reply
+        .code(200)
+        .setCookie("chatup-session-token", token, {
+          domain:
+            process.env.NODE_ENV === "production"
+              ? "chatup.vercel.app"
+              : "127.0.0.1",
+          path: "/",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          httpOnly: true,
+          maxAge: 60 * 60 * 14 * 30,
+        })
+        .send(JSONResponse("OK", "user session is created"));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   //read user
   fastify.get<{ Params: { username: string } }>(
     "/:username",
     async (request, reply) => {
       try {
-        console.log("hahsdasdasdasdas");
         const { username } = request.params;
 
         const found_user = await User.findOne({ username })
@@ -178,6 +221,75 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
     }
   );
 
+  fastify.get<{ Params: { id: string } }>(
+    "/:id/lobbies",
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+
+        const found_user = await User.findOne({ _id: id });
+        if (!found_user)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+        const lobbies = [];
+
+        for (const lobby_id of found_user.lobbies) {
+          const found_lobby = await Lobby.findOne({ _id: lobby_id }).populate(
+            "photo"
+          );
+          lobbies.push(found_lobby!.toJSON());
+        }
+
+        return reply
+          .code(200)
+          .send(JSONResponse("OK", "request successful", lobbies));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+
+  fastify.get<{ Querystring: { search: string } }>(
+    "/autocomplete",
+    async (request, reply) => {
+      try {
+        const { search } = request.query;
+
+        if (!search)
+          return reply
+            .code(400)
+            .send(
+              JSONResponse(
+                "BAD_REQUEST",
+                "search is required as a search query"
+              )
+            );
+
+        const users = await User.find({
+          username: {
+            $regex: "^" + search,
+            $options: "i",
+          },
+        })
+          .select("display_name username photo")
+          .populate("photo");
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            users.map((user) => user.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //update user
   fastify.patch<{
     Params: { key: keyof UserType };
@@ -374,4 +486,33 @@ export default async function v1UserRouter(fastify: FastifyInstance) {
       }
     }
   );
+
+  fastify.delete(
+    "/session",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        return reply
+          .code(200)
+          .setCookie("chatup-session-token", "", {
+            domain:
+              process.env.NODE_ENV === "production"
+                ? "chatup.vercel.app"
+                : "127.0.0.1",
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            httpOnly: true,
+            maxAge: 0,
+          })
+          .send(JSONResponse("OK", "user session is created"));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+  done();
 }

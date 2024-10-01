@@ -16,41 +16,63 @@ export type ServerResponse<T = null> = {
 
 export type User = {
   id: string;
-  email: string
   display_name: string;
-  is_new: boolean;
   username: string;
   password?: string;
+  email: string;
   status: "OFFLINE" | "ONLINE";
   photo: Photo;
+  is_new: boolean;
+  lobbies: Lobby[];
   date_created: Date;
   last_updated: Date;
 };
 
 export type Photo = {
   id: string;
-
   owner: User;
-  type: "PROFILE";
+  type: "PROFILE" | "LOBBY";
   url: string;
   date_created: Date;
 };
 
-export type Chat = {
+export type Lobby = {
   id: string;
-  participants: User[];
+  members: Member[];
+  is_private: boolean;
   name: string;
-  is_group_chat: boolean;
   messages: Message[];
+  photo: Photo;
   date_created: Date;
+  last_updated: Date;
 };
 
 export type Message = {
-  chat: Chat;
-  type: "text";
+  id: string;
+  lobby: Lobby;
+  type: "TEXT";
+  status: "DELETED" | "UPDATED";
   sender: User;
   text: string;
   seen_by: User[];
   date_created: Date;
   last_updated: Date;
+};
+
+export type Member = {
+  id: string;
+  user: User;
+  lobby: Lobby;
+  role: "ADMIN" | "MEMBER";
+  date_created: Date;
+  last_updated: Date;
+};
+
+export type Invite = {
+  id: string;
+  lobby: Lobby;
+  invited: User[];
+  token: string;
+  expires_in: Date;
+  date_created: Date;
 };

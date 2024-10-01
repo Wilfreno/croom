@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "NODE_ENV=development nodemon --delay 1500ms ./src/server.ts",
+    "redis-start": "sudo service redis-server start",
+    "dev": " NODE_ENV=development pnpm redis-start && nodemon --delay 1500ms ./src/server.ts",
     "production": "pnpm build && pnpm start",
     "build": "tsc --build ",
     "start": "NODE_ENV=production  node build/server.js"
@@ -14,31 +15,33 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/jwt": "^8.0.1",
-    "@fastify/websocket": "^10.0.1",
+    "@fastify/cookie": "^10.0.1",
+    "@fastify/cors": "^10.0.1",
+    "@fastify/jwt": "^9.0.1",
+    "@fastify/redis": "^7.0.1",
+    "@fastify/websocket": "^11.0.1",
     "@react-email/components": "^0.0.25",
     "@react-email/render": "^1.0.1",
     "@react-email/tailwind": "^0.1.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
-    "fastify": "^4.28.1",
-    "mongoose": "^8.6.2",
+    "fastify": "^5.0.0",
+    "mongoose": "^8.6.3",
     "nodemailer": "^6.9.15",
     "react": "^18.3.1",
     "typescript": "^5.6.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.10.0",
+    "@eslint/js": "^9.11.1",
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "^22.5.5",
-    "@types/nodemailer": "^6.4.15",
-    "@types/react": "^18.3.6",
+    "@types/node": "^22.6.1",
+    "@types/nodemailer": "^6.4.16",
+    "@types/react": "^18.3.9",
     "@types/ws": "^8.5.12",
-    "eslint": "^9.10.0",
+    "eslint": "^9.11.1",
     "globals": "^15.9.0",
-    "nodemon": "^3.1.4",
+    "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
-    "typescript-eslint": "^8.5.0"
+    "typescript-eslint": "^8.7.0"
   }
 }

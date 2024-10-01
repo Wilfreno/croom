@@ -29,17 +29,20 @@ async function responseJSON<T>(response: Response) {
  */
 export async function POSTRequest<R>(
   path: string,
-  body: object
+  body?: object
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
     const response = await fetch(server_url + path, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
       body: body && JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);
@@ -69,7 +72,10 @@ export async function GETRequest<R>(
     if (query_params)
       request += "?" + new URLSearchParams(query_params).toString();
 
-    const response = await fetch(server_url + request);
+    const response = await fetch(server_url + request, {
+      method: "GET",
+      credentials: "include",
+    });
 
     return await responseJSON(response);
   } catch (error) {
@@ -87,17 +93,21 @@ export async function GETRequest<R>(
  */
 export async function PATCHRequest<R>(
   path: string,
-  body: object
+  body?: object
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
     const response = await fetch(server_url + path, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+
       body: JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);
@@ -117,17 +127,21 @@ export async function PATCHRequest<R>(
  */
 export async function DELETERequest<R>(
   path: string,
-  body: object
+  body?: object
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
     const response = await fetch(server_url + path, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: body
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+
       body: JSON.stringify(body),
+      credentials: "include",
     });
 
     return await responseJSON(response);

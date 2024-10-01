@@ -29,8 +29,6 @@ export default function v1OTPRouter(
           );
 
       const transport = createTransport({
-        port: 465,
-        secure: true,
         service: "gmail",
         auth: {
           user: "chatup.dev.noreply@gmail.com",
@@ -61,6 +59,7 @@ export default function v1OTPRouter(
         email: email,
         pin: random_string.toUpperCase(),
       });
+
       otp.save();
 
       const html = await render(
@@ -70,24 +69,18 @@ export default function v1OTPRouter(
         })
       );
 
-      await transport.sendMail(
-        {
-          from: "chatup.dev.noreply@gmail.com",
-          to: email,
-          subject:
-            "welcome to Chat Up your verification code is " +
-            random_string.toLocaleUpperCase(),
-          html,
-        },
-        (error) => {
-          if (error)
-            return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-        }
-      );
+      const info = await transport.sendMail({
+        from: "chatup.dev.noreply@gmail.com",
+        to: email,
+        subject:
+          "welcome to Chat Up your verification code is " +
+          random_string.toLocaleUpperCase(),
+        html,
+      });
 
       return reply
         .code(201)
-        .send(JSONResponse("CREATED", "OTP verification code is sent"));
+        .send(JSONResponse("CREATED", "OTP verification code is sent", info));
     } catch (error) {
       console.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));

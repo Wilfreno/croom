@@ -1,28 +1,30 @@
 import { model, Schema, Types } from "mongoose";
 
-export type Chat = {
-  participants: Types.ObjectId[];
+export type Lobby = {
+  members: Types.ObjectId[];
+  is_private: boolean;
   name: string;
-  is_group_chat: boolean;
   messages: Types.ObjectId[];
+  photo: Types.ObjectId;
   date_created: Date;
+  last_updated: Date;
 };
 
-const chatSchema = new Schema<Chat>({
-  participants: [
+const lobbySchema = new Schema<Lobby>({
+  members: [
     {
       type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "Member",
+      default: [],
     },
   ],
   name: {
     type: String,
-    required: true,
+    default: "",
   },
-  is_group_chat: {
+  is_private: {
     type: Boolean,
-    required: true,
+    default: true,
   },
   messages: [
     {
@@ -31,13 +33,22 @@ const chatSchema = new Schema<Chat>({
       default: [],
     },
   ],
+  photo: {
+    type: Schema.Types.ObjectId,
+    ref: "Photo",
+    default: null,
+  },
   date_created: {
+    type: Date,
+    default: Date.now,
+  },
+  last_updated: {
     type: Date,
     default: Date.now,
   },
 });
 
-chatSchema.set("toJSON", {
+lobbySchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
   transform: (_, ret) => {
@@ -46,6 +57,6 @@ chatSchema.set("toJSON", {
   },
 });
 
-const Chat = model("Chat", chatSchema);
+const Lobby = model("Lobby", lobbySchema);
 
-export default Chat;
+export default Lobby;

@@ -2,7 +2,7 @@ import { model, Schema, Types } from "mongoose";
 
 export type Photo = {
   owner: Types.ObjectId;
-  type: "PROFILE";
+  type: "PROFILE" | "LOBBY";
   url: string;
   date_created: Date;
 };
@@ -13,7 +13,7 @@ const photoSchema = new Schema<Photo>({
   },
   type: {
     type: String,
-    enum: ["PROFILE"],
+    enum: ["PROFILE", "LOBBY"],
     required: true,
   },
   url: {

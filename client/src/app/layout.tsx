@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Poppins } from "next/font/google";
-import { ThemeProvider } from "@/components/utils/ThemeProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
-import NextAuthProvider from "@/components/utils/NextAuthProvider";
+import NextAuthProvider from "@/components/providers/NextAuthProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing/core";
-import ReactQueryProvider from "@/components/utils/ReactQueryProvider";
+import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
+import WebsocketProvider from "@/components/providers/WebsocketProvider";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -31,7 +32,9 @@ export default function RootLayout({
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <ThemeProvider attribute="class" defaultTheme="light">
           <NextAuthProvider>
-            <ReactQueryProvider>{children}</ReactQueryProvider>
+            <WebsocketProvider>
+              <ReactQueryProvider>{children}</ReactQueryProvider>
+            </WebsocketProvider>
           </NextAuthProvider>
           <Toaster position="top-center" richColors />
         </ThemeProvider>

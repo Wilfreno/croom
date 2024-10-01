@@ -276,19 +276,19 @@ export default function SignUpForm() {
             </Button>
           </DialogTrigger>
           {creating_otp ? (
-            <DialogContent className="grid place-items-center">
+            <DialogContent className="grid place-items-center w-[32rem]">
               <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
               <p className="font-bold text-xl text-primary">Sending OTP</p>
             </DialogContent>
           ) : submitting ? (
-            <DialogContent className="grid place-items-center">
+            <DialogContent className="grid place-items-center w-[32rem]">
               <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
-              <p className="font-bold text-xl text-primary">
+              <p className="font-bold text-muted-foreground">
                 Creating new User
               </p>
             </DialogContent>
           ) : (
-            <DialogContent>
+            <DialogContent className="w-[32rem]">
               <div className="grid">
                 <DialogClose asChild>
                   <Button

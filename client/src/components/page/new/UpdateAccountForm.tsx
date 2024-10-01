@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UploadthingButton } from "@/components/utils/UploadThingButton";
+import { UploadthingButton } from "@/components/providers/UploadThingButton";
 import { PATCHRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,9 @@ export default function UpdateAccountForm() {
   const from = useSearchParams().get("from");
   useEffect(() => {
     if (data) {
-      setPhotoUrl(data.user.photo.url);
+      if (data.user.photo) {
+        setPhotoUrl(data.user.photo.url);
+      }
       setDisplayName(data.user.display_name);
       setUserName(data.user.username.substring(1));
     }
@@ -90,7 +92,6 @@ export default function UpdateAccountForm() {
           is_new: false,
         });
 
-        console.log(old_user);
         if (old_user_status !== "OK") {
           toast.warning(old_user_message);
           return;

@@ -15,6 +15,10 @@ const secret = process.env.NEXTAUTH_SECRET;
 if (!secret)
   throw new Error("NEXTAUTH_SECRET is missing on your .env.local file");
 
+const client_url = process.env.CLIENT_URL;
+if (!client_url)
+  throw new Error("CLIENT_URL is missing from your .env.local file");
+
 const auth_options: AuthOptions = {
   providers: [
     CredentialsProvider({
@@ -63,6 +67,9 @@ const auth_options: AuthOptions = {
   },
   secret,
   debug: process.env.NODE_ENV === "development",
+  jwt: {
+    maxAge: 60 * 60 * 24 * 30,
+  },
   callbacks: {
     async signIn({ user, profile }) {
       try {
@@ -78,7 +85,7 @@ const auth_options: AuthOptions = {
               display_name: email!.substring(0, email?.indexOf("@")),
               email: email!,
               provider: "GOOGLE",
-            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "is_new"> & { provider: "GOOGLE" });
+            } satisfies Omit<User, "id" | "photo" | "status" | "date_created" | "last_updated" | "is_new" | "lobbies"> & { provider: "GOOGLE" });
 
             await POSTRequest("/v1/user/photo", {
               owner: data.id,
