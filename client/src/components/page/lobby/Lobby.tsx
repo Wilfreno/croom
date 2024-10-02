@@ -9,16 +9,21 @@ import websocketMessage from "@/lib/websocket/websocket-message";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { notFound, useParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import LobbyDoesNotExist from "./LobbyDoesNotExist";
+import LobbyNotAMember from "./LobbyNotAMember";
 
 export default function LobbyPage() {
   const params = useParams<{ id: string }>();
 
   const websocket = useWebsocket();
-  const { data } = useSession();
+  const { data: session } = useSession();
 
-  const { error, isFetching } = useQuery<Lobby, ServerResponse["status"]>({
+  const {
+    data: lobby,
+    error,
+    isFetching,
+  } = useQuery<Lobby, ServerResponse["status"]>({
     queryKey: ["lobby", params.id],
     queryFn: async () => {
       const { data, message, status } = await GETRequest<Lobby>(
@@ -32,14 +37,19 @@ export default function LobbyPage() {
       return data;
     },
   });
+  const is_member = useMemo(() => {
+    if (!lobby || !session) return false;
+
+    return lobby.members.some((member) => member.user.id === session.user.id);
+  }, [lobby, session]);
 
   useEffect(() => {
-    if (!websocket || !data) return;
+    if (!websocket || !session) return;
 
     if (websocket.CONNECTING) {
       websocket.send(
         websocketMessage("join", {
-          user_id: data.user.id,
+          user_id: session.user.id,
           lobby_id: params.id,
         })
       );
@@ -49,19 +59,22 @@ export default function LobbyPage() {
       if (websocket.CONNECTING)
         websocket.send(
           websocketMessage("leave", {
-            user_id: data.user.id,
+            user_id: session.user.id,
             lobby_id: params.id,
           })
         );
     };
-  }, [websocket, data]);
+  }, [websocket, session]);
 
+  if (!is_member) return <LobbyNotAMember />;
   if (error === "NOT_FOUND") return <LobbyDoesNotExist />;
-  if (isFetching) return <PageLoading />;
-  return (
+
+  return lobby ? (
     <main className="flex w-full h-full overflow-hidden">
       <LobbyVideoSection />
       <LobbyChatSection />
     </main>
+  ) : (
+    <PageLoading />
   );
 }
