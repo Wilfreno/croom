@@ -1,39 +1,32 @@
-"use client";
-import LobbyChatSection from "@/components/page/lobby/LobbyChatSection";
-import LobbyVideoSection from "@/components/page/lobby/LobbyVideoSection";
-import { useWebsocket } from "@/components/providers/WebsocketProvider";
-import websocketMessage from "@/lib/websocket/websocket-message";
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
+import LobbyPage from "@/components/page/lobby/Lobby";
+import { GETRequest } from "@/lib/server/requests";
+import { Lobby } from "@/lib/types/server";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 
-export default function Page({ params }: { params: { id: string } }) {
-  const websocket = useWebsocket();
-  const { data } = useSession();
+export default async function page({ params }: { params: { id: string } }) {
+  const query_client = new QueryClient();
 
-  useEffect(() => {
-    if (!websocket || !data) return;
-
-    if (websocket.CONNECTING) {
-      websocket.send(
-        websocketMessage("join", { user_id: data.user.id, lobby_id: params.id })
+  await query_client.prefetchQuery({
+    queryKey: ["lobby", params.id],
+    queryFn: async () => {
+      const { data, message, status } = await GETRequest<Lobby>(
+        "/v1/lobby/" + params.id
       );
-    }
 
-    return () => {
-      if (websocket.CONNECTING)
-        websocket.send(
-          websocketMessage("leave", {
-            user_id: data.user.id,
-            lobby_id: params.id,
-          })
-        );
-    };
-  }, [websocket, data]);
+      if (status !== "OK") {
+        throw new Error(message);
+      }
 
+      return data;
+    },
+  });
   return (
-    <main className="flex w-full h-full overflow-hidden">
-      <LobbyVideoSection />
-      <LobbyChatSection />
-    </main>
+    <HydrationBoundary state={dehydrate(query_client)}>
+      <LobbyPage />
+    </HydrationBoundary>
   );
 }

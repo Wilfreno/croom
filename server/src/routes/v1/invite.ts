@@ -118,9 +118,11 @@ export default function v1InviteRouter(
 
         if (found_lobby.is_private) {
           if (
-            !found_invite.invited.some(
-              (user_id) => (user_id as unknown as string) === user.id
-            )
+            !found_invite
+              .toJSON()
+              .invited.some(
+                (user_id) => (user_id as unknown as string) === user.id
+              )
           )
             return reply
               .code(403)
@@ -139,12 +141,16 @@ export default function v1InviteRouter(
           },
           {
             $set: {
-              invited: found_invite.invited.filter(
-                (user_id) => (user_id as unknown as string) !== user.id
-              ),
+              invited: found_invite
+                .toJSON()
+                .invited.filter(
+                  (user_id) => (user_id as unknown as string) !== user.id
+                ),
             },
           }
         );
+
+        return reply.code(200).send(JSONResponse("OK", "invite accepted"));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -153,6 +159,32 @@ export default function v1InviteRouter(
   );
   //read route
 
+  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
+    try {
+      const { id } = request.params;
+
+      const found_invite = await Invite.findOne({ _id: id }).populate({
+        path: "lobby",
+        select: "name photo",
+        populate: {
+          path: "photo",
+          select: "url",
+        },
+      });
+
+      if (!found_invite)
+        return reply
+          .code(404)
+          .send(JSONResponse("NOT_FOUND", "invite does not exist"));
+
+      return reply
+        .code(200)
+        .send(JSONResponse("OK", "request successful", found_invite.toJSON()));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   //update route
   fastify.patch<{
     Params: { key: keyof InviteType };

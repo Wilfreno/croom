@@ -34,7 +34,10 @@ export default function v1LobbyRouter(
               )
             );
 
-        const lobby = new Lobby({ name: user.display_name + "'s lobby" });
+        const lobby = new Lobby({
+          name: user.display_name + "'s lobby",
+          photo: user.photo,
+        });
 
         const member = new Member({
           lobby: lobby.id,

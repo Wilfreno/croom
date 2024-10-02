@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GETRequest, POSTRequest } from "@/lib/server/requests";
 import { Lobby } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Snail } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -34,8 +34,8 @@ export default function RecentLobbies() {
     },
   });
 
-  async function createLobby() {
-    try {
+  const createLobbyMutation = useMutation({
+    mutationFn: async () => {
       const {
         data: new_lobby,
         status,
@@ -47,19 +47,26 @@ export default function RecentLobbies() {
         throw new Error(message);
       }
 
-      query_client.setQueryData(["open_sidebar"], false);
+      return new_lobby;
+    },
+    onSuccess: (new_lobby) => {
       router.push("/lobby/" + new_lobby.id);
-    } catch (error) {
-      toast.error("something went wrong");
-      throw error;
-    }
-  }
+      query_client.invalidateQueries({
+        queryKey: ["lobbies", data],
+        exact: true,
+      });
+    },
+  });
 
   return (
     <div className="grow h-full grid grid-rows-[auto_1fr]">
       <div className="flex items-center gap-8">
         <h1 className="text-2xl font-semibold">Recent Lobbies</h1>
-        <Button className="gap-1" size="sm" onClick={createLobby}>
+        <Button
+          className="gap-1"
+          size="sm"
+          onClick={() => createLobbyMutation.mutate()}
+        >
           <span>Create</span> <Plus className="h-4" />
         </Button>
       </div>
@@ -71,10 +78,7 @@ export default function RecentLobbies() {
       >
         {lobbies?.length ? (
           lobbies?.map((lobby) => (
-            <Link
-              key={lobby.id}
-              href={"/lobby/" + lobby.id}
-            >
+            <Link key={lobby.id} href={"/lobby/" + lobby.id}>
               <Card className="aspect-video">
                 <CardHeader>
                   <CardTitle>{lobby.name}</CardTitle>

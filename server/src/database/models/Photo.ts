@@ -11,11 +11,6 @@ const photoSchema = new Schema<Photo>({
   owner: {
     type: Schema.Types.ObjectId,
   },
-  type: {
-    type: String,
-    enum: ["PROFILE", "LOBBY"],
-    required: true,
-  },
   url: {
     type: String,
     required: true,

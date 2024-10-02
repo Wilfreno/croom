@@ -239,7 +239,7 @@ export default function v1UserRouter(
           const found_lobby = await Lobby.findOne({ _id: lobby_id }).populate(
             "photo"
           );
-          lobbies.push(found_lobby!.toJSON());
+          lobbies.push(found_lobby?.toJSON());
         }
 
         return reply

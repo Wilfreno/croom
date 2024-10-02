@@ -7,12 +7,42 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useWebsocket } from "@/components/providers/WebsocketProvider";
+import websocketMessage from "@/lib/websocket/websocket-message";
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { useParams } from "next/navigation";
+
 export default function LobbyChatSection() {
+  const websocket = useWebsocket();
+  const { data } = useSession();
+  const params = useParams<{ id: string }>();
+
   const { data: open_chat } = useQuery({
     queryKey: ["open_chat"],
     initialData: true,
   });
   const query_client = useQueryClient();
+
+  useEffect(() => {
+    if (!websocket || !data) return;
+
+    if (websocket.CONNECTING) {
+      websocket.send(
+        websocketMessage("join", { user_id: data.user.id, lobby_id: params.id })
+      );
+    }
+
+    return () => {
+      if (websocket.CONNECTING)
+        websocket.send(
+          websocketMessage("leave", {
+            user_id: data.user.id,
+            lobby_id: params.id,
+          })
+        );
+    };
+  }, [websocket, data]);
 
   return (
     <>

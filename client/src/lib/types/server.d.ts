@@ -31,7 +31,6 @@ export type User = {
 export type Photo = {
   id: string;
   owner: User;
-  type: "PROFILE" | "LOBBY";
   url: string;
   date_created: Date;
 };

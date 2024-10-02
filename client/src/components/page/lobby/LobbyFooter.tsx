@@ -22,12 +22,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { GETRequest, PATCHRequest, POSTRequest } from "@/lib/server/requests";
-import { Invite, Lobby } from "@/lib/types/server";
+import { Invite, Lobby, ServerResponse } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Info, Plus, Snail } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useParams } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import LobbyInvite from "./LobbyInvites";
@@ -36,9 +36,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function LobbyFooter() {
   const params = useParams<{ id: string }>();
   const { data: session } = useSession();
+
   const query_client = useQueryClient();
 
-  const { data: lobby, refetch: refetchLobby } = useQuery({
+  const {
+    data: lobby,
+    refetch: refetchLobby,
+    isError,
+    error,
+  } = useQuery<Lobby, ServerResponse["status"]>({
     queryKey: ["lobby", params.id],
     queryFn: async () => {
       const { data, message, status } = await GETRequest<Lobby>(
@@ -46,14 +52,12 @@ export default function LobbyFooter() {
       );
 
       if (status !== "OK") {
-        toast(message);
-        throw new Error(message);
+        throw status;
       }
 
       return data;
     },
   });
-
   const is_admin = useMemo(() => {
     if (!lobby || !session) return false;
 
@@ -123,6 +127,7 @@ export default function LobbyFooter() {
     await refetchLobby();
   }
 
+  if (error === "NOT_FOUND") notFound();
   return (
     <header className="w-full h-full flex items-center justify-between px-10">
       <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>
