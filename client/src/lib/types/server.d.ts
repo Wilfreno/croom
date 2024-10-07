@@ -75,3 +75,14 @@ export type Invite = {
   expires_in: Date;
   date_created: Date;
 };
+
+export type Notification = {
+  id: string;
+  lobby: Lobby;
+  receiver: User;
+  type: "MESSAGE" | "INVITE";
+  invite: Invite;
+  seen: boolean;
+  date_created: Date;
+  last_updated: Date;
+};

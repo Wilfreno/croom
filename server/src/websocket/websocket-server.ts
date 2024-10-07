@@ -58,9 +58,10 @@ export default async function websocketServer(fastify: FastifyInstance) {
         case "NOTIFICATION": {
           const parsed_message = JSON.parse(message) as WebsocketNotification;
 
-          if (!online_user.has(parsed_message.id)) return;
+          if (!online_user.has(parsed_message.receiver)) return;
+
           online_user
-            .get(parsed_message.id)!
+            .get(parsed_message.receiver)!
             .send(websocketMessage("notification", parsed_message));
           break;
         }
@@ -90,6 +91,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
         );
         online_user.set(user_id, socket);
 
+        console.log("USERS::", online_user.size);
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(
             raw_data.toString()

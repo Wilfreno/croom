@@ -71,34 +71,45 @@ export default function v1LobbyRouter(
     }
   );
   //read route
+  fastify.get<{ Params: { id: string } }>(
+    "/:id",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const user = request.user as UserType & { id: string };
 
-  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
+        if (!(await Member.exists({ user: user.id, lobby: id })))
+          return reply
+            .code(403)
+            .send(
+              JSONResponse("FORBIDDEN", "you are not a member of the lobby")
+            );
 
-      const found_lobby = await Lobby.findOne({ _id: id }).populate({
-        path: "members",
-        populate: {
-          path: "user",
-          select: "display_name status photo",
-          populate: "photo",
-        },
-      });
+        const found_lobby = await Lobby.findOne({ _id: id }).populate({
+          path: "members",
+          populate: {
+            path: "user",
+            select: "display_name status photo",
+            populate: "photo",
+          },
+        });
 
-      if (!found_lobby)
+        if (!found_lobby)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+
         return reply
-          .code(404)
-          .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+          .code(200)
+          .send(JSONResponse("OK", "request successful", found_lobby.toJSON()));
+      } catch (error) {
+        fastify.log.error(error);
 
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", found_lobby.toJSON()));
-    } catch (error) {
-      fastify.log.error(error);
-
-      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
     }
-  });
+  );
 
   fastify.get<{ Params: { id: string } }>(
     "/:id/invites",

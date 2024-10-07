@@ -10,6 +10,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing/core";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import WebsocketProvider from "@/components/providers/WebsocketProvider";
+import CreateServerSession from "@/components/page/auth/CreateServerSession";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
@@ -33,7 +34,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light">
           <NextAuthProvider>
             <WebsocketProvider>
-              <ReactQueryProvider>{children}</ReactQueryProvider>
+              <ReactQueryProvider>
+                <CreateServerSession>{children}</CreateServerSession>
+              </ReactQueryProvider>
             </WebsocketProvider>
           </NextAuthProvider>
           <Toaster position="top-center" richColors />

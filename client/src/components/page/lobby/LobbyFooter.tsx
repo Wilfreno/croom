@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import LobbyInvite from "./LobbyInvites";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function LobbyFooter() {
+export default function LobbyName() {
   const params = useParams<{ id: string }>();
   const { data: session } = useSession();
 
@@ -133,9 +133,11 @@ export default function LobbyFooter() {
       <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className={cn("gap-1", is_admin ? "inline-flex" : "hidden")}>
+          <Button
+            size="icon"
+            className={cn("p-1", is_admin ? "inline-flex" : "hidden")}
+          >
             <Plus className="h-4 w-auto" />
-            <span>Invite</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="aspect-video h-auto w-[70vw] flex flex-col">

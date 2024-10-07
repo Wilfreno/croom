@@ -1,4 +1,4 @@
-import { Message } from "./server";
+import { Message, Notification } from "./server";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;
@@ -9,12 +9,14 @@ export type WebSocketPayload =
   | string
   | UserLobbyPayload
   | Message
+  | Notification;
 
 export type WebsocketPayloadType =
   | "join"
   | "leave"
   | "send-message"
   | "delete-message"
+  | "notification"
   | "error";
 
 export type UserLobbyPayload = {

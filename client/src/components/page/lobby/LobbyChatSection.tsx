@@ -12,6 +12,7 @@ import websocketMessage from "@/lib/websocket/websocket-message";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
+import LobbyName from "./LobbyFooter";
 
 export default function LobbyChatSection() {
   const websocket = useWebsocket();
@@ -45,12 +46,12 @@ export default function LobbyChatSection() {
   }, [websocket, data]);
 
   return (
-    <>
+    <span className="relative">
       <Button
         size="icon"
         variant="ghost"
         className={cn(
-          "w-fit fixed top-4 right-2",
+          "w-fit absolute top-4 right-2",
           open_chat ? "hidden" : "inline-flex"
         )}
         onClick={() => {
@@ -60,29 +61,29 @@ export default function LobbyChatSection() {
         <SquareChevronLeft className="h-6 w-auto stroke-primary" />
       </Button>
       <motion.section
-        initial={{ width: "30vw", opacity: 1, display: "grid" }}
+        initial={{ width: "25vw", opacity: 1, display: "grid" }}
         animate={{
-          width: open_chat ? "30vw" : "0",
+          width: open_chat ? "25vw" : "0",
           display: open_chat ? "grid" : "none",
           opacity: open_chat ? 1 : 0,
         }}
-        className={cn(
-          "bg-primary-foreground flex flex-col gap-4 py-4",
-          open_chat && "px-2"
-        )}
+        className="bg-primary-foreground flex flex-col gap-4 h-full"
       >
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            query_client.setQueryData(["open_chat"], false);
-          }}
-        >
-          <SquareChevronRight className="h-6 w-auto  stroke-primary" />
-        </Button>
+        <div className="flex items-center bg-secondary shadow-md p-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => {
+              query_client.setQueryData(["open_chat"], false);
+            }}
+          >
+            <SquareChevronRight className="h-6 w-auto  stroke-primary" />
+          </Button>
+          <LobbyName />
+        </div>
         <LobbyChats />
         <LobbyChatInput />
       </motion.section>
-    </>
+    </span>
   );
 }

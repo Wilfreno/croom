@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { GETRequest, POSTRequest } from "@/lib/server/requests";
 import { Lobby } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-export default function RecentLobbies() {
+export default function Lobbies() {
   const { data } = useSession();
   const router = useRouter();
 
@@ -61,7 +61,7 @@ export default function RecentLobbies() {
   return (
     <div className="grow h-full grid grid-rows-[auto_1fr]">
       <div className="flex items-center gap-8">
-        <h1 className="text-2xl font-semibold">Recent Lobbies</h1>
+        <h1 className="text-2xl font-semibold">My Lobbies</h1>
         <Button
           className="gap-1"
           size="sm"
@@ -72,7 +72,7 @@ export default function RecentLobbies() {
       </div>
       <div
         className={cn(
-          "h-full w-full flex",
+          "h-full w-full flex overflow-y-auto",
           lobbies?.length && "grid grid-cols-4 p-5 gap-4"
         )}
       >

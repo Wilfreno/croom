@@ -9,7 +9,11 @@ export type WebSocketMessage = {
   payload: WebSocketPayload;
 };
 
-export type WebSocketPayload = string | UserLobbyPayload | MessagePayload | WebsocketNotification;;
+export type WebSocketPayload =
+  | string
+  | UserLobbyPayload
+  | MessagePayload
+  | WebsocketNotification;
 
 export type WebsocketPayloadType =
   | "join"
@@ -30,6 +34,6 @@ export type UserLobbyPayload = {
   lobby_id: string;
 };
 
-export interface WebsocketNotification extends Notification {
-  id: string;
+export interface WebsocketNotification extends Omit<Notification, "receiver"> {
+  receiver: string;
 }

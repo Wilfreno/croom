@@ -7,6 +7,7 @@ import Member from "../../database/models/Member";
 import Notification from "../../database/models/Notification";
 import { type User as UserType } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
+import exclude from "../../lib/exclude";
 
 export default function v1InviteRouter(
   fastify: FastifyInstance,
@@ -211,7 +212,11 @@ export default function v1InviteRouter(
             .send(
               JSONResponse("BAD_REQUEST", "id is required on the request body")
             );
-        const found_invite = await Invite.findOne({ _id: id });
+        const found_invite = await Invite.findOne({ _id: id }).populate({
+          path: "lobby",
+          select: "name photo",
+          populate: { path: "photo", select: "url" },
+        });
 
         if (!found_invite)
           return reply
@@ -296,24 +301,32 @@ export default function v1InviteRouter(
                 await notification.save();
                 await redis_pub.publish(
                   "NOTIFICATION",
-                  JSON.stringify(notification.toJSON())
+                  JSON.stringify({
+                    ...notification.toJSON(),
+                    invite: exclude(notification.toJSON(), ["lobby"]),
+                  })
                 );
                 return reply.code(200).send(JSONResponse("OK", "invite sent"));
               }
               case "DELETE": {
+                await Notification.deleteOne({
+                  receiver: invited,
+                  type: "INVITE",
+                  invite: id,
+                });
+
                 await Invite.updateOne(
                   { _id: id },
                   {
                     $set: {
                       invited: found_invite
                         .toJSON()
-                        .invited.filter(
-                          (user) => (user as unknown as string) !== invited
-                        ),
+                        .invited.filter((user) => user.toString() !== invited),
                       last_updated: new Date(),
                     },
                   }
                 );
+
                 return reply
                   .code(200)
                   .send(JSONResponse("OK", "invite deleted"));
@@ -407,6 +420,7 @@ export default function v1InviteRouter(
 
         await Invite.deleteOne({ _id: id });
 
+        await Notification.deleteMany({ invite: id });
         return reply.code(200).send(JSONResponse("OK", "invite deleted"));
       } catch (error) {
         fastify.log.error(error);

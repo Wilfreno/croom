@@ -30,15 +30,15 @@ export default function WebsocketProvider({
     const ws = new WebSocket(websocket_url + "/ws/" + data.user.id);
     setWebsocket(ws);
 
-    ws.addEventListener("message", (raw_data) => {
-      const parsed_data = JSON.parse(raw_data.toString()) as WebSocketMessage;
+    ws.addEventListener("message", (event) => {
+      const parsed_data = JSON.parse(event.data) as WebSocketMessage;
 
       if (parsed_data.type === "error") {
         toast(parsed_data.payload as string);
         throw new Error(parsed_data.payload as string);
       }
     });
-    }, [data]);
+  }, [data]);
 
   return (
     <WebsocketContext.Provider value={websocket}>

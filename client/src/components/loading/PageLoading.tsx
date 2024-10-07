@@ -37,8 +37,8 @@ export default function PageLoading() {
         animate="animate"
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex text-6xl text-primary font-semibold"
       >
-        {"Croom".split("").map((letter) => (
-          <motion.p key={letter} variants={letterVariants}>
+        {"Croom".split("").map((letter, index) => (
+          <motion.p key={index} variants={letterVariants}>
             {letter}
           </motion.p>
         ))}

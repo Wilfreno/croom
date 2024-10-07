@@ -43,12 +43,6 @@ export default function MainSideBar() {
       link: "/",
       icon: <Home className="h-5 w-auto" />,
     },
-
-    {
-      name: "Friends",
-      link: "/friend",
-      icon: <UsersRound className="h-5 w-auto" />,
-    },
     {
       name: "Lobbies",
       link: "/lobbies",

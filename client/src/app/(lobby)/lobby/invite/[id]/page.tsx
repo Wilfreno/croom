@@ -1,10 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/loading/PageLoading";
+import NotFound from "@/components/page/error/NotFound";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GETRequest, POSTRequest } from "@/lib/server/requests";
-import { Invite } from "@/lib/types/server";
+import { Invite, ServerResponse } from "@/lib/types/server";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Snail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,12 +14,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function Page({ params }: { params: { id: string } }) {
-  const [input_token, setInputToken] = useState();
+  const [input_token, setInputToken] = useState("");
 
   const token = useSearchParams().get("token");
   const router = useRouter();
 
-  const { data: invite } = useQuery({
+  const {
+    data: invite,
+    error,
+    isFetching,
+  } = useQuery<Invite, ServerResponse>({
     queryKey: ["invite", params.id],
     queryFn: async () => {
       const {
@@ -27,8 +33,7 @@ export default function Page({ params }: { params: { id: string } }) {
       } = await GETRequest<Invite>("/v1/invite/" + params.id);
 
       if (status !== "OK") {
-        toast.error(message);
-        throw new Error(message);
+        throw { status, message };
       }
       return result;
     },
@@ -53,8 +58,12 @@ export default function Page({ params }: { params: { id: string } }) {
     },
   });
 
+  if (isFetching) return <PageLoading />;
+  if (error?.status === "NOT_FOUND")
+    return <NotFound message={error.message} />;
+
   return (
-    <div className="grow h-dvh flex flex-col items-center justify-center gap-12">
+    <div className="grow h-full flex flex-col items-center justify-center gap-12">
       <span className="text-center space-y-8">
         <Avatar className="aspect-square h-32 w-auto mx-auto">
           <AvatarImage src={invite?.lobby.photo?.url} />
@@ -81,7 +90,11 @@ export default function Page({ params }: { params: { id: string } }) {
           <Button size="lg">Accept</Button>
         ) : (
           <div className="flex items-center gap-4">
-            <Input placeholder="Invite token" />
+            <Input
+              placeholder="Invite token"
+              value={input_token}
+              onChange={(e) => setInputToken(e.target.value)}
+            />
             <Button>Join</Button>
           </div>
         )}

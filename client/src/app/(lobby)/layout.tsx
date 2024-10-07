@@ -3,9 +3,12 @@ import MainSideBar from "@/components/page/main/MainSideBar";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[auto_1fr] w-full h-dvh">
+    <section className="flex">
       <MainSideBar />
-      {children}
-    </div>
+      <div className="grid grid-rows-[auto_1fr] grow max-h-dvh">
+        <MainHeader />
+        {children}
+      </div>
+    </section>
   );
 }

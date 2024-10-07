@@ -5,6 +5,7 @@ export type Notification = {
   receiver: Types.ObjectId;
   type: "MESSAGE" | "INVITE";
   invite: Types.ObjectId;
+  seen: boolean;
   date_created: Date;
   last_updated: Date;
 };
@@ -30,6 +31,10 @@ const notificationSchema = new Schema<Notification>({
     type: Schema.Types.ObjectId,
     ref: "Invite",
     default: null,
+  },
+  seen: {
+    type: Boolean,
+    default: false,
   },
   last_updated: {
     type: Date,
