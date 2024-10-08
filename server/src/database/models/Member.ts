@@ -16,7 +16,7 @@ const memberSchema = new Schema<Member>({
   },
   lobby: {
     type: Schema.Types.ObjectId,
-    ref: "Chat",
+    ref: "Lobby",
     required: true,
   },
   role: {

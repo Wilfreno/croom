@@ -70,6 +70,8 @@ export default function v1LobbyRouter(
       }
     }
   );
+
+  
   //read route
   fastify.get<{ Params: { id: string } }>(
     "/:id",

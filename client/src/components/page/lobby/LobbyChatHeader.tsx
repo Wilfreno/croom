@@ -33,7 +33,7 @@ import { toast } from "sonner";
 import LobbyInvite from "./LobbyInvites";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function LobbyName() {
+export default function LobbyChatHeader() {
   const params = useParams<{ id: string }>();
   const { data: session } = useSession();
 
@@ -42,9 +42,8 @@ export default function LobbyName() {
   const {
     data: lobby,
     refetch: refetchLobby,
-    isError,
     error,
-  } = useQuery<Lobby, ServerResponse["status"]>({
+  } = useQuery({
     queryKey: ["lobby", params.id],
     queryFn: async () => {
       const { data, message, status } = await GETRequest<Lobby>(
@@ -52,12 +51,13 @@ export default function LobbyName() {
       );
 
       if (status !== "OK") {
-        throw status;
+        throw new Error(message);
       }
 
       return data;
     },
   });
+
   const is_admin = useMemo(() => {
     if (!lobby || !session) return false;
 
@@ -127,7 +127,7 @@ export default function LobbyName() {
     await refetchLobby();
   }
 
-  if (error === "NOT_FOUND") notFound();
+  if (error) throw error;
   return (
     <header className="w-full h-full flex items-center justify-between px-10">
       <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>

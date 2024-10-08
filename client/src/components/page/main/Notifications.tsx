@@ -17,18 +17,14 @@ import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Snail } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import NotFound from "../error/NotFound";
 
 export default function Notifications() {
   const websocket = useWebsocket();
   const query_client = useQueryClient();
 
-  const { data: notifications, error } = useQuery<
-    Notification[],
-    { status: ServerResponse["status"]; message: string }
-  >({
+  const { data: notifications } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
       const {
@@ -38,7 +34,8 @@ export default function Notifications() {
       } = await GETRequest<Notification[]>("/v1/user/notifications");
 
       if (status !== "OK") {
-        throw { status, message };
+        toast.error(message);
+        throw new Error(message);
       }
 
       return results;
@@ -62,11 +59,11 @@ export default function Notifications() {
         throw new Error(message);
       }
     },
-    onSuccess: (v, { index }) => {
+    onSuccess: (_, { index }) => {
       query_client.setQueryData<Notification[]>(["notifications"], (prev) => {
         if (!prev) return [];
 
-        return prev.toSpliced(index, 0, { ...prev[index], seen: true });
+        return prev.toSpliced(index, 1, { ...prev[index], seen: true });
       });
     },
   });

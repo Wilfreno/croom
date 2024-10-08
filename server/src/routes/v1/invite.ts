@@ -107,9 +107,10 @@ export default function v1InviteRouter(
           return reply
             .code(404)
             .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
+
         const found_invite = await Invite.findOne({
           lobby: lobby_id,
-          token: token.toUpperCase(),
+          token: token,
         });
 
         if (!found_invite)
@@ -119,11 +120,9 @@ export default function v1InviteRouter(
 
         if (found_lobby.is_private) {
           if (
-            !found_invite
-              .toJSON()
-              .invited.some(
-                (user_id) => (user_id as unknown as string) === user.id
-              )
+            !found_invite.invited.some(
+              (user_id) => user_id.toString() === user.id
+            )
           )
             return reply
               .code(403)
@@ -135,6 +134,21 @@ export default function v1InviteRouter(
               );
         }
 
+        const new_member = new Member({
+          user: user.id,
+          lobby: lobby_id,
+        });
+
+        await new_member.save();
+
+        await Lobby.updateOne(
+          { _id: lobby_id },
+          {
+            $push: { members: new_member._id },
+            $set: { last_updated: new Date() },
+          }
+        );
+        
         await Invite.updateOne(
           {
             lobby: lobby_id,
@@ -144,9 +158,7 @@ export default function v1InviteRouter(
             $set: {
               invited: found_invite
                 .toJSON()
-                .invited.filter(
-                  (user_id) => (user_id as unknown as string) !== user.id
-                ),
+                .invited.filter((user_id) => user_id.toString() !== user.id),
             },
           }
         );
