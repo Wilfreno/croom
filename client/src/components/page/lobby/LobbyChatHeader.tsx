@@ -25,7 +25,14 @@ import { GETRequest, PATCHRequest, POSTRequest } from "@/lib/server/requests";
 import { Invite, Lobby, ServerResponse } from "@/lib/types/server";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronDown, Info, Plus, Snail } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Info,
+  Plus,
+  Snail,
+  SquareChevronRight,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { notFound, useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -129,105 +136,114 @@ export default function LobbyChatHeader() {
 
   if (error) throw error;
   return (
-    <header className="w-full h-full flex items-center justify-between px-10">
-      <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            size="icon"
-            className={cn("p-1", is_admin ? "inline-flex" : "hidden")}
-          >
+    <header className="flex items-center bg-secondary shadow-md p-2">
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => {
+          query_client.setQueryData(["open_chat"], false);
+        }}
+      >
+        <SquareChevronRight className="h-6 w-auto  stroke-primary" />
+      </Button>
+      <section className="w-full h-full flex items-center justify-between px-10">
+        <h1 className="tex-4xl font-semibold">{lobby?.name}</h1>
+        <Dialog>
+          <DialogTrigger className="flex items-center gap-1 text-xs text-primary">
+            <span>Invite</span>
             <Plus className="h-4 w-auto" />
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="aspect-video h-auto w-[70vw] flex flex-col">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle className="gap-8 flex">
-              <span>Invite people in your lobby</span>
-              <span className="flex items-center gap-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <Badge className="flex gap-2" variant="secondary">
-                      <span className="font-semibold">
-                        {lobby?.is_private ? "PRIVATE" : "PUBLIC"}
-                      </span>
-                      <ChevronDown className="h-4" />
-                    </Badge>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem
-                        onClick={() => updateLobbyAccessibility(true)}
-                        className="flex justify-between cursor-pointer"
-                      >
-                        <span>Private</span>
-                        {lobby?.is_private && (
-                          <Check className="stroke-green-500 h-4 w-auto" />
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => updateLobbyAccessibility(false)}
-                        className="flex  justify-between cursor-pointer"
-                      >
-                        <span>Public</span>
+          </DialogTrigger>
+          <DialogContent className="aspect-video h-auto w-[70vw] flex flex-col">
+            <DialogHeader className="flex flex-row items-center justify-between">
+              <DialogTitle className="gap-8 flex">
+                <span>Invite people in your lobby</span>
+                <span className="flex items-center gap-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <Badge className="flex gap-2" variant="secondary">
+                        <span className="font-semibold">
+                          {lobby?.is_private ? "PRIVATE" : "PUBLIC"}
+                        </span>
+                        <ChevronDown className="h-4" />
+                      </Badge>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          onClick={() => updateLobbyAccessibility(true)}
+                          className="flex justify-between cursor-pointer"
+                        >
+                          <span>Private</span>
+                          {lobby?.is_private && (
+                            <Check className="stroke-green-500 h-4 w-auto" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => updateLobbyAccessibility(false)}
+                          className="flex  justify-between cursor-pointer"
+                        >
+                          <span>Public</span>
 
-                        {!lobby?.is_private && (
-                          <Check className="stroke-green-500 h-4 w-auto" />
-                        )}
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {lobby?.is_private && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger className="rounded-full">
-                        <Info className="h-4 w-auto" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        Your lobby is <strong>private</strong>, only invited
-                        user can access your invitation
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </span>
-            </DialogTitle>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogHeader>
-          {!!invites?.length && (
-            <Button
-              className="mr-auto"
-              onClick={() => createInviteMutation.mutate()}
-            >
-              Add invite
-            </Button>
-          )}
-          {isFetching ? (
-            <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground mx-auto" />
-          ) : invites!.length ? (
-            <ScrollArea className="h-[60dvh]">
-              <section className="grid gap-2">
-                {invites?.map((invite) => (
-                  <LobbyInvite key={invite.id} invite={invite} />
-                ))}
-              </section>
-            </ScrollArea>
-          ) : (
-            <div className="grid place-items-center h-full">
-              <div className="grid place-items-center gap-2">
-                <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground" />
-                <p className="font-medium text-muted-foreground">no invites</p>
-                <Button onClick={() => createInviteMutation.mutate()}>
-                  Generate invite
-                </Button>
+                          {!lobby?.is_private && (
+                            <Check className="stroke-green-500 h-4 w-auto" />
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {lobby?.is_private && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="rounded-full">
+                          <Info className="h-4 w-auto" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          Your lobby is <strong>private</strong>, only invited
+                          user can access your invitation
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </span>
+              </DialogTitle>
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+            </DialogHeader>
+            {!!invites?.length && (
+              <Button
+                className="mr-auto"
+                onClick={() => createInviteMutation.mutate()}
+              >
+                Add invite
+              </Button>
+            )}
+            {isFetching ? (
+              <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground mx-auto" />
+            ) : invites!.length ? (
+              <ScrollArea className="h-[60dvh]">
+                <section className="grid gap-2">
+                  {invites?.map((invite) => (
+                    <LobbyInvite key={invite.id} invite={invite} />
+                  ))}
+                </section>
+              </ScrollArea>
+            ) : (
+              <div className="grid place-items-center h-full">
+                <div className="grid place-items-center gap-2">
+                  <Snail className="h-24 w-auto m-auto stroke-1 stroke-muted-foreground" />
+                  <p className="font-medium text-muted-foreground">
+                    no invites
+                  </p>
+                  <Button onClick={() => createInviteMutation.mutate()}>
+                    Generate invite
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      </section>
     </header>
   );
 }

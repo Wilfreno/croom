@@ -23,10 +23,11 @@ export type WebsocketPayloadType =
   | "notification"
   | "error";
 
-export interface MessagePayload extends Omit<Message, "lobby" | "sender"> {
+export interface MessagePayload extends Message {
+  status: "UPDATED" | "DELETED";
   id: string;
-  lobby: Lobby & { id: string };
-  sender: User & { id: string };
+  lobby: Lobby;
+  sender: User;
 }
 
 export type UserLobbyPayload = {

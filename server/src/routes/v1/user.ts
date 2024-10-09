@@ -223,21 +223,16 @@ export default function v1UserRouter(
     }
   );
 
-  fastify.get<{ Params: { id: string } }>(
-    "/:id/lobbies",
+  fastify.get(
+    "/lobbies",
+    { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
-        const { id } = request.params;
-
-        const found_user = await User.findOne({ _id: id });
-        if (!found_user)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "user does not exist"));
+        const user = request.user as UserType & { id: string };
 
         const lobbies = [];
 
-        for (const lobby_id of found_user.lobbies) {
+        for (const lobby_id of user.lobbies) {
           const found_lobby = await Lobby.findOne({ _id: lobby_id }).populate(
             "photo"
           );

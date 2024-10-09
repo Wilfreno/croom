@@ -71,7 +71,6 @@ export default function v1LobbyRouter(
     }
   );
 
-  
   //read route
   fastify.get<{ Params: { id: string } }>(
     "/:id",
@@ -176,11 +175,7 @@ export default function v1LobbyRouter(
             .code(404)
             .send(JSONResponse("NOT_FOUND", "lobby does not exist"));
 
-        if (
-          !found_lobby.members.some(
-            (user_id) => (user_id as unknown as string) === user.id
-          )
-        )
+        if (!(await Member.exists({ lobby: id, user: user.id })))
           return reply
             .code(403)
             .send(
@@ -190,7 +185,7 @@ export default function v1LobbyRouter(
         const found_messages = await Message.find({ lobby: id })
           .populate({
             path: "sender",
-            select: "-password",
+            select: "username display_name photo",
             populate: "photo",
           })
           .sort("date_created");

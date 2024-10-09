@@ -5,7 +5,7 @@ import Invite, {
 import Lobby from "../../database/models/Lobby";
 import Member from "../../database/models/Member";
 import Notification from "../../database/models/Notification";
-import { type User as UserType } from "../../database/models/User";
+import User, { type User as UserType } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import exclude from "../../lib/exclude";
 
@@ -148,7 +148,7 @@ export default function v1InviteRouter(
             $set: { last_updated: new Date() },
           }
         );
-        
+
         await Invite.updateOne(
           {
             lobby: lobby_id,
@@ -162,7 +162,10 @@ export default function v1InviteRouter(
             },
           }
         );
-
+        await User.updateOne(
+          { _id: user.id },
+          { $push: { lobbies: lobby_id }, $set: { last_updated: new Date() } }
+        );
         return reply.code(200).send(JSONResponse("OK", "invite accepted"));
       } catch (error) {
         fastify.log.error(error);

@@ -29,7 +29,7 @@ export default function LobbyVideo() {
 
   return (
     <section className="flex flex-col w-full h-full max-h-dvh bg-secondary items-center justify-center">
-      <div className="aspect-video grow max-w-[75vw] bg-secondary-foreground relative">
+      <div className="aspect-video w-full h-auto max-w-[80vw] bg-secondary-foreground relative">
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 gap-12  flex">
           <div className="flex items-center gap-2">
             <span className="h-6">

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import LobbyChatInput from "./LobbyChatInput";
 import LobbyChats from "./LobbyChats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { SquareChevronLeft, SquareChevronRight } from "lucide-react";
+import { SquareChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -39,20 +39,9 @@ export default function LobbyChatSection() {
           display: open_chat ? "grid" : "none",
           opacity: open_chat ? 1 : 0,
         }}
-        className="bg-primary-foreground flex flex-col gap-4 h-full"
+        className="bg-primary-foreground grid grid-rows-[auto_1fr_auto] h-full"
       >
-        <div className="flex items-center bg-secondary shadow-md p-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => {
-              query_client.setQueryData(["open_chat"], false);
-            }}
-          >
-            <SquareChevronRight className="h-6 w-auto  stroke-primary" />
-          </Button>
-          <LobbyChatHeader />
-        </div>
+        <LobbyChatHeader />
         <LobbyChats />
         <LobbyChatInput />
       </motion.section>

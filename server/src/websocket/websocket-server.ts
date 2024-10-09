@@ -28,7 +28,8 @@ export default async function websocketServer(fastify: FastifyInstance) {
               break;
             }
             case "DELETED": {
-              if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+              if (!lobby_online_user.get(parsed_message.lobby.id.toString()))
+                return;
 
               lobby_online_user
                 .get(parsed_message.lobby.id)!
@@ -43,7 +44,8 @@ export default async function websocketServer(fastify: FastifyInstance) {
               break;
             }
             default: {
-              if (!lobby_online_user.get(parsed_message.lobby.id)) return;
+              if (!lobby_online_user.get(parsed_message.lobby.id.toString()))
+                return;
               lobby_online_user.get(parsed_message.id)!.forEach((user) => {
                 if (user !== parsed_message.sender.id)
                   online_user

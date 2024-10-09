@@ -47,12 +47,23 @@ export default function v1MessageRouter(
           { _id: lobby_id },
           { $push: { messages: new_message._id } }
         );
-        await redis_pub.publish(
-          "MESSAGE",
-          JSON.stringify(new_message.toJSON())
-        );
 
-        return reply.code(201).send(JSONResponse("CREATED", "message sent"));
+        const message_json = (
+          await new_message
+            .populate({
+              path: "sender",
+              select: "username display_name photo",
+              populate: { path: "photo", select: "url" },
+            })
+            .then((data) => data.populate({ path: "lobby", select: "_id" }))
+        ).toJSON();
+
+        console.log(message_json);
+        await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
+
+        return reply
+          .code(201)
+          .send(JSONResponse("CREATED", "message sent", message_json));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
