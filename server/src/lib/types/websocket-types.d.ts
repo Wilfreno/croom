@@ -1,5 +1,4 @@
 import { Message } from "../database/models/Message";
-import MessageBuffer from "../classes/message-buffer";
 import { Lobby } from "../database/models/Lobby";
 import { User } from "../database/models/User";
 import { Notification } from "src/database/models/Notification";
@@ -16,11 +15,13 @@ export type WebSocketPayload =
   | WebsocketNotification;
 
 export type WebsocketPayloadType =
-  | "join"
+  | "join-lobby"
+  | "user-joined"
   | "leave"
   | "send-message"
   | "delete-message"
   | "notification"
+  | "open-camera"
   | "error";
 
 export interface MessagePayload extends Message {
