@@ -13,6 +13,8 @@ export default function v1LobbyRouter(
   _: FastifyPluginOptions,
   done: () => void
 ) {
+  const redis = fastify.redis["storage"];
+
   //create route
 
   fastify.post(
@@ -103,7 +105,12 @@ export default function v1LobbyRouter(
 
         return reply
           .code(200)
-          .send(JSONResponse("OK", "request successful", found_lobby.toJSON()));
+          .send(
+            JSONResponse("OK", "request successful", {
+              ...found_lobby.toJSON(),
+              online: await redis.smembers("online-users-" + id),
+            })
+          );
       } catch (error) {
         fastify.log.error(error);
 

@@ -9,13 +9,14 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 export default function redisSub(
   fastify: FastifyInstance,
   options: FastifyPluginOptions & {
-    lobby_online_user: Map<string, Set<string>>;
     online_user: Map<string, WebSocket>;
   },
   done: () => void
 ) {
-  const { lobby_online_user, online_user } = options;
+  const { online_user } = options;
   const { redis } = fastify;
+
+  const redis_storage = redis["storage"];
   redis["sub"].subscribe("MESSAGE");
   redis["sub"].subscribe("NOTIFICATION");
 
@@ -23,30 +24,36 @@ export default function redisSub(
     switch (channel) {
       case "MESSAGE": {
         const parsed_message = JSON.parse(message) as MessagePayload;
+        const redis_lobby_key = "online-users-" + parsed_message.lobby.id;
+
         switch (parsed_message.status) {
           case "UPDATED": {
             break;
           }
           case "DELETED": {
-            if (!lobby_online_user.get(parsed_message.lobby.id.toString()))
-              return;
+            if (!(await redis_storage.exists(redis_lobby_key))) return;
 
-            lobby_online_user.get(parsed_message.lobby.id)!.forEach((user) => {
-              if (user !== parsed_message.sender.id)
-                online_user
-                  .get(user)
-                  ?.send(websocketMessage("delete-message", parsed_message));
-            });
+            await redis_storage.smembers(redis_lobby_key).then((members) =>
+              members.forEach((user) => {
+                if (user !== parsed_message.sender.id)
+                  online_user
+                    .get(user)
+                    ?.send(websocketMessage("delete-message", parsed_message));
+              })
+            );
             break;
           }
           default: {
-            if (!lobby_online_user.has(parsed_message.lobby.id)) return;
-            lobby_online_user.get(parsed_message.lobby.id)!.forEach((user) => {
-              if (user !== parsed_message.sender.id.toString())
-                online_user
-                  .get(user)
-                  ?.send(websocketMessage("send-message", parsed_message));
-            });
+            if (!(await redis_storage.exists(redis_lobby_key))) return;
+
+            await redis_storage.smembers(redis_lobby_key).then((members) =>
+              members.forEach((user) => {
+                if (user !== parsed_message.sender.id)
+                  online_user
+                    .get(user)
+                    ?.send(websocketMessage("send-message", parsed_message));
+              })
+            );
             break;
           }
         }

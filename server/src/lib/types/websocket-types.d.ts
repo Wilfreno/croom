@@ -15,8 +15,7 @@ export type WebSocketPayload =
   | WebsocketNotification;
 
 export type WebsocketPayloadType =
-  | "join-lobby"
-  | "user-joined"
+  | "join"
   | "leave"
   | "send-message"
   | "delete-message"

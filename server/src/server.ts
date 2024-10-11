@@ -74,7 +74,7 @@ fastify.register(connectToDB).then(() =>
 
     fastify.redis["sub"].unsubscribe("MESSAGE");
     fastify.redis["sub"].unsubscribe("NOTIFICATION");
-
+    fastify.redis["storage"].quit();
     process.exit(1);
   })
 );
