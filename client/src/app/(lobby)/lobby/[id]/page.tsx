@@ -30,26 +30,25 @@ export default function Page({ params }: { params: { id: string } }) {
   });
 
   useEffect(() => {
-    if (!websocket || !session) return;
+    if (!websocket || !session || !websocket.OPEN) return;
 
-    if (websocket.CONNECTING) {
+    websocket.addEventListener("open", () => {
       websocket.send(
         websocketMessage("join", {
           user_id: session.user.id,
           lobby_id: params.id,
         })
       );
-    }
+    });
 
-    return () => {
-      if (websocket.CONNECTING)
-        websocket.send(
-          websocketMessage("leave", {
-            user_id: session.user.id,
-            lobby_id: params.id,
-          })
-        );
-    };
+    websocket.addEventListener("close", () => {
+      websocket.send(
+        websocketMessage("leave", {
+          user_id: session.user.id,
+          lobby_id: params.id,
+        })
+      );
+    });
   }, [websocket, session]);
 
   if (isFetching) return <PageLoading />;

@@ -35,6 +35,7 @@ export default function LobbyChatInput() {
       query_client.setQueryData<Message[]>(["message", params.id], (prev) =>
         prev ? [...prev, message] : []
       );
+      setText("");
       textarea_ref.current!.style.height = "auto";
     },
   });

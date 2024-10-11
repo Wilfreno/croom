@@ -58,7 +58,6 @@ export default function v1MessageRouter(
             .then((data) => data.populate({ path: "lobby", select: "_id" }))
         ).toJSON();
 
-        console.log(message_json);
         await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
 
         return reply

@@ -6,7 +6,7 @@ import { Message } from "@/lib/types/server";
 import { WebSocketMessage } from "@/lib/types/websocket";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export default function LobbyChats() {
@@ -14,6 +14,7 @@ export default function LobbyChats() {
   const params = useParams<{ id: string }>();
 
   const query_client = useQueryClient();
+  const last_message = useRef<HTMLDivElement>(null);
 
   const { data: messages } = useQuery({
     placeholderData: [],
@@ -35,12 +36,12 @@ export default function LobbyChats() {
   useEffect(() => {
     if (!websocket) return;
 
-    websocket.addEventListener("message", (raw_data) => {
-      const parsed_message: WebSocketMessage = JSON.parse(raw_data.toString());
+    websocket.addEventListener("message", (event) => {
+      const parsed_data = JSON.parse(event.data) as WebSocketMessage;
 
-      const payload = parsed_message.payload as Message;
+      const payload = parsed_data.payload as Message;
 
-      switch (parsed_message.type) {
+      switch (parsed_data.type) {
         case "send-message": {
           query_client.setQueryData<Message[]>(
             ["message", params.id],
@@ -64,11 +65,20 @@ export default function LobbyChats() {
     });
   }, [websocket]);
 
+  useEffect(() => {
+    if (!last_message) return;
+
+    last_message.current?.scrollIntoView();
+  }, [last_message]);
+
   return (
     <ScrollArea className="h-full grid content-end">
       <div className=" p-2 flex flex-col items-start self-end gap-4  overflow-y-auto">
-        {messages?.map((message) => (
-          <div key={message.id}>
+        {messages?.map((message, index) => (
+          <div
+            key={message.id}
+            ref={index === messages.length - 1 ? last_message : null}
+          >
             <p className="gap-4 prose text-sm">
               <span className="mr-2 font-semibold text-primary">
                 {message.sender.display_name}:

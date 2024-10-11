@@ -10,6 +10,7 @@ import {
 import websocketMessage from "./websocket-message";
 import joinChat from "./events/join-event";
 import leaveLobby from "./events/leave-event";
+
 const lobby_online_user = new Map<string, Set<string>>();
 const online_user = new Map<string, WebSocket>();
 
@@ -44,14 +45,15 @@ export default async function websocketServer(fastify: FastifyInstance) {
               break;
             }
             default: {
-              if (!lobby_online_user.get(parsed_message.lobby.id.toString()))
-                return;
-              lobby_online_user.get(parsed_message.id)!.forEach((user) => {
-                if (user !== parsed_message.sender.id)
-                  online_user
-                    .get(user)
-                    ?.send(websocketMessage("send-message", parsed_message));
-              });
+              if (!lobby_online_user.has(parsed_message.lobby.id)) return;
+              lobby_online_user
+                .get(parsed_message.lobby.id)!
+                .forEach((user) => {
+                  if (user !== parsed_message.sender.id.toString())
+                    online_user
+                      .get(user)
+                      ?.send(websocketMessage("send-message", parsed_message));
+                });
               break;
             }
           }
@@ -93,7 +95,6 @@ export default async function websocketServer(fastify: FastifyInstance) {
         );
         online_user.set(user_id, socket);
 
-        console.log("USERS::", online_user.size);
         socket.on("message", async (raw_data) => {
           const parsed_message: WebSocketMessage = JSON.parse(
             raw_data.toString()
@@ -101,6 +102,7 @@ export default async function websocketServer(fastify: FastifyInstance) {
 
           switch (parsed_message.type) {
             case "join": {
+              console.log("JOIN", user_id);
               await joinChat(
                 parsed_message.payload as UserLobbyPayload,
                 lobby_online_user,
