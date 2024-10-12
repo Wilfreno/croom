@@ -1,4 +1,4 @@
-import { User as UserType } from "./server";
+import { User as UserType } from "./server-response-data";
 declare module "next-auth" {
   interface Session {
     user: UserType;

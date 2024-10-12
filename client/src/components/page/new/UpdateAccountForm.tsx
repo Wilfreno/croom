@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadthingButton } from "@/components/providers/UploadThingButton";
 import { PATCHRequest } from "@/lib/server/requests";
-import { User } from "@/lib/types/server";
+import { User } from "@/lib/types/server-response-data";
 import { cn } from "@/lib/utils";
 import { AtSign, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";

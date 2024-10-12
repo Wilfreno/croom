@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GETRequest } from "@/lib/server/requests";
-import { Lobby } from "@/lib/types/server";
+import { Lobby } from "@/lib/types/server-response-data";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Snail } from "lucide-react";
@@ -22,7 +22,7 @@ export default function Page() {
         data: server_data,
         status,
         message,
-      } = await GETRequest<Lobby[]>("/v1/user/" + data!.user.id + "/lobbies");
+      } = await GETRequest<Lobby[]>("/v1/user/lobbies");
       if (status !== "OK") {
         toast.error(message);
         throw new Error(message);

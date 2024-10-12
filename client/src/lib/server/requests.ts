@@ -1,4 +1,4 @@
-import { ServerResponse } from "../types/server";
+import { ServerResponse } from "../types/server-response-data";
 
 const server_url = process.env.NEXT_PUBLIC_SERVER!;
 if (!server_url)

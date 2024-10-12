@@ -1,4 +1,4 @@
-import { Message, Notification } from "./server";
+import { Message, Notification } from "./server-response-data";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;

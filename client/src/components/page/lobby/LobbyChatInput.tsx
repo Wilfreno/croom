@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { POSTRequest } from "@/lib/server/requests";
-import { Message } from "@/lib/types/server";
+import { Message } from "@/lib/types/server-response-data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import React, { useRef, useState } from "react";

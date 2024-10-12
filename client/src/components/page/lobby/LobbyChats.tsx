@@ -2,7 +2,7 @@ import { useWebsocket } from "@/components/providers/WebsocketProvider";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GETRequest } from "@/lib/server/requests";
-import { Message } from "@/lib/types/server";
+import { Message } from "@/lib/types/server-response-data";
 import { WebSocketMessage } from "@/lib/types/websocket";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
@@ -66,10 +66,9 @@ export default function LobbyChats() {
   }, [websocket]);
 
   useEffect(() => {
-    if (!last_message) return;
-
+    if (!last_message.current) return;
     last_message.current?.scrollIntoView();
-  }, [last_message]);
+  }, [last_message, messages]);
 
   return (
     <ScrollArea className="h-full grid content-end">

@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { GETRequest, POSTRequest } from "@/lib/server/requests";
-import { Lobby } from "@/lib/types/server";
+import { Lobby } from "@/lib/types/server-response-data";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Snail } from "lucide-react";
@@ -24,7 +24,7 @@ export default function Lobbies() {
         data: server_data,
         status,
         message,
-      } = await GETRequest<Lobby[]>("/v1/user/" + data!.user.id + "/lobbies");
+      } = await GETRequest<Lobby[]>("/v1/user/lobbies");
       if (status !== "OK") {
         toast.error(message);
         throw new Error(message);

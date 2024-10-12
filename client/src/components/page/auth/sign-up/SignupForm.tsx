@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { POSTRequest } from "@/lib/server/requests";
-import { ServerResponse, User } from "@/lib/types/server";
+import { ServerResponse, User } from "@/lib/types/server-response-data";
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { AtSign, ChevronLeft, Eye, EyeOff, Snail } from "lucide-react";
 import { signIn } from "next-auth/react";

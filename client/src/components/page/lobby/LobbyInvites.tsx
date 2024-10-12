@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { DELETERequest, PATCHRequest } from "@/lib/server/requests";
-import { Invite } from "@/lib/types/server";
+import { Invite } from "@/lib/types/server-response-data";
 import { cn } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Trash } from "lucide-react";

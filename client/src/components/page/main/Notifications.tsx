@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GETRequest, PATCHRequest } from "@/lib/server/requests";
-import { Notification, ServerResponse } from "@/lib/types/server";
+import { Notification, ServerResponse } from "@/lib/types/server-response-data";
 import { WebSocketMessage } from "@/lib/types/websocket";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

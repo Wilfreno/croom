@@ -4,7 +4,7 @@ import LobbyChatSection from "@/components/page/lobby/LobbyChatSection";
 import LobbyVideo from "@/components/page/lobby/LobbyVideo";
 import { useWebsocket } from "@/components/providers/WebsocketProvider";
 import { GETRequest } from "@/lib/server/requests";
-import { Lobby } from "@/lib/types/server";
+import { Lobby } from "@/lib/types/server-response-data";
 import websocketMessage from "@/lib/websocket/websocket-message";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GETRequest, POSTRequest } from "@/lib/server/requests";
-import { Invite, ServerResponse } from "@/lib/types/server";
+import { Invite, ServerResponse } from "@/lib/types/server-response-data";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Snail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";

@@ -2,7 +2,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { AuthOptions } from "next-auth";
 import { GETRequest, POSTRequest } from "./server/requests";
-import { User } from "./types/server";
+import { User } from "./types/server-response-data";
 
 const google_client_id = process.env.GOOGLE_CLIENT_ID;
 if (!google_client_id)

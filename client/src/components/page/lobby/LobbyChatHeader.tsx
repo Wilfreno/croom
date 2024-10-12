@@ -22,7 +22,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { GETRequest, PATCHRequest, POSTRequest } from "@/lib/server/requests";
-import { Invite, Lobby, ServerResponse } from "@/lib/types/server";
+import {
+  Invite,
+  Lobby,
+  ServerResponse,
+} from "@/lib/types/server-response-data";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {

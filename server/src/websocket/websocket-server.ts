@@ -1,11 +1,11 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { WebSocket } from "@fastify/websocket";
-import redisSub from "src/redis/channel-listener";
+import redisSub from "../redis/channel-listener";
 import messageEventListener from "./websocket-event-listener";
 
 const online_user = new Map<string, WebSocket>();
 
-export default async function websocketServer(
+export default function websocketServer(
   fastify: FastifyInstance,
   _: FastifyPluginOptions,
   done: () => void

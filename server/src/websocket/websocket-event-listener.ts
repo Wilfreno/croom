@@ -72,7 +72,7 @@ export default async function messageEventListener(
                 return;
               }
 
-              await redis.sadd(redis_lobby_key);
+              await redis.sadd(redis_lobby_key, user_id);
               await redis.smembers(redis_lobby_key).then((members) =>
                 members.forEach((user) => {
                   if (user !== user_id)
