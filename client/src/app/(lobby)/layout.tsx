@@ -1,14 +1,14 @@
 import MainHeader from "@/components/page/main/MainHeader";
 import MainSideBar from "@/components/page/main/MainSideBar";
+import MediaDeviceProvider from "@/components/providers/MediaDeviceProvider";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="flex">
-      <MainSideBar />
-      <div className="grid grid-rows-[auto_1fr] grow max-h-dvh">
-        <MainHeader />
+    <MediaDeviceProvider>
+      <section className="flex">
+        <MainSideBar />
         {children}
-      </div>
-    </section>
+      </section>
+    </MediaDeviceProvider>
   );
 }

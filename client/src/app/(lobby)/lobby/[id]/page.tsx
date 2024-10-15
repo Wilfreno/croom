@@ -56,9 +56,9 @@ export default function Page({ params }: { params: { id: string } }) {
   if (error) throw error;
 
   return (
-    <main className="flex w-full h-full overflow-hidden">
+    <main className="flex w-full h-dvh overflow-hidden">
       <LobbyVideo />
-      <LobbyChatSection />
+      {/* <LobbyChatSection /> */}
     </main>
   );
 }

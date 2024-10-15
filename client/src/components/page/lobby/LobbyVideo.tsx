@@ -1,150 +1,98 @@
 "use client";
+import { useUserMedia } from "@/components/providers/MediaDeviceProvider";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import { cn } from "@/lib/utils";
-import {
-  Mic,
-  MicOff,
-  PhoneOff,
-  Video,
-  VideoOff,
-  Volume1,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import React, { useState } from "react";
+import { PhoneOff, Video, VideoOff } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import LobbyMic from "./LobbyMic";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function LobbyVideo() {
-  const [videos, setVideos] = useState(["", "", "",]);
   const [status, setStatus] = useState({
     volume: 0,
     audio: false,
     video: false,
   });
+  const user_media = useUserMedia();
+  const my_video_ref = useRef<HTMLVideoElement>(null);
+
+  const [user_number, setUserNumber] = useState(4);
+  useEffect(() => {
+    if (!user_media || !my_video_ref.current) return;
+
+    my_video_ref.current.srcObject = user_media;
+  }, [user_media, my_video_ref.current]);
+
+  const { cols, item_width, item_height } = useMemo(() => {
+    if (user_number <= 1)
+      return { cols: 1, item_height: "100%", item_width: "auto" };
+    if (user_number <= 2)
+      return { cols: 2, item_height: "auto", item_width: "50%" };
+    if (user_number <= 4)
+      return { cols: 2, item_height: "50%", item_width: "auto" };
+    if (user_number <= 6)
+      return { cols: 3, item_height: "auto", item_width: "33%" };
+    return {
+      cols: 4,
+      item_width: "25%",
+      item_height: "auto",
+    };
+  }, [user_number]);
 
   return (
-    <section className="w-full h-full max-h-dvh bg-secondary-foreground relative">
-      <div className="w-full h-full flex flex-wrap items-center justify-center p-1 gap-1">
-        {videos.slice(0, 4).map((_, index) => (
-          <div
-            key={index}
-            className="h-1/2 w-[49.5%]   bg-red-500 flex items-center justify-center "
-          >
-            <span className="text-xl font-bold">{index}</span>
-          </div>
-        ))}
-        
+    <section className="h-full w-full max-h-vdh overflow-hidden grid grid-rows-[1fr_auto] place-items-center bg-secondary-foreground">
+      <div className="w-full h-full overflow-hidden flex flex-wrap items-center justify-center">
+        <AnimatePresence initial={false}>
+          {Array.from({ length: user_number })
+            .slice(0, Math.min(user_number, 12))
+            .map((_, index) => (
+              <motion.div
+                animate={{
+                  width: item_width,
+                  height: item_height,
+                }}
+                key={index}
+                className={cn(
+                  "relative aspect-video rounded-lg p-1",
+                  index >= user_number - (user_number % cols) &&
+                    user_number % cols !== 0
+                    ? "sm:flex sm:justify-center"
+                    : ""
+                )}
+              >
+                <motion.video
+                  key={index * 10}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  ref={my_video_ref}
+                  autoPlay
+                  playsInline
+                  height={1080}
+                  width={1920}
+                  className="h-full w-full object-cover rounded-lg bg-muted "
+                ></motion.video>
+              </motion.div>
+            ))}
+        </AnimatePresence>
       </div>
-      <div className="gap-12 flex absolute bottom-4 left-1/2 -translate-x-1/2">
-        <div className="flex items-center gap-2">
-          <span className="h-6">
-            {status.volume ? (
-              status.volume > 80 ? (
-                <Volume2 className="h-full w-auto stroke-primary" />
-              ) : (
-                <Volume1 className="h-full w-auto stroke-primary" />
-              )
+      <div className="gap-4 flex  items-center justify-center px-2 py-4">
+        <LobbyMic />
+        <Button
+          size="icon"
+          onClick={() => setStatus((prev) => ({ ...prev, video: !prev.video }))}
+        >
+          <span className="h-4">
+            {status.video ? (
+              <VideoOff className="h-full w-auto" />
             ) : (
-              <VolumeX className="h-full w-auto stroke-primary" />
+              <Video className="h-full w-auto" />
             )}
           </span>
-          <div>
-            <Input
-              className="w-12 h-auto text-xs bg-primary text-center"
-              type="text"
-              inputMode="numeric"
-              id="custom"
-              max={100}
-              min={0}
-              value={status.volume.toString()}
-              onChange={(e) => {
-                if (!e.target.value) {
-                  setStatus((prev) => ({
-                    ...prev,
-                    volume: 0,
-                  }));
-                  return;
-                }
-                if (!Number(e.target.value)) return;
-                if (Number(e.target.value) < 0) {
-                  setStatus((prev) => ({
-                    ...prev,
-                    volume: 0,
-                  }));
-                  return;
-                }
-                if (Number(e.target.value) > 100) {
-                  setStatus((prev) => ({
-                    ...prev,
-                    volume: 100,
-                  }));
-                  return;
-                }
-
-                setStatus((prev) => ({
-                  ...prev,
-                  volume: Number(e.target.value),
-                }));
-              }}
-            />
-          </div>
-          <TooltipProvider disableHoverableContent delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Slider
-                  className="w-28"
-                  value={[status.volume]}
-                  max={100}
-                  step={1}
-                  onValueChange={(e) =>
-                    setStatus((prev) => ({ ...prev, volume: e[0] }))
-                  }
-                />
-              </TooltipTrigger>
-              <TooltipContent>{status.volume}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="flex gap-4">
-          <Button
-            size="icon"
-            onClick={() =>
-              setStatus((prev) => ({ ...prev, audio: !prev.audio }))
-            }
-          >
-            <span className="h-4">
-              {status.audio ? (
-                <MicOff className="h-full w-auto" />
-              ) : (
-                <Mic className="h-full w-auto" />
-              )}
-            </span>
-          </Button>
-          <Button
-            size="icon"
-            onClick={() =>
-              setStatus((prev) => ({ ...prev, video: !prev.video }))
-            }
-          >
-            <span className="h-4">
-              {status.video ? (
-                <VideoOff className="h-full w-auto" />
-              ) : (
-                <Video className="h-full w-auto" />
-              )}
-            </span>
-          </Button>
-          <Button size="icon" variant="destructive">
-            <PhoneOff className="h-4 w-auto" />
-          </Button>
-        </div>
+        </Button>
+        <Button size="icon" variant="destructive">
+          <PhoneOff className="h-4 w-auto" />
+        </Button>
       </div>
     </section>
   );
