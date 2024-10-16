@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import User from "../database/models/User";
 import websocketMessage from "./websocket-message";
 import {
+  PeerConnectionMessage,
   UserLobbyPayload,
   WebSocketMessage,
 } from "../lib/types/websocket-types";
@@ -104,6 +105,15 @@ export default async function messageEventListener(
                     ?.send(websocketMessage("leave", user_id));
                 })
               );
+
+              break;
+            }
+            case "peer-connect": {
+              const payload = parsed_message.payload as PeerConnectionMessage;
+              if (!online_user.has(payload.receiver_id)) break;
+              online_user
+                .get(payload.receiver_id)
+                ?.send(websocketMessage("peer-connect", payload));
 
               break;
             }

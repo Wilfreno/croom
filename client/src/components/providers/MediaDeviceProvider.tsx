@@ -1,10 +1,10 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 
-const UserMediaContext = createContext<MediaStream | null>(null);
+const RTCPeerConnectionContext = createContext<RTCPeerConnection | null>(null);
 
-export function useUserMedia() {
-  return useContext(UserMediaContext);
+export function useRTCPeerConnection() {
+  return useContext(RTCPeerConnectionContext);
 }
 
 export default function MediaDeviceProvider({
@@ -12,22 +12,17 @@ export default function MediaDeviceProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [connection, setConnection] = useState<RTCPeerConnection | null>(null);
 
   useEffect(() => {
-    if (!navigator) return;
+    if (!window) return;
 
-    navigator.mediaDevices
-      .getUserMedia({
-        audio: true,
-        video: true,
-      })
-      .then((data) => setStream(data));
+    setConnection(new RTCPeerConnection());
   }, []);
 
   return (
-    <UserMediaContext.Provider value={stream}>
+    <RTCPeerConnectionContext.Provider value={connection}>
       {children}
-    </UserMediaContext.Provider>
+    </RTCPeerConnectionContext.Provider>
   );
 }

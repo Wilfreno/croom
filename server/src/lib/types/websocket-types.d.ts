@@ -12,15 +12,18 @@ export type WebSocketPayload =
   | string
   | UserLobbyPayload
   | MessagePayload
-  | WebsocketNotification;
+  | WebsocketNotification
+  | PeerConnectionMessage
+  | UserTracks;
 
 export type WebsocketPayloadType =
   | "join"
+  | "USER_TRACKS"
+  | "peer-connect"
   | "leave"
   | "send-message"
   | "delete-message"
   | "notification"
-  | "open-camera"
   | "error";
 
 export interface MessagePayload extends Message {
@@ -38,3 +41,16 @@ export type UserLobbyPayload = {
 export interface WebsocketNotification extends Omit<Notification, "receiver"> {
   receiver: string;
 }
+
+export type PeerConnectionMessage = {
+  type: "OFFER" | "ANSWER";
+  data: RTCSessionDescriptionInit;
+  receiver_id: string;
+  sender_id: string;
+};
+
+export type UserTracks = {
+  sender_id: string;
+  lobby_id: string;
+  tracks_id: string
+};
