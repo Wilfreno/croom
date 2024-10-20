@@ -2,7 +2,7 @@ import {
   MessagePayload,
   WebsocketNotification,
 } from "../lib/types/websocket-types";
-import websocketMessage from "../websocket/websocket-message";
+import websocketMessage from "./websocket-message";
 import WebSocket from "ws";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 
@@ -38,7 +38,7 @@ export default function redisSub(
                 if (user !== parsed_message.sender.id)
                   online_user
                     .get(user)
-                    ?.send(websocketMessage("delete-message", parsed_message));
+                    ?.send(websocketMessage("DELETE_MESSAGE", parsed_message));
               })
             );
             break;
@@ -51,7 +51,7 @@ export default function redisSub(
                 if (user !== parsed_message.sender.id)
                   online_user
                     .get(user)
-                    ?.send(websocketMessage("send-message", parsed_message));
+                    ?.send(websocketMessage("SEND_MESSAGE", parsed_message));
               })
             );
             break;
@@ -66,7 +66,7 @@ export default function redisSub(
 
         online_user
           .get(parsed_message.receiver)!
-          .send(websocketMessage("notification", parsed_message));
+          .send(websocketMessage("NOTIFICATION", parsed_message));
         break;
       }
       default:

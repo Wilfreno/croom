@@ -15,6 +15,7 @@ export default function Page() {
   const { data } = useSession();
 
   const { data: lobbies } = useQuery({
+    enabled: !!data,
     queryKey: ["lobbies", data],
     placeholderData: [],
     queryFn: async () => {

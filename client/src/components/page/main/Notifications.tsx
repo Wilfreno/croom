@@ -6,7 +6,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +15,7 @@ import { WebSocketMessage } from "@/lib/types/websocket";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Snail } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -23,8 +23,10 @@ import { toast } from "sonner";
 export default function Notifications() {
   const websocket = useWebsocket();
   const query_client = useQueryClient();
+  const { data: session } = useSession();
 
   const { data: notifications } = useQuery({
+    enabled: !!session,
     queryKey: ["notifications"],
     queryFn: async () => {
       const {
@@ -74,7 +76,7 @@ export default function Notifications() {
     websocket.addEventListener("message", (event) => {
       const parsed_data = JSON.parse(event.data) as WebSocketMessage;
 
-      if (parsed_data.type === "notification") {
+      if (parsed_data.type === "NOTIFICATION") {
         query_client.setQueryData<Notification[]>(["notifications"], (prev) => [
           ...prev!,
           parsed_data.payload as Notification,

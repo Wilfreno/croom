@@ -5,6 +5,7 @@
     "hdel",
     "hget",
     "hset",
+    "mediasoup",
     "NEXTAUTH",
     "tailwindcss",
     "tanstack",

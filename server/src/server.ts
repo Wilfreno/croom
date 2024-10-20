@@ -61,6 +61,7 @@ fastify
 fastify.register(websocket);
 fastify.register(websocketServer);
 
+
 //routes
 fastify.register(v1Router, { prefix: "/v1" });
 fastify.get("/health", async (request, reply) => {

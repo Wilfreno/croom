@@ -4,8 +4,6 @@ import { useSession } from "next-auth/react";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-
-
 const WebsocketContext = createContext<WebSocket | null>(null);
 
 export function useWebsocket() {
@@ -35,7 +33,7 @@ export default function WebsocketProvider({
     ws.addEventListener("message", (event) => {
       const parsed_data = JSON.parse(event.data) as WebSocketMessage;
 
-      if (parsed_data.type === "error") {
+      if (parsed_data.type === "ERROR") {
         toast(parsed_data.payload as string);
         throw new Error(parsed_data.payload as string);
       }

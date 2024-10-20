@@ -2,6 +2,8 @@ import { Message } from "../database/models/Message";
 import { Lobby } from "../database/models/Lobby";
 import { User } from "../database/models/User";
 import { Notification } from "src/database/models/Notification";
+import { MediaKind, RtpCapabilities } from "mediasoup/node/lib/RtpParameters";
+import { DtlsParameters } from "mediasoup/node/lib/types";
 
 export type WebSocketMessage = {
   type: WebsocketPayloadType;
@@ -13,18 +15,32 @@ export type WebSocketPayload =
   | UserLobbyPayload
   | MessagePayload
   | WebsocketNotification
-  | PeerConnectionMessage
-  | UserTracks;
+  | RtpCapabilities
+  | TransportParamsPayload
+  | DtlsParametersPayload
+  | ProducerParamsPayload
+  | RtpCapabilitiesPayload;
 
 export type WebsocketPayloadType =
-  | "join"
-  | "USER_TRACKS"
-  | "peer-connect"
-  | "leave"
-  | "send-message"
-  | "delete-message"
-  | "notification"
-  | "error";
+  | "JOIN_LOBBY"
+  | "RTP_CAPABILITIES"
+  | "GET_TRANSPORT_PARAMS"
+  | "TRANSPORT_PARAMS"
+  | "CONNECT_SENDER_TRANSPORT"
+  | "CONNECT_RECEIVER_TRANSPORT"
+  | "CREATE_PRODUCER"
+  | "PRODUCER_ID"
+  | "CONSUME"
+  | "CONSUME_VIDEO"
+  | "CONSUME_AUDIO"
+  | "RESUME_VIDEO_CONSUMER"
+  | "RESUME_AUDIO_CONSUMER"
+  | "LEAVE_LOBBY"
+  | "SEND_MESSAGE"
+  | "DELETE_MESSAGE"
+  | "NOTIFICATION"
+  | "ERROR"
+  | "RESTART_CLIENT";
 
 export interface MessagePayload extends Message {
   status: "UPDATED" | "DELETED";
@@ -42,15 +58,41 @@ export interface WebsocketNotification extends Omit<Notification, "receiver"> {
   receiver: string;
 }
 
-export type PeerConnectionMessage = {
-  type: "OFFER" | "ANSWER";
-  data: RTCSessionDescriptionInit;
-  receiver_id: string;
-  sender_id: string;
+export type DtlsParametersPayload = {
+  user_id: string;
+  dtlsParameters: DtlsParameters;
 };
 
-export type UserTracks = {
-  sender_id: string;
+type TransportParams = {
+  id: string;
+  iceParameters: IceParameters;
+  iceCandidates: IceCandidate[];
+  dtlsParameters: DtlsParameters;
+};
+export type TransportParamsPayload = {
+  sender: TransportParams;
+  receiver: TransportParams;
+};
+
+export type ProducerPayload = {
+  user_id: string;
+  params: {
+    kind: MediaKind;
+    rtpParameters: RtpParameters;
+    appData: AppData;
+  };
+};
+
+export type RtpCapabilitiesPayload = {
+  user_id: string;
   lobby_id: string;
-  tracks_id: string
+  rtpCapabilities: RtpCapabilities;
+};
+
+export type ConsumerPayload = {
+  owner: string;
+  kind: MediaKind;
+  id: string;
+  producer_id: string;
+  rtpParameters: RtpParameters;
 };

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { WebSocket } from "@fastify/websocket";
-import redisSub from "../redis/channel-listener";
-import messageEventListener from "./websocket-event-listener";
+import redisSub from "./redis-channel-sub";
+import mediasoupServer from "./mediasoup-server";
 
 const online_user = new Map<string, WebSocket>();
 
@@ -14,7 +14,7 @@ export default function websocketServer(
   fastify.register(redisSub, { online_user });
 
   // websocket message event listener
-  fastify.register(messageEventListener, { online_user });
+  fastify.register(mediasoupServer, { online_user });
 
   done();
 }

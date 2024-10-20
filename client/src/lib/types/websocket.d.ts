@@ -1,3 +1,11 @@
+import {
+  AppData,
+  DtlsParameters,
+  IceCandidate,
+  IceParameters,
+  MediaKind,
+  RtpParameters,
+} from "mediasoup-client/lib/types";
 import { Message, Notification } from "./server-response-data";
 
 export type WebSocketMessage = {
@@ -10,34 +18,72 @@ export type WebSocketPayload =
   | UserLobbyPayload
   | Message
   | Notification
-  | PeerConnectionMessage
-  | UserMedia;
+  | TransportParamsPayload
+  | DtlsParametersPayload
+  | ProducerParamsPayload
+  | RtpCapabilitiesPayload;
 
 export type WebsocketPayloadType =
-  | "join"
-  | "USER_MEDIA_STREAM"
-  | "peer-connect"
-  | "leave"
-  | "send-message"
-  | "delete-message"
-  | "notification"
-  | "error";
+  | "JOIN_LOBBY"
+  | "RTP_CAPABILITIES"
+  | "GET_TRANSPORT_PARAMS"
+  | "TRANSPORT_PARAMS"
+  | "CONNECT_SENDER_TRANSPORT"
+  | "CONNECT_RECEIVER_TRANSPORT"
+  | "CREATE_PRODUCER"
+  | "PRODUCER_ID"
+  | "CONSUME"
+  | "CONSUME_VIDEO"
+  | "CONSUME_AUDIO"
+  | "RESUME_VIDEO_CONSUMER"
+  | "RESUME_AUDIO_CONSUMER"
+  | "LEAVE_LOBBY"
+  | "SEND_MESSAGE"
+  | "DELETE_MESSAGE"
+  | "NOTIFICATION"
+  | "ERROR"
+  | "RESTART_CLIENT";
 
 export type UserLobbyPayload = {
   user_id: string;
   lobby_id: string;
 };
 
-export type PeerConnectionMessage = {
-  type: "OFFER" | "ANSWER" | "ICE_CANDIDATE";
-  data: RTCSessionDescriptionInit | RTCIceCandidate;
-  receiver_id: string;
-  sender_id: string;
+type TransportParams = {
+  id: string;
+  iceParameters: IceParameters;
+  iceCandidates: IceCandidate[];
+  dtlsParameters: DtlsParameters;
+};
+export type TransportParamsPayload = {
+  sender: TransportParams;
+  receiver: TransportParams;
 };
 
-export type UserMediaStream = {
-  sender_id: string;
-  receiver_id?: string;
-  lobby_id?: string;
-  user_media_stream_id: string;
+export type ProducerPayload = {
+  user_id: string;
+  params: {
+    kind: MediaKind;
+    rtpParameters: RtpParameters;
+    appData: AppData;
+  };
+};
+
+export type DtlsParametersPayload = {
+  user_id: string;
+  dtlsParameters: DtlsParameters;
+};
+
+export type RtpCapabilitiesPayload = {
+  user_id: string;
+  lobby_id: string;
+  rtpCapabilities: RtpCapabilities;
+};
+
+export type ConsumerPayload = {
+  owner: string;
+  kind: MediaKind;
+  id: string;
+  producer_id: string;
+  rtpParameters: RtpParameters;
 };
