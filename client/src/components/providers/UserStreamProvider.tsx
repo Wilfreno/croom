@@ -10,6 +10,8 @@ const UserMediaContext = createContext<{
   speakers: MediaDeviceInfo[];
   microphones: MediaDeviceInfo[];
   stream: MediaStream | null;
+  video_track: MediaStreamTrack | null;
+  audio_track: MediaStreamTrack | null;
 }>({
   is_available: false,
   cameras: [],
@@ -20,6 +22,8 @@ const UserMediaContext = createContext<{
   speakers: [],
   microphones: [],
   stream: null,
+  video_track: null,
+  audio_track: null,
 });
 
 export function useUserStream() {
@@ -97,6 +101,8 @@ export default function UserStreamProvider({
         changeCamera,
         speakers: device_info.speakers,
         microphones: device_info.microphones,
+        video_track: stream!.getVideoTracks()[0],
+        audio_track: stream!.getAudioTracks()[0],
       }}
     >
       {children}

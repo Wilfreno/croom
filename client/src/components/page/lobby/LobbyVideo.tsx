@@ -39,12 +39,18 @@ export default function LobbyVideo() {
   const [media_streams, setMediaStreams] = useState<Map<string, MediaStream>>(
     new Map()
   );
-  const [device, setDevice] = useState<Device>();
 
-  const user_stream = useUserStream();
+  const {
+    stream: user_stream,
+    is_available,
+    video_track,
+    audio_track,
+  } = useUserStream();
+
   const websocket = useWebsocket();
   const { data: session } = useSession();
   const params = useParams<{ id: string }>();
+  const device = useRef(new Device());
 
   const { cols, item_width, item_height } = useMemo(() => {
     if (media_streams.size <= 1)
@@ -78,12 +84,12 @@ export default function LobbyVideo() {
   });
 
   useEffect(() => {
-    if (!websocket || !user_stream.is_available || !session || !device) return;
+    if (!websocket || !session) return;
 
-    setDevice(new Device());
+    setMediaStreams((prev) => new Map(prev).set(session.user.id, user_stream!));
 
     function onOpen() {
-      websocket?.send(
+      websocket!.send(
         websocketMessage("JOIN_LOBBY", {
           user_id: session?.user.id,
           lobby_id: params.id,
@@ -97,7 +103,7 @@ export default function LobbyVideo() {
       switch (parsed_data.type) {
         case "RTP_CAPABILITIES": {
           try {
-            await device!.load({
+            await device.current.load({
               routerRtpCapabilities: parsed_data.payload as RtpCapabilities,
             });
 
@@ -116,8 +122,8 @@ export default function LobbyVideo() {
           const payload = parsed_data.payload as TransportParamsPayload;
 
           setTransport({
-            sender: device!.createSendTransport(payload.sender),
-            receiver: device!.createSendTransport(payload.receiver),
+            sender: device.current.createSendTransport(payload.sender),
+            receiver: device.current.createSendTransport(payload.receiver),
           });
 
           break;
@@ -135,16 +141,10 @@ export default function LobbyVideo() {
       websocket.removeEventListener("message", onMessage);
       websocket.close();
     };
-  }, [websocket, user_stream.is_available, session, device]);
+  }, [websocket]);
 
   useEffect(() => {
-    if (
-      !websocket ||
-      !session ||
-      !transport.sender ||
-      !user_stream.is_available
-    )
-      return;
+    if (!websocket || !session || !transport.sender || !is_available) return;
 
     transport.sender.on(
       "connect",
@@ -218,11 +218,11 @@ export default function LobbyVideo() {
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
-        track: user_stream.stream!.getVideoTracks()[0],
+        track: video_track!,
       });
 
       const audio_producer = await transport.sender!.produce({
-        track: user_stream.stream!.getAudioTracks()[0],
+        track: audio_track!,
         codecOptions: {
           opusStereo: true,
           opusFec: true,
@@ -254,7 +254,7 @@ export default function LobbyVideo() {
     return () => {
       if (transport.sender) transport.sender.close();
     };
-  }, [transport.sender, websocket, session, user_stream.is_available]);
+  }, [websocket, session, transport.sender, is_available]);
 
   useEffect(() => {
     if (!transport.receiver || !websocket || !session || !device) return;
@@ -281,7 +281,7 @@ export default function LobbyVideo() {
       websocketMessage("CONSUME", {
         lobby_id: params.id,
         user_id: session.user.id,
-        rtpCapabilities: device.rtpCapabilities,
+        rtpCapabilities: device.current.rtpCapabilities,
       } satisfies RtpCapabilitiesPayload)
     );
 
@@ -340,7 +340,7 @@ export default function LobbyVideo() {
 
       if (transport.receiver) transport.receiver.close();
     };
-  }, [transport.receiver, websocket, session, device]);
+  }, [transport.receiver, websocket, session]);
 
   if (error) throw error;
 

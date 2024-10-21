@@ -139,7 +139,6 @@ export default async function mediasoupServer(
                   ],
                 });
                 lobby_router.set(lobby_id, router);
-                fastify.log.info({}, "lobby router created");
               }
               online_user
                 .get(user_id)
@@ -436,22 +435,6 @@ export default async function mediasoupServer(
           user_audio_consumer.delete(user_id);
           user_sender_transports.delete(user_id);
           user_receiver_transports.delete(user_id);
-
-          if (!(await redis.exists(redis_lobby_key))) return;
-          await redis.srem(redis_lobby_key, user_id);
-
-          if (!redis.scard(redis_lobby_key)) {
-            redis.del(redis_lobby_key);
-            return;
-          }
-
-          await redis.smembers(redis_lobby_key).then((members) =>
-            members.forEach((user) => {
-              online_user
-                .get(user)
-                ?.send(websocketMessage("LEAVE_LOBBY", user_id));
-            })
-          );
         });
         socket.on("error", async () => {
           online_user.delete(user_id);
