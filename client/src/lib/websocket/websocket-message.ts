@@ -1,4 +1,7 @@
-import { WebSocketPayload, WebsocketPayloadType } from "../types/websocket";
+import {
+  WebSocketPayload,
+  WebsocketPayloadType,
+} from "../types/socketio-types";
 
 export default function websocketMessage(
   type: WebsocketPayloadType,

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GETRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-response-data";
-import { WebSocketMessage } from "@/lib/types/websocket";
+import { WebSocketMessage } from "@/lib/types/socketio-types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useEffect, useRef } from "react";

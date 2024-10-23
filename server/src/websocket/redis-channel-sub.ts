@@ -1,21 +1,22 @@
-import {
-  MessagePayload,
-  WebsocketNotification,
-} from "../lib/types/websocket-types";
-import websocketMessage from "./websocket-message";
-import WebSocket from "ws";
+import { DefaultEventsMap, Socket } from "socket.io";
+
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import {
+  ClientToServer,
+  MessagePayload,
+  ServerToCLient,
+  WebsocketNotification,
+} from "src/lib/types/socketio-types";
 
 export default function redisSub(
   fastify: FastifyInstance,
   options: FastifyPluginOptions & {
-    online_user: Map<string, WebSocket>;
+    socket: Socket<ClientToServer, ServerToCLient, DefaultEventsMap, unknown>;
   },
   done: () => void
 ) {
-  const { online_user } = options;
   const { redis } = fastify;
-
+  const { socket } = options;
   const redis_storage = redis["storage"];
   redis["sub"].subscribe("MESSAGE");
   redis["sub"].subscribe("NOTIFICATION");
@@ -36,9 +37,7 @@ export default function redisSub(
             await redis_storage.smembers(redis_lobby_key).then((members) =>
               members.forEach((user) => {
                 if (user !== parsed_message.sender.id)
-                  online_user
-                    .get(user)
-                    ?.send(websocketMessage("DELETE_MESSAGE", parsed_message));
+                  socket.to(user).emit("DELETE_MESSAGE", parsed_message);
               })
             );
             break;
@@ -49,9 +48,7 @@ export default function redisSub(
             await redis_storage.smembers(redis_lobby_key).then((members) =>
               members.forEach((user) => {
                 if (user !== parsed_message.sender.id)
-                  online_user
-                    .get(user)
-                    ?.send(websocketMessage("SEND_MESSAGE", parsed_message));
+                  socket.to(user).emit("SEND_MESSAGE", parsed_message);
               })
             );
             break;
@@ -62,11 +59,7 @@ export default function redisSub(
       case "NOTIFICATION": {
         const parsed_message = JSON.parse(message) as WebsocketNotification;
 
-        if (!online_user.has(parsed_message.receiver)) return;
-
-        online_user
-          .get(parsed_message.receiver)!
-          .send(websocketMessage("NOTIFICATION", parsed_message));
+        socket.to(parsed_message.receiver).emit("NOTIFICATION", parsed_message);
         break;
       }
       default:

@@ -3,7 +3,6 @@ import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const UserMediaContext = createContext<{
-  is_available: boolean;
   cameras: MediaDeviceInfo[];
   current_camera: string;
   changeCamera: (device_id: string) => Promise<void>;
@@ -13,7 +12,6 @@ const UserMediaContext = createContext<{
   video_track: MediaStreamTrack | null;
   audio_track: MediaStreamTrack | null;
 }>({
-  is_available: false,
   cameras: [],
   current_camera: "",
   changeCamera: async (device_id: string) => {
@@ -94,7 +92,6 @@ export default function UserStreamProvider({
   return (
     <UserMediaContext.Provider
       value={{
-        is_available: !!stream,
         stream,
         cameras: device_info.cameras,
         current_camera,

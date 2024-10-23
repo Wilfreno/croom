@@ -1,11 +1,10 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import websocket from "@fastify/websocket";
 import "dotenv/config";
 import connectToDB from "./database/connect";
-import websocketServer from "./websocket/websocket-server";
+import socketIOServer from "./websocket/socketio-server";
 import redis from "@fastify/redis";
-
+import socketio from "fastify-socket.io";
 import v1Router from "./routes/v1/v1";
 import jwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
@@ -58,9 +57,7 @@ fastify
   });
 
 //websocket
-fastify.register(websocket);
-fastify.register(websocketServer);
-
+fastify.register(socketio);
 
 //routes
 fastify.register(v1Router, { prefix: "/v1" });
@@ -70,12 +67,15 @@ fastify.get("/health", async (request, reply) => {
 
 // ensure to connect to the database before the server run
 fastify.register(connectToDB).then(() =>
-  fastify.listen({ port: 8000, host: "0.0.0.0" }).catch((error) => {
-    fastify.log.error(error);
+  fastify
+    .listen({ port: 8000, host: "0.0.0.0" })
+    .then(() => fastify.register(socketIOServer))
+    .catch((error) => {
+      fastify.log.error(error);
 
-    fastify.redis["sub"].unsubscribe("MESSAGE");
-    fastify.redis["sub"].unsubscribe("NOTIFICATION");
-    fastify.redis["storage"].quit();
-    process.exit(1);
-  })
+      fastify.redis["sub"].unsubscribe("MESSAGE");
+      fastify.redis["sub"].unsubscribe("NOTIFICATION");
+      fastify.redis["storage"].quit();
+      process.exit(1);
+    })
 );

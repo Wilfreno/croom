@@ -5,27 +5,16 @@ import { PhoneOff, Video, VideoOff } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import LobbyMic from "./LobbyMic";
 import { AnimatePresence, motion } from "framer-motion";
-import { useWebsocket } from "@/components/providers/WebsocketProvider";
 import { useUserStream } from "@/components/providers/UserStreamProvider";
-import {
-  ConsumerPayload,
-  ProducerPayload,
-  RtpCapabilitiesPayload,
-  TransportParamsPayload,
-  UserLobbyPayload,
-  WebSocketMessage,
-} from "@/lib/types/websocket";
-import websocketMessage from "@/lib/websocket/websocket-message";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { Device } from "mediasoup-client";
-import { RtpCapabilities } from "mediasoup-client/lib/RtpParameters";
 import { Transport } from "mediasoup-client/lib/Transport";
-import { AppData } from "mediasoup-client/lib/types";
-import { toast } from "sonner";
+import { AppData, Consumer } from "mediasoup-client/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { GETRequest } from "@/lib/server/requests";
 import { Lobby } from "@/lib/types/server-response-data";
+import { useSocketIO } from "@/components/providers/SocketIOProvider";
 
 export default function LobbyVideo() {
   const [status, setStatus] = useState({
@@ -33,24 +22,17 @@ export default function LobbyVideo() {
     audio: false,
     video: false,
   });
-  const [transport, setTransport] = useState<
-    Record<"sender" | "receiver", Transport<AppData> | null>
-  >({ sender: null, receiver: null });
+
   const [media_streams, setMediaStreams] = useState<Map<string, MediaStream>>(
     new Map()
   );
+  const consume_transports = useRef<Map<string, Consumer<AppData>>>(new Map());
 
-  const {
-    stream: user_stream,
-    is_available,
-    video_track,
-    audio_track,
-  } = useUserStream();
+  const { stream: user_stream, video_track, audio_track } = useUserStream();
 
-  const websocket = useWebsocket();
+  const socket = useSocketIO();
   const { data: session } = useSession();
   const params = useParams<{ id: string }>();
-  const device = useRef(new Device());
 
   const { cols, item_width, item_height } = useMemo(() => {
     if (media_streams.size <= 1)
@@ -84,263 +66,163 @@ export default function LobbyVideo() {
   });
 
   useEffect(() => {
-    if (!websocket || !session) return;
+    if (!socket || !user_stream || !session || !video_track || !audio_track)
+      return;
 
-    setMediaStreams((prev) => new Map(prev).set(session.user.id, user_stream!));
+    const device = new Device();
+    let send_transport: Transport<AppData>;
+    let receive_transport: Transport<AppData>;
+    setMediaStreams((prev) => new Map(prev).set(session.user.id, user_stream));
 
-    function onOpen() {
-      websocket!.send(
-        websocketMessage("JOIN_LOBBY", {
-          user_id: session?.user.id,
-          lobby_id: params.id,
-        } as UserLobbyPayload)
-      );
-    }
+    socket.emit(
+      "JOIN_ROOM",
+      { user_id: session.user.id, lobby_id: params.id },
+      async (data) => {
+        await device.load({ routerRtpCapabilities: data });
 
-    async function onMessage(event: MessageEvent<any>) {
-      const parsed_data = JSON.parse(event.data) as WebSocketMessage;
+        socket.emit(
+          "CREATE_SEND_TRANSPORT",
+          { user_id: session.user.id, lobby_id: params.id },
+          async (data) => {
+            send_transport = device.createSendTransport(data);
+            send_transport.on(
+              "connect",
+              async ({ dtlsParameters }, success) => {
+                socket.emit("CONNECT_SEND_TRANSPORT", {
+                  user_id: session.user.id,
+                  dtls_parameters: dtlsParameters,
+                });
 
-      switch (parsed_data.type) {
-        case "RTP_CAPABILITIES": {
-          try {
-            await device.current.load({
-              routerRtpCapabilities: parsed_data.payload as RtpCapabilities,
+                success();
+              }
+            );
+
+            send_transport.on("produce", async (parameters, done) => {
+              socket.emit(
+                "CREATE_PRODUCER",
+                { user_id: session.user.id, lobby_id: params.id },
+                parameters,
+                ({ id, producers_are_available }) => {
+                  if (producers_are_available) {
+                    socket.emit(
+                      "GET_PRODUCERS",
+                      {
+                        user_id: session.user.id,
+                        lobby_id: params.id,
+                      },
+                      (ids) => {
+                        socket.emit(
+                          "CREATE_RECEIVE_TRANSPORT",
+                          { user_id: session.user.id },
+                          (params) => {
+                            receive_transport =
+                              device.createRecvTransport(params);
+
+                            receive_transport.on(
+                              "connect",
+                              async ({ dtlsParameters }, done) => {
+                                socket.emit("CONNECT_RECEIVE_TRANSPORT", {
+                                  user_id: session.user.id,
+                                  dtls_parameters: dtlsParameters,
+                                });
+
+                                done();
+                                for (const id of ids) {
+                                  socket.emit(
+                                    "CONSUME",
+                                    {
+                                      rtp_capabilities: device.rtpCapabilities,
+                                      producer_id: id,
+                                      user_id: session.user.id,
+                                    },
+                                    async ({
+                                      id,
+                                      kind,
+                                      producer_id,
+                                      rtp_parameters,
+                                      owner_id,
+                                    }) => {
+                                      try {
+                                        const consumer =
+                                          await receive_transport.consume({
+                                            id: id,
+                                            producerId: producer_id,
+                                            kind,
+                                            rtpParameters: rtp_parameters,
+                                          });
+
+                                        consume_transports.current.set(
+                                          owner_id,
+                                          consumer
+                                        );
+                                        setMediaStreams((prev) =>
+                                          new Map(prev).set(
+                                            owner_id,
+                                            new MediaStream([consumer.track])
+                                          )
+                                        );
+                                      } catch (error) {
+                                        throw error;
+                                      }
+                                    }
+                                  );
+                                }
+                              }
+                            );
+                          }
+                        );
+                      }
+                    );
+                  }
+                  done({ id });
+                }
+              );
             });
 
-            websocket?.send(
-              websocketMessage("GET_TRANSPORT_PARAMS", {
-                lobby_id: params.id,
-                user_id: session?.user.id,
-              } as UserLobbyPayload)
-            );
-            break;
-          } catch (error) {
-            throw error;
-          }
-        }
-        case "TRANSPORT_PARAMS": {
-          const payload = parsed_data.payload as TransportParamsPayload;
-
-          setTransport({
-            sender: device.current.createSendTransport(payload.sender),
-            receiver: device.current.createSendTransport(payload.receiver),
-          });
-
-          break;
-        }
-
-        default:
-          break;
-      }
-    }
-    websocket.addEventListener("open", onOpen);
-    websocket.addEventListener("message", onMessage);
-
-    return () => {
-      websocket.removeEventListener("open", onOpen);
-      websocket.removeEventListener("message", onMessage);
-      websocket.close();
-    };
-  }, [websocket]);
-
-  useEffect(() => {
-    if (!websocket || !session || !transport.sender || !is_available) return;
-
-    transport.sender.on(
-      "connect",
-      async ({ dtlsParameters }, parametersTransmitted, isError) => {
-        try {
-          websocket.send(
-            websocketMessage("CONNECT_SENDER_TRANSPORT", {
-              user_id: session.user.id,
-              dtlsParameters,
-            })
-          );
-          parametersTransmitted();
-        } catch (error) {
-          isError(error as Error);
-        }
-      }
-    );
-
-    transport.sender.on(
-      "produce",
-      async (parameters, setProducerID, isError) => {
-        try {
-          websocket.send(
-            websocketMessage("CREATE_PRODUCER", {
-              params: {
-                kind: parameters.kind,
-                rtpParameters: parameters.rtpParameters,
-                appData: parameters.appData,
+            send_transport.produce({
+              track: video_track,
+              encodings: [
+                {
+                  rid: "r0",
+                  maxBitrate: 100000,
+                  scalabilityMode: "S1T3",
+                },
+                {
+                  rid: "r1",
+                  maxBitrate: 300000,
+                  scalabilityMode: "S1T3",
+                },
+                {
+                  rid: "r2",
+                  maxBitrate: 900000,
+                  scalabilityMode: "S1T3",
+                },
+              ],
+              codecOptions: {
+                videoGoogleStartBitrate: 1000,
               },
-              user_id: session?.user.id,
-            } as ProducerPayload)
-          );
-          websocket.addEventListener("message", async (event) => {
-            const parsed_data = JSON.parse(event.data) as WebSocketMessage;
-
-            switch (parsed_data.type) {
-              case "PRODUCER_ID": {
-                setProducerID({ id: parsed_data.payload as string });
-                break;
-              }
-              default:
-                break;
-            }
-          });
-        } catch (error) {
-          isError(error as Error);
-        }
+            });
+            send_transport.produce({
+              track: audio_track,
+            });
+          }
+        );
       }
     );
 
-    (async function () {
-      const video_producer = await transport.sender!.produce({
-        // mediasoup params
-        encodings: [
-          {
-            rid: "r0",
-            maxBitrate: 100000,
-            scalabilityMode: "S1T3",
-          },
-          {
-            rid: "r1",
-            maxBitrate: 300000,
-            scalabilityMode: "S1T3",
-          },
-          {
-            rid: "r2",
-            maxBitrate: 900000,
-            scalabilityMode: "S1T3",
-          },
-        ],
-        codecOptions: {
-          videoGoogleStartBitrate: 1000,
-        },
-        track: video_track!,
+    function onProducerCLose(owner_id: string) {
+      consume_transports.current.get(owner_id)?.close();
+      setMediaStreams((prev) => {
+        const p = prev;
+        p.delete(owner_id);
+        return p;
       });
-
-      const audio_producer = await transport.sender!.produce({
-        track: audio_track!,
-        codecOptions: {
-          opusStereo: true,
-          opusFec: true,
-          opusDtx: true,
-        },
-        encodings: [
-          {
-            maxBitrate: 64000,
-          },
-        ],
-      });
-      video_producer.on("trackended", () => {
-        console.log("video track ended");
-      });
-
-      video_producer.on("transportclose", () => {
-        console.log(" video  transport ended");
-      });
-
-      audio_producer.on("trackended", () => {
-        console.log("audio track ended");
-      });
-
-      audio_producer.on("transportclose", () => {
-        console.log("audio transport ended");
-      });
-    })();
-
-    return () => {
-      if (transport.sender) transport.sender.close();
-    };
-  }, [websocket, session, transport.sender, is_available]);
-
-  useEffect(() => {
-    if (!transport.receiver || !websocket || !session || !device) return;
-
-    transport.receiver.on(
-      "connect",
-      async ({ dtlsParameters }, transportParamsTransmitted, isError) => {
-        try {
-          websocket.send(
-            websocketMessage("CONNECT_RECEIVER_TRANSPORT", {
-              user_id: session.user.id,
-              dtlsParameters,
-            })
-          );
-
-          transportParamsTransmitted();
-        } catch (error) {
-          isError(error as Error);
-        }
-      }
-    );
-
-    websocket.send(
-      websocketMessage("CONSUME", {
-        lobby_id: params.id,
-        user_id: session.user.id,
-        rtpCapabilities: device.current.rtpCapabilities,
-      } satisfies RtpCapabilitiesPayload)
-    );
-
-    async function receiverTransportWebsocketMessage(event: MessageEvent<any>) {
-      const parsed_data = JSON.parse(event.data) as WebSocketMessage;
-
-      const payload = parsed_data.payload as ConsumerPayload;
-
-      switch (parsed_data.type) {
-        case "CONSUME_VIDEO": {
-          const { track } = await transport.receiver!.consume({
-            id: payload.id,
-            producerId: payload.producer_id,
-            kind: payload.kind,
-            rtpParameters: payload.rtpParameters,
-          });
-
-          setMediaStreams((prev) =>
-            new Map(prev).set(payload.owner, new MediaStream([track]))
-          );
-
-          websocket?.send(
-            websocketMessage("RESUME_VIDEO_CONSUMER", session?.user.id)
-          );
-          break;
-        }
-        case "CONSUME_AUDIO": {
-          const { track } = await transport.receiver!.consume({
-            id: payload.id,
-            producerId: payload.producer_id,
-            kind: payload.kind,
-            rtpParameters: payload.rtpParameters,
-          });
-
-          setMediaStreams((prev) =>
-            new Map(prev).set(payload.owner, new MediaStream([track]))
-          );
-          break;
-        }
-        case "RESTART_CLIENT": {
-          toast("An Error has occurred RELOAD YOUR PAGE");
-          break;
-        }
-        default:
-          break;
-      }
     }
-
-    websocket.addEventListener("message", receiverTransportWebsocketMessage);
-
+    socket.on("PRODUCER_CLOSED", onProducerCLose);
     return () => {
-      websocket.removeEventListener(
-        "message",
-        receiverTransportWebsocketMessage
-      );
-
-      if (transport.receiver) transport.receiver.close();
+      socket.off("PRODUCER_CLOSED", onProducerCLose);
     };
-  }, [transport.receiver, websocket, session]);
+  }, [socket, user_stream, session, params.id, video_track, audio_track]);
 
   if (error) throw error;
 
