@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
-import Photo from "../../database/models/Photo";
+import Photo, { PhotoSchema } from "../../database/models/Photo";
 
 export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
@@ -192,98 +192,93 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   //     }
   //   );
 
-  //   //update user
-  //   fastify.patch<{
-  //     Params: { key: keyof UserType };
-  //     Body: Omit<UserType, "photo"> & { photo: PhotoType; id: string };
-  //   }>("/:key", async (request, reply) => {
-  //     try {
-  //       const { key } = request.params;
-  //       const { username, id, display_name, password, photo, status, is_new } = request.body;
+  //update user
+  fastify.patch<{
+    Params: { key: keyof UserSchema };
+    Body: Omit<UserSchema, "photo"> & { photo: PhotoSchema; id: string };
+  }>("/:key", async (request, reply) => {
+    try {
+      const { key } = request.params;
+      const { username, id, display_name, password, photo, status } = request.body;
 
-  //       if (!id) return reply.code(400).send(JSONResponse("BAD_REQUEST", "id is required on the request body"));
+      if (!id) return reply.code(400).send(JSONResponse("BAD_REQUEST", "id is required on the request body"));
 
-  //       const found_user = await User.findOne({ _id: id });
+      const found_user = await User.findOne({ _id: id });
 
-  //       if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
 
-  //       switch (key) {
-  //         case "username": {
-  //           if (!username)
-  //             return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
+      switch (key) {
+        case "username": {
+          if (!username)
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
 
-  //           await User.updateOne({ _id: id }, { $set: { username, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { username, last_updated: new Date() } });
 
-  //           break;
-  //         }
+          break;
+        }
 
-  //         case "display_name": {
-  //           if (!display_name)
-  //             return reply.code(400).send(JSONResponse("BAD_REQUEST", "display_name is required on the request body"));
+        case "display_name": {
+          if (!display_name)
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "display_name is required on the request body"));
 
-  //           await User.updateOne({ _id: id }, { $set: { display_name, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { display_name, last_updated: new Date() } });
 
-  //           break;
-  //         }
-  //         case "password": {
-  //           if (!password)
-  //             return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
+          break;
+        }
+        case "password": {
+          if (!password)
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
 
-  //           await User.updateOne(
-  //             { _id: id },
-  //             {
-  //               $set: {
-  //                 password: await hash(password, 14),
-  //                 last_updated: new Date(),
-  //               },
-  //             }
-  //           );
+          await User.updateOne(
+            { _id: id },
+            {
+              $set: {
+                password: await hash(password, 14),
+                last_updated: new Date(),
+              },
+            }
+          );
 
-  //           break;
-  //         }
-  //         case "photo": {
-  //           if (!photo) return reply.code(400).send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
+          break;
+        }
+        case "photo": {
+          if (!photo) return reply.code(400).send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
 
-  //           const new_photo = new Photo({
-  //             owner: found_user._id,
-  //             type: "PROFILE",
-  //             url: photo.url,
-  //           });
+          const new_photo = new Photo({
+            owner: found_user._id,
+            type: "PROFILE",
+            url: photo.url,
+          });
 
-  //           await new_photo.save();
+          await new_photo.save();
 
-  //           if (found_user.photo) await Photo.deleteOne({ _id: found_user.photo });
+          if (found_user.photo) await Photo.deleteOne({ _id: found_user.photo });
 
-  //           await User.updateOne({ _id: id }, { $set: { photo: new_photo._id, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { photo: new_photo._id, last_updated: new Date() } });
 
-  //           break;
-  //         }
-  //         case "status": {
-  //           if (!status)
-  //             return reply.code(400).send(JSONResponse("BAD_REQUEST", "status is required on the request body"));
+          break;
+        }
+        case "status": {
+          if (!status)
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "status is required on the request body"));
 
-  //           await User.updateOne({ _id: id }, { $set: { status, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { status, last_updated: new Date() } });
 
-  //           break;
-  //         }
-  //         case "is_new": {
-  //           await User.updateOne({ _id: id }, { $set: { is_new, last_updated: new Date() } });
+          break;
+        }
+        default: {
+          return reply.code(400).send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
+        }
+      }
 
-  //           break;
-  //         }
-  //         default: {
-  //           return reply.code(400).send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
-  //         }
-  //       }
+      const new_user = await User.findOne({ _id: id }).populate("photo").select("-password");
 
-  //       const new_user = await User.findOne({ _id: id }).populate("photo").select("-password");
-
-  //       return reply.code(200).send(JSONResponse("OK", "user " + key + " is updated", new_user?.toJSON()));
-  //     } catch (error) {
-  //       fastify.log.error(error);
-  //       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-  //     }
-  //   });
+      return reply.code(200).send(JSONResponse("OK", "user " + key + " is updated", new_user?.toJSON()));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
 
   //   //delete user
 

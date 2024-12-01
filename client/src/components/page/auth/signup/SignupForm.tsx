@@ -99,7 +99,10 @@ export default function SignUpForm() {
         redirect: false,
       });
 
-      if (sign_in?.error) throw new Error(sign_in.error);
+      if (sign_in?.error) {
+        toast.error(sign_in.error);
+        throw new Error(sign_in.error);
+      }
       router.push(from ? from : "/");
     },
   });
