@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import ChatRoom from "src/database/models/ChatRoom";
-import User, { UserSchema } from "src/database/models/User";
-import JSONResponse from "src/lib/json-response";
+import ChatRoom from "../../database/models/ChatRoom";
+import User, { UserSchema } from "../../database/models/User";
+import JSONResponse from "../../lib/json-response";
 
 export default function v1SearchRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create

@@ -88,6 +88,7 @@ const auth_options: AuthOptions = {
         }
         return true;
       } catch (error) {
+        console.log(error);
         return false;
       }
     },
@@ -115,7 +116,7 @@ const auth_options: AuthOptions = {
     },
     async session({ session, token }) {
       try {
-        session.user = token as any;
+        session.user = token as User;
         return session;
       } catch (error) {
         throw error;
