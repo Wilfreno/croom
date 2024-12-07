@@ -1,3 +1,4 @@
+"use client";
 import { POSTRequest } from "@/lib/server/requests";
 import { useSession } from "next-auth/react";
 import React, { useEffect } from "react";

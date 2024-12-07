@@ -19,6 +19,7 @@
     "@fastify/cors": "^10.0.1",
     "@fastify/jwt": "^9.0.1",
     "@fastify/redis": "^7.0.1",
+    "@fastify/websocket": "^11.0.1",
     "@react-email/components": "^0.0.28",
     "@react-email/render": "^1.0.2",
     "@react-email/tailwind": "^1.0.2",

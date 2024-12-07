@@ -7,7 +7,7 @@ export type UserSchema = {
   email: string;
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
-  chat_rooms: Types.ObjectId[];
+  conversations: Types.ObjectId[];
   date_created: Date;
   last_updated: Date;
 };
@@ -48,10 +48,10 @@ const userSchema = new Schema<UserSchema>({
     ref: "Photo",
     default: null,
   },
-  chat_rooms: [
+  conversations: [
     {
       type: Schema.Types.ObjectId,
-      ref: "ChatRoom",
+      ref: "Conversation",
       default: [],
     },
   ],

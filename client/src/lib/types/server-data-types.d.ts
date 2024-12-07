@@ -19,13 +19,25 @@ export type Photo = {
   date_created: Date;
 };
 
-export type ChatRoom = {
+export type Conversation = {
   id: string;
-  is_private: boolean;
-  members: Member[];
   name: string;
+  is_private: boolean;
+  is_group_chat: boolean;
+  members: Member[];
   messages: Message[];
-  photo: Photo;
+  photo: Types.ObjectId;
+  date_created: Date;
+  last_updated: Date;
+};
+export type Message = {
+  id: string;
+  conversation: Conversation;
+  status: "DELETED" | "UPDATED";
+  sender: User;
+  text: string;
+  photos: Photo[];
+  seen_by: User[];
   date_created: Date;
   last_updated: Date;
 };

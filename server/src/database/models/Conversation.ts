@@ -1,8 +1,10 @@
 import { model, Schema, Types } from "mongoose";
 
-export type ChatRoomSchema = {
+export type ConversationSchema = {
   name: string;
   is_private: boolean;
+  is_group_chat: boolean;
+  admins: Types.ObjectId[];
   members: Types.ObjectId[];
   messages: Types.ObjectId[];
   photo: Types.ObjectId;
@@ -10,7 +12,7 @@ export type ChatRoomSchema = {
   last_updated: Date;
 };
 
-const chatRoomSchema = new Schema<ChatRoomSchema>({
+const conversationSchema = new Schema<ConversationSchema>({
   name: {
     type: String,
     default: "",
@@ -19,10 +21,21 @@ const chatRoomSchema = new Schema<ChatRoomSchema>({
     type: Boolean,
     default: true,
   },
+  is_group_chat: {
+    type: Boolean,
+    default: false,
+  },
   members: [
     {
       type: Schema.Types.ObjectId,
-      ref: "Member",
+      ref: "User",
+      default: [],
+    },
+  ],
+  admins: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       default: [],
     },
   ],
@@ -48,7 +61,7 @@ const chatRoomSchema = new Schema<ChatRoomSchema>({
   },
 });
 
-chatRoomSchema.set("toJSON", {
+conversationSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
   transform: (_, ret) => {
@@ -57,6 +70,6 @@ chatRoomSchema.set("toJSON", {
   },
 });
 
-const ChatRoom = model("ChatRoom", chatRoomSchema);
+const Conversation = model("Conversation", conversationSchema);
 
-export default ChatRoom;
+export default Conversation;

@@ -1,25 +1,20 @@
 import { model, Schema, Types } from "mongoose";
 
 export type MessageSchema = {
-  chat_room: Types.ObjectId;
-  type: "TEXT";
+  conversation: Types.ObjectId;
   status: "DELETED" | "UPDATED";
   sender: Types.ObjectId;
   text: string;
+  photos: Types.ObjectId[];
   seen_by: Types.ObjectId[];
   date_created: Date;
   last_updated: Date;
 };
 
 const messageSchema = new Schema<MessageSchema>({
-  chat_room: {
+  conversation: {
     type: Schema.Types.ObjectId,
-    ref: "ChatRoom",
-    required: true,
-  },
-  type: {
-    type: String,
-    enum: ["TEXT"],
+    ref: "Conversation",
     required: true,
   },
   sender: {
@@ -29,8 +24,15 @@ const messageSchema = new Schema<MessageSchema>({
   },
   text: {
     type: String,
-    required: true,
+    default: "",
   },
+  photos: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Photo",
+      default: [],
+    },
+  ],
   status: {
     type: String,
     enum: ["DELETED", "UPDATED"],

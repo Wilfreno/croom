@@ -11,7 +11,7 @@ export default function MainSideBar() {
   const items = [{ name: "Home", icon: <House className={icon_styles} /> }];
 
   return (
-    <aside className="inset-y-0 shadow-md flex flex-col items-center px-1 py-3 bg-background rounded-r">
+    <aside className="inset-y-0 flex flex-col items-center py-5 px-4">
       <div className="flex flex-col items-center">
         {items.map((item) => (
           <TooltipProvider key={item.name}>

@@ -7,6 +7,7 @@ import cookie from "@fastify/cookie";
 import JSONResponse from "./lib/json-response";
 import v1Router from "./router/v1/v1";
 import connectToDB from "./database/connect";
+import websocket from "@fastify/websocket";
 
 const fastify = Fastify({
   logger: true,
@@ -52,17 +53,9 @@ fastify
     host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
     namespace: "sub",
   });
+//websocket
+fastify.register(websocket);
 
-//socketIO
-// fastify.register(socketio, {
-//   cors: {
-//     origin: process.env.NODE_ENV === "production" ? "https://chatup.vercel.app" : "http://localhost:3000",
-//     methods: ["POST", "GET"],
-//     credentials: true,
-//   },
-// });
-// fastify.register(socketIOServer);
-//routes
 fastify.register(v1Router, { prefix: "/v1" });
 fastify.get("/health", async (_, reply) => {
   return reply.code(200).send(JSONResponse("OK", "request successful"));
@@ -83,4 +76,3 @@ fastify.register(connectToDB).then(async () => {
       process.exit(1);
     });
 });
-

@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import NextAuthProvider from "@/components/providers/NextAuthProvider";
+import CustomServerSessionProvider from "@/components/providers/CustomServerSessionProvider";
+import WebsocketProvider from "@/components/providers/WebsocketProvider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -26,7 +28,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={cn(poppins.className, "w-full h-dvh")}>
         <NextAuthProvider>
-          <ReactQueryProvider>{children}</ReactQueryProvider>
+          <CustomServerSessionProvider>
+            <ReactQueryProvider>
+              <WebsocketProvider>{children}</WebsocketProvider>
+            </ReactQueryProvider>
+          </CustomServerSessionProvider>
           <Toaster richColors />
         </NextAuthProvider>
       </body>

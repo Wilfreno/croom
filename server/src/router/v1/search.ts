@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import ChatRoom from "../../database/models/ChatRoom";
+import Conversation from "../../database/models/Conversation";
 import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 
@@ -35,14 +35,14 @@ export default function v1SearchRouter(fastify: FastifyInstance, _: FastifyPlugi
               ],
             },
             {
-              _id: { $not: user.id },
+              _id: { $ne: user.id },
             },
           ],
         })
-          .select("display_name username photo")
+          .select("display_name username photo status")
           .populate({ path: "photo", select: "url" });
 
-        const found_chat_rooms = await ChatRoom.find({
+        const found_chat_rooms = await Conversation.find({
           name: {
             $regex: "^" + value,
             $options: "i",

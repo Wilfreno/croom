@@ -92,7 +92,11 @@ export default function SignUpForm() {
         throw error;
       }
     },
-    onSuccess: async () => {
+    onSuccess: () => sign_in.mutate(),
+  });
+
+  const sign_in = useMutation({
+    mutationFn: async () => {
       const sign_in = await signIn("credentials", {
         username: "@" + form.username,
         password: form.password,
@@ -226,7 +230,7 @@ export default function SignUpForm() {
               <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
               <p className="font-bold text-xl text-primary">Sending OTP</p>
             </DialogContent>
-          ) : verify_otp.isPending || submit_form.isPending ? (
+          ) : verify_otp.isPending || submit_form.isPending || sign_in.isPending ? (
             <DialogContent className="grid place-items-center w-[32rem]">
               <DialogHeader>
                 <DialogTitle></DialogTitle>

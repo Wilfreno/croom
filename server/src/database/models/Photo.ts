@@ -4,6 +4,8 @@ export type PhotoSchema = {
   owner: Types.ObjectId;
   type: "PROFILE" | "CHAT_ROOM" | "MESSAGE";
   url: string;
+  width: number;
+  height: number;
   date_created: Date;
 };
 
@@ -18,6 +20,14 @@ const photoSchema = new Schema<PhotoSchema>({
   },
   url: {
     type: String,
+    required: true,
+  },
+  width: {
+    type: Number,
+    required: true,
+  },
+  height: {
+    type: Number,
     required: true,
   },
   date_created: {
