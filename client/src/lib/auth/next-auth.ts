@@ -1,7 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { AuthOptions } from "next-auth";
-import { GETRequest, POSTRequest } from "../server/requests";
+import { GETRequest, PATCHRequest, POSTRequest } from "../server/requests";
 import { User } from "../types/server-data-types";
 
 const google_client_id = process.env.GOOGLE_CLIENT_ID;
@@ -78,7 +78,7 @@ const auth_options: AuthOptions = {
               provider: "GOOGLE",
             });
 
-            await POSTRequest("/v1/user/photo", {
+            await PATCHRequest("/v1/user/photo", {
               owner: data.id,
               photo: {
                 url: profile.picture,

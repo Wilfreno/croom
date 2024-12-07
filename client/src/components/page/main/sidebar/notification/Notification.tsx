@@ -6,7 +6,7 @@ export default function Notification() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="aspect-square h-fit w-auto p-2">
+        <Button variant="outline" className="aspect-square h-fit w-auto p-2">
           <Bell className="h-4 w-auto" />
         </Button>
       </DropdownMenuTrigger>

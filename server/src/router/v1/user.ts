@@ -140,6 +140,55 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
     }
   });
 
+  fastify.get<{ Querystring: { value: string } }>(
+    "/search",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        const { value } = request.query;
+        const user = request.user as UserSchema & { id: string };
+
+        const found_users = await User.find({
+          $and: [
+            {
+              $or: [
+                {
+                  username: {
+                    $regex: "^" + value,
+                    $options: "i",
+                  },
+                },
+                {
+                  display_name: {
+                    $regex: "^" + value,
+                    $options: "i",
+                  },
+                },
+              ],
+            },
+            {
+              _id: { $ne: user.id },
+            },
+          ],
+        })
+          .select("display_name username photo status")
+          .populate({ path: "photo", select: "url" });
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            found_users.map((user) => user.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //   fastify.get("/lobbies", { preValidation: async (request) => await request.jwtVerify() }, async (request, reply) => {
   //     try {
   //       const user = request.user as UserType & { id: string };
@@ -193,6 +242,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   //   );
 
   //update user
+
   fastify.patch<{
     Params: { key: keyof UserSchema };
     Body: Omit<UserSchema, "photo"> & { photo: PhotoSchema; id: string };
@@ -299,29 +349,29 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   //     }
   //   });
 
-  //   fastify.delete(
-  //     "/session",
-  //     {
-  //       preValidation: async (request) => await request.jwtVerify(),
-  //     },
-  //     async (_, reply) => {
-  //       try {
-  //         return reply
-  //           .code(200)
-  //           .setCookie("chatup-session-token", "", {
-  //             domain: process.env.NODE_ENV === "production" ? "chatup.vercel.app" : "127.0.0.1",
-  //             path: "/",
-  //             secure: process.env.NODE_ENV === "production",
-  //             sameSite: "lax",
-  //             httpOnly: true,
-  //             maxAge: 0,
-  //           })
-  //           .send(JSONResponse("OK", "user session is created"));
-  //       } catch (error) {
-  //         fastify.log.error(error);
-  //         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-  //       }
-  //     }
-  //   );
+  fastify.delete(
+    "/session",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (_, reply) => {
+      try {
+        return reply
+          .code(200)
+          .setCookie("chatup-session-token", "", {
+            domain: process.env.NODE_ENV === "production" ? "chatup.vercel.app" : "127.0.0.1",
+            path: "/",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            httpOnly: true,
+            maxAge: 0,
+          })
+          .send(JSONResponse("OK", "user session is created"));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   done();
 }
