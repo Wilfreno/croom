@@ -44,7 +44,6 @@ export default async function websocketServer(fastify: FastifyInstance, _: Fasti
           $set: { status: "OFFLINE", last_online: new Date() },
         }
       );
-      console.log("USSERR::", user_id);
       online_users.delete(user_id);
     });
 

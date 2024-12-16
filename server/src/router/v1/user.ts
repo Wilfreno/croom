@@ -254,7 +254,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   );
 
   fastify.get(
-    "/active-friends",
+    "/active-conversation",
     { preValidation: async (request) => await request.jwtVerify() },
     async (request, reply) => {
       try {
