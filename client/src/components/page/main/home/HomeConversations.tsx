@@ -37,7 +37,7 @@ export default function HomeConversations() {
 
   return (
     <section className="h-full grid gap-2">
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full mb-2">
         <p className="font-bold">Conversations</p>
         <TooltipProvider>
           <Tooltip>
@@ -57,16 +57,17 @@ export default function HomeConversations() {
         {conversations!.map((convo) => {
           let conversation_name = convo.name;
           let other_user: User;
-          let photo_url = convo.photo?.url;
-          const seen =
-            convo.messages[0]?.sender.id !== session?.user.id &&
-            convo.messages[0]?.seen_by.some((user) => user.id === session?.user.id);
+          let photo_url: string | undefined = convo.photo?.url;
+          let seen = convo.messages[0]?.sender.id === session?.user.id;
+
+          if (!seen && convo.messages[0]?.seen_by.some((user) => user.id === session?.user.id)) seen = true;
 
           if (!convo.is_group_chat) {
             other_user = convo.members.find((member) => member.id !== session?.user.id)!;
             conversation_name = other_user.display_name;
             photo_url = other_user.photo?.url;
           }
+
           const date_sent = new Date(convo.messages[0].date_created);
           const now = new Date();
           const relative_date_in_seconds = Math.floor((now.getTime() - date_sent.getTime()) / 1000);
@@ -103,22 +104,21 @@ export default function HomeConversations() {
                   <UserRound className="h-1/2 w-auto" />
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col w-fit items-start justify-start">
+              <div className="flex flex-col items-start justify-start w-full">
                 <span className="font-semibold truncate  ">{conversation_name}</span>
                 <div
                   className={cn(
-                    "flex items-center justify-between text-xs",
+                    "flex items-center justify-between text-xs w-full",
                     seen ? "text-muted-foreground" : "font-semibold"
                   )}
                 >
-                  <span className="truncate  max-w-48">
-                    {/* {convo.messages[0].text ? convo.messages[0].text : convo.messages[0].sender.id + " sent a photo"} */}
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Accusantium libero veritatis unde corrupti.
-                    Cum, reprehenderit facilis exercitationem nesciunt accusantium repellendus optio consequatur minima
-                    aliquid earum! Hic assumenda ipsam nemo quisquam? Amet quasi accusantium enim modi ipsam illum animi
-                    ullam sit quidem odit! Mollitia, ad. Cumque natus tempora ipsa ipsam delectus?
-                  </span>
-                  <span>{time_interval_text}</span>
+                  <p className="truncate  max-w-48">
+                    {convo.messages[0]?.sender.id === session?.user.id && <span>you: </span>}
+                    <span>
+                      {convo.messages[0].text ? convo.messages[0].text : convo.messages[0].sender.id + " sent a photo"}
+                    </span>
+                  </p>
+                  <p>{time_interval_text}</p>
                 </div>
               </div>
             </div>

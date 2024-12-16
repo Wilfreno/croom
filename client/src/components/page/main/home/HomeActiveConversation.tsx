@@ -34,8 +34,8 @@ export default function HomeActiveConversations() {
       <div className="flex items-center gap-2 mx-auto">
         <ScrollArea className="w-80 min-h-20 py-2 pb-3  h-fit">
           {active_conversations!.map((conversation) => (
-            <Link key={conversation.id} href={"/conversation"} className="flex items-center gap-2">
-              <div className="flex flex-col items-center gap-1">
+            <Link key={conversation.id} href={"/conversation" + conversation.id}>
+              <div className="flex flex-col items-center gap-1 h-fit w-fit">
                 <UserAvatar
                   is_online
                   src={conversation.is_group_chat ? conversation.photo?.url : conversation.members[0].photo?.url}
