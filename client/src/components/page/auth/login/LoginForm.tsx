@@ -45,7 +45,7 @@ export default function LoginForm() {
           onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
         />
       </div>
-      <div>
+      <div className=" grid gap-2">
         <div className="relative">
           <Input
             placeholder="Password"
