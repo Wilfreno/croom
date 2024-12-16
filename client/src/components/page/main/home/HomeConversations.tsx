@@ -12,6 +12,7 @@ import { GETRequest } from "@/lib/server/requests";
 import { Conversation, User } from "@/lib/types/server-data-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 
 export default function HomeConversations() {
   const router = useRouter();
@@ -34,6 +35,16 @@ export default function HomeConversations() {
     },
     placeholderData: [],
   });
+  const { data: conversation_search } = useQuery<Conversation[]>({ queryKey: ["conversation", "search"] });
+
+  const to_display_conversation = useMemo(() => {
+    let to_display: Conversation[] = [];
+
+    if (conversation_search) to_display = conversation_search;
+    else to_display = conversations!;
+
+    return to_display;
+  }, [conversations, conversation_search]);
 
   return (
     <section className="h-full grid gap-2">
@@ -54,7 +65,7 @@ export default function HomeConversations() {
       </div>
       <SearchConversation />
       <ScrollArea className="h-[65dvh]">
-        {conversations!.map((convo) => {
+        {to_display_conversation.map((convo) => {
           let conversation_name = convo.name;
           let other_user: User;
           let photo_url: string | undefined = convo.photo?.url;
