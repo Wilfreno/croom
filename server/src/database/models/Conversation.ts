@@ -2,10 +2,10 @@ import { model, Schema, Types } from "mongoose";
 
 export type ConversationSchema = {
   name: string;
-  is_private: boolean;
   is_group_chat: boolean;
   admins: Types.ObjectId[];
   members: Types.ObjectId[];
+  nicknames: { user: Types.ObjectId; value: string }[];
   messages: Types.ObjectId[];
   photo: Types.ObjectId;
   date_created: Date;
@@ -16,10 +16,6 @@ const conversationSchema = new Schema<ConversationSchema>({
   name: {
     type: String,
     default: "",
-  },
-  is_private: {
-    type: Boolean,
-    default: true,
   },
   is_group_chat: {
     type: Boolean,
@@ -37,6 +33,16 @@ const conversationSchema = new Schema<ConversationSchema>({
       type: Schema.Types.ObjectId,
       ref: "User",
       default: [],
+    },
+  ],
+  nicknames: [
+    {
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      value: { type: String, default: "" },
     },
   ],
   messages: [

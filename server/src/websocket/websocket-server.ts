@@ -1,12 +1,12 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import User from "../database/models/User";
 import { WebSocket } from "@fastify/websocket";
-import websocketMessage from "src/lib/websocket-message";
+import websocketMessage from "../lib/websocket-message";
 import redisServer from "./redis-server";
 
 const online_users = new Map<string, WebSocket>();
 
-export default async function websocketServer(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
+export default async function websocketServer(fastify: FastifyInstance, _: FastifyPluginOptions) {
   fastify.get<{ Params: { user_id: string } }>("/ws/:user_id", { websocket: true }, async (socket, request) => {
     const { user_id } = request.params;
 
@@ -20,15 +20,16 @@ export default async function websocketServer(fastify: FastifyInstance, _: Fasti
     await User.updateOne(
       { _id: user_id },
       {
-        $set: { status: "ONLINE" },
+        $set: { status: "ONLINE", last_online: new Date() },
       }
     );
     online_users.set(user_id, socket);
+
     socket.on("close", async () => {
       await User.updateOne(
         { _id: user_id },
         {
-          $set: { status: "OFFLINE" },
+          $set: { status: "OFFLINE", last_online: new Date() },
         }
       );
       online_users.delete(user_id);
@@ -45,5 +46,4 @@ export default async function websocketServer(fastify: FastifyInstance, _: Fasti
     });
   });
   fastify.register(redisServer, { online_users: online_users });
-  done();
 }

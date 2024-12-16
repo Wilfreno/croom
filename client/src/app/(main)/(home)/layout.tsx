@@ -6,6 +6,7 @@ export default function layout({ children }: { children: React.ReactNode }) {
     <section className="w-full h-dvh max-h-dvh flex gap-4 p-4 bg-secondary">
       <HomeSideBar />
       {children}
-    </section>
+        
+      </section>
   );
 }

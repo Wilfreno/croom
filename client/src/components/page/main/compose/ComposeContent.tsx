@@ -36,7 +36,7 @@ export default function ComposeContent() {
     queryKey: ["conversation", selected_users?.[0]?.[0]],
     queryFn: async () => {
       try {
-        const { data, message, status } = await GETRequest<Message[]>(
+        const { data, message, status } = await GETRequest<Conversation[]>(
           "/v1/conversation?members=" + session?.user.id + "," + selected_users![0][0]
         );
 
@@ -104,6 +104,7 @@ export default function ComposeContent() {
 
   const create_new_conversation = useMutation({
     mutationFn: async () => {
+      console.log([session?.user.id, ...selected_users!.map((user) => user[0])]);
       try {
         const { data, status, message } = await POSTRequest<Conversation>("/v1/conversation", {
           members: [session?.user.id, ...selected_users!.map((user) => user[0])],
