@@ -14,17 +14,17 @@ export default function LoginContent() {
   if (from) search_params += "?from=" + from;
 
   return (
-    <>
+    <section className="w-[30vw] grid gap-8">
       <span className="grid gap-4">
         <LoginForm />
         <LoginWGoogle />
       </span>
-      <span className="text-sm">
+      <span>
         Don&apos;t have an account?
-        <Link href={"/sign-up" + search_params} className="text-primary">
+        <Link href={"/sign-up" + search_params} className="text-primary" prefetch>
           <Button variant="link">Sign Up</Button>
         </Link>
       </span>
-    </>
+    </section>
   );
 }

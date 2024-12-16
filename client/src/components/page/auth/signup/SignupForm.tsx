@@ -30,6 +30,8 @@ export default function SignUpForm() {
     open: boolean;
     interval_id?: NodeJS.Timeout;
   }>(resend_initial);
+  const [username_focused, setUsernameFocused] = useState(false);
+
   const from = useSearchParams().get("from");
   const router = useRouter();
 
@@ -116,91 +118,98 @@ export default function SignUpForm() {
   }
 
   return (
-    <>
-      <form className="grid gap-4" autoComplete="off">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            type="email"
-            id="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-          />
-        </div>
-        <div>
-          <span>
+    <section className="grid gap-4">
+      <form className="grid gap-10" autoComplete="off">
+        <section className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              type="email"
+              id="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="username">Username</Label>
-            <div className="relative">
-              <Input
-                className="pl-8"
-                id="username"
-                placeholder="Username"
-                value={form.username}
-                onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
-              />
-              <AtSign className="h-4 w-auto absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="grid gap-1">
+              <div className="relative">
+                <Input
+                  className="pl-8"
+                  id="username"
+                  placeholder="Username"
+                  value={form.username}
+                  onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
+                  onFocus={() => setUsernameFocused(true)}
+                  onBlur={() => !form.username && setUsernameFocused(false)}
+                />
+                <AtSign className="h-4 w-auto absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+              {username_focused && <p className="text-xs text-primary">This is how others see you</p>}
             </div>
-          </span>
-          <p className="text-xs text-muted-foreground">This is how others see you</p>
-        </div>
-        <div>
-          <span>
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                type={see_password[0] ? "text" : "password"}
-                id="password"
-                placeholder="Password"
-                value={form.password}
-                onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-full w-auto p-2  absolute right-2 top-1/2 -translate-y-1/2"
-                onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
-              >
-                {see_password[0] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
-              </Button>
+            <div className="grid gap-1">
+              <div className="relative">
+                <Input
+                  type={see_password[0] ? "text" : "password"}
+                  id="password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-full w-auto p-2  absolute right-2 top-1/2 -translate-y-1/2"
+                  onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
+                >
+                  {see_password[0] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
+                </Button>
+                {form.password && form.password.length < 8 && (
+                  <p className="text-xs text-muted-foreground text-red-500">
+                    Password must be at least 8 characters long
+                  </p>
+                )}
+              </div>
             </div>
-            {form.password && form.password.length < 8 && (
-              <p className="text-xs text-muted-foreground text-red-500">Password must be at least 8 characters long</p>
-            )}
-          </span>
-        </div>
-        <div>
-          <span>
+          </div>
+          <div className="grid gap-2">
             <Label htmlFor="confirm-password">Confirm Password</Label>
-            <div className="relative">
-              <Input
-                type={see_password[1] ? "text" : "password"}
-                id="confirm-password"
-                placeholder="Confirm Password"
-                value={form.confirm_password}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    confirm_password: e.target.value,
-                  }))
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-full w-auto p-2 absolute right-2 top-1/2 -translate-y-1/2"
-                onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
-              >
-                {see_password[1] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
-              </Button>
+            <div className="grid gap-1">
+              <div className="relative">
+                <Input
+                  type={see_password[1] ? "text" : "password"}
+                  id="confirm-password"
+                  placeholder="Confirm Password"
+                  value={form.confirm_password}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      confirm_password: e.target.value,
+                    }))
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-full w-auto p-2 absolute right-2 top-1/2 -translate-y-1/2"
+                  onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
+                >
+                  {see_password[1] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
+                </Button>
+              </div>
+              {form.confirm_password && form.password !== form.confirm_password && (
+                <p className="text-xs text-muted-foreground text-red-500">Password is not the same</p>
+              )}
             </div>
-          </span>
-          {form.confirm_password && form.password !== form.confirm_password && (
-            <p className="text-xs text-muted-foreground text-red-500">Password is not the same</p>
-          )}
-        </div>
+          </div>
+        </section>
+
         <Dialog
           onOpenChange={(e) => {
             if (!e) return;
@@ -300,7 +309,7 @@ export default function SignUpForm() {
           )}
         </Dialog>
       </form>
-      <span className="text-sm text-center">
+      <span>
         Already have an account?
         <Link href={"/login" + search_params}>
           <Button variant="link" className="text-primary">
@@ -308,6 +317,6 @@ export default function SignUpForm() {
           </Button>
         </Link>
       </span>
-    </>
+    </section>
   );
 }

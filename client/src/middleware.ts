@@ -14,12 +14,12 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({ req: request });
 
     if (!token) {
-      if (!pathname.startsWith("/login") && !pathname.startsWith("/welcome") && !pathname.startsWith("/sign-up")) {
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up")) {
         NextResponse.json({ message: "user unauthenticated" }, { status: 401 });
-        return NextResponse.redirect(origin + "/welcome" + search_params);
+        return NextResponse.redirect(origin + "/login" + search_params);
       }
     } else {
-      if (pathname.startsWith("/login") || pathname.startsWith("/sign-up") || pathname.startsWith("/welcome")) {
+      if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) {
         return NextResponse.redirect(origin + "/" + (search_params ? search_params : ""));
       }
     }
