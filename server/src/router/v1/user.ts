@@ -222,18 +222,26 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
               path: "photo",
               select: "url",
             })
-            .populate({ path: "messages", options: { sort: { date_created: -1 }, limit: 1 } });
+            .populate({
+              path: "messages",
+              options: { sort: { date_created: -1 }, limit: 1, populate: { path: "sender", select: "_id" } },
+            });
 
-          if (found_conversation?.is_group_chat) {
+          if (!found_conversation) continue;
+
+          if (found_conversation.is_group_chat) {
             conversations.push(found_conversation?.toJSON());
           } else {
-            const other_user = await User.findOne({
-              _id: found_conversation!.members.find((member) => member.toString() !== user.id),
-            })
-              .populate({ path: "photo", select: "url" })
-              .select("username display_name status photo");
-
-            conversations.push({ ...found_conversation!.toJSON(), members: other_user ? [other_user.toJSON()] : [] });
+            conversations.push(
+              (
+                await found_conversation.populate({
+                  path: "members",
+                  match: { _id: { $ne: user.id } },
+                  select: "_id display_name photo status",
+                  populate: { path: "photo", select: "url" },
+                })
+              ).toJSON()
+            );
           }
         }
 
