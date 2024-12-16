@@ -5,7 +5,7 @@ export type User = {
   password?: string;
   email: string;
   status: "OFFLINE" | "ONLINE";
-  photo: Photo;
+  photo?: Photo;
   chat_rooms: ChatRoom[];
   last_online: Date;
   date_created: Date;

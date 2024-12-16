@@ -5,7 +5,8 @@ import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation, { ConversationSchema } from "../../database/models/Conversation";
-import { ClientSession, startSession } from "mongoose";
+import { ClientSession, FlattenMaps, startSession, Types } from "mongoose";
+import { request } from "http";
 
 export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
@@ -244,42 +245,54 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
     }
   );
 
-  //   fastify.get(
-  //     "/notifications",
-  //     { preValidation: async (request) => await request.jwtVerify() },
-  //     async (request, reply) => {
-  //       try {
-  //         const user = request.user as UserType & { id: string };
+  fastify.get(
+    "/active-friends",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      try {
+        const user = request.user as UserSchema & { id: string };
 
-  //         const found_notification = await Notification.find({
-  //           receiver: user.id,
-  //         })
-  //           .sort({ last_updated: 1 })
-  //           .populate({
-  //             path: "lobby",
-  //             select: "name photo",
-  //             populate: { path: "photo", select: "url" },
-  //           })
-  //           .populate("invite");
+        const active_friends: { name: string; url?: string }[] = [];
 
-  //         return reply
-  //           .code(200)
-  //           .send(
-  //             JSONResponse(
-  //               "OK",
-  //               "request successful",
-  //               found_notification.length ? found_notification.map((n) => n.toJSON()) : []
-  //             )
-  //           );
-  //       } catch (error) {
-  //         fastify.log.error(error);
-  //         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-  //       }
-  //     }
-  //   );
+        for (const convo of user.conversations) {
+          const found_conversation = await Conversation.findOne({ _id: convo });
+          if (!found_conversation) continue;
+          for (const member of found_conversation.members) {
+            if (member.toString() === user.id) continue;
+            const found_member = await User.findOne({ _id: member, status: "ONLINE" });
+            if (found_member) {
+              let found_photo:
+                | FlattenMaps<
+                    PhotoSchema & {
+                      _id: Types.ObjectId;
+                    }
+                  >
+                | undefined;
+              if (found_conversation.is_group_chat) {
+                if (found_conversation.photo) {
+                  found_photo = (await Photo.findOne({ _id: found_conversation.photo }).select("url"))?.toJSON();
+                }
+                active_friends.push({ name: found_conversation.name, url: found_photo?.url });
+              } else {
+                if (found_member.photo) {
+                  found_photo = (await Photo.findOne({ _id: found_member.photo }).select("url"))?.toJSON();
+                }
+                active_friends.push({ name: found_member.display_name, url: found_photo?.url });
+              }
+              break;
+            }
+          }
+        }
 
-  //update user
+        return reply.code(200).send(JSONResponse("OK", "request successful", active_friends));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
 
+  //update
   fastify.patch<{
     Params: { id: string; key: keyof UserSchema };
     Body: Omit<UserSchema, "photo"> & { photo: PhotoSchema };

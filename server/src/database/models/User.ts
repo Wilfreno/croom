@@ -1,5 +1,6 @@
 import { ValidatorProps } from "mongoose";
 import { model, Schema, Types } from "mongoose";
+
 export type UserSchema = {
   display_name: string;
   username: string;
