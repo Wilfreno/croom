@@ -8,6 +8,7 @@ import JSONResponse from "./lib/json-response";
 import v1Router from "./router/v1/v1";
 import connectToDB from "./database/connect";
 import websocket from "@fastify/websocket";
+import websocketServer from "./websocket/websocket-server";
 
 const fastify = Fastify({
   logger: true,
@@ -53,8 +54,10 @@ fastify
     host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
     namespace: "sub",
   });
+
 //websocket
 fastify.register(websocket);
+fastify.register(websocketServer);
 
 fastify.register(v1Router, { prefix: "/v1" });
 fastify.get("/health", async (_, reply) => {

@@ -1,7 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { AuthOptions } from "next-auth";
-import { GETRequest, PATCHRequest, POSTRequest } from "../server/requests";
+import { GETRequest, POSTRequest } from "../server/requests";
 import { User } from "../types/server-data-types";
 
 const google_client_id = process.env.GOOGLE_CLIENT_ID;
@@ -71,25 +71,20 @@ const auth_options: AuthOptions = {
           const { status } = await GETRequest<User>("/v1/user/@" + email?.substring(0, email.indexOf("@")));
 
           if (status === "NOT_FOUND") {
-            const { data } = await POSTRequest<User>("/v1/user", {
+            const { status, message } = await POSTRequest<User>("/v1/user", {
               username: "@" + email!.substring(0, email?.indexOf("@")),
               display_name: email!.substring(0, email?.indexOf("@")),
               email: email!,
               provider: "GOOGLE",
+              photo_url: profile.picture,
             });
 
-            await PATCHRequest("/v1/user/photo", {
-              owner: data.id,
-              photo: {
-                url: profile.picture,
-              },
-            });
+            if (status !== "CREATED") throw new Error(message);
           }
         }
         return true;
       } catch (error) {
-        console.log(error);
-        return false;
+        throw (error as Error).message;
       }
     },
     async jwt({ token, profile, user, trigger, session }) {

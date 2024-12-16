@@ -4,6 +4,8 @@ import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
+import Conversation, { ConversationSchema } from "../../database/models/Conversation";
+import { ClientSession, startSession } from "mongoose";
 
 export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
@@ -14,10 +16,12 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       email: string;
       display_name: string;
       provider: "GOOGLE" | "CREDENTIALS";
+      photo_url: string;
     };
   }>("/", async (request, reply) => {
+    let session: ClientSession | null = null;
     try {
-      const { username, display_name, password, provider, email } = request.body;
+      const { username, display_name, password, provider, email, photo_url } = request.body;
       if (!username)
         return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
       if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email is required on the request body"));
@@ -42,6 +46,9 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       if (provider === "CREDENTIALS" && password.length < 8)
         return reply.code(400).send(JSONResponse("BAD_REQUEST", "password must be at least 8 characters long"));
 
+      session = await startSession();
+      session.startTransaction();
+
       const new_user = new User({
         display_name,
         username,
@@ -50,12 +57,22 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
         last_updated: new Date(),
       });
 
-      await new_user.save();
+      if (photo_url) {
+        const new_photo = new Photo({ owner: new_user._id, type: "PROFILE", url: photo_url });
+        await new_photo.save({ session });
+        new_user.photo = new_photo._id;
+      }
+
+      await new_user.save({ session });
+
+      await session.commitTransaction();
+      await session.endSession();
 
       return reply
         .code(201)
         .send(JSONResponse("CREATED", "new user created", exclude(new_user.toJSON(), ["password"])));
     } catch (error) {
+      await session?.abortTransaction();
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
@@ -189,23 +206,43 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       }
     }
   );
-  //   fastify.get("/lobbies", { preValidation: async (request) => await request.jwtVerify() }, async (request, reply) => {
-  //     try {
-  //       const user = request.user as UserType & { id: string };
+  fastify.get(
+    "/conversations",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      try {
+        const user = request.user as UserSchema & { id: string };
 
-  //       const lobbies = [];
+        const conversations = [];
 
-  //       for (const lobby_id of user.lobbies) {
-  //         const found_lobby = await Lobby.findOne({ _id: lobby_id }).populate("photo");
-  //         lobbies.push(found_lobby?.toJSON());
-  //       }
+        for (const conversation_id of user.conversations) {
+          const found_conversation = await Conversation.findOne({ _id: conversation_id })
+            .populate({
+              path: "photo",
+              select: "url",
+            })
+            .populate({ path: "messages", options: { sort: { date_created: -1 }, limit: 1 } });
 
-  //       return reply.code(200).send(JSONResponse("OK", "request successful", lobbies));
-  //     } catch (error) {
-  //       fastify.log.error(error);
-  //       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-  //     }
-  //   });
+          if (found_conversation?.is_group_chat) {
+            conversations.push(found_conversation?.toJSON());
+          } else {
+            const other_user = await User.findOne({
+              _id: found_conversation!.members.find((member) => member.toString() !== user.id),
+            })
+              .populate({ path: "photo", select: "url" })
+              .select("username display_name status photo");
+
+            conversations.push({ ...found_conversation!.toJSON(), members: other_user ? [other_user.toJSON()] : [] });
+          }
+        }
+
+        return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
 
   //   fastify.get(
   //     "/notifications",
@@ -244,25 +281,26 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   //update user
 
   fastify.patch<{
-    Params: { key: keyof UserSchema };
-    Body: Omit<UserSchema, "photo"> & { photo: PhotoSchema; id: string };
+    Params: { id: string; key: keyof UserSchema };
+    Body: Omit<UserSchema, "photo"> & { photo: PhotoSchema };
   }>("/:key", async (request, reply) => {
+    let session: ClientSession | null = null;
     try {
-      const { key } = request.params;
-      const { username, id, display_name, password, photo, status } = request.body;
-
-      if (!id) return reply.code(400).send(JSONResponse("BAD_REQUEST", "id is required on the request body"));
+      const { id, key } = request.params;
+      const { username, display_name, password, photo, status } = request.body;
 
       const found_user = await User.findOne({ _id: id });
-
       if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+      session = await startSession();
+      session.startTransaction();
 
       switch (key) {
         case "username": {
           if (!username)
             return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
 
-          await User.updateOne({ _id: id }, { $set: { username, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { username, last_updated: new Date() } }, { session });
 
           break;
         }
@@ -271,7 +309,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
           if (!display_name)
             return reply.code(400).send(JSONResponse("BAD_REQUEST", "display_name is required on the request body"));
 
-          await User.updateOne({ _id: id }, { $set: { display_name, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { display_name, last_updated: new Date() } }, { session });
 
           break;
         }
@@ -286,7 +324,8 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
                 password: await hash(password, 14),
                 last_updated: new Date(),
               },
-            }
+            },
+            { session }
           );
 
           break;
@@ -302,9 +341,9 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
 
           await new_photo.save();
 
-          if (found_user.photo) await Photo.deleteOne({ _id: found_user.photo });
+          if (found_user.photo) await Photo.deleteOne({ _id: found_user.photo }, { session });
 
-          await User.updateOne({ _id: id }, { $set: { photo: new_photo._id, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { photo: new_photo._id, last_updated: new Date() } }, { session });
 
           break;
         }
@@ -312,7 +351,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
           if (!status)
             return reply.code(400).send(JSONResponse("BAD_REQUEST", "status is required on the request body"));
 
-          await User.updateOne({ _id: id }, { $set: { status, last_updated: new Date() } });
+          await User.updateOne({ _id: id }, { $set: { status, last_updated: new Date() } }, { session });
 
           break;
         }
@@ -321,10 +360,12 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
         }
       }
 
-      const new_user = await User.findOne({ _id: id }).populate("photo").select("-password");
+      await session.commitTransaction();
+      await session.endSession();
 
-      return reply.code(200).send(JSONResponse("OK", "user " + key + " is updated", new_user?.toJSON()));
+      return reply.code(200).send(JSONResponse("OK", "user " + key + " is updated"));
     } catch (error) {
+      await session?.abortTransaction();
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }

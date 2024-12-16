@@ -8,6 +8,7 @@ export type UserSchema = {
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
   conversations: Types.ObjectId[];
+  last_online: Date;
   date_created: Date;
   last_updated: Date;
 };
@@ -55,6 +56,10 @@ const userSchema = new Schema<UserSchema>({
       default: [],
     },
   ],
+  last_online: {
+    type: Date,
+    default: Date.now,
+  },
   date_created: {
     type: Date,
     default: Date.now,

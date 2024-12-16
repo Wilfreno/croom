@@ -20,7 +20,7 @@ export type WebsocketPayloadType =
 export interface MessagePayload extends Message {
   status: "UPDATED" | "DELETED";
   id: string;
-  conversation: ConversationSchema & { id: string; members: { id: string[] } };
+  conversation: { id: string; members: string[] };
   sender: UserSchema & { id: string };
 }
 

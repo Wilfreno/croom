@@ -1,6 +1,5 @@
 "use client";
 import useDebounce from "@/components/hooks/useDebounce";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -10,9 +9,10 @@ import { GETRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, UserRound, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import UserAvatar from "../UserAvatar";
 
 export default function ComposeTo() {
   const [selected_users, setSelectedUsers] = useState<string[][]>([]);
@@ -64,7 +64,9 @@ export default function ComposeTo() {
   });
 
   return (
-    <div className={cn("w-full border-b flex items-center p-3 relative gap-4", selected_users.length && "shadow-lg")}>
+    <section
+      className={cn("w-full border-b flex items-center p-3 relative gap-4", selected_users.length && "shadow-lg")}
+    >
       <Label htmlFor="add-member">To: </Label>
       {selected_users.length > 5 && (
         <DropdownMenu>
@@ -154,17 +156,7 @@ export default function ComposeTo() {
                     input_ref.current?.focus();
                   }}
                 >
-                  <span className="relative">
-                    <Avatar>
-                      <AvatarImage src={user.photo?.url} />
-                      <AvatarFallback className="group-hover:bg-background">
-                        <UserRound className="h-1/2" />
-                      </AvatarFallback>
-                    </Avatar>
-                    {user.status === "ONLINE" && (
-                      <div className="bg-green-500 aspect-square h-2 w-auto rounded-full absolute bottom-1 right-1"></div>
-                    )}
-                  </span>
+                  <UserAvatar src={user.photo?.url} is_online={user.status === "ONLINE"} />
                   <div>
                     <p className="font-semibold">{user.display_name}</p>
                     <p className="text-xs text-muted-foreground">{user.username}</p>
@@ -175,6 +167,6 @@ export default function ComposeTo() {
           </ScrollArea>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

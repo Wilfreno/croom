@@ -1,12 +1,13 @@
 export type User = {
   id: string;
-  display_name: string;
   username: string;
+  display_name: string;
   password?: string;
   email: string;
   status: "OFFLINE" | "ONLINE";
   photo: Photo;
   chat_rooms: ChatRoom[];
+  last_online: Date;
   date_created: Date;
   last_updated: Date;
 };
@@ -16,6 +17,8 @@ export type Photo = {
   owner: User;
   type: "PROFILE" | "CHAT_ROOM" | "MESSAGE";
   url: string;
+  width: number;
+  height: number;
   date_created: Date;
 };
 
@@ -24,9 +27,12 @@ export type Conversation = {
   name: string;
   is_private: boolean;
   is_group_chat: boolean;
-  members: Member[];
+  admins: User[];
+  members: User[];
+  nicknames: { user: string; value: string }[];
   messages: Message[];
-  photo: Types.ObjectId;
+  photo: Photo;
+  last_online: Date;
   date_created: Date;
   last_updated: Date;
 };

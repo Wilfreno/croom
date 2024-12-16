@@ -1,7 +1,7 @@
 import WebSocket from "ws";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import { MessagePayload, WebsocketNotification } from "src/lib/types/websocket-types";
-import websocketMessage from "src/lib/websocket-message";
+import { MessagePayload, WebsocketNotification } from "../lib/types/websocket-types";
+import websocketMessage from "../lib/websocket-message";
 
 export default function redisServer(
   fastify: FastifyInstance,
@@ -13,7 +13,6 @@ export default function redisServer(
   const { online_users } = options;
   const { redis } = fastify;
 
-  const redis_storage = redis["storage"];
   redis["sub"].subscribe("MESSAGE");
   redis["sub"].subscribe("NOTIFICATION");
 
@@ -21,7 +20,7 @@ export default function redisServer(
     switch (channel) {
       case "MESSAGE": {
         const parsed_message = JSON.parse(message) as MessagePayload;
-        parsed_message.conversation.members.id.forEach((user) => {
+        parsed_message.conversation.members.forEach((user) => {
           if (user !== parsed_message.sender.id)
             online_users.get(user)?.send(websocketMessage("send-message", parsed_message));
         });

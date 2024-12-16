@@ -2,7 +2,7 @@ import { model, Schema, Types } from "mongoose";
 
 export type PhotoSchema = {
   owner: Types.ObjectId;
-  type: "PROFILE" | "CHAT_ROOM" | "MESSAGE";
+  type: "PROFILE" | "CONVERSATION" | "MESSAGE";
   url: string;
   width: number;
   height: number;
@@ -15,7 +15,7 @@ const photoSchema = new Schema<PhotoSchema>({
   },
   type: {
     type: String,
-    enum: ["PROFILE", "MESSAGE", "CHAT_ROOM"],
+    enum: ["PROFILE", "MESSAGE", "CONVERSATION"],
     required: true,
   },
   url: {
@@ -24,11 +24,11 @@ const photoSchema = new Schema<PhotoSchema>({
   },
   width: {
     type: Number,
-    required: true,
+    default: null,
   },
   height: {
     type: Number,
-    required: true,
+    default: null,
   },
   date_created: {
     type: Date,
