@@ -1,6 +1,6 @@
 import React from "react";
 import SidebarContent from "../SidebarContent";
-import HomeActiveFriends from "./HomeActiveFriends";
+import HomeActiveFriends from "./HomeActiveConversation";
 import HomeConversations from "./HomeConversations";
 
 export default function HomeSideBar() {

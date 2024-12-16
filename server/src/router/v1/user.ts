@@ -252,39 +252,37 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       try {
         const user = request.user as UserSchema & { id: string };
 
-        const active_friends: { name: string; url?: string }[] = [];
+        const conversations = [];
 
         for (const convo of user.conversations) {
           const found_conversation = await Conversation.findOne({ _id: convo });
           if (!found_conversation) continue;
+
           for (const member of found_conversation.members) {
             if (member.toString() === user.id) continue;
+
             const found_member = await User.findOne({ _id: member, status: "ONLINE" });
             if (found_member) {
-              let found_photo:
-                | FlattenMaps<
-                    PhotoSchema & {
-                      _id: Types.ObjectId;
-                    }
-                  >
-                | undefined;
               if (found_conversation.is_group_chat) {
-                if (found_conversation.photo) {
-                  found_photo = (await Photo.findOne({ _id: found_conversation.photo }).select("url"))?.toJSON();
-                }
-                active_friends.push({ name: found_conversation.name, url: found_photo?.url });
+                conversations.push((await found_conversation.populate({ path: "photo", select: "url" })).toJSON());
               } else {
-                if (found_member.photo) {
-                  found_photo = (await Photo.findOne({ _id: found_member.photo }).select("url"))?.toJSON();
-                }
-                active_friends.push({ name: found_member.display_name, url: found_photo?.url });
+                conversations.push(
+                  (
+                    await found_conversation.populate({
+                      path: "members",
+                      match: { _id: { $ne: user.id } },
+                      select: "display_name photo",
+                      populate: { path: "photo", select: "url" },
+                    })
+                  ).toJSON()
+                );
               }
               break;
             }
           }
         }
 
-        return reply.code(200).send(JSONResponse("OK", "request successful", active_friends));
+        return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));

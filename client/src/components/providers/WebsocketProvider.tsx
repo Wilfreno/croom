@@ -21,6 +21,7 @@ export default function WebsocketProvider({ children }: { children: React.ReactN
     if (!data) return;
 
     const ws = new WebSocket(websocket_url + "/ws/" + data.user.id);
+
     setWebsocket(ws);
 
     ws.addEventListener("message", (raw_data) => {
@@ -31,6 +32,10 @@ export default function WebsocketProvider({ children }: { children: React.ReactN
         throw new Error(parsed_data.payload as string);
       }
     });
+
+    return () => {
+      ws.close();
+    };
   }, [data]);
 
   return <WebsocketContext.Provider value={websocket}>{children}</WebsocketContext.Provider>;
