@@ -3,7 +3,6 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import UserAvatar from "../UserAvatar";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { toast } from "sonner";
 import { GETRequest } from "@/lib/server/requests";
 import Link from "next/link";
 import { Conversation } from "@/lib/types/server-data-types";
@@ -16,12 +15,12 @@ export default function HomeActiveConversations() {
     queryKey: [session, "active friends"],
     queryFn: async () => {
       try {
-        const { data, status, message } = await GETRequest<Conversation[]>("/v1/user/active-friends");
+        const { data, status, message } = await GETRequest<Conversation[]>("/v1/user/active-conversation");
 
         if (status !== "OK") throw new Error(message);
+
         return data;
       } catch (error) {
-        toast.error((error as Error).message);
         throw error;
       }
     },
@@ -31,8 +30,8 @@ export default function HomeActiveConversations() {
   return (
     <section className="w-full flex flex-col gap-1">
       <p className="font-bold">Active Conversations</p>
-      <div className="flex items-center gap-2 mx-auto">
-        <ScrollArea className="w-80 min-h-20 py-2 pb-3  h-fit">
+      <ScrollArea className="w-80 min-h-20 py-2 pb-3">
+        <div className="flex items-center gap-2 mx-auto">
           {active_conversations!.map((conversation) => (
             <Link key={conversation.id} href={"/conversation" + conversation.id}>
               <div className="flex flex-col items-center gap-1 h-fit w-fit">
@@ -47,8 +46,8 @@ export default function HomeActiveConversations() {
             </Link>
           ))}
           <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </div>
+        </div>
+      </ScrollArea>
     </section>
   );
 }
