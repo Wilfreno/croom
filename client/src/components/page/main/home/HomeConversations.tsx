@@ -65,76 +65,80 @@ export default function HomeConversations() {
       </div>
       <SearchConversation />
       <ScrollArea className="h-[65dvh]">
-        {to_display_conversation.map((convo) => {
-          let conversation_name = convo.name;
-          let other_user: User;
-          let photo_url: string | undefined = convo.photo?.url;
-          let seen = convo.messages[0]?.sender.id === session?.user.id;
+        <div className="grid gap-1">
+          {to_display_conversation.map((convo) => {
+            let conversation_name = convo.name;
+            let other_user: User;
+            let photo_url: string | undefined = convo.photo?.url;
+            let seen = convo.messages[0]?.sender.id === session?.user.id;
 
-          if (!seen && convo.messages[0]?.seen_by.some((user) => user.id === session?.user.id)) seen = true;
+            if (!seen && convo.messages[0]?.seen_by.some((user) => user.id === session?.user.id)) seen = true;
 
-          if (!convo.is_group_chat) {
-            other_user = convo.members.find((member) => member.id !== session?.user.id)!;
-            conversation_name = other_user.display_name;
-            photo_url = other_user.photo?.url;
-          }
+            if (!convo.is_group_chat) {
+              other_user = convo.members.find((member) => member.id !== session?.user.id)!;
+              conversation_name = other_user.display_name;
+              photo_url = other_user.photo?.url;
+            }
 
-          const date_sent = new Date(convo.messages[0].date_created);
-          const now = new Date();
-          const relative_date_in_seconds = Math.floor((now.getTime() - date_sent.getTime()) / 1000);
+            const date_sent = new Date(convo.messages[0].date_created);
+            const now = new Date();
+            const relative_date_in_seconds = Math.floor((now.getTime() - date_sent.getTime()) / 1000);
 
-          const day = 60 * 60 * 24;
+            const day = 60 * 60 * 24;
 
-          let time_interval_text = "";
+            let time_interval_text = "";
 
-          if (relative_date_in_seconds < day) {
-            time_interval_text +=
-              " " +
-              new Intl.DateTimeFormat("en-US", {
-                minute: "2-digit",
-                hour: "2-digit",
-              }).format(date_sent);
-          } else {
-            time_interval_text += Math.floor(relative_date_in_seconds / day) + " d";
-          }
-          return (
-            <div
-              key={convo.id}
-              className={cn(
-                "flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer",
-                pathname.startsWith("/conversation/" + convo.id) && "bg-muted"
-              )}
-              onClick={() => router.push("/conversation/" + convo.id)}
-            >
-              {!seen && (
-                <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>
-              )}
-              <Avatar>
-                <AvatarImage src={photo_url} />
-                <AvatarFallback>
-                  <UserRound className="h-1/2 w-auto" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start justify-start w-full">
-                <span className="font-semibold truncate  ">{conversation_name}</span>
-                <div
-                  className={cn(
-                    "flex items-center justify-between text-xs w-full",
-                    seen ? "text-muted-foreground" : "font-semibold"
-                  )}
-                >
-                  <p className="truncate  max-w-48">
-                    {convo.messages[0]?.sender.id === session?.user.id && <span>you: </span>}
-                    <span>
-                      {convo.messages[0].text ? convo.messages[0].text : convo.messages[0].sender.id + " sent a photo"}
-                    </span>
-                  </p>
-                  <p>{time_interval_text}</p>
+            if (relative_date_in_seconds < day) {
+              time_interval_text +=
+                " " +
+                new Intl.DateTimeFormat("en-US", {
+                  minute: "2-digit",
+                  hour: "2-digit",
+                }).format(date_sent);
+            } else {
+              time_interval_text += Math.floor(relative_date_in_seconds / day) + " d";
+            }
+            return (
+              <div
+                key={convo.id}
+                className={cn(
+                  "flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer",
+                  pathname.startsWith("/conversation/" + convo.id) && "bg-muted"
+                )}
+                onClick={() => router.push("/conversation/" + convo.id)}
+              >
+                {!seen && (
+                  <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>
+                )}
+                <Avatar>
+                  <AvatarImage src={photo_url} />
+                  <AvatarFallback>
+                    <UserRound className="h-1/2 w-auto" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start justify-start w-full">
+                  <span className="font-semibold truncate  ">{conversation_name}</span>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between text-xs w-full",
+                      seen ? "text-muted-foreground" : "font-semibold"
+                    )}
+                  >
+                    <p className="truncate  max-w-48">
+                      {convo.messages[0]?.sender.id === session?.user.id && <span>you: </span>}
+                      <span>
+                        {convo.messages[0].text
+                          ? convo.messages[0].text
+                          : convo.messages[0].sender.id + " sent a photo"}
+                      </span>
+                    </p>
+                    <p>{time_interval_text}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </ScrollArea>
     </section>
   );
