@@ -137,9 +137,9 @@ export default function ConversationMessageInput() {
           e.preventDefault();
         }}
       >
-        <div className="relative w-full">
+        <div className="w-full">
           {uploading_image || !!photo_input.length ? (
-            <div className="absolute bottom-full left-0 bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
+            <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
               <UploadthingButton
                 endpoint="imageUploader"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
