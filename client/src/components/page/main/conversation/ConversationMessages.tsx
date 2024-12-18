@@ -6,15 +6,19 @@ import { Message } from "@/lib/types/server-data-types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+// import { useEffect, useRef } from "react";
 import ConversationMessage from "./ConversationMessage";
 
 export default function ConversationMessages() {
   const params = useParams<{ id: string }>();
+  const { data: session } = useSession();
+//   const div_ref = useRef<HTMLDivElement>(null);
 
   const { data: found_conversation, isError, error } = useQuery(getConvoOptions(params.id));
 
   const { data: found_messages } = useInfiniteQuery<{ page_param: number; result: Message[] }>({
-    enabled: !!found_conversation,
+    enabled: !!found_conversation && !!session,
     queryKey: ["conversation", "messages", params.id],
     queryFn: async ({ pageParam }) => {
       try {
@@ -44,24 +48,22 @@ export default function ConversationMessages() {
   if (isError) throw error;
 
   return (
-    <div className="h-full w-full max-h-[80dvh] grid overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
-      {!!found_messages?.pages.length && !isError && (
-        <div className="flex flex-col justify-end p-2">
-          {found_messages.pages.map((page, pages_index) =>
-            page.result.map((message, message_index) => (
-              <ConversationMessage
-                message={message}
-                prev_message={page.result[message_index - 1]}
-                next_message={page.result[message_index + 1]}
-                key={message.id}
-                is_last_message={
-                  pages_index === found_messages.pages.length - 1 && message_index === page.result.length - 1
-                }
-              />
-            ))
-          )}
-        </div>
-      )}
+    <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
+      {!!found_messages?.pages.length &&
+        !isError &&
+        found_messages.pages.map((page, pages_index) =>
+          page.result.map((message, message_index) => (
+            <ConversationMessage
+              key={message.id}
+              message={message}
+              prev_message={page.result[message_index - 1]}
+              next_message={page.result[message_index + 1]}
+              is_last_message={
+                pages_index === found_messages.pages.length - 1 && message_index === page.result.length - 1
+              }
+            />
+          ))
+        )}
     </div>
   );
 }
