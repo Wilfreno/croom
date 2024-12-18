@@ -4,12 +4,11 @@ import { PATCHRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@radix-ui/react-avatar";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef } from "react";
-import { toast } from "sonner";
 
 export default function ConversationMessage({
   message,
@@ -24,7 +23,7 @@ export default function ConversationMessage({
 }) {
   const { data: session } = useSession();
   const query_client = useQueryClient();
-  const last_message = useRef<HTMLDivElement>(null);
+  const div_ref = useRef<HTMLDivElement>(null);
 
   const { show_time_interval, time_interval_text, quick_message_placement } = useMemo(() => {
     const date_sent = new Date(message.date_created);
@@ -185,44 +184,37 @@ export default function ConversationMessage({
     return style;
   }, [message.photos]);
 
-  const seen_message = useMutation<void, Error, string>({
-    mutationFn: async (id) => {
+  useQuery({
+    enabled: is_last_message,
+    queryKey: ["message", message.id],
+    queryFn: async (id) => {
       try {
         const { status, message } = await PATCHRequest("/v1/message/" + id + "/seen_by", { action: "ADD" });
 
         if (status !== "OK") throw new Error(message);
+        query_client.invalidateQueries({ exact: true, queryKey: [session?.user.id, "conversations"] });
       } catch (error) {
-        toast.error((error as Error).message);
         throw error;
       }
     },
-    onSuccess: () => {
-      query_client.invalidateQueries({ exact: true, queryKey: [session?.user.id, "conversations"] });
-    },
   });
+
   useEffect(() => {
-    last_message.current?.scrollIntoView();
-  }, [message, prev_message, next_message]);
+    if (!is_last_message) return;
+    div_ref.current?.scrollIntoView({ behavior: "instant", block: "end" });
+  }, [is_last_message, session]);
 
   return (
-    <span
-      key={message.id}
-      onLoad={() => {
-        if (is_last_message) {
-          seen_message.mutate(message.id);
-        }
-      }}
-    >
+    <>
       {show_time_interval && (
-        <div className="text-center text-xs text-muted-foreground font-medium my-4">{time_interval_text}</div>
+        <div key={message.id + "time_interval"} className="text-center text-xs text-muted-foreground font-medium my-6">
+          {time_interval_text}
+        </div>
       )}
       <div
-        ref={is_last_message ? last_message : undefined}
-        className={cn(
-          "flex items-end gap-4",
-          message.sender.id === session?.user.id ? "ml-auto flex-row-reverse" : "mr-auto",
-          !quick_message_placement! ? "my-1" : "my-px"
-        )}
+        key={message.id}
+        ref={div_ref}
+        className={cn("gap-4 grid bg-red-500", message.sender.id !== session?.user.id ? "" : "justify-items-end")}
       >
         {message.sender.id !== session?.user.id && (
           <Avatar>
@@ -232,7 +224,7 @@ export default function ConversationMessage({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="max-w-[25vw] text-white grid gap-1">
+        <div className="max-w-[25vw] text-white  grid gap-1 bg-green-500">
           {!!message.text && (
             <p
               className={cn(
@@ -265,6 +257,6 @@ export default function ConversationMessage({
           </div>
         </div>
       </div>
-    </span>
+    </>
   );
 }
