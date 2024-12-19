@@ -201,8 +201,8 @@ export default function ConversationMessage({
 
   useEffect(() => {
     if (!is_last_message) return;
-    div_ref.current?.scrollIntoView({ behavior: "instant", block: "end" });
-  }, [is_last_message, session]);
+    div_ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [is_last_message]);
 
   return (
     <>
@@ -214,7 +214,10 @@ export default function ConversationMessage({
       <div
         key={message.id}
         ref={div_ref}
-        className={cn("gap-4 grid bg-red-500", message.sender.id !== session?.user.id ? "" : "justify-items-end")}
+        className={cn(
+          "gap-4 w-full bg-red-500 grid",
+          message.sender.id !== session?.user.id ? "justify-items-start" : "justify-items-end"
+        )}
       >
         {message.sender.id !== session?.user.id && (
           <Avatar>
@@ -224,7 +227,7 @@ export default function ConversationMessage({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="max-w-[25vw] text-white  grid gap-1 bg-green-500">
+        <div className={cn()}>
           {!!message.text && (
             <p
               className={cn(
