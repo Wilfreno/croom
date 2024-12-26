@@ -59,7 +59,7 @@ export default function ComposeTo() {
 
   const { data: found_conversation } = useQuery({
     enabled: !!selected_users!.length,
-    queryKey: ["conversation", selected_users],
+    queryKey: ["conversation", "members", selected_users],
     queryFn: async () => {
       try {
         let members = "";

@@ -33,7 +33,7 @@ export default function ComposeContent() {
 
   const { data: found_conversation, isError } = useQuery({
     enabled: !!selected_users,
-    queryKey: ["conversation", selected_users],
+    queryKey: ["conversation", "members", selected_users],
     queryFn: async () => {
       try {
         const { data, message, status } = await GETRequest<Conversation[]>(

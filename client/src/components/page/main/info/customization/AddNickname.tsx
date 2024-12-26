@@ -25,20 +25,14 @@ export default function AddNickname() {
     | {
         photo_url: string;
         conversation_name: string;
-        status: null;
-        last_updated: null;
-      }
-    | {
-        photo_url: string;
-        conversation_name: string;
-        status: "OFFLINE" | "ONLINE";
-        last_updated: Date;
+        status: "OFFLINE" | "ONLINE" | null;
+        last_online: string;
       }
     | undefined
   >({
     enabled: !!conversation,
-    queryKey: ["conversation", "info", params.id, session],
-    placeholderData: { photo_url: "", conversation_name: "", status: null, last_updated: null },
+    queryKey: ["conversation", "info", conversation],
+    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
   });
   const { photo_url, status } = conversation_info!;
 
@@ -76,7 +70,7 @@ export default function AddNickname() {
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start">
           <span className="aspect-square h-fit w-auto bg-secondary p-2 rounded-full">
-            <CaseSensitive className="h-4 w-auto" />
+            <CaseSensitive className="h-4 w-auto text-primary" />
           </span>
           <span>Add nicknames</span>
         </Button>
