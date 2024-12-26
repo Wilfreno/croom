@@ -32,8 +32,8 @@ export default function ComposeContent() {
   });
 
   const { data: found_conversation, isError } = useQuery({
-    enabled: !!selected_users && selected_users.length === 1,
-    queryKey: ["conversation", selected_users?.[0]?.[0]],
+    enabled: !!selected_users,
+    queryKey: ["conversation", selected_users],
     queryFn: async () => {
       try {
         const { data, message, status } = await GETRequest<Conversation[]>(
@@ -51,7 +51,7 @@ export default function ComposeContent() {
   });
 
   const { data: found_messages } = useInfiniteQuery<{ page_param: number; result: Message[] }>({
-    enabled: !!found_conversation && !!found_conversation.length,
+    enabled: !!found_conversation && found_conversation.length === 1,
     queryKey: ["conversation", "messages", found_conversation?.[0]?.id],
     queryFn: async ({ pageParam }) => {
       try {

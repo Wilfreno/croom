@@ -17,32 +17,25 @@ export default function ConversationHeader() {
 
   const { data: info_sidebar_is_open } = useQuery({ queryKey: ["sidebar", "info", "open"], placeholderData: true });
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+
   const { data: conversation_info } = useQuery({
-    enabled: !!session,
-    queryKey: ["conversation", "info", params.id, session],
+    enabled: !!session?.user.id && !!conversation,
+    queryKey: ["conversation", "info", conversation?.id, session?.user.id],
     queryFn: () => {
       let last_online = "";
-      let photo_url: string | undefined;
+      let photo_url = "";
       let conversation_name = "";
       let status: User["status"] | null = null;
 
-      if (!conversation)
-        return {
-          photo_url,
-          conversation_name,
-          status,
-          last_online,
-        };
-
-      if (conversation.is_group_chat) {
-        photo_url = conversation.photo?.url;
-        conversation_name = conversation_name;
+      if (conversation!.is_group_chat) {
+        photo_url = conversation!.photo?.url || "";
+        conversation_name = conversation!.name;
       } else {
         const other_user = conversation?.members.find((member) => member.id !== session?.user.id);
         if (!other_user) return { photo_url: "", conversation_name: "", status: null, last_online };
 
         status = other_user.status;
-        photo_url = other_user.photo?.url;
+        photo_url = other_user.photo?.url || "";
         conversation_name = other_user.display_name;
         if (other_user.status === "OFFLINE") {
           const last_online_date = new Date(other_user.last_online);
@@ -71,7 +64,7 @@ export default function ConversationHeader() {
         last_online,
       };
     },
-    placeholderData: { photo_url: undefined, conversation_name: "", status: null, last_online: "" },
+    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
   });
 
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
@@ -80,7 +73,7 @@ export default function ConversationHeader() {
       <div className="flex items-center gap-4">
         <UserAvatar src={photo_url} is_online={status === "ONLINE"} />
         <div>
-          <p className="font-medium">{conversation_name}</p>
+          <p className="font-medium truncate max-w-96">{conversation_name}</p>
           {!!last_online && <p className="text-xs font-medium text-muted-foreground">{last_online}</p>}
         </div>
       </div>
