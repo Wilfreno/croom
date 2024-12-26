@@ -27,7 +27,7 @@ export default function Aside() {
                   {item.icon}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{item.name}</TooltipContent>
+              <TooltipContent side="right">{item.name}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ))}

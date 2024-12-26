@@ -4,7 +4,7 @@ import { PATCHRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@radix-ui/react-avatar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -184,14 +184,14 @@ export default function ConversationMessage({
     return style;
   }, [message.photos]);
 
-  useQuery({
-    enabled: is_last_message,
-    queryKey: ["message", message.id],
-    queryFn: async (id) => {
+  const seen = useMutation({
+    mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/message/" + id + "/seen_by", { action: "ADD" });
+        const { status, message: response_message } = await PATCHRequest("/v1/message/" + message.id + "/seen_by", {
+          action: "ADD",
+        });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== "OK") throw new Error(response_message);
         query_client.invalidateQueries({ exact: true, queryKey: [session?.user.id, "conversations"] });
       } catch (error) {
         throw error;
@@ -202,6 +202,7 @@ export default function ConversationMessage({
   useEffect(() => {
     if (!is_last_message) return;
     div_ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    seen.mutate();
   }, [is_last_message]);
 
   return (

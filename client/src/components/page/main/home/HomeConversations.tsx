@@ -117,7 +117,7 @@ export default function HomeConversations() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start justify-start w-full">
-                  <span className="font-semibold truncate  ">{conversation_name}</span>
+                  <span className="font-semibold truncate max-w-60">{conversation_name}</span>
                   <div
                     className={cn(
                       "flex items-center justify-between text-xs w-full",

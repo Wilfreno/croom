@@ -18,23 +18,16 @@ export default function InfoSidebar() {
 
   const { data: conversation_info } = useQuery<
     | {
-        photo_url?: string;
+        photo_url: string;
         conversation_name: string;
-        status: null;
-        last_online: string;
-      }
-    | {
-        photo_url?: string;
-        conversation_name: string;
-        status: "OFFLINE" | "ONLINE";
+        status: "OFFLINE" | "ONLINE" | null;
         last_online: string;
       }
     | undefined
   >({
-    enabled: !!conversation,
-
-    queryKey: ["conversation", "info", params.id, session],
-    placeholderData: { photo_url: undefined, conversation_name: "", status: null, last_online: "" },
+    enabled: !!session?.user.id && !!conversation,
+    queryKey: ["conversation", "info", params.id, session?.user.id],
+    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
