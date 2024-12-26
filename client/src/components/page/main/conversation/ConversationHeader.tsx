@@ -16,11 +16,11 @@ export default function ConversationHeader() {
   const query_client = useQueryClient();
 
   const { data: info_sidebar_is_open } = useQuery({ queryKey: ["sidebar", "info", "open"], placeholderData: true });
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: conversation } = useQuery<Conversation>({ enabled: !!session, ...getConvoOptions(params.id) });
 
   const { data: conversation_info } = useQuery({
     enabled: !!session?.user.id && !!conversation,
-    queryKey: ["conversation", "info", conversation?.id, session?.user.id],
+    queryKey: ["conversation", "info", conversation],
     queryFn: () => {
       let last_online = "";
       let photo_url = "";

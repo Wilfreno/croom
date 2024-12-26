@@ -26,7 +26,7 @@ export default function InfoSidebar() {
     | undefined
   >({
     enabled: !!session?.user.id && !!conversation,
-    queryKey: ["conversation", "info", params.id, session?.user.id],
+    queryKey: ["conversation", "info", conversation],
     placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
@@ -46,7 +46,7 @@ export default function InfoSidebar() {
           )}
         </span>
         <div className="text-center">
-          <p className="font-medium text-lg">{conversation_name}</p>
+          <p className="font-medium text-lg truncate max-w-72">{conversation_name}</p>
           {!!last_online && <p className="text-xs font-medium text-muted-foreground">Online {last_online}</p>}
         </div>
       </div>
