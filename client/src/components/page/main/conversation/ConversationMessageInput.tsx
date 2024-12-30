@@ -117,7 +117,7 @@ export default function ConversationMessageInput() {
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadthingButton
-        endpoint="imageUploader"
+        endpoint="multiple_image"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
           button() {
@@ -141,7 +141,7 @@ export default function ConversationMessageInput() {
           {uploading_image || !!photo_input.length ? (
             <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
               <UploadthingButton
-                endpoint="imageUploader"
+                endpoint="multiple_image"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
                   button() {
