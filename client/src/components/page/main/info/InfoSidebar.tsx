@@ -9,6 +9,10 @@ import InfoCustomization from "./InfoCustomization";
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import dynamic from "next/dynamic";
+
+const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), { ssr: false });
 
 export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
@@ -50,7 +54,12 @@ export default function InfoSidebar() {
           {!!last_online && <p className="text-xs font-medium text-muted-foreground">Online {last_online}</p>}
         </div>
       </div>
-      <InfoCustomization />
+      <ScrollArea className="h-[60dvh]">
+        <div className="grid gap-4">
+          <InfoCustomization />
+          <InfoAdminsAndMembers />
+        </div>
+      </ScrollArea>
     </SidebarContent>
   );
 }
