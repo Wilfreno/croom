@@ -35,6 +35,7 @@ export default function InfoSidebar() {
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
+  console.log(conversation);
   return (
     <SidebarContent className={cn("", !is_open && "")}>
       <div className="flex flex-col items-center gap-4 my-10">
