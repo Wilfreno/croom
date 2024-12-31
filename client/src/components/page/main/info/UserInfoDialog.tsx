@@ -3,14 +3,18 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { User } from "@/lib/types/server-data-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AtSign, Mail, Send, UserRound, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { GETRequest } from "@/lib/server/requests";
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function UserInfoDialog({ children, username }: { children: React.ReactNode; username: string }) {
   const [enabled, setEnabled] = useState(false);
+
+  const query_client = useQueryClient();
+  const router = useRouter();
 
   const { data: user_info } = useQuery<User>({
     enabled,
@@ -43,6 +47,7 @@ export default function UserInfoDialog({ children, username }: { children: React
     if (relative_date_in_seconds > minute) return Math.floor(relative_date_in_seconds / minute) + "minute(s)";
     return relative_date_in_seconds + "seconds(s)";
   }, [user_info]);
+
   return (
     <Dialog>
       <DialogTrigger asChild onClick={() => setEnabled(true)}>
@@ -85,7 +90,16 @@ export default function UserInfoDialog({ children, username }: { children: React
               </div>
             </div>
 
-            <Button className="justify-start w-fit">
+            <Button
+              className="justify-start w-fit"
+              onClick={() => {
+                query_client.setQueryData<string[][]>(
+                  ["compose", "selected_users"],
+                  [[user_info!.id, user_info!.display_name]]
+                );
+                router.push("/compose");
+              }}
+            >
               <Send className="h-4 w-auto" />
               <span>Message</span>
             </Button>
