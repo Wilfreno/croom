@@ -70,13 +70,13 @@ export default function UserInfoDialog({ children, username }: { children: React
           <div className="grid gap-5">
             <div className="grid">
               <span className="text-xl font-semibold ">{user_info?.display_name}</span>
-              {user_info?.status === "OFFLINE" ? (
+              {user_info?.status === "ONLINE" ? (
                 <div className="relative font-semibold w-fit flex items-center gap-2 text-xs">
                   <span>Online</span>
                   <span className="h-2 w-2 bg-green-500 rounded-full"></span>
                 </div>
               ) : (
-                <p className="text-xs font-medium">online {last_online} 365 day(s) ago</p>
+                <p className="text-xs font-medium">online {last_online} ago</p>
               )}
             </div>
             <div className="grid gap-1">
@@ -84,7 +84,7 @@ export default function UserInfoDialog({ children, username }: { children: React
                 <Mail className="h-4 w-auto" />
                 <span>{user_info?.email}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-sm">
                 <AtSign className="h-4 w-auto" />
                 <span>{user_info?.username.slice(1)}</span>
               </div>
