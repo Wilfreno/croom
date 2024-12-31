@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { useParams } from "next/navigation";
+import Members from "./admin-and-members/Members";
 
 export default function InfoAdminsAndMembers() {
   const [is_open, setIsOpen] = useState(false);
@@ -27,6 +28,7 @@ export default function InfoAdminsAndMembers() {
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">
         <Admins />
+        <Members />
       </CollapsibleContent>
     </Collapsible>
   );
