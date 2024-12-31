@@ -123,7 +123,8 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
           path: "admins",
           select: "username display_name photo status last_online",
           populate: { path: "photo", select: "url" },
-        });
+        })
+        .populate({ path: "photo", select: "url" });
 
       if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
@@ -334,8 +335,6 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
             const new_photo = new Photo({
               url: photo.url,
               type: "CONVERSATION",
-              width: photo.width,
-              height: photo.height,
             });
 
             await new_photo.save({ session });
