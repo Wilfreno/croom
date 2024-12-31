@@ -12,6 +12,6 @@ export default async function connectToDB(fastify: FastifyInstance) {
     fastify.log.info("connected to db");
   } catch (error) {
     fastify.log.error(error);
-    throw error;
+    process.exit(1);
   }
 }

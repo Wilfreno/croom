@@ -34,7 +34,7 @@ export default function AddNickname() {
     queryKey: ["conversation", "info", conversation],
     placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
   });
-  const { photo_url, status } = conversation_info!;
+  const { status } = conversation_info!;
 
   const set_nickname = useMutation({
     mutationFn: async () => {
@@ -108,17 +108,21 @@ export default function AddNickname() {
               <Button variant="ghost" key={id} className="justify-between h-fit w-full p-2" onClick={() => setOpen(id)}>
                 <div className="flex items-center gap-2">
                   <UserAvatar
-                    src={id === session?.user.id ? session.user.photo?.url : photo_url}
+                    src={
+                      id === session?.user.id
+                        ? session.user.photo?.url
+                        : conversation?.members.find((member) => member.id === id)?.photo?.url
+                    }
                     is_online={id === session?.user.id ? false : status === "ONLINE"}
                   />
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 ">
                     <span className="font-medium">
                       {conversation?.members.find((member) => member.id === id)?.display_name}
                     </span>
                     {nickname ? (
                       <span>{nickname}</span>
                     ) : (
-                      <span className="text-xs italic text-muted-foreground">Set nickname</span>
+                      <span className="text-xs italic text-muted-foreground w-fit">Set nickname</span>
                     )}
                   </div>
                 </div>
