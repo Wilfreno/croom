@@ -6,11 +6,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { Conversation } from "@/lib/types/server-data-types";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Ellipsis, UserRound, UserRoundCog, UserRoundPlus } from "lucide-react";
+import { ChevronDown, ChevronRight, UserRound, UserRoundCog, UserRoundPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import UserInfoDialog from "../UserInfoDialog";
+import UserAvatar from "../../UserAvatar";
 
 export default function Admins() {
   const [open, setOpen] = useState(false);
@@ -18,6 +21,11 @@ export default function Admins() {
   const { data: session } = useSession();
   const params = useParams<{ id: string }>();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+
+  const is_admin = useMemo(() => {
+    if (!conversation || !session) return false;
+    return conversation.admins.some((user) => user.id === session?.user.id);
+  }, [session, conversation]);
 
   return (
     <Collapsible>
@@ -35,7 +43,11 @@ export default function Admins() {
       <CollapsibleContent className="space-y-2 p-2">
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="secondary" className="w-full p-2  font-medium text-primary">
+            <Button
+              variant="secondary"
+              className={cn(is_admin ? "w-full p-2  font-medium text-primary" : "hidden")}
+              disabled={!is_admin}
+            >
               <span className="aspect-square h-fit w-auto rounded-full p-2 ">
                 <UserRoundPlus className="h-4 w-auto" />
               </span>
@@ -44,7 +56,7 @@ export default function Admins() {
           </DialogTrigger>
           <DialogContent className="gap-8">
             <DialogHeader>
-              <DialogTitle>Add new Admin</DialogTitle>
+              <DialogTitle>Manage admin</DialogTitle>
             </DialogHeader>
             <ScrollArea className="h-[40dvh]">
               <div className="grid gap-2">
@@ -75,25 +87,14 @@ export default function Admins() {
           </DialogContent>
         </Dialog>
         <ScrollArea className="h-[30dvh] ">
-          <div>
+          <div className="grid gap-2">
             {conversation?.admins.map((user) => (
-              <div key={user.id} className="flex items-center justify-between hover:bg-secondary rounded-sm group p-1">
-                <div className="flex items-center gap-2">
-                  <Avatar className="items-center justify-center">
-                    <AvatarImage src={user.photo?.url} className="h-4/5 w-auto rounded-full" />
-                    <AvatarFallback>
-                      <UserRound className="h-1/2 w-auto" />
-                    </AvatarFallback>
-                  </Avatar>
+              <UserInfoDialog key={user.id} username={user.username}>
+                <Button variant="ghost" className="h-fit w-full p-1 justify-start">
+                  <UserAvatar is_online={user.status === "ONLINE"} src={user.photo?.url} />
                   <p className="text-sm font-medium">{user.display_name}</p>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="aspect-square h-fit w-auto rounded-full p-1 group-hover:bg-background group-hover:border group-hover:shadow-md"
-                >
-                  <Ellipsis className="h-4 w-auto" />
                 </Button>
-              </div>
+              </UserInfoDialog>
             ))}
           </div>
         </ScrollArea>
