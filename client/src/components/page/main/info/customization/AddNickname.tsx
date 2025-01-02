@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { Conversation } from "@/lib/types/server-data-types";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaseSensitive, Check, PenLine } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,24 +17,11 @@ export default function AddNickname() {
   const [nicknames, setNickname] = useState<Conversation["nicknames"]>([]);
   const [open, setOpen] = useState("");
   const [new_nickname, setNewNickname] = useState<{ user: string; value: string }>({ user: "", value: "" });
+
   const { data: session } = useSession();
   const params = useParams<{ id: string }>();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
-
-  const { data: conversation_info } = useQuery<
-    | {
-        photo_url: string;
-        conversation_name: string;
-        status: "OFFLINE" | "ONLINE" | null;
-        last_online: string;
-      }
-    | undefined
-  >({
-    enabled: !!conversation,
-    queryKey: ["conversation", "info", conversation],
-    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
-  });
-  const { status } = conversation_info!;
+  const query_client = useQueryClient();
 
   const set_nickname = useMutation({
     mutationFn: async () => {
@@ -50,7 +37,14 @@ export default function AddNickname() {
       }
     },
     onSuccess: () => {
-      setNickname((prev) => prev.map((nickname) => (nickname.user === new_nickname.user ? new_nickname : nickname)));
+      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => {
+        if (!prev) return;
+
+        return {
+          ...prev,
+          nicknames: prev.nicknames.map((nickname) => (nickname.user === new_nickname.user ? new_nickname : nickname)),
+        };
+      });
       setNewNickname({ user: "", value: "" });
     },
   });
@@ -60,9 +54,9 @@ export default function AddNickname() {
 
     if (!conversation.nicknames.length) {
       setNickname(conversation.members.map((user) => ({ user: user.id, value: "" })));
-      return;
+    } else {
+      setNickname(conversation.nicknames);
     }
-    setNickname(conversation.nicknames);
   }, [conversation]);
 
   return (
@@ -113,7 +107,11 @@ export default function AddNickname() {
                         ? session.user.photo?.url
                         : conversation?.members.find((member) => member.id === id)?.photo?.url
                     }
-                    is_online={id === session?.user.id ? false : status === "ONLINE"}
+                    is_online={
+                      id === session?.user.id
+                        ? false
+                        : conversation?.members.find((member) => member.id === id)?.status === "ONLINE"
+                    }
                   />
                   <div className="grid gap-2 ">
                     <span className="font-medium">
