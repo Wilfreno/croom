@@ -31,11 +31,10 @@ export default function InfoSidebar() {
   >({
     enabled: !!session?.user.id && !!conversation,
     queryKey: ["conversation", "info", conversation],
-    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
+    placeholderData: { photo_url: undefined!, conversation_name: "", status: null, last_online: "" },
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
-  console.log(conversation);
   return (
     <SidebarContent className={cn("", !is_open && "")}>
       <div className="flex flex-col items-center gap-4 my-10">

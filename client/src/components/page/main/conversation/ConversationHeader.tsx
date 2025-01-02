@@ -23,7 +23,7 @@ export default function ConversationHeader() {
     queryKey: ["conversation", "info", conversation],
     queryFn: () => {
       let last_online = "";
-      let photo_url = "";
+      let photo_url: string;
       let conversation_name = "";
       let status: User["status"] | null = null;
 
@@ -64,7 +64,7 @@ export default function ConversationHeader() {
         last_online,
       };
     },
-    placeholderData: { photo_url: "", conversation_name: "", status: null, last_online: "" },
+    placeholderData: { photo_url: undefined!, conversation_name: "", status: null, last_online: "" },
   });
 
   const { photo_url, conversation_name, status, last_online } = conversation_info!;

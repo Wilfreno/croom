@@ -225,7 +225,8 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
             .populate({
               path: "messages",
               options: { sort: { date_created: -1 }, limit: 1, populate: { path: "sender", select: "_id" } },
-            });
+            })
+            .populate({ path: "members", select: "status" });
 
           if (!found_conversation) continue;
 
