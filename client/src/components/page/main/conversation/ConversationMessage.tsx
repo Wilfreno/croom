@@ -175,14 +175,14 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const photo_style = useMemo(() => {
-    let style = "h-fit w-auto rounded-sm overflow-hidden grid";
+    let style = "h-fit w-full rounded-sm overflow-hidden grid";
 
     if (message.photos.length > 1) style += " bg-primary p-1";
     if (message.text) style += " rounded-l-lg rounded-br-lg rounded-tr";
 
     style += " grid-cols-" + Math.min(message.photos.length, 3);
     return style;
-  }, [message.photos]);
+  }, [message]);
 
   const seen = useMutation({
     mutationFn: async () => {
@@ -205,6 +205,7 @@ export default function ConversationMessage({
     seen.mutate();
   }, [is_last_message]);
 
+  console.log(photo_style);
   return (
     <>
       {show_time_interval && (
@@ -215,10 +216,7 @@ export default function ConversationMessage({
       <div
         key={message.id}
         ref={div_ref}
-        className={cn(
-          "gap-4 w-full bg-red-500 grid",
-          message.sender.id !== session?.user.id ? "justify-items-start" : "justify-items-end"
-        )}
+        className={cn("gap-4 w-full grid max-w-[25vw]", message.sender.id === session?.user.id && "ml-auto")}
       >
         {message.sender.id !== session?.user.id && (
           <Avatar>
@@ -228,7 +226,7 @@ export default function ConversationMessage({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className={cn()}>
+        <div className="grid gap-1">
           {!!message.text && (
             <p
               className={cn(
@@ -249,14 +247,15 @@ export default function ConversationMessage({
           )}
           <div className={photo_style}>
             {message.photos.map((photo) => (
-              <Image
-                key={photo.id}
-                src={photo.url}
-                height={photo.height}
-                width={photo.width}
-                className="object-cover w-full h-auto"
-                alt=""
-              />
+              <div key={photo.id} className="relative w-full h-full">
+                <Image
+                  src={photo.url}
+                  height={photo.height}
+                  width={photo.width}
+                  className="object-cover w-full h-auto"
+                  alt=""
+                />
+              </div>
             ))}
           </div>
         </div>
