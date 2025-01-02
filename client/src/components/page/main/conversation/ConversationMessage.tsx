@@ -205,7 +205,6 @@ export default function ConversationMessage({
     seen.mutate();
   }, [is_last_message]);
 
-  console.log(photo_style);
   return (
     <>
       {show_time_interval && (
