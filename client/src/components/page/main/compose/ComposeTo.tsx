@@ -111,62 +111,64 @@ export default function ComposeTo() {
       )}
     >
       <AnimatePresence>
-        {found_conversation!.length > 1 && found_conversation?.some((convo) => convo.is_group_chat) && (
-          <motion.div
-            key="found-group-chats"
-            initial={{ y: -10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -10, opacity: 0 }}
-            // transition={{ type: "tween", ease: "easeInOut" }}
-            className="absolute top-full left-0 w-full bg-background border shadow-md py-3 px-5 rounded-b text-sm z-40"
-          >
-            <strong>You</strong> ,
-            {selected_users?.map(([id, name], index) => (
-              <span key={id}>
-                {index === selected_users.length - 1 && "and "}
-                <strong>{name}</strong>
-                {index !== selected_users.length - 1 && ", "}
-              </span>
-            ))}{" "}
-            <span>are already a member of </span>
-            <span className="text-primary h-fit w-fit font-medium">
-              {found_conversation.length} group chat&#40;s&#41;
-            </span>{" "}
-            <span>together.</span>{" "}
-            <Button
-              variant="ghost"
-              className="h-fit w-fit p-1 text-primary underline"
-              onClick={() => {
-                setOpen(false);
-                setSeeList((prev) => !prev);
-              }}
+        {!!found_conversation &&
+          found_conversation.length > 1 &&
+          found_conversation?.some((convo) => convo.is_group_chat) && (
+            <motion.div
+              key="found-group-chats"
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -10, opacity: 0 }}
+              // transition={{ type: "tween", ease: "easeInOut" }}
+              className="absolute top-full left-0 w-full bg-background border shadow-md py-3 px-5 rounded-b text-sm z-40"
             >
-              see list
-            </Button>
-            <div className={cn("absolute left-0 top-[105%] w-full", see_list ? "grid" : "hidden")}>
-              <ScrollArea className="h-52">
-                <div className="bg-background gap-1 grid py-2 pr-2">
-                  {found_conversation.map((convo) => (
-                    <Button
-                      key={convo.id}
-                      variant="ghost"
-                      className="h-fit w-full p-2 justify-start rounded-sm"
-                      onClick={() => router.push("/conversation/" + convo.id)}
-                    >
-                      <Avatar>
-                        <AvatarImage src={convo.photo?.url} />
-                        <AvatarFallback>
-                          <UserRound className="h-1/2 w-auto" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-semibold truncate max-w-[40vw]">{convo.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          </motion.div>
-        )}
+              <strong>You</strong> ,
+              {selected_users?.map(([id, name], index) => (
+                <span key={id}>
+                  {index === selected_users.length - 1 && "and "}
+                  <strong>{name}</strong>
+                  {index !== selected_users.length - 1 && ", "}
+                </span>
+              ))}{" "}
+              <span>are already a member of </span>
+              <span className="text-primary h-fit w-fit font-medium">
+                {found_conversation.length} group chat&#40;s&#41;
+              </span>{" "}
+              <span>together.</span>{" "}
+              <Button
+                variant="ghost"
+                className="h-fit w-fit p-1 text-primary underline"
+                onClick={() => {
+                  setOpen(false);
+                  setSeeList((prev) => !prev);
+                }}
+              >
+                see list
+              </Button>
+              <div className={cn("absolute left-0 top-[105%] w-full", see_list ? "grid" : "hidden")}>
+                <ScrollArea className="h-52">
+                  <div className="bg-background gap-1 grid py-2 pr-2">
+                    {found_conversation.map((convo) => (
+                      <Button
+                        key={convo.id}
+                        variant="ghost"
+                        className="h-fit w-full p-2 justify-start rounded-sm"
+                        onClick={() => router.push("/conversation/" + convo.id)}
+                      >
+                        <Avatar>
+                          <AvatarImage src={convo.photo?.url} />
+                          <AvatarFallback>
+                            <UserRound className="h-1/2 w-auto" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-semibold truncate max-w-[40vw]">{convo.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </motion.div>
+          )}
       </AnimatePresence>
 
       <Label htmlFor="add-member">To: </Label>
@@ -258,10 +260,10 @@ export default function ComposeTo() {
                       toast("Already selected");
                       return;
                     }
-                    query_client.setQueryData<string[][]>(["compose", "selected_users"], (prev) => [
-                      ...prev!,
-                      [user.id, user.display_name],
-                    ]);
+                    query_client.setQueryData<string[][]>(["compose", "selected_users"], (prev) => {
+                      if (!prev) return [];
+                      return [...prev, [user.id, user.display_name]];
+                    });
                     setOpen(false);
                     setInputValue("");
                     input_ref.current?.focus();
