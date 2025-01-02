@@ -2,14 +2,14 @@
 import { Conversation } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import React, { useMemo } from "react";
 import UserAvatar from "../UserAvatar";
+import Link from "next/link";
 
 export default function HomeConversation({ convo }: { convo: Conversation }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
 
   const { conversation_name, photo_url, seen, time_interval_text, is_online } = useMemo(() => {
     let conversation_name = "";
@@ -75,13 +75,13 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
   }, [session, convo]);
 
   return (
-    <div
+    <Link
       key={convo.id}
       className={cn(
         "flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer",
         pathname.startsWith("/conversation/" + convo.id) && "bg-muted"
       )}
-      onClick={() => router.push("/conversation/" + convo.id)}
+      href={"/conversation/" + convo.id}
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
       <UserAvatar src={photo_url} is_online={is_online} />
@@ -102,6 +102,6 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
           <p>{time_interval_text}</p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
