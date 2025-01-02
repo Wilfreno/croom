@@ -34,15 +34,13 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       const other_user = convo.members.find((member) => member.id !== session?.user.id)!;
       photo_url = other_user.photo!.url;
 
-      if (convo.nicknames.some((nickname) => nickname.user === other_user.id)) {
+      if (convo.nicknames.some((nickname) => nickname.user === other_user.id && nickname.value)) {
         conversation_name = convo.nicknames.find((nickname) => nickname.user === other_user.id)!.value;
       } else {
         conversation_name = other_user.display_name;
       }
     }
-      
-      
-      
+
     if (session.user.id === convo.messages[0].sender.id) {
       seen = true;
     } else {
