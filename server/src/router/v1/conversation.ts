@@ -174,6 +174,47 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
       }
     }
   );
+
+  fastify.get<{ Params: { id: string } }>(
+    "/:id/media",
+    {
+      preValidation: async (request) => await request.jwtVerify(),
+    },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const user = request.user as UserSchema & { id: string };
+
+        const found_conversation = await Conversation.findOne({ _id: id });
+        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation.members.some((member) => member.toString() === user.id))
+          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+
+        const found_messages = await Message.find({ conversation: id, photos: { $ne: [] } })
+          .populate({
+            path: "photos",
+            select: "url width height",
+          })
+          .populate({
+            path: "sender",
+            select: "display_name username photo status last_online",
+            populate: { path: "photo", select: "url" },
+          })
+          .select("sender photos status date_created");
+
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            found_messages.map((msg) => msg.toJSON())
+          )
+        );
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //update
   fastify.patch<{
     Params: { id: string; key: keyof ConversationSchema };

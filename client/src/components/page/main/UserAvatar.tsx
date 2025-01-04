@@ -14,7 +14,7 @@ export default function UserAvatar({
   className?: string;
 }) {
   return (
-    <span className="relative">
+    <div className="relative h-fit w-fit">
       <Avatar className={cn("aspect-square", className)}>
         <AvatarImage src={src} />
         <AvatarFallback>
@@ -24,6 +24,6 @@ export default function UserAvatar({
       {is_online && (
         <div className="bg-green-500 aspect-square h-4 border-2 border-background w-auto rounded-full absolute bottom-0 right-0"></div>
       )}
-    </span>
+    </div>
   );
 }
