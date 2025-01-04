@@ -33,7 +33,7 @@ export default function ComposeTo() {
   const input_ref = useRef<HTMLInputElement>(null);
 
   const { data: result } = useQuery({
-    queryKey: ["search", "add", " member", debounced_value],
+    queryKey: ["search", "user", debounced_value],
     queryFn: async () => {
       try {
         if (!debounced_value) return [];

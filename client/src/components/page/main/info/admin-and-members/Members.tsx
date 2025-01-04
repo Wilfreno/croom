@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 import React, { useState } from "react";
 import UserInfoDialog from "../UserInfoDialog";
 import UserAvatar from "../../UserAvatar";
+import ManageMember from "./ManageMember";
 
 export default function Members() {
   const [open, setOpen] = useState(false);
@@ -30,7 +31,8 @@ export default function Members() {
           {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-2 p-2">
+      <CollapsibleContent className="grid gap-2 p-2">
+        <ManageMember />
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
             {conversation?.members.map((user) => (

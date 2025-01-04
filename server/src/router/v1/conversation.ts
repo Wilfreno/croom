@@ -221,9 +221,8 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
     Body: {
       name: string;
       admin: string;
-      admin_action: "ADD" | "REMOVE";
-      members: string[];
-      member_action: "ADD" | "REMOVE";
+      action: "ADD" | "REMOVE";
+      member: string;
       nickname: { user: string; value: string };
       photo: PhotoSchema;
     };
@@ -236,7 +235,7 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
       let session: ClientSession | null = null;
       try {
         const { id, key } = request.params;
-        const { name, admin, admin_action, members, member_action, nickname, photo } = request.body;
+        const { name, admin, member, action, nickname, photo } = request.body;
         const user = request.user as UserSchema & { id: string };
 
         const found_conversation = await Conversation.findOne({ _id: id });
@@ -260,7 +259,7 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
               return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
 
-            switch (admin_action) {
+            switch (action) {
               case "ADD": {
                 if (found_conversation.admins.some((user_id) => user_id.toString() === admin)) {
                   const found_user = await User.findOne({ _id: admin }).select("display_name");
@@ -299,52 +298,34 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
               return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
 
-            switch (member_action) {
+            switch (action) {
               case "ADD": {
-                for (const found_member of found_conversation.members) {
-                  for (const member of members) {
-                    if (member === found_member.toString()) {
-                      const found_user = await User.findOne({ _id: member }).select("display_name");
-                      return reply
-                        .code(409)
-                        .send(JSONResponse("CONFLICT", found_user?.display_name + " is already a member"));
-                    }
-                  }
+                if (found_conversation.members.some((found_member) => found_member.toString() === member)) {
+                  const found_user = await User.findOne({ _id: member }).select("display_name");
+                  return reply
+                    .code(409)
+                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already a member"));
                 }
 
                 await Conversation.updateOne(
                   { _id: id },
-                  { $push: { members }, $set: { last_updated: new Date() } },
+                  { $push: { members: member }, $set: { last_updated: new Date() } },
                   { session }
                 );
 
                 break;
               }
               case "REMOVE": {
-                const cached_members = new Set<string>();
-
-                for (const member of members) {
-                  if (cached_members.has(member)) continue;
-
-                  for (let i = 0; i < found_conversation.members.length; i++) {
-                    if (found_conversation.admins[i].toString() === member) break;
-                    if (
-                      i === found_conversation.admins.length - 1 &&
-                      found_conversation.admins[i].toString() !== member
-                    ) {
-                      const found_user = await User.findOne({ _id: member }).select("display_name");
-                      return reply
-                        .code(409)
-                        .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not a member"));
-                    }
-
-                    cached_members.add(found_conversation.admins[i].toString());
-                  }
+                if (!found_conversation.members.some((found_member) => found_member.toString() === member)) {
+                  const found_user = await User.findOne({ _id: member }).select("display_name");
+                  return reply
+                    .code(409)
+                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not a member"));
                 }
 
                 await Conversation.updateOne(
                   { _id: id },
-                  { $pull: { members }, $set: { last_updated: new Date() } },
+                  { $pull: { members: member }, $set: { last_updated: new Date() } },
                   { session }
                 );
 
