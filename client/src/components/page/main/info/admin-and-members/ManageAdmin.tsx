@@ -1,12 +1,4 @@
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -16,7 +8,7 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { UserRound, UserRoundPlus } from "lucide-react";
+import { UserRound, UserRoundPlus, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -74,10 +66,15 @@ export default function ManageAdmin() {
           <span>Manage admin</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="gap-8">
+      <DialogContent className="gap-8 w-[40dvw]">
         <DialogHeader>
           <DialogTitle>Manage admin</DialogTitle>
         </DialogHeader>
+        <DialogClose asChild className="absolute top-2 right-2">
+          <Button variant="ghost" className="aspect-square h-fit w-auto p-2 rounded-full">
+            <X className="h-4 w-auto" />
+          </Button>
+        </DialogClose>
         <ScrollArea className="h-[40dvh]">
           <div className="grid gap-2">
             {conversation?.members.map((user) => (
@@ -115,11 +112,6 @@ export default function ManageAdmin() {
             ))}
           </div>
         </ScrollArea>
-        <DialogFooter>
-          <DialogClose>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
