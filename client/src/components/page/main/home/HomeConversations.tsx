@@ -33,6 +33,7 @@ export default function HomeConversations() {
     },
     placeholderData: [],
   });
+
   const { data: conversation_search } = useQuery<Conversation[]>({ queryKey: ["conversation", "search"] });
 
   const to_display_conversation = useMemo(() => {

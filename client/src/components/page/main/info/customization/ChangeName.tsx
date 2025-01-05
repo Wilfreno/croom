@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -45,6 +45,11 @@ export default function ChangeName() {
     },
     onSuccess: async () => {
       query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({ ...prev!, name: value }));
+      query_client.setQueryData<Conversation[]>([session?.user.id, "conversations"], (prev) => {
+        if (!prev) return [];
+
+        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
+      });
       setOpen(false);
       toast.success("name changed");
     },
@@ -60,10 +65,15 @@ export default function ChangeName() {
           <span>Change chat name</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[35dvw]">
         <DialogHeader>
           <DialogTitle>Change name</DialogTitle>
         </DialogHeader>
+        <DialogClose asChild className="absolute top-2 right-2">
+          <Button variant="ghost" className="aspect-auto h-fit w-auto p-2 rounded-full">
+            <X className="h-4 w-auto" />
+          </Button>
+        </DialogClose>
         <form
           className="flex gap-2 items-center p-2"
           onSubmit={(e) => {
