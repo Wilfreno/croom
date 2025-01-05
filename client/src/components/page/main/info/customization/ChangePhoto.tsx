@@ -100,7 +100,7 @@ export default function ChangePhoto() {
           <span>Change photo</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[30dvw]">
         <DialogHeader className="text-center">
           <DialogTitle>Change Photo</DialogTitle>
         </DialogHeader>
