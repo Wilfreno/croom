@@ -86,12 +86,14 @@ export default function AddNickname() {
           <span>Add nicknames</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[40dvw] gap-10">
         <DialogHeader>
           <DialogTitle>Add Nicknames</DialogTitle>
         </DialogHeader>
-        <DialogClose className="absolute top-4 right-2 aspect-square h-fit w-auto p-2 rounded-full hover:bg-secondary">
-          <X className="h-4 w-auto" />
+        <DialogClose asChild className="absolute top-4 right-2">
+          <Button variant="ghost" className="aspect-square h-fit w-auto p-2 rounded-full">
+            <X className="h-4 w-auto" />
+          </Button>
         </DialogClose>
         <div className="grid space-y-2">
           {nicknames.map(({ user: id, value: nickname }) => {
