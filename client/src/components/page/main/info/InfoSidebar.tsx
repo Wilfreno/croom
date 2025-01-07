@@ -12,6 +12,7 @@ import { UserRound } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from "next/dynamic";
 import InfoMedia from "./InfoMedia";
+import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
 
 const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), { ssr: false });
 
@@ -60,6 +61,7 @@ export default function InfoSidebar() {
           <InfoCustomization />
           <InfoAdminsAndMembers />
           <InfoMedia />
+          <InfoPrivacyAndSupport />
         </div>
       </ScrollArea>
     </SidebarContent>

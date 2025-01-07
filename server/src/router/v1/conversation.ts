@@ -5,6 +5,7 @@ import Message from "../../database/models/Message";
 import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
+import Report from "../../database/models/Report";
 
 export default function v1ConversationRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create
@@ -59,6 +60,88 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         await session.endSession();
 
         return reply.code(201).send(JSONResponse("CREATED", "new conversation created", new_conversation.toJSON()));
+      } catch (error) {
+        await session?.abortTransaction();
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+
+  fastify.post<{ Body: { reported_user: string; conversation: string } }>(
+    "/report",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      let session: ClientSession | null = null;
+      try {
+        session = await startSession();
+        session.startTransaction();
+
+        const user = request.user as UserSchema & { id: string };
+        const { reported_user, conversation } = request.body;
+
+        const found_conversation = await Conversation.findOne({ _id: conversation });
+        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation.members.some((member) => member.toString() === user.id))
+          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+
+        const report = new Report({
+          conversation: conversation,
+          submitted_by: user.id,
+          reported_user: reported_user,
+        });
+
+        await report.save({ session });
+
+        await session.commitTransaction();
+        await session.endSession();
+
+        return reply.code(201).send(JSONResponse("CREATED", "report created", report.toJSON()));
+      } catch (error) {
+        await session?.abortTransaction();
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
+
+  fastify.post<{ Body: { conversation: string } }>(
+    "/leave",
+    { preValidation: async (request) => await request.jwtVerify() },
+    async (request, reply) => {
+      let session: ClientSession | null = null;
+
+      try {
+        session = await startSession();
+        session.startTransaction();
+
+        const user = request.user as UserSchema & { id: string };
+        const { conversation } = request.body;
+
+        const found_conversation = await Conversation.findOne({ _id: conversation });
+        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+
+        if (!found_conversation.members.some((member) => member.toString() === user.id))
+          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+
+        await Conversation.updateOne(
+          {
+            _id: conversation,
+          },
+          {
+            $pull: { members: user.id },
+          },
+          { session }
+        );
+
+        if (found_conversation.members.length === 1) {
+          await Conversation.deleteOne({ _id: conversation }, { session });
+        }
+
+        await session.commitTransaction();
+        await session.endSession();
+
+        return reply.code(200).send(JSONResponse("OK", "you have left the conversation"));
       } catch (error) {
         await session?.abortTransaction();
         fastify.log.error(error);

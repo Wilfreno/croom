@@ -141,7 +141,6 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
   });
-
   //read user
   fastify.get<{ Params: { username: string } }>("/:username", async (request, reply) => {
     try {
