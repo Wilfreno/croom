@@ -38,7 +38,7 @@ export default function InfoSidebar() {
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
   return (
-    <SidebarContent className={cn(!is_open && "hidden")}>
+    <SidebarContent className={cn(is_open == false && "hidden")}>
       <div className="flex flex-col items-center gap-4 my-10">
         <span className="relative">
           <Avatar className="aspect-square h-28 w-auto">
