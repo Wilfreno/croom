@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { POSTRequest } from "@/lib/server/requests";
+import { PATCHRequest, POSTRequest } from "@/lib/server/requests";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Flag, LogOut, ShieldMinus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function InfoPrivacyAndSupport() {
@@ -16,6 +16,14 @@ export default function InfoPrivacyAndSupport() {
   const { data: session } = useSession();
   const params = useParams<{ id: string }>();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+
+  const is_blocked = useMemo(() => {
+    if (!session || !conversation) return false;
+
+    return session.user.blocked.some(
+      (blocked_user) => blocked_user === conversation.members.find((member) => member.id !== session.user.id)!.id
+    );
+  }, [session, conversation]);
 
   const report_conversation = useMutation({
     mutationFn: async () => {
@@ -51,6 +59,22 @@ export default function InfoPrivacyAndSupport() {
     },
   });
 
+  const report_user = useMutation<void, Error, "ADD" | "REMOVE">({
+    mutationFn: async (blocked_action) => {
+      try {
+        const { status, message } = await PATCHRequest("/v1/user/blocked", {
+          blocked: conversation?.members.find((member) => member.id !== session!.user.id)?.id,
+          blocked_action,
+        });
+
+        if (status !== "OK") throw new Error(message);
+      } catch (error) {
+        toast.error((error as Error).message);
+        throw error;
+      }
+    },
+  });
+
   return (
     <Collapsible onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
@@ -73,8 +97,15 @@ export default function InfoPrivacyAndSupport() {
             </span>
             <span>Leave group chat</span>
           </Button>
+        ) : is_blocked ? (
+          <Button variant="secondary" className="w-full justify-start" onClick={() => report_user.mutate("REMOVE")}>
+            <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
+              <ShieldMinus className="h-4 w-auto" />
+            </span>
+            <span>Unblock User</span>
+          </Button>
         ) : (
-          <Button variant="ghost" className="w-full justify-start">
+          <Button variant="ghost" className="w-full justify-start" onClick={() => report_user.mutate("ADD")}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
               <ShieldMinus className="h-4 w-auto" />
             </span>
