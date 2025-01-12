@@ -13,7 +13,7 @@ export default function Aside() {
 
   const router = useRouter();
   return (
-    <aside className="inset-y-0 flex flex-col items-center py-5 px-4">
+    <aside className="inset-y-0 flex flex-col items-center px-2 py-4">
       <div className="flex flex-col items-center">
         {items.map((item) => (
           <TooltipProvider key={item.name}>

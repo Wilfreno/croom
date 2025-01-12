@@ -18,12 +18,12 @@ export default function InfoCustomization() {
   return (
     <Collapsible onOpenChange={(is_open) => setIsOpen(is_open)}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="w-full justify-between">
+        <Button variant="ghost" className="w-full justify-between font-semibold">
           <span>Customization</span>
           {is_open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-2 p-2">
+      <CollapsibleContent className="grid gap-2 p-2">
         {conversation?.is_group_chat && (
           <>
             <ChangePhoto />

@@ -7,7 +7,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { toast } from "sonner";
 import { GETRequest } from "@/lib/server/requests";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useMemo } from "react";
@@ -27,7 +26,6 @@ export default function HomeConversations() {
         if (status !== "OK") throw new Error(message);
         return data;
       } catch (error) {
-        toast.error((error as Error).message);
         throw error;
       }
     },

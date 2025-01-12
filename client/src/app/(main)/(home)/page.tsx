@@ -1,4 +1,5 @@
 import { Snail } from "lucide-react";
+import Link from "next/link";
 
 export default function page() {
   return (
@@ -6,7 +7,11 @@ export default function page() {
       <div className="flex flex-col items-center text-muted-foreground gap-2">
         <Snail className="h-32 w-auto stroke-1 " />
         <p className=" flex items-center gap-2">
-          <strong>Select</strong> or <strong>Compose</strong> a conversation
+          <span className="font-semibold">Select</span> or{" "}
+          <Link href="/compose" className="font-semibold text-primary hover:underline">
+            Compose
+          </Link>{" "}
+          a conversation
         </p>
       </div>
     </section>

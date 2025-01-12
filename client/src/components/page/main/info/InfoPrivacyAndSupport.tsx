@@ -83,7 +83,7 @@ export default function InfoPrivacyAndSupport() {
           {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="grid gap-2">
+      <CollapsibleContent className="grid gap-2 p-2">
         <Button variant="ghost" className="w-full justify-start" onClick={() => report_conversation.mutate()}>
           <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
             <Flag className="h-4 w-auto" />

@@ -93,7 +93,7 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
             seen ? "text-muted-foreground" : "font-semibold"
           )}
         >
-          <p className="truncate  max-w-48">
+          <p className="truncate  max-w-56">
             {convo.messages[0]?.sender.id === session?.user.id && <span>you: </span>}
             <span>
               {convo.messages[0].text ? convo.messages[0].text : convo.messages[0].sender.id + " sent a photo"}
