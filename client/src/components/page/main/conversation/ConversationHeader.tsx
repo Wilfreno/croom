@@ -36,7 +36,10 @@ export default function ConversationHeader() {
 
         status = other_user.status;
         photo_url = other_user.photo?.url || "";
-        conversation_name = other_user.display_name;
+
+        conversation_name = conversation!.nicknames.find((nickname) => nickname.user === other_user.id)!.value;
+        if (!conversation_name) conversation_name = other_user.display_name;
+
         if (other_user.status === "OFFLINE") {
           const last_online_date = new Date(other_user.last_online);
           const now = new Date();

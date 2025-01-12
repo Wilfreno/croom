@@ -177,7 +177,7 @@ export default function AddNickname() {
                   />
                   <div className="grid text-start">
                     {nickname ? (
-                      <span className="font-bold text-base">{nickname}</span>
+                      <span className="font-semibold text-base">{nickname}</span>
                     ) : (
                       <span className="italic text-muted-foreground w-fit">Set nickname</span>
                     )}
