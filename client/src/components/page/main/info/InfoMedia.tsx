@@ -50,7 +50,7 @@ export default function InfoMedia() {
       </CollapsibleTrigger>
       <CollapsibleContent className="p-2">
         {!!messages?.length && (
-          <ScrollArea className="h-[40dvh]">
+          <ScrollArea className="h-64">
             <div className="grid grid-cols-4 gap-px">
               {messages?.map((message, message_index) =>
                 message.photos.map((photo, photo_index) => (
