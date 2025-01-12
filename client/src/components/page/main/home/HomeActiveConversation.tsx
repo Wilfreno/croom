@@ -12,7 +12,7 @@ export default function HomeActiveConversations() {
 
   const { data: active_conversations } = useQuery({
     enabled: !!session,
-    queryKey: [session, "active friends"],
+    queryKey: [session?.user.id, "active", "conversations"],
     queryFn: async () => {
       try {
         const { data, status, message } = await GETRequest<Conversation[]>("/v1/user/active-conversation");
