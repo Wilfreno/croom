@@ -23,7 +23,7 @@ export default function InfoCustomization() {
           {is_open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="grid gap-2 p-2">
+      <CollapsibleContent className="space-y-2 p-2">
         {conversation?.is_group_chat && (
           <>
             <ChangePhoto />

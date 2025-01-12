@@ -57,7 +57,7 @@ export default function InfoSidebar() {
         </div>
       </div>
       <ScrollArea className="h-[60dvh]">
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           <InfoCustomization />
           <InfoAdminsAndMembers />
           <InfoMedia />
