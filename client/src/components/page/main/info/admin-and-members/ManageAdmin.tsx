@@ -1,4 +1,16 @@
+<<<<<<< HEAD
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+=======
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -8,7 +20,11 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { UserRound, UserRoundPlus, X } from "lucide-react";
+=======
+import { UserRound, UserRoundPlus } from "lucide-react";
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -66,6 +82,7 @@ export default function ManageAdmin() {
           <span>Manage admin</span>
         </Button>
       </DialogTrigger>
+<<<<<<< HEAD
       <DialogContent className="gap-8 w-[40dvw]">
         <DialogHeader>
           <DialogTitle>Manage admin</DialogTitle>
@@ -75,6 +92,12 @@ export default function ManageAdmin() {
             <X className="h-4 w-auto" />
           </Button>
         </DialogClose>
+=======
+      <DialogContent className="gap-8">
+        <DialogHeader>
+          <DialogTitle>Manage admin</DialogTitle>
+        </DialogHeader>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <ScrollArea className="h-[40dvh]">
           <div className="grid gap-2">
             {conversation?.members.map((user) => (
@@ -112,6 +135,14 @@ export default function ManageAdmin() {
             ))}
           </div>
         </ScrollArea>
+<<<<<<< HEAD
+=======
+        <DialogFooter>
+          <DialogClose>
+            <Button variant="outline">Close</Button>
+          </DialogClose>
+        </DialogFooter>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       </DialogContent>
     </Dialog>
   );

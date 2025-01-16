@@ -53,7 +53,11 @@ export default function UserInfoDialog({ children, username }: { children: React
       <DialogTrigger asChild onClick={() => setEnabled(true)}>
         {children}
       </DialogTrigger>
+<<<<<<< HEAD
       <DialogContent className="w-[30rem]">
+=======
+      <DialogContent>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
@@ -91,7 +95,10 @@ export default function UserInfoDialog({ children, username }: { children: React
             </div>
 
             <Button
+<<<<<<< HEAD
               variant="outline"
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
               className="justify-start w-fit"
               onClick={() => {
                 query_client.setQueryData<string[][]>(

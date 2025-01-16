@@ -3,4 +3,8 @@
 /react-email
 /build
 
+<<<<<<< HEAD
 .env
+=======
+.env*
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60

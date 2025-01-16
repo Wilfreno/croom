@@ -79,9 +79,12 @@ export async function GETRequest<R>(path: string, query_params?: Record<string, 
 
     const response = await fetch(server_url + request, {
       method: "GET",
+<<<<<<< HEAD
       headers: {
         "Content-Type": "application/json",
       },
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       credentials: "include",
     });
 

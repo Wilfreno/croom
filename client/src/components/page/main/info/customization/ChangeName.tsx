@@ -1,6 +1,10 @@
 "use client";
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+=======
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 import { Input } from "@/components/ui/input";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -45,6 +49,7 @@ export default function ChangeName() {
     },
     onSuccess: async () => {
       query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({ ...prev!, name: value }));
+<<<<<<< HEAD
       query_client.setQueryData<Conversation[]>([session?.user.id, "conversations"], (prev) => {
         if (!prev) return [];
 
@@ -55,6 +60,8 @@ export default function ChangeName() {
         if (!prev) return [];
         return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
       });
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       setOpen(false);
       toast.success("name changed");
     },
@@ -70,6 +77,7 @@ export default function ChangeName() {
           <span>Change chat name</span>
         </Button>
       </DialogTrigger>
+<<<<<<< HEAD
       <DialogContent className="w-[35dvw]">
         <DialogHeader>
           <DialogTitle>Change name</DialogTitle>
@@ -79,6 +87,12 @@ export default function ChangeName() {
             <X className="h-4 w-auto" />
           </Button>
         </DialogClose>
+=======
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change name</DialogTitle>
+        </DialogHeader>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <form
           className="flex gap-2 items-center p-2"
           onSubmit={(e) => {

@@ -1,10 +1,21 @@
 "use client";
+<<<<<<< HEAD
 import { useAuth } from "@/components/providers/SessionProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtSign, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+=======
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AtSign, Eye, EyeOff } from "lucide-react";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
 export default function LoginForm() {
   const [credentials, setCredentials] = useState({
@@ -13,8 +24,13 @@ export default function LoginForm() {
   });
   const [loading, setLoading] = useState(false);
   const [view_password, setViewPassword] = useState(false);
+<<<<<<< HEAD
 
   const { login } = useAuth();
+=======
+  const from = useSearchParams().get("from");
+  const router = useRouter();
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
   return (
     <form
@@ -22,11 +38,22 @@ export default function LoginForm() {
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
+<<<<<<< HEAD
 
         await login("LOCAL", {
           username: credentials.username,
           password: credentials.password,
         });
+=======
+        const sign_in = await signIn("credentials", {
+          username: "@" + credentials.username,
+          password: credentials.password,
+        });
+
+        if (sign_in?.error) toast(sign_in.error);
+
+        router.push(from ? from : "/");
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         setLoading(false);
       }}
     >
@@ -37,9 +64,13 @@ export default function LoginForm() {
           className="pl-10"
           placeholder="Username"
           value={credentials.username}
+<<<<<<< HEAD
           onChange={(e) =>
             setCredentials((prev) => ({ ...prev, username: e.target.value }))
           }
+=======
+          onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         />
       </div>
       <div className=" grid gap-2">
@@ -63,11 +94,15 @@ export default function LoginForm() {
             onClick={() => setViewPassword((prev) => !prev)}
             type="button"
           >
+<<<<<<< HEAD
             {view_password ? (
               <Eye className="h-full w-full" />
             ) : (
               <EyeOff className="h-full w-full" />
             )}
+=======
+            {view_password ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
           </Button>
         </div>
 

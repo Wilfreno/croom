@@ -7,11 +7,19 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+<<<<<<< HEAD
+=======
+// import { useEffect, useRef } from "react";
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 import ConversationMessage from "./ConversationMessage";
 
 export default function ConversationMessages() {
   const params = useParams<{ id: string }>();
   const { data: session } = useSession();
+<<<<<<< HEAD
+=======
+//   const div_ref = useRef<HTMLDivElement>(null);
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
   const { data: found_conversation, isError, error } = useQuery(getConvoOptions(params.id));
 
@@ -47,6 +55,7 @@ export default function ConversationMessages() {
 
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
+<<<<<<< HEAD
       <div className="mt-auto">
         {!!found_messages?.pages.length &&
           !isError &&
@@ -64,6 +73,23 @@ export default function ConversationMessages() {
             ))
           )}
       </div>
+=======
+      {!!found_messages?.pages.length &&
+        !isError &&
+        found_messages.pages.map((page, pages_index) =>
+          page.result.map((message, message_index) => (
+            <ConversationMessage
+              key={message.id}
+              message={message}
+              prev_message={page.result[message_index - 1]}
+              next_message={page.result[message_index + 1]}
+              is_last_message={
+                pages_index === found_messages.pages.length - 1 && message_index === page.result.length - 1
+              }
+            />
+          ))
+        )}
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     </div>
   );
 }

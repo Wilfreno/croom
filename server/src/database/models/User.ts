@@ -9,7 +9,10 @@ export type UserSchema = {
   status: "OFFLINE" | "ONLINE";
   photo: Types.ObjectId;
   conversations: Types.ObjectId[];
+<<<<<<< HEAD
   blocked: Types.ObjectId[];
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
   last_online: Date;
   date_created: Date;
   last_updated: Date;
@@ -58,6 +61,7 @@ const userSchema = new Schema<UserSchema>({
       default: [],
     },
   ],
+<<<<<<< HEAD
   blocked: [
     {
       type: Schema.Types.ObjectId,
@@ -65,6 +69,8 @@ const userSchema = new Schema<UserSchema>({
       default: [],
     },
   ],
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
   last_online: {
     type: Date,
     default: Date.now,

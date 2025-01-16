@@ -6,8 +6,12 @@ export type User = {
   email: string;
   status: "OFFLINE" | "ONLINE";
   photo?: Photo;
+<<<<<<< HEAD
   conversations: string[];
   blocked: string[];
+=======
+  chat_rooms: ChatRoom[];
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
   last_online: Date;
   date_created: Date;
   last_updated: Date;

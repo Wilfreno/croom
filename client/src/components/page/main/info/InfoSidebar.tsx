@@ -11,8 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from "next/dynamic";
+<<<<<<< HEAD
 import InfoMedia from "./InfoMedia";
 import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
 const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), { ssr: false });
 
@@ -38,7 +41,11 @@ export default function InfoSidebar() {
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
   return (
+<<<<<<< HEAD
     <SidebarContent className={cn(is_open == false && "hidden")}>
+=======
+    <SidebarContent className={cn("", !is_open && "")}>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       <div className="flex flex-col items-center gap-4 my-10">
         <span className="relative">
           <Avatar className="aspect-square h-28 w-auto">
@@ -57,11 +64,17 @@ export default function InfoSidebar() {
         </div>
       </div>
       <ScrollArea className="h-[60dvh]">
+<<<<<<< HEAD
         <div className="grid gap-2">
           <InfoCustomization />
           <InfoAdminsAndMembers />
           <InfoMedia />
           <InfoPrivacyAndSupport />
+=======
+        <div className="grid gap-4">
+          <InfoCustomization />
+          <InfoAdminsAndMembers />
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         </div>
       </ScrollArea>
     </SidebarContent>

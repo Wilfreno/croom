@@ -21,7 +21,11 @@ export default function InfoAdminsAndMembers() {
   return (
     <Collapsible onOpenChange={(is_open) => setIsOpen(is_open)}>
       <CollapsibleTrigger asChild>
+<<<<<<< HEAD
         <Button variant="ghost" className="w-full justify-between font-semibold">
+=======
+        <Button variant="ghost" className="w-full justify-between">
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
           <span>Admins & Members</span>
           {is_open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>

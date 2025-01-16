@@ -178,12 +178,19 @@ export default function ConversationMessage({
     let style = "h-fit w-full rounded-sm overflow-hidden grid";
 
     if (message.photos.length > 1) style += " bg-primary p-1";
+<<<<<<< HEAD
     else if (message.photos.length === 1) style += " border shadow-sm";
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     if (message.text) style += " rounded-l-lg rounded-br-lg rounded-tr";
 
     style += " grid-cols-" + Math.min(message.photos.length, 3);
     return style;
+<<<<<<< HEAD
   }, [message, message]);
+=======
+  }, [message]);
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
   const seen = useMutation({
     mutationFn: async () => {
@@ -230,7 +237,11 @@ export default function ConversationMessage({
           {!!message.text && (
             <p
               className={cn(
+<<<<<<< HEAD
                 "font-sans py-2 max-w-96 break-words",
+=======
+                "font-sans py-2",
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
                 no_text ? "bg-transparent text-4xl" : "bg-primary rounded-lg px-3",
                 !!quick_message_placement! &&
                   quick_message_placement === "FIRST" &&

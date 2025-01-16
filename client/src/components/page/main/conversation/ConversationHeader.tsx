@@ -36,10 +36,14 @@ export default function ConversationHeader() {
 
         status = other_user.status;
         photo_url = other_user.photo?.url || "";
+<<<<<<< HEAD
 
         conversation_name = conversation!.nicknames.find((nickname) => nickname.user === other_user.id)!.value;
         if (!conversation_name) conversation_name = other_user.display_name;
 
+=======
+        conversation_name = other_user.display_name;
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         if (other_user.status === "OFFLINE") {
           const last_online_date = new Date(other_user.last_online);
           const now = new Date();
@@ -84,7 +88,11 @@ export default function ConversationHeader() {
         className="aspect-square h-fit w-auto rounded-full p-1"
         onClick={() => query_client.setQueryData<boolean>(["sidebar", "info", "open"], (prev) => !prev)}
       >
+<<<<<<< HEAD
         <Ellipsis className={cn("w-auto", info_sidebar_is_open === true ? "h-2" : "h-4")} />
+=======
+        <Ellipsis className={cn("w-auto", info_sidebar_is_open ? "h-2" : "h-4")} />
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       </Button>
     </section>
   );

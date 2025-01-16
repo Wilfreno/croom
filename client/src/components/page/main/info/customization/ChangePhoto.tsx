@@ -9,7 +9,10 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ImageIcon, UserRound } from "lucide-react";
+<<<<<<< HEAD
 import { useSession } from "next-auth/react";
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,7 +23,10 @@ export default function ChangePhoto() {
   const [new_photo, setNewPhoto] = useState<{ key: string; url: string }>();
   const [uploading_image, setUploadingImage] = useState(false);
 
+<<<<<<< HEAD
   const { data: session } = useSession();
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
   const params = useParams<{ id: string }>();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
   const query_client = useQueryClient();
@@ -68,6 +74,7 @@ export default function ChangePhoto() {
 
         return { ...prev, photo: { ...prev.photo, url: new_photo!.url } };
       });
+<<<<<<< HEAD
       query_client.setQueryData<Conversation[]>([session!.user.id, "conversations"], (prev) => {
         if (!prev) return [];
 
@@ -81,6 +88,8 @@ export default function ChangePhoto() {
           convo.id === params.id ? { ...convo, photo: { ...convo.photo, url: new_photo!.url } } : convo
         );
       });
+=======
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
       setNewPhoto(undefined);
       setOpen(false);
     },
@@ -115,7 +124,11 @@ export default function ChangePhoto() {
           <span>Change photo</span>
         </Button>
       </DialogTrigger>
+<<<<<<< HEAD
       <DialogContent className="w-[30dvw]">
+=======
+      <DialogContent>
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <DialogHeader className="text-center">
           <DialogTitle>Change Photo</DialogTitle>
         </DialogHeader>
@@ -127,7 +140,11 @@ export default function ChangePhoto() {
             </AvatarFallback>
           </Avatar>
           <UploadthingButton
+<<<<<<< HEAD
             disabled={uploading_image || !session}
+=======
+            disabled={uploading_image}
+>>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
             endpoint="single_image"
             className="ut-button:h-fit ut-button:w-auto ut-button:p-2  ut-button:text-primary  ut-button:font-medium  ut-button:bg-background ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
             content={{
