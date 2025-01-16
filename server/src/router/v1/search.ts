@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import Conversation from "../../database/models/Conversation";
 import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
-import { preValidation } from "src/lib/prevalidation";
+import { preValidation } from "../../lib/middleware";
 
 export default function v1SearchRouter(
   fastify: FastifyInstance,
@@ -18,7 +18,7 @@ export default function v1SearchRouter(
     async (request, reply) => {
       try {
         const { value } = request.query;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
         if (!value)
           return reply
             .code(400)

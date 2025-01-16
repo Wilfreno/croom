@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/components/providers/SessionProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -10,17 +11,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DELETERequest } from "@/lib/server/requests";
 import { UserRound } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
 
 export default function MainUserAvatar() {
-  const { data } = useSession();
+  const { session, logout } = useAuth();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-full">
         <Avatar>
-          <AvatarImage src={data?.user.photo?.url} />
+          <AvatarImage src={session.user?.photo?.url} />
           <AvatarFallback className="bg-background">
             <UserRound className="h-1/2 w-auto" />
           </AvatarFallback>
@@ -34,7 +34,7 @@ export default function MainUserAvatar() {
                 const { status, message } = await DELETERequest("/v1/user/session");
 
                 if (status !== "OK") throw new Error(message);
-                await signOut();
+                await logout();
               } catch (error) {
                 toast.error((error as Error).message);
               }

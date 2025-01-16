@@ -5,7 +5,7 @@ import Message, { MessageSchema } from "../../database/models/Message";
 import { ClientSession, startSession } from "mongoose";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
-import { preValidation } from "../../lib/prevalidation";
+import { preValidation } from "../../lib/middleware";
 
 export default function v1MessageRouter(
   fastify: FastifyInstance,
@@ -22,7 +22,7 @@ export default function v1MessageRouter(
   }>("/", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
     try {
-      const user = request.user!;
+      const user = request.user as UserSchema & { id: string };
       const { text, photos, conversation } = request.body;
 
       const found_conversation = await Conversation.findOne({ _id: conversation });
@@ -107,7 +107,7 @@ export default function v1MessageRouter(
       try {
         const { id, key } = request.params;
         const request_body = request.body;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         const found_message = await Message.findOne({ _id: id });
         if (!found_message)

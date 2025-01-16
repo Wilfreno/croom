@@ -6,7 +6,7 @@ import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Report from "../../database/models/Report";
-import { preValidation } from "../../lib/prevalidation";
+import { preValidation } from "../../lib/middleware";
 
 export default function v1ConversationRouter(
   fastify: FastifyInstance,
@@ -25,7 +25,7 @@ export default function v1ConversationRouter(
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
         const { members } = request.body;
 
         if (members.length === 2) {
@@ -97,7 +97,7 @@ export default function v1ConversationRouter(
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
         const { reported_user, conversation } = request.body;
 
         const found_conversation = await Conversation.findOne({ _id: conversation });
@@ -142,7 +142,7 @@ export default function v1ConversationRouter(
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
         const { conversation } = request.body;
 
         const found_conversation = await Conversation.findOne({ _id: conversation });
@@ -188,7 +188,7 @@ export default function v1ConversationRouter(
     async (request, reply) => {
       try {
         const { members } = request.query;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         if (!members)
           return reply
@@ -263,7 +263,7 @@ export default function v1ConversationRouter(
       try {
         const { id } = request.params;
         const { page } = request.query;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         if (!page)
           return reply
@@ -330,7 +330,7 @@ export default function v1ConversationRouter(
     async (request, reply) => {
       try {
         const { id } = request.params;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         const found_conversation = await Conversation.findOne({ _id: id });
         if (!found_conversation)
@@ -391,7 +391,7 @@ export default function v1ConversationRouter(
       try {
         const { id, key } = request.params;
         const { name, admin, member, action, nickname, photo } = request.body;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         const found_conversation = await Conversation.findOne({ _id: id });
         if (!found_conversation)

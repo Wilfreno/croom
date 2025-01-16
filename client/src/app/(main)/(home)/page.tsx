@@ -1,7 +1,12 @@
+"use client";
+import { useAuth } from "@/components/providers/SessionProvider";
 import { Snail } from "lucide-react";
 import Link from "next/link";
 
-export default function page() {
+export default function Page() {
+  const { session } = useAuth();
+
+  console.log(session);
   return (
     <section className="inset-y-0 grow grid place-items-center font-medium">
       <div className="flex flex-col items-center text-muted-foreground gap-2">

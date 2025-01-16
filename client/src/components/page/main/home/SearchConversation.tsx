@@ -1,31 +1,36 @@
 "use client";
 import useDebounce from "@/components/hooks/useDebounce";
+import { useAuth } from "@/components/providers/SessionProvider";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 export default function SearchConversation() {
   const [input_value, setInputValue] = useState("");
   const debounced_value = useDebounce(input_value);
 
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const query_client = useQueryClient();
 
   useEffect(() => {
     if (!debounced_value) {
       query_client.resetQueries({ exact: true, queryKey: ["conversation", "search"] });
     } else {
-      const conversations = query_client.getQueryData<Conversation[]>([session?.user.id, "conversations"]);
+      const conversations = query_client.getQueryData<Conversation[]>([
+        session.user?.id,
+        "conversations",
+      ]);
       if (!conversations) return;
       const result = conversations.filter(
         (convo) =>
           convo.name.toLowerCase().startsWith(debounced_value.toLowerCase()) ||
-          convo.members[0].display_name.toLowerCase().startsWith(debounced_value.toLowerCase())
+          convo.members[0].display_name
+            .toLowerCase()
+            .startsWith(debounced_value.toLowerCase())
       );
       query_client.setQueryData(["conversation", "search"], result);
     }

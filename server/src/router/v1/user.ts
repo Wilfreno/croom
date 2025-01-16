@@ -4,9 +4,9 @@ import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
-import Conversation, { ConversationSchema } from "../../database/models/Conversation";
-import { ClientSession, FlattenMaps, startSession, Types } from "mongoose";
-import { preValidation } from "src/lib/prevalidation";
+import Conversation from "../../database/models/Conversation";
+import { ClientSession, startSession } from "mongoose";
+import { preValidation } from "../../lib/middleware";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -191,7 +191,7 @@ export default function v1UserRouter(
     async (request, reply) => {
       try {
         const { value } = request.query;
-        const user = request.user!;
+        const user = request.user as UserSchema & { id: string };
 
         const found_users = await User.find({
           $and: [
@@ -234,7 +234,7 @@ export default function v1UserRouter(
   );
   fastify.get("/conversations", { preValidation }, async (request, reply) => {
     try {
-      const user = request.user!;
+      const user = request.user as UserSchema & { id: string };
 
       const conversations = [];
 
@@ -283,7 +283,7 @@ export default function v1UserRouter(
 
   fastify.get("/active-conversation", { preValidation }, async (request, reply) => {
     try {
-      const user = request.user!;
+      const user = request.user as UserSchema & { id: string };
 
       const conversations = [];
 

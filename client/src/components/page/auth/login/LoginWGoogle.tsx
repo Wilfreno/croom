@@ -1,22 +1,19 @@
 "use client";
 
+import { useAuth } from "@/components/providers/SessionProvider";
 import GoogleSvg from "@/components/svg/GoogleSvg";
 import { Button } from "@/components/ui/button";
-import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 export default function LoginWGoogle() {
-  const from = useSearchParams().get("from");
+  const { login, error } = useAuth();
+
   return (
     <Button
       variant="secondary"
       onClick={async () => {
-        const response = await signIn("google", {
-          redirect: true,
-          callbackUrl: from ? from : "/",
-        });
-        if (response?.error) toast.error(response.error);
+        await login("GOOGLE");
+        if (error) toast.error(error);
       }}
       className="gap-4"
     >

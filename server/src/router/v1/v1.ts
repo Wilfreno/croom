@@ -1,18 +1,22 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-// import v1UserRouter from "./user";
-// import v1OTPRouter from "./otp";
-// import v1SearchRouter from "./search";
-// import v1ConversationRouter from "./conversation";
+import v1UserRouter from "./user";
+import v1OTPRouter from "./otp";
+import v1SearchRouter from "./search";
+import v1ConversationRouter from "./conversation";
 import v1MessageRouter from "./message";
 import v1AuthRouter from "./auth";
 
-export default function v1Router(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
+export default function v1Router(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   fastify.register(v1AuthRouter, { prefix: "/auth" });
 
-  //   fastify.register(v1UserRouter, { prefix: "/user" });
-  //   fastify.register(v1OTPRouter, { prefix: "/otp" });
-  //   fastify.register(v1ConversationRouter, { prefix: "/conversation" });
-  //   fastify.register(v1MessageRouter, { prefix: "/message" });
-  //   fastify.register(v1SearchRouter, { prefix: "/search" });
+  fastify.register(v1UserRouter, { prefix: "/user" });
+  fastify.register(v1OTPRouter, { prefix: "/otp" });
+  fastify.register(v1ConversationRouter, { prefix: "/conversation" });
+  fastify.register(v1MessageRouter, { prefix: "/message" });
+  fastify.register(v1SearchRouter, { prefix: "/search" });
   done();
 }
