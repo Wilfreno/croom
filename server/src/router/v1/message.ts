@@ -5,78 +5,93 @@ import Message, { MessageSchema } from "../../database/models/Message";
 import { ClientSession, startSession } from "mongoose";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
+import { preValidation } from "../../lib/prevalidation";
 
-export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
+export default function v1MessageRouter(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   const redis_pub = fastify.redis["pub"];
 
   //create
-  fastify.post<{ Body: Omit<MessageSchema, "photos"> & { photos: { url: string; width: number; height: number }[] } }>(
-    "/",
-    { preValidation: async (request) => await request.jwtVerify() },
-    async (request, reply) => {
-      let session: ClientSession | null = null;
-      try {
-        const user = request.user as UserSchema & { id: string };
-        const { text, photos, conversation } = request.body;
+  fastify.post<{
+    Body: Omit<MessageSchema, "photos"> & {
+      photos: { url: string; width: number; height: number }[];
+    };
+  }>("/", { preValidation }, async (request, reply) => {
+    let session: ClientSession | null = null;
+    try {
+      const user = request.user!;
+      const { text, photos, conversation } = request.body;
 
-        const found_conversation = await Conversation.findOne({ _id: conversation });
+      const found_conversation = await Conversation.findOne({ _id: conversation });
 
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "Conversation does not exist"));
-        session = await startSession();
-        session.startTransaction();
+      if (!found_conversation)
+        return reply
+          .code(404)
+          .send(JSONResponse("NOT_FOUND", "Conversation does not exist"));
+      session = await startSession();
+      session.startTransaction();
 
-        const new_message = new Message({
-          sender: user.id,
-          conversation,
-        });
+      const new_message = new Message({
+        sender: user.id,
+        conversation,
+      });
 
-        if (text) {
-          new_message.text = text;
-        }
-
-        for (const photo of photos) {
-          const new_photo = new Photo({
-            owner: user.id,
-            type: "MESSAGE",
-            url: photo.url,
-            width: photo.width,
-            height: photo.height,
-          });
-          await new_photo.save({ session });
-          new_message.photos.push(new_photo._id);
-        }
-
-        await new_message.save({ session });
-        await Conversation.updateOne({ _id: conversation }, { $push: { messages: new_message._id } }, { session });
-
-        const message_json = (
-          await new_message
-            .populate({
-              path: "sender",
-              select: "username display_name photo",
-              populate: { path: "photo", select: "url" },
-            })
-            .then((data) =>
-              data
-                .populate({ path: "conversation", select: "_id members" })
-                .then((data) => data.populate({ path: "photos", select: "url height width" }))
-            )
-        ).toJSON();
-
-        await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
-        await session.commitTransaction();
-
-        return reply.code(201).send(JSONResponse("CREATED", "message sent", message_json));
-      } catch (error) {
-        await session?.abortTransaction();
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      } finally {
-        await session?.endSession();
+      if (text) {
+        new_message.text = text;
       }
+
+      for (const photo of photos) {
+        const new_photo = new Photo({
+          owner: user.id,
+          type: "MESSAGE",
+          url: photo.url,
+          width: photo.width,
+          height: photo.height,
+        });
+        await new_photo.save({ session });
+        new_message.photos.push(new_photo._id);
+      }
+
+      await new_message.save({ session });
+      await Conversation.updateOne(
+        { _id: conversation },
+        { $push: { messages: new_message._id } },
+        { session }
+      );
+
+      const message_json = (
+        await new_message
+          .populate({
+            path: "sender",
+            select: "username display_name photo",
+            populate: { path: "photo", select: "url" },
+          })
+          .then((data) =>
+            data
+              .populate({ path: "conversation", select: "_id members" })
+              .then((data) =>
+                data.populate({ path: "photos", select: "url height width" })
+              )
+          )
+      ).toJSON();
+
+      await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
+      await session.commitTransaction();
+
+      return reply.code(201).send(JSONResponse("CREATED", "message sent", message_json));
+    } catch (error) {
+      await session?.abortTransaction();
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    } finally {
+      await session?.endSession();
     }
-  );
+  });
   //read
+
   //update
 
   fastify.patch<{
@@ -85,19 +100,24 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
   }>(
     "/:id/:key",
     {
-      preValidation: async (request) => await request.jwtVerify(),
+      preValidation,
     },
     async (request, reply) => {
       let session: ClientSession | null = null;
       try {
         const { id, key } = request.params;
         const request_body = request.body;
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
 
         const found_message = await Message.findOne({ _id: id });
-        if (!found_message) return reply.code(404).send(JSONResponse("NOT_FOUND", "message does not exist"));
+        if (!found_message)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "message does not exist"));
         if (found_message.status === "DELETED")
-          return reply.code(409).send(JSONResponse("FORBIDDEN", "message already deleted"));
+          return reply
+            .code(409)
+            .send(JSONResponse("FORBIDDEN", "message already deleted"));
 
         session = await startSession();
         session.startTransaction();
@@ -115,7 +135,12 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
             if (!request_body.action)
               return reply
                 .code(400)
-                .send(JSONResponse("BAD_REQUEST", 'action "ADD" or "DELETE is required on the request body'));
+                .send(
+                  JSONResponse(
+                    "BAD_REQUEST",
+                    'action "ADD" or "DELETE is required on the request body'
+                  )
+                );
 
             switch (request_body.action) {
               case "ADD": {
@@ -123,7 +148,10 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
                 await new_photo.save({ session });
                 await Message.updateOne(
                   { _id: id },
-                  { $push: { photos: new_photo._id }, $set: { last_updated: new Date() } },
+                  {
+                    $push: { photos: new_photo._id },
+                    $set: { last_updated: new Date() },
+                  },
                   { session }
                 );
                 break;
@@ -131,7 +159,10 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
               case "DELETE": {
                 await Message.updateOne(
                   { _id: id },
-                  { $pull: { photos: [request_body.photo.id] }, $set: { last_updated: new Date() } },
+                  {
+                    $pull: { photos: [request_body.photo.id] },
+                    $set: { last_updated: new Date() },
+                  },
                   { session }
                 );
                 break;
@@ -142,7 +173,12 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
             if (!request_body.action)
               return reply
                 .code(400)
-                .send(JSONResponse("BAD_REQUEST", 'action "ADD" or "DELETE is required on the request body'));
+                .send(
+                  JSONResponse(
+                    "BAD_REQUEST",
+                    'action "ADD" or "DELETE is required on the request body'
+                  )
+                );
 
             switch (request_body.action) {
               case "ADD": {
@@ -165,7 +201,11 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
             break;
           }
           default:
-            return reply.code(400).send(JSONResponse("BAD_REQUEST", "can only update text, photos, and seen_by"));
+            return reply
+              .code(400)
+              .send(
+                JSONResponse("BAD_REQUEST", "can only update text, photos, and seen_by")
+              );
         }
 
         await session.commitTransaction();

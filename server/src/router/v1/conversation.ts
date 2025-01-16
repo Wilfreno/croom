@@ -6,19 +6,26 @@ import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Report from "../../database/models/Report";
+import { preValidation } from "../../lib/prevalidation";
 
-export default function v1ConversationRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
+export default function v1ConversationRouter(
+  fastify: FastifyInstance,
+  _: FastifyPluginOptions,
+  done: () => void
+) {
   //create
   fastify.post<{ Body: ConversationSchema }>(
     "/",
-    { preValidation: async (request) => await request.jwtVerify() },
+    {
+      preValidation,
+    },
     async (request, reply) => {
       let session: ClientSession | null = null;
       try {
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
         const { members } = request.body;
 
         if (members.length === 2) {
@@ -27,14 +34,20 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
               members: { $size: members.length, $all: members },
             })
           )
-            return reply.code(409).send(JSONResponse("CONFLICT", "conversation already exist"));
+            return reply
+              .code(409)
+              .send(JSONResponse("CONFLICT", "conversation already exist"));
         }
 
         let name = [];
         for (const member of members) {
           const found_user = await User.findOne({ _id: member }).select("display_name");
           if (!found_user)
-            return reply.code(404).send(JSONResponse("NOT_FOUND", "user with id: " + member + " does not exist"));
+            return reply
+              .code(404)
+              .send(
+                JSONResponse("NOT_FOUND", "user with id: " + member + " does not exist")
+              );
 
           name.push(found_user.display_name);
         }
@@ -51,7 +64,10 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         for (const member of members) {
           await User.updateOne(
             { _id: member },
-            { $set: { last_updated: new Date() }, $push: { conversations: new_conversation._id } }
+            {
+              $set: { last_updated: new Date() },
+              $push: { conversations: new_conversation._id },
+            }
           );
         }
 
@@ -59,7 +75,11 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         await session.commitTransaction();
         await session.endSession();
 
-        return reply.code(201).send(JSONResponse("CREATED", "new conversation created", new_conversation.toJSON()));
+        return reply
+          .code(201)
+          .send(
+            JSONResponse("CREATED", "new conversation created", new_conversation.toJSON())
+          );
       } catch (error) {
         await session?.abortTransaction();
         fastify.log.error(error);
@@ -70,20 +90,25 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
 
   fastify.post<{ Body: { reported_user: string; conversation: string } }>(
     "/report",
-    { preValidation: async (request) => await request.jwtVerify() },
+    { preValidation },
     async (request, reply) => {
       let session: ClientSession | null = null;
       try {
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
         const { reported_user, conversation } = request.body;
 
         const found_conversation = await Conversation.findOne({ _id: conversation });
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
         if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+          return reply
+            .code(403)
+            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
         const report = new Report({
           conversation: conversation,
@@ -96,7 +121,9 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         await session.commitTransaction();
         await session.endSession();
 
-        return reply.code(201).send(JSONResponse("CREATED", "report created", report.toJSON()));
+        return reply
+          .code(201)
+          .send(JSONResponse("CREATED", "report created", report.toJSON()));
       } catch (error) {
         await session?.abortTransaction();
         fastify.log.error(error);
@@ -107,7 +134,7 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
 
   fastify.post<{ Body: { conversation: string } }>(
     "/leave",
-    { preValidation: async (request) => await request.jwtVerify() },
+    { preValidation },
     async (request, reply) => {
       let session: ClientSession | null = null;
 
@@ -115,14 +142,19 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         session = await startSession();
         session.startTransaction();
 
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
         const { conversation } = request.body;
 
         const found_conversation = await Conversation.findOne({ _id: conversation });
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
         if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+          return reply
+            .code(403)
+            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
         await Conversation.updateOne(
           {
@@ -152,14 +184,16 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
   //read
   fastify.get<{ Querystring: { members: string } }>(
     "/",
-    { preValidation: async (request) => await request.jwtVerify() },
+    { preValidation },
     async (request, reply) => {
       try {
         const { members } = request.query;
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
 
         if (!members)
-          return reply.code(400).send(JSONResponse("BAD_REQUEST", 'search query key "members" is required'));
+          return reply
+            .code(400)
+            .send(JSONResponse("BAD_REQUEST", 'search query key "members" is required'));
 
         const members_list = members.split(",");
 
@@ -209,9 +243,14 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         })
         .populate({ path: "photo", select: "url" });
 
-      if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+      if (!found_conversation)
+        return reply
+          .code(404)
+          .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
-      return reply.code(200).send(JSONResponse("OK", "request successful", found_conversation.toJSON()));
+      return reply
+        .code(200)
+        .send(JSONResponse("OK", "request successful", found_conversation.toJSON()));
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -219,24 +258,39 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
   });
   fastify.get<{ Params: { id: string }; Querystring: { page: string } }>(
     "/:id/messages",
-    { preValidation: async (request) => await request.jwtVerify() },
+    { preValidation },
     async (request, reply) => {
       try {
         const { id } = request.params;
         const { page } = request.query;
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
 
         if (!page)
           return reply
             .code(400)
-            .send(JSONResponse("BAD_REQUEST", ' search query key "page" with a default value of 1 is required'));
-        if (!Number(page)) return reply.code(400).send(JSONResponse("BAD_REQUEST", "page must be a number"));
+            .send(
+              JSONResponse(
+                "BAD_REQUEST",
+                ' search query key "page" with a default value of 1 is required'
+              )
+            );
+        if (!Number(page))
+          return reply
+            .code(400)
+            .send(JSONResponse("BAD_REQUEST", "page must be a number"));
 
-        const found_conversation = await Conversation.findOne({ _id: id }).select("members");
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        const found_conversation = await Conversation.findOne({ _id: id }).select(
+          "members"
+        );
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
         if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+          return reply
+            .code(403)
+            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
         const limit = 15;
         const skip = (Number(page) - 1) * limit;
@@ -245,12 +299,22 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
           .sort({ date_created: -1 })
           .skip(skip)
           .limit(limit)
-          .populate({ path: "sender", select: "photo", populate: { path: "photo", select: "url" } })
+          .populate({
+            path: "sender",
+            select: "photo",
+            populate: { path: "photo", select: "url" },
+          })
           .populate({ path: "photos", select: "url height width " });
 
         return reply
           .code(200)
-          .send(JSONResponse("OK", "request successful", messages.map((msg) => msg.toJSON()).reverse()));
+          .send(
+            JSONResponse(
+              "OK",
+              "request successful",
+              messages.map((msg) => msg.toJSON()).reverse()
+            )
+          );
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -261,19 +325,27 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
   fastify.get<{ Params: { id: string } }>(
     "/:id/media",
     {
-      preValidation: async (request) => await request.jwtVerify(),
+      preValidation,
     },
     async (request, reply) => {
       try {
         const { id } = request.params;
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
 
         const found_conversation = await Conversation.findOne({ _id: id });
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
         if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+          return reply
+            .code(403)
+            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
-        const found_messages = await Message.find({ conversation: id, photos: { $ne: [] } })
+        const found_messages = await Message.find({
+          conversation: id,
+          photos: { $ne: [] },
+        })
           .populate({
             path: "photos",
             select: "url width height",
@@ -312,17 +384,20 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
   }>(
     "/:id/:key",
     {
-      preValidation: async (request) => await request.jwtVerify(),
+      preValidation,
     },
     async (request, reply) => {
       let session: ClientSession | null = null;
       try {
         const { id, key } = request.params;
         const { name, admin, member, action, nickname, photo } = request.body;
-        const user = request.user as UserSchema & { id: string };
+        const user = request.user!;
 
         const found_conversation = await Conversation.findOne({ _id: id });
-        if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
         session = await startSession();
         session.startTransaction();
@@ -330,25 +405,52 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
         switch (key) {
           case "name": {
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
-              return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
+              return reply
+                .code(403)
+                .send(
+                  JSONResponse("FORBIDDEN", "you are not an admin of this conversation")
+                );
 
             if (!found_conversation.is_group_chat)
-              return reply.code(409).send(JSONResponse("CONFLICT", "non group conversations cannot have a name"));
+              return reply
+                .code(409)
+                .send(
+                  JSONResponse("CONFLICT", "non group conversations cannot have a name")
+                );
 
-            await Conversation.updateOne({ _id: id }, { $set: { name, last_updated: new Date() } }, { session });
+            await Conversation.updateOne(
+              { _id: id },
+              { $set: { name, last_updated: new Date() } },
+              { session }
+            );
             break;
           }
           case "admins": {
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
-              return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
+              return reply
+                .code(403)
+                .send(
+                  JSONResponse("FORBIDDEN", "you are not an admin of this conversation")
+                );
 
             switch (action) {
               case "ADD": {
-                if (found_conversation.admins.some((user_id) => user_id.toString() === admin)) {
-                  const found_user = await User.findOne({ _id: admin }).select("display_name");
+                if (
+                  found_conversation.admins.some(
+                    (user_id) => user_id.toString() === admin
+                  )
+                ) {
+                  const found_user = await User.findOne({ _id: admin }).select(
+                    "display_name"
+                  );
                   return reply
                     .code(409)
-                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already an admin"));
+                    .send(
+                      JSONResponse(
+                        "CONFLICT",
+                        found_user?.display_name + " is already an admin"
+                      )
+                    );
                 }
                 await Conversation.updateOne(
                   { _id: id },
@@ -359,11 +461,22 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
                 break;
               }
               case "REMOVE": {
-                if (!found_conversation.admins.some((user_id) => user_id.toString() === admin)) {
-                  const found_user = await User.findOne({ _id: admin }).select("display_name");
+                if (
+                  !found_conversation.admins.some(
+                    (user_id) => user_id.toString() === admin
+                  )
+                ) {
+                  const found_user = await User.findOne({ _id: admin }).select(
+                    "display_name"
+                  );
                   return reply
                     .code(409)
-                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not an admin"));
+                    .send(
+                      JSONResponse(
+                        "CONFLICT",
+                        found_user?.display_name + " is already not an admin"
+                      )
+                    );
                 }
 
                 await Conversation.updateOne(
@@ -379,15 +492,30 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
           }
           case "members": {
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
-              return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
+              return reply
+                .code(403)
+                .send(
+                  JSONResponse("FORBIDDEN", "you are not an admin of this conversation")
+                );
 
             switch (action) {
               case "ADD": {
-                if (found_conversation.members.some((found_member) => found_member.toString() === member)) {
-                  const found_user = await User.findOne({ _id: member }).select("display_name");
+                if (
+                  found_conversation.members.some(
+                    (found_member) => found_member.toString() === member
+                  )
+                ) {
+                  const found_user = await User.findOne({ _id: member }).select(
+                    "display_name"
+                  );
                   return reply
                     .code(409)
-                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already a member"));
+                    .send(
+                      JSONResponse(
+                        "CONFLICT",
+                        found_user?.display_name + " is already a member"
+                      )
+                    );
                 }
 
                 await Conversation.updateOne(
@@ -399,11 +527,22 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
                 break;
               }
               case "REMOVE": {
-                if (!found_conversation.members.some((found_member) => found_member.toString() === member)) {
-                  const found_user = await User.findOne({ _id: member }).select("display_name");
+                if (
+                  !found_conversation.members.some(
+                    (found_member) => found_member.toString() === member
+                  )
+                ) {
+                  const found_user = await User.findOne({ _id: member }).select(
+                    "display_name"
+                  );
                   return reply
                     .code(409)
-                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not a member"));
+                    .send(
+                      JSONResponse(
+                        "CONFLICT",
+                        found_user?.display_name + " is already not a member"
+                      )
+                    );
                 }
 
                 await Conversation.updateOne(
@@ -423,7 +562,9 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
               {
                 $set: {
                   nicknames: found_conversation.nicknames.map((found_nickname) =>
-                    found_nickname.user.toString() === nickname.user ? nickname : found_nickname
+                    found_nickname.user.toString() === nickname.user
+                      ? nickname
+                      : found_nickname
                   ),
                 },
               },
@@ -433,9 +574,14 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
           }
           case "photo": {
             if (!found_conversation.admins.some((admin) => admin.toString() === user.id))
-              return reply.code(403).send(JSONResponse("FORBIDDEN", "you are not an admin of this conversation"));
+              return reply
+                .code(403)
+                .send(
+                  JSONResponse("FORBIDDEN", "you are not an admin of this conversation")
+                );
 
-            if (found_conversation.photo) await Photo.deleteOne({ _id: found_conversation.photo }, { session });
+            if (found_conversation.photo)
+              await Photo.deleteOne({ _id: found_conversation.photo }, { session });
 
             const new_photo = new Photo({
               url: photo.url,

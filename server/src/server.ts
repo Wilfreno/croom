@@ -2,13 +2,16 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import "dotenv/config";
 import redis from "@fastify/redis";
-import jwt from "@fastify/jwt";
-import cookie from "@fastify/cookie";
 import JSONResponse from "./lib/json-response";
 import v1Router from "./router/v1/v1";
 import connectToDB from "./database/connect";
 import websocket from "@fastify/websocket";
 import websocketServer from "./websocket/websocket-server";
+import passport from "@fastify/passport";
+import secure_session from "@fastify/secure-session";
+import { readFileSync } from "fs";
+import path from "path";
+import passportStrategy from "./lib/passport/passport-strategy";
 
 const fastify = Fastify({
   logger: true,
@@ -24,21 +27,11 @@ fastify.register(cors, {
   credentials: true,
 });
 
-//jwt
-const jwt_secret = process.env.JWT_SECRET;
-if (!jwt_secret) throw new Error("JWT_SECRET is missing from your .env file");
-fastify.register(jwt, {
-  secret: jwt_secret,
-  cookie: {
-    cookieName: "chatup-session-token",
-    signed: false,
-  },
-});
-
-//cookies
-const cookie_secret = process.env.COOKIE_SECRET;
-if (!cookie_secret) throw new Error("COOKIE_SECRET is missing from your .env file");
-fastify.register(cookie, { secret: cookie_secret });
+//passport js
+fastify.register(secure_session, { key: readFileSync(path.join(__dirname, "session-key")), cookie: { path: "/" } });
+fastify.register(passport.initialize());
+fastify.register(passport.secureSession());
+fastify.register(passportStrategy);
 
 //redis
 fastify

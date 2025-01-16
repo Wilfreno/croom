@@ -79,6 +79,9 @@ export async function GETRequest<R>(path: string, query_params?: Record<string, 
 
     const response = await fetch(server_url + request, {
       method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
       credentials: "include",
     });
 
