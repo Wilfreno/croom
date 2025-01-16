@@ -9,6 +9,10 @@ import InfoCustomization from "./InfoCustomization";
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserRound } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import dynamic from "next/dynamic";
+
+const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), { ssr: false });
 
 export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
@@ -18,23 +22,16 @@ export default function InfoSidebar() {
 
   const { data: conversation_info } = useQuery<
     | {
-        photo_url?: string;
+        photo_url: string;
         conversation_name: string;
-        status: null;
-        last_online: string;
-      }
-    | {
-        photo_url?: string;
-        conversation_name: string;
-        status: "OFFLINE" | "ONLINE";
+        status: "OFFLINE" | "ONLINE" | null;
         last_online: string;
       }
     | undefined
   >({
-    enabled: !!conversation,
-
-    queryKey: ["conversation", "info", params.id, session],
-    placeholderData: { photo_url: undefined, conversation_name: "", status: null, last_online: "" },
+    enabled: !!session?.user.id && !!conversation,
+    queryKey: ["conversation", "info", conversation],
+    placeholderData: { photo_url: undefined!, conversation_name: "", status: null, last_online: "" },
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
 
@@ -53,11 +50,16 @@ export default function InfoSidebar() {
           )}
         </span>
         <div className="text-center">
-          <p className="font-medium text-lg">{conversation_name}</p>
+          <p className="font-medium text-lg truncate max-w-72">{conversation_name}</p>
           {!!last_online && <p className="text-xs font-medium text-muted-foreground">Online {last_online}</p>}
         </div>
       </div>
-      <InfoCustomization />
+      <ScrollArea className="h-[60dvh]">
+        <div className="grid gap-4">
+          <InfoCustomization />
+          <InfoAdminsAndMembers />
+        </div>
+      </ScrollArea>
     </SidebarContent>
   );
 }

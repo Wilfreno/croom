@@ -1,5 +1,6 @@
-import ConversationContent from "@/components/page/main/conversation/ConversationContent";
 import ConversationHeader from "@/components/page/main/conversation/ConversationHeader";
+import ConversationMessageInput from "@/components/page/main/conversation/ConversationMessageInput";
+import ConversationMessages from "@/components/page/main/conversation/ConversationMessages";
 import MainContent from "@/components/page/main/MainContent";
 import { getQueryClient } from "@/lib/react-query/get-query-client";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
@@ -12,11 +13,12 @@ export default async function page({ params }: { params: Promise<{ id: string }>
   await query_client.prefetchQuery(getConvoOptions(convo_id));
 
   return (
-    <MainContent className="grid grid-rows-[auto_1fr]">
-      <HydrationBoundary state={dehydrate(query_client)}>
+    <HydrationBoundary state={dehydrate(query_client)}>
+      <MainContent className="grid grid-rows-[auto_1fr_auto]">
         <ConversationHeader />
-        <ConversationContent />
-      </HydrationBoundary>
-    </MainContent>
+        <ConversationMessages />
+        <ConversationMessageInput />
+      </MainContent>
+    </HydrationBoundary>
   );
 }

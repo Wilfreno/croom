@@ -9,7 +9,6 @@ import { UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef } from "react";
-import { toast } from "sonner";
 
 export default function ConversationMessage({
   message,
@@ -24,7 +23,7 @@ export default function ConversationMessage({
 }) {
   const { data: session } = useSession();
   const query_client = useQueryClient();
-  const last_message = useRef<HTMLDivElement>(null);
+  const div_ref = useRef<HTMLDivElement>(null);
 
   const { show_time_interval, time_interval_text, quick_message_placement } = useMemo(() => {
     const date_sent = new Date(message.date_created);
@@ -176,53 +175,47 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const photo_style = useMemo(() => {
-    let style = "h-fit w-auto rounded-sm overflow-hidden grid";
+    let style = "h-fit w-full rounded-sm overflow-hidden grid";
 
     if (message.photos.length > 1) style += " bg-primary p-1";
     if (message.text) style += " rounded-l-lg rounded-br-lg rounded-tr";
 
     style += " grid-cols-" + Math.min(message.photos.length, 3);
     return style;
-  }, [message.photos]);
+  }, [message]);
 
-  const seen_message = useMutation<void, Error, string>({
-    mutationFn: async (id) => {
+  const seen = useMutation({
+    mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/message/" + id + "/seen_by", { action: "ADD" });
+        const { status, message: response_message } = await PATCHRequest("/v1/message/" + message.id + "/seen_by", {
+          action: "ADD",
+        });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== "OK") throw new Error(response_message);
+        query_client.invalidateQueries({ exact: true, queryKey: [session?.user.id, "conversations"] });
       } catch (error) {
-        toast.error((error as Error).message);
         throw error;
       }
     },
-    onSuccess: () => {
-      query_client.invalidateQueries({ exact: true, queryKey: [session?.user.id, "conversations"] });
-    },
   });
+
   useEffect(() => {
-    last_message.current?.scrollIntoView();
-  }, [message, prev_message, next_message]);
+    if (!is_last_message) return;
+    div_ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    seen.mutate();
+  }, [is_last_message]);
 
   return (
-    <span
-      key={message.id}
-      onLoad={() => {
-        if (is_last_message) {
-          seen_message.mutate(message.id);
-        }
-      }}
-    >
+    <>
       {show_time_interval && (
-        <div className="text-center text-xs text-muted-foreground font-medium my-4">{time_interval_text}</div>
+        <div key={message.id + "time_interval"} className="text-center text-xs text-muted-foreground font-medium my-6">
+          {time_interval_text}
+        </div>
       )}
       <div
-        ref={is_last_message ? last_message : undefined}
-        className={cn(
-          "flex items-end gap-4",
-          message.sender.id === session?.user.id ? "ml-auto flex-row-reverse" : "mr-auto",
-          !quick_message_placement! ? "my-1" : "my-px"
-        )}
+        key={message.id}
+        ref={div_ref}
+        className={cn("gap-4 w-full grid max-w-[25vw]", message.sender.id === session?.user.id && "ml-auto")}
       >
         {message.sender.id !== session?.user.id && (
           <Avatar>
@@ -232,7 +225,7 @@ export default function ConversationMessage({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="max-w-[25vw] text-white grid gap-1">
+        <div className="grid gap-1">
           {!!message.text && (
             <p
               className={cn(
@@ -253,18 +246,19 @@ export default function ConversationMessage({
           )}
           <div className={photo_style}>
             {message.photos.map((photo) => (
-              <Image
-                key={photo.id}
-                src={photo.url}
-                height={photo.height}
-                width={photo.width}
-                className="object-cover w-full h-auto"
-                alt=""
-              />
+              <div key={photo.id} className="relative w-full h-full">
+                <Image
+                  src={photo.url}
+                  height={photo.height}
+                  width={photo.width}
+                  className="object-cover w-full h-auto"
+                  alt=""
+                />
+              </div>
             ))}
           </div>
         </div>
       </div>
-    </span>
+    </>
   );
 }

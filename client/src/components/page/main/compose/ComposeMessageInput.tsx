@@ -1,71 +1,76 @@
 "use client";
-
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { POSTRequest, ServerResponse } from "@/lib/server/requests";
-import { Message } from "@/lib/types/server-data-types";
-import { cn } from "@/lib/utils";
-import { InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from "lucide-react";
-import NextImage from "next/image";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
-import { useParams } from "next/navigation";
 import { ClientUploadedFileData } from "uploadthing/types";
-import { UploadthingButton } from "@/components/page/UploadthingButton";
-import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
+import { UploadthingButton } from "../../UploadthingButton";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { POSTRequest, ServerResponse } from "@/lib/server/requests";
+import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from "lucide-react";
+import { toast } from "sonner";
+import NextImage from "next/image";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
+import { Conversation } from "@/lib/types/server-data-types";
+import { useRouter } from "next/navigation";
 
-export default function ConversationMessageInput() {
+export default function ComposeMessageInput() {
   const [text_input, setTextInput] = useState("");
   const [photo_input, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploading_image, setUploadingImage] = useState(false);
 
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
-  const params = useParams<{ id: string }>();
-  const query_client = useQueryClient();
+  const { data: session } = useSession();
+  const router = useRouter();
 
-  const send_message = useMutation({
-    mutationFn: async () => {
+  const { data: selected_users } = useQuery<string[][]>({
+    queryKey: ["compose", "selected_users"],
+    placeholderData: [],
+  });
+  const { data: found_conversation, isError } = useQuery<Conversation[]>({
+    enabled: !!selected_users!.length,
+    queryKey: ["conversation", "members", selected_users],
+    placeholderData: [],
+  });
+
+  const send_message = useMutation<void, Error, string>({
+    mutationFn: async (id) => {
       try {
-        const { data, status, message } = await POSTRequest<Message>("/v1/message", {
-          conversation: params.id,
+        const { status, message } = await POSTRequest("/v1/message", {
+          conversation: id,
           text: text_input,
           photos: photo_input,
         });
 
         if (status !== "CREATED") throw new Error(message);
-
-        return data;
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
-    onSuccess: (data) => {
-      query_client.setQueryData<
-        | InfiniteData<
-            {
-              page_param: number;
-              result: Message[];
-            },
-            unknown
-          >
-        | undefined
-      >(["conversation", "messages", params.id], (prev) => {
-        if (!prev) return;
+    onSuccess: (_, id) => {
+      router.push("/conversation/" + id);
+    },
+  });
 
-        return {
-          ...prev,
-          pages: prev.pages.map(({ page_param, result }, index) => ({
-            page_param,
-            result: index === prev.pages.length - 1 ? [...result, data] : result,
-          })),
-        };
-      });
-      setTextInput("");
-      setUploadingImage(false);
-      setPhotoInput([]);
+  const create_new_conversation = useMutation({
+    mutationFn: async () => {
+      console.log([session?.user.id, ...selected_users!.map((user) => user[0])]);
+      try {
+        const { data, status, message } = await POSTRequest<Conversation>("/v1/conversation", {
+          members: [session?.user.id, ...selected_users!.map((user) => user[0])],
+        });
+        if (status !== "CREATED") throw new Error(message);
+        return data.id;
+      } catch (error) {
+        toast.error((error as Error).message);
+        throw error;
+      }
+    },
+    onSuccess: (id) => {
+      send_message.mutate(id);
     },
   });
 
@@ -98,6 +103,7 @@ export default function ConversationMessageInput() {
     }>[]
   ) {
     for (const res of response) {
+      console.log(res);
       try {
         const image = await new Promise<HTMLImageElement>((resolve, reject) => {
           const new_image = new Image();
@@ -113,7 +119,6 @@ export default function ConversationMessageInput() {
     }
     setUploadingImage(false);
   }
-
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadthingButton
@@ -150,6 +155,7 @@ export default function ConversationMessageInput() {
                 }}
                 onClientUploadComplete={onClientUploadComplete}
                 onUploadError={(e) => {
+                  console.log(e);
                   toast.error(e.message);
                   setUploadingImage(false);
                 }}
@@ -190,8 +196,6 @@ export default function ConversationMessageInput() {
             <Textarea
               className={cn(
                 "resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background"
-
-                // (!!text_input || !!photo_input.length) && "rounded-lg"
               )}
               ref={textarea_ref}
               placeholder="Aa"
@@ -227,7 +231,13 @@ export default function ConversationMessageInput() {
             disabled={(!text_input && !photo_input.length) || send_message.isPending}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={() => send_message.mutate()}
+            onClick={() => {
+              if (!found_conversation || !found_conversation.length || isError) {
+                create_new_conversation.mutate();
+              } else {
+                send_message.mutate(found_conversation[0].id);
+              }
+            }}
           >
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>

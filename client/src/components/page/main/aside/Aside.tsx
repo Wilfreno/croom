@@ -4,7 +4,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { House } from "lucide-react";
 import MainUserAvatar from "./avatar/MainUserAvatar";
-import Notification from "./notification/Notification";
 import { useRouter } from "next/navigation";
 
 export default function Aside() {
@@ -28,13 +27,12 @@ export default function Aside() {
                   {item.icon}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{item.name}</TooltipContent>
+              <TooltipContent side="right">{item.name}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ))}
       </div>
       <div className="mt-auto flex flex-col items-center gap-4 mb-6">
-        <Notification />
         <MainUserAvatar />
       </div>
     </aside>

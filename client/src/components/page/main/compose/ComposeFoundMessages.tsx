@@ -1,25 +1,42 @@
 "use client";
 
-import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { GETRequest } from "@/lib/server/requests";
-import { Message } from "@/lib/types/server-data-types";
+import { Conversation, Message } from "@/lib/types/server-data-types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import { toast } from "sonner";
 import { useSession } from "next-auth/react";
-// import { useEffect, useRef } from "react";
-import ConversationMessage from "./ConversationMessage";
+import ConversationMessage from "../conversation/ConversationMessage";
+import { toast } from "sonner";
 
-export default function ConversationMessages() {
-  const params = useParams<{ id: string }>();
+export default function ComposeFoundMessages() {
   const { data: session } = useSession();
-//   const div_ref = useRef<HTMLDivElement>(null);
 
-  const { data: found_conversation, isError, error } = useQuery(getConvoOptions(params.id));
+  const { data: selected_users } = useQuery<string[][]>({
+    queryKey: ["compose", "selected_users"],
+    placeholderData: [],
+  });
+
+  const { data: found_conversation, isError } = useQuery({
+    enabled: !!selected_users,
+    queryKey: ["conversation", "members", selected_users],
+    queryFn: async () => {
+      try {
+        const { data, message, status } = await GETRequest<Conversation[]>(
+          "/v1/conversation?members=" + session?.user.id + "," + selected_users![0][0]
+        );
+
+        if (status !== "OK") throw new Error(message);
+
+        return data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    placeholderData: [],
+  });
 
   const { data: found_messages } = useInfiniteQuery<{ page_param: number; result: Message[] }>({
-    enabled: !!found_conversation && !!session,
-    queryKey: ["conversation", "messages", params.id],
+    enabled: !!found_conversation && found_conversation.length === 1,
+    queryKey: ["conversation", "messages", found_conversation?.[0]?.id],
     queryFn: async ({ pageParam }) => {
       try {
         const page_param = pageParam as number;
@@ -27,7 +44,9 @@ export default function ConversationMessages() {
           data: result,
           status,
           message,
-        } = await GETRequest<Message[]>("/v1/conversation/" + params.id + "/messages?page=" + page_param);
+        } = await GETRequest<Message[]>(
+          "/v1/conversation/" + found_conversation?.[0].id + "/messages?page=" + page_param
+        );
 
         if (status !== "OK") throw new Error(message);
 
@@ -44,8 +63,6 @@ export default function ConversationMessages() {
     },
     placeholderData: { pages: [], pageParams: [] },
   });
-
-  if (isError) throw error;
 
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">

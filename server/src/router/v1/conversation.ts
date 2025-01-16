@@ -123,7 +123,8 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
           path: "admins",
           select: "username display_name photo status last_online",
           populate: { path: "photo", select: "url" },
-        });
+        })
+        .populate({ path: "photo", select: "url" });
 
       if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
@@ -178,7 +179,7 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
     Params: { id: string; key: keyof ConversationSchema };
     Body: {
       name: string;
-      admins: string[];
+      admin: string;
       admin_action: "ADD" | "REMOVE";
       members: string[];
       member_action: "ADD" | "REMOVE";
@@ -194,7 +195,7 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
       let session: ClientSession | null = null;
       try {
         const { id, key } = request.params;
-        const { name, admins, admin_action, members, member_action, nickname, photo } = request.body;
+        const { name, admin, admin_action, members, member_action, nickname, photo } = request.body;
         const user = request.user as UserSchema & { id: string };
 
         const found_conversation = await Conversation.findOne({ _id: id });
@@ -220,47 +221,31 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
 
             switch (admin_action) {
               case "ADD": {
-                for (const found_admin of found_conversation.admins) {
-                  for (const admin of admins) {
-                    if (admin === found_admin.toString()) {
-                      const found_user = await User.findOne({ _id: admin }).select("display_name");
-                      return reply
-                        .code(409)
-                        .send(JSONResponse("CONFLICT", found_user?.display_name + " is already an admin"));
-                    }
-                  }
+                if (found_conversation.admins.some((user_id) => user_id.toString() === admin)) {
+                  const found_user = await User.findOne({ _id: admin }).select("display_name");
+                  return reply
+                    .code(409)
+                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already an admin"));
                 }
-
                 await Conversation.updateOne(
                   { _id: id },
-                  { $push: { admins }, $set: { last_updated: new Date() } },
+                  { $push: { admins: admin }, $set: { last_updated: new Date() } },
                   { session }
                 );
 
                 break;
               }
               case "REMOVE": {
-                const cached_admins = new Set<string>();
-
-                for (const admin of admins) {
-                  for (let i = 0; i < found_conversation.admins.length; i++) {
-                    if (found_conversation.admins[i].toString() === admin) break;
-                    if (
-                      i === found_conversation.admins.length - 1 &&
-                      found_conversation.admins[i].toString() !== admin
-                    ) {
-                      const found_user = await User.findOne({ _id: admin }).select("display_name");
-                      return reply
-                        .code(409)
-                        .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not an admin"));
-                    }
-                    cached_admins.add(found_conversation.admins[i].toString());
-                  }
+                if (!found_conversation.admins.some((user_id) => user_id.toString() === admin)) {
+                  const found_user = await User.findOne({ _id: admin }).select("display_name");
+                  return reply
+                    .code(409)
+                    .send(JSONResponse("CONFLICT", found_user?.display_name + " is already not an admin"));
                 }
 
                 await Conversation.updateOne(
                   { _id: id },
-                  { $pull: { admins }, $set: { last_updated: new Date() } },
+                  { $pull: { admins: admin }, $set: { last_updated: new Date() } },
                   { session }
                 );
 
@@ -350,8 +335,6 @@ export default function v1ConversationRouter(fastify: FastifyInstance, _: Fastif
             const new_photo = new Photo({
               url: photo.url,
               type: "CONVERSATION",
-              width: photo.width,
-              height: photo.height,
             });
 
             await new_photo.save({ session });

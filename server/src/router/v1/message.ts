@@ -94,9 +94,6 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
         const request_body = request.body;
         const user = request.user as UserSchema & { id: string };
 
-        console.log("id::", id);
-        console.log("key::", key);
-
         const found_message = await Message.findOne({ _id: id });
         if (!found_message) return reply.code(404).send(JSONResponse("NOT_FOUND", "message does not exist"));
         if (found_message.status === "DELETED")
