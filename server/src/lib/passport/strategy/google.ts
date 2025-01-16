@@ -10,7 +10,8 @@ export function googleStrategy() {
   if (!clientID) throw new Error("GOOGLE_CLIENT_ID is missing from your .env file");
 
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  if (!clientSecret) throw new Error("GOOGLE_CLIENT_SECRET is missing from your .env file");
+  if (!clientSecret)
+    throw new Error("GOOGLE_CLIENT_SECRET is missing from your .env file");
 
   let callbackURL;
   if (process.env.NODE_ENV === "production") {
@@ -27,7 +28,9 @@ export function googleStrategy() {
       );
   }
   if (callbackURL.endsWith("/"))
-    throw new Error("url origin must not end with trailing slash \n trailing slash is the '/' at the end of a url");
+    throw new Error(
+      "url origin must not end with trailing slash \n trailing slash is the '/' at the end of a url"
+    );
 
   callbackURL += "/v1/auth/google/callback";
 
@@ -36,7 +39,7 @@ export function googleStrategy() {
       clientID,
       clientSecret,
       callbackURL,
-      scope: ["email"],
+      scope: ["profile", "email"],
     },
     async (token, refresh_token, profile, done) => {
       let session: ClientSession | null = null;
@@ -44,11 +47,14 @@ export function googleStrategy() {
         session = await startSession();
         session.startTransaction();
 
+        console.log(profile);
         const {
           _json: { email, picture },
         } = profile;
 
-        let user = await User.findOne({ email }).select("-password").populate({ path: "photo", select: "url" });
+        let user = await User.findOne({ email })
+          .select("-password")
+          .populate({ path: "photo", select: "url" });
 
         if (!user) {
           user = new User({
