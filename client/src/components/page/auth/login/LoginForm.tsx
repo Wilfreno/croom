@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtSign, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 
 export default function LoginForm() {
   const [credentials, setCredentials] = useState({
@@ -16,9 +14,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [view_password, setViewPassword] = useState(false);
 
-  const from = useSearchParams().get("from");
-  const router = useRouter();
-  const { login, error } = useAuth();
+  const { login } = useAuth();
 
   return (
     <form
@@ -31,10 +27,6 @@ export default function LoginForm() {
           username: credentials.username,
           password: credentials.password,
         });
-
-        if (error) toast(error);
-
-        router.push(from ? from : "/");
         setLoading(false);
       }}
     >

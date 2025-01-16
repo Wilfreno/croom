@@ -1,10 +1,11 @@
 "use client";
-import { GETRequest } from "@/lib/server/requests";
+import { GETRequest, POSTRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server-data-types";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import croom_logo from "../../../public/croom-logo.svg";
+import { toast } from "sonner";
 
 const AuthContext = createContext<{
   session: { user: User | null };
@@ -16,7 +17,16 @@ const AuthContext = createContext<{
       password: string;
     }
   ) => Promise<void>;
-  error: string | null;
+  signup: {
+    submitForm: (data: {
+      email: string;
+      username: string;
+      password: string;
+      display_name: string;
+      pin: string;
+    }) => Promise<void>;
+    createOTP: (email: string) => Promise<void>;
+  };
 } | null>(null);
 
 export function useAuth() {
@@ -30,7 +40,6 @@ export function useAuth() {
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<User | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -41,13 +50,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   async function getSession() {
     try {
-      const { data, status, message } = await GETRequest<User>("/v1/auth/session");
-      if (status !== "OK") throw new Error(message);
+      const { data, status } = await GETRequest<User>("/v1/auth/session");
+
+      if (status !== "OK") {
+        if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up"))
+          router.replace("/login");
+        return;
+      }
+
       setSession(data);
-      g;
-    } catch {
-      if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up"))
-        router.replace("/login");
+    } catch (error) {
       throw error;
     }
   }
@@ -61,7 +73,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         try {
           router.push(server_url + "/v1/auth/google/login");
         } catch (error) {
-          setError("Oops! something went strong");
           throw error;
         }
       }
@@ -91,7 +102,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
           if (!response.ok) {
             const response_json = await response.json();
-            setError(response_json.message);
+            toast.error(response_json.message);
             return;
           }
           await getSession();
@@ -110,6 +121,47 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
+  async function createOTP(email: string) {
+    try {
+      const { status, message } = await POSTRequest("/v1/otp", {
+        email,
+      });
+
+      if (status !== "CREATED") throw new Error(message);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  }
+
+  async function submitForm({
+    email,
+    password,
+    username,
+    display_name,
+    pin,
+  }: {
+    email: string;
+    username: string;
+    password: string;
+    display_name: string;
+    pin: string;
+  }) {
+    try {
+      const { status, message } = await POSTRequest("/v1/auth/signup", {
+        email,
+        password,
+        username: "@" + username,
+        display_name,
+        pin,
+      });
+
+      if (status !== "CREATED") throw new Error(message);
+      await getSession();
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  }
+
   useEffect(() => {
     getSession();
   }, []);
@@ -121,15 +173,25 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [session]);
 
   return (
-    <AuthContext.Provider value={{ session: { user: session }, logout, login, error }}>
+    <AuthContext.Provider
+      value={{
+        session: { user: session },
+        logout,
+        login,
+        signup: { createOTP, submitForm },
+      }}
+    >
       {session ? (
         children
       ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") ? (
         children
       ) : (
-        <section className="fixed z-50 w-full h-full bg-background">
-          <div className="relative">
+        <section className="fixed z-50 w-full h-full bg-background grid place-items-center">
+          <div className="relative flex flex-col items-center justify-center gap-2">
             <Image src={croom_logo} alt="logo" className="" />
+            <span className="text-6xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent">
+              Croom
+            </span>
           </div>
         </section>
       )}
