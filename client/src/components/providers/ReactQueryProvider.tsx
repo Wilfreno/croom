@@ -8,11 +8,7 @@ export default function ReactQueryProvider({ children }: { children: React.React
   return (
     <QueryClientProvider client={query_client}>
       {children}
-<<<<<<< HEAD
       {/* <ReactQueryDevtools /> */}
-=======
-      <ReactQueryDevtools />
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     </QueryClientProvider>
   );
 }

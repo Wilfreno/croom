@@ -3,26 +3,32 @@ import { ClientUploadedFileData } from "uploadthing/types";
 import { UploadthingButton } from "../../UploadthingButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { useSession } from "next-auth/react";
 import { POSTRequest, ServerResponse } from "@/lib/server/requests";
 import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from "lucide-react";
 import { toast } from "sonner";
 import NextImage from "next/image";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function ComposeMessageInput() {
   const [text_input, setTextInput] = useState("");
-  const [photo_input, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
+  const [photo_input, setPhotoInput] = useState<
+    { key: string; url: string; width: number; height: number }[]
+  >([]);
   const [uploading_image, setUploadingImage] = useState(false);
 
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const router = useRouter();
 
   const { data: selected_users } = useQuery<string[][]>({
@@ -57,11 +63,14 @@ export default function ComposeMessageInput() {
 
   const create_new_conversation = useMutation({
     mutationFn: async () => {
-      console.log([session?.user.id, ...selected_users!.map((user) => user[0])]);
+      console.log([session.user?.id, ...selected_users!.map((user) => user[0])]);
       try {
-        const { data, status, message } = await POSTRequest<Conversation>("/v1/conversation", {
-          members: [session?.user.id, ...selected_users!.map((user) => user[0])],
-        });
+        const { data, status, message } = await POSTRequest<Conversation>(
+          "/v1/conversation",
+          {
+            members: [session.user?.id, ...selected_users!.map((user) => user[0])],
+          }
+        );
         if (status !== "CREATED") throw new Error(message);
         return data.id;
       } catch (error) {
@@ -111,7 +120,10 @@ export default function ComposeMessageInput() {
           new_image.onerror = (err) => reject(err);
           new_image.src = res.url;
         });
-        setPhotoInput((prev) => [...prev, { key: res.key, url: res.url, width: image.width, height: image.height }]);
+        setPhotoInput((prev) => [
+          ...prev,
+          { key: res.key, url: res.url, width: image.width, height: image.height },
+        ]);
       } catch (error) {
         toast.error((error as Error).message);
         return;
@@ -242,7 +254,10 @@ export default function ComposeMessageInput() {
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>
         ) : (
-          <Button variant="ghost" className="aspect-square h-fit w-auto rounded-full p-2 self-center">
+          <Button
+            variant="ghost"
+            className="aspect-square h-fit w-auto rounded-full p-2 self-center"
+          >
             <ThumbsUp className="h-4 w-auto text-primary" />
           </Button>
         )}

@@ -186,10 +186,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") ? (
         children
       ) : (
-        <section className="fixed z-50 w-full h-full bg-background grid place-items-center">
+        <section className="fixed z-50 w-full h-full bg-background grid place-items-center ">
           <div className="relative flex flex-col items-center justify-center gap-2">
             <Image src={croom_logo} alt="logo" className="" />
-            <span className="text-6xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent">
+            <span className="text-6xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
               Croom
             </span>
           </div>

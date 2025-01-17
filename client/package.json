@@ -27,10 +27,6 @@
     "lucide-react": "^0.469.0",
     "motion": "^11.13.1",
     "next": "15.0.3",
-<<<<<<< HEAD
-=======
-    "next-auth": "^4.24.10",
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     "next-themes": "^0.4.3",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
@@ -41,10 +37,7 @@
     "uploadthing": "^7.4.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@tailwindcss/typography": "^0.5.16",
-=======
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     "@tanstack/react-query-devtools": "^5.62.0",
     "@types/node": "^20",
     "@types/react": "^18",

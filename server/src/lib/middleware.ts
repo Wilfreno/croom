@@ -1,12 +1,11 @@
-import { FastifyReply, FastifyRequest } from "fastify";
+import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
 import JSONResponse from "./json-response";
 
 export async function preValidation(
   request: FastifyRequest,
   reply: FastifyReply,
-  next: () => void
+  done: HookHandlerDoneFunction
 ) {
-  if (request.isUnauthenticated())
-    return reply.code(401).send(JSONResponse("UNAUTHORIZED", "you are unauthenticated"));
-  return next();
+  if (request.isUnauthenticated()) return done(new Error("Unauthenticated"));
+  done();
 }

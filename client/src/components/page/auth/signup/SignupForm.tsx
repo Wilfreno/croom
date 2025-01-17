@@ -17,7 +17,7 @@ import { AtSign, Eye, EyeOff, Snail } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import React, { useState } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/providers/SessionProvider";
+import { useAuth } from "@/components/providers/AuthProvider";
 =======
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

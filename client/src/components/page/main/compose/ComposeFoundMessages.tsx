@@ -3,12 +3,12 @@
 import { GETRequest } from "@/lib/server/requests";
 import { Conversation, Message } from "@/lib/types/server-data-types";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
 import ConversationMessage from "../conversation/ConversationMessage";
 import { toast } from "sonner";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function ComposeFoundMessages() {
-  const { data: session } = useSession();
+  const { session } = useAuth();
 
   const { data: selected_users } = useQuery<string[][]>({
     queryKey: ["compose", "selected_users"],
@@ -21,7 +21,7 @@ export default function ComposeFoundMessages() {
     queryFn: async () => {
       try {
         const { data, message, status } = await GETRequest<Conversation[]>(
-          "/v1/conversation?members=" + session?.user.id + "," + selected_users![0][0]
+          "/v1/conversation?members=" + session.user?.id + "," + selected_users![0][0]
         );
 
         if (status !== "OK") throw new Error(message);
@@ -34,7 +34,10 @@ export default function ComposeFoundMessages() {
     placeholderData: [],
   });
 
-  const { data: found_messages } = useInfiniteQuery<{ page_param: number; result: Message[] }>({
+  const { data: found_messages } = useInfiniteQuery<{
+    page_param: number;
+    result: Message[];
+  }>({
     enabled: !!found_conversation && found_conversation.length === 1,
     queryKey: ["conversation", "messages", found_conversation?.[0]?.id],
     queryFn: async ({ pageParam }) => {
@@ -45,7 +48,10 @@ export default function ComposeFoundMessages() {
           status,
           message,
         } = await GETRequest<Message[]>(
-          "/v1/conversation/" + found_conversation?.[0].id + "/messages?page=" + page_param
+          "/v1/conversation/" +
+            found_conversation?.[0].id +
+            "/messages?page=" +
+            page_param
         );
 
         if (status !== "OK") throw new Error(message);
@@ -66,7 +72,6 @@ export default function ComposeFoundMessages() {
 
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
-<<<<<<< HEAD
       <div className="mt-auto">
         {!!found_messages?.pages.length &&
           !isError &&
@@ -78,29 +83,13 @@ export default function ComposeFoundMessages() {
                 prev_message={page.result[message_index - 1]}
                 next_message={page.result[message_index + 1]}
                 is_last_message={
-                  pages_index === found_messages.pages.length - 1 && message_index === page.result.length - 1
+                  pages_index === found_messages.pages.length - 1 &&
+                  message_index === page.result.length - 1
                 }
               />
             ))
           )}
       </div>
-=======
-      {!!found_messages?.pages.length &&
-        !isError &&
-        found_messages.pages.map((page, pages_index) =>
-          page.result.map((message, message_index) => (
-            <ConversationMessage
-              key={message.id}
-              message={message}
-              prev_message={page.result[message_index - 1]}
-              next_message={page.result[message_index + 1]}
-              is_last_message={
-                pages_index === found_messages.pages.length - 1 && message_index === page.result.length - 1
-              }
-            />
-          ))
-        )}
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     </div>
   );
 }

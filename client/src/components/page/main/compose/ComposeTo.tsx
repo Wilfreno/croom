@@ -1,7 +1,11 @@
 "use client";
 import useDebounce from "@/components/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,10 +17,10 @@ import { ChevronDown, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import UserAvatar from "../UserAvatar";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnimatePresence, motion } from "motion/react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function ComposeTo() {
   const [open, setOpen] = useState(false);
@@ -24,7 +28,7 @@ export default function ComposeTo() {
   const [see_list, setSeeList] = useState(false);
 
   const debounced_value = useDebounce(input_value);
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const query_client = useQueryClient();
   const router = useRouter();
 
@@ -33,15 +37,13 @@ export default function ComposeTo() {
   const input_ref = useRef<HTMLInputElement>(null);
 
   const { data: result } = useQuery({
-<<<<<<< HEAD
     queryKey: ["search", "user", debounced_value],
-=======
-    queryKey: ["search", "add", " member", debounced_value],
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
     queryFn: async () => {
       try {
         if (!debounced_value) return [];
-        const { data, status, message } = await GETRequest<User[]>("/v1/user/search?value=" + debounced_value);
+        const { data, status, message } = await GETRequest<User[]>(
+          "/v1/user/search?value=" + debounced_value
+        );
 
         if (status !== "OK") {
           toast.error(message);
@@ -73,7 +75,7 @@ export default function ComposeTo() {
         }
 
         const { data, message, status } = await GETRequest<Conversation[]>(
-          "/v1/conversation?members=" + session?.user.id + members
+          "/v1/conversation?members=" + session.user?.id + members
         );
 
         if (status !== "OK") throw new Error(message);
@@ -87,16 +89,25 @@ export default function ComposeTo() {
   });
 
   useEffect(() => {
-    query_client.invalidateQueries({ exact: true, queryKey: ["compose", "selected_users"] });
+    query_client.invalidateQueries({
+      exact: true,
+      queryKey: ["compose", "selected_users"],
+    });
     query_client.setQueryData(["compose", "selected_users"], selected_users);
   }, [selected_users]);
 
   useEffect(() => {
     function handleCLick(event: MouseEvent) {
-      if (user_dropdown_div_ref.current && !user_dropdown_div_ref.current.contains(event.target as Node)) {
+      if (
+        user_dropdown_div_ref.current &&
+        !user_dropdown_div_ref.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
-      if (convo_dropdown_div_ref.current && !convo_dropdown_div_ref.current.contains(event.target as Node)) {
+      if (
+        convo_dropdown_div_ref.current &&
+        !convo_dropdown_div_ref.current.contains(event.target as Node)
+      ) {
         setSeeList(false);
       }
     }
@@ -149,7 +160,12 @@ export default function ComposeTo() {
               >
                 see list
               </Button>
-              <div className={cn("absolute left-0 top-[105%] w-full", see_list ? "grid" : "hidden")}>
+              <div
+                className={cn(
+                  "absolute left-0 top-[105%] w-full",
+                  see_list ? "grid" : "hidden"
+                )}
+              >
                 <ScrollArea className="h-52">
                   <div className="bg-background gap-1 grid py-2 pr-2">
                     {found_conversation.map((convo) => (
@@ -165,7 +181,9 @@ export default function ComposeTo() {
                             <UserRound className="h-1/2 w-auto" />
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-semibold truncate max-w-[40vw]">{convo.name}</span>
+                        <span className="font-semibold truncate max-w-[40vw]">
+                          {convo.name}
+                        </span>
                       </Button>
                     ))}
                   </div>
@@ -179,32 +197,38 @@ export default function ComposeTo() {
       {selected_users!.length > 5 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="aspect-square h-fit w-auto rounded-full p-2 mx-2">
+            <Button
+              variant="outline"
+              className="aspect-square h-fit w-auto rounded-full p-2 mx-2"
+            >
               <ChevronDown className="h-4 w-auto" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <ScrollArea className="h-[40dvh]">
               <div className="flex flex-col gap-2">
-                {selected_users!.slice(0, Math.min(selected_users!.length - 5, 5)).map((value, index) => (
-                  <div
-                    key={value[0]}
-                    className="h-fit w-full p-2 text-xs flex items-center justify-between gap-2 border rounded-lg"
-                  >
-                    <span>{value[1]}</span>
-                    <Button
-                      variant="outline"
-                      className="aspect-square h-fit w-auto p-0 rounded-full"
-                      onClick={() =>
-                        query_client.setQueryData<string[][]>(["compose", "selected_users"], (prev) =>
-                          prev?.toSpliced(index, 1)
-                        )
-                      }
+                {selected_users!
+                  .slice(0, Math.min(selected_users!.length - 5, 5))
+                  .map((value, index) => (
+                    <div
+                      key={value[0]}
+                      className="h-fit w-full p-2 text-xs flex items-center justify-between gap-2 border rounded-lg"
                     >
-                      <X className="h-2" />
-                    </Button>
-                  </div>
-                ))}
+                      <span>{value[1]}</span>
+                      <Button
+                        variant="outline"
+                        className="aspect-square h-fit w-auto p-0 rounded-full"
+                        onClick={() =>
+                          query_client.setQueryData<string[][]>(
+                            ["compose", "selected_users"],
+                            (prev) => prev?.toSpliced(index, 1)
+                          )
+                        }
+                      >
+                        <X className="h-2" />
+                      </Button>
+                    </div>
+                  ))}
               </div>
             </ScrollArea>
           </DropdownMenuContent>
@@ -225,7 +249,11 @@ export default function ComposeTo() {
                   query_client.setQueryData<string[][]>(
                     ["compose", "selected_users"],
 
-                    (prev) => prev?.toSpliced(prev.length < 5 ? index : index + (prev.length - 5), 1)
+                    (prev) =>
+                      prev?.toSpliced(
+                        prev.length < 5 ? index : index + (prev.length - 5),
+                        1
+                      )
                   )
                 }
               >
@@ -260,20 +288,30 @@ export default function ComposeTo() {
                   variant="ghost"
                   className="group rounded-none h-fit w-full justify-start py-2"
                   onClick={() => {
-                    if (selected_users!.some((selected) => selected[1] === user.display_name)) {
+                    if (
+                      selected_users!.some(
+                        (selected) => selected[1] === user.display_name
+                      )
+                    ) {
                       toast("Already selected");
                       return;
                     }
-                    query_client.setQueryData<string[][]>(["compose", "selected_users"], (prev) => {
-                      if (!prev) return [];
-                      return [...prev, [user.id, user.display_name]];
-                    });
+                    query_client.setQueryData<string[][]>(
+                      ["compose", "selected_users"],
+                      (prev) => {
+                        if (!prev) return [];
+                        return [...prev, [user.id, user.display_name]];
+                      }
+                    );
                     setOpen(false);
                     setInputValue("");
                     input_ref.current?.focus();
                   }}
                 >
-                  <UserAvatar src={user.photo?.url} is_online={user.status === "ONLINE"} />
+                  <UserAvatar
+                    src={user.photo?.url}
+                    is_online={user.status === "ONLINE"}
+                  />
                   <div>
                     <p className="font-semibold">{user.display_name}</p>
                     <p className="text-xs text-muted-foreground">{user.username}</p>

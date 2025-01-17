@@ -47,7 +47,6 @@ export function googleStrategy() {
         session = await startSession();
         session.startTransaction();
 
-        console.log(profile);
         const {
           _json: { email, picture },
         } = profile;
