@@ -1,6 +1,10 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useQuery } from "@tanstack/react-query";
@@ -18,13 +22,13 @@ export default function InfoCustomization() {
   return (
     <Collapsible onOpenChange={(is_open) => setIsOpen(is_open)}>
       <CollapsibleTrigger asChild>
-<<<<<<< HEAD
         <Button variant="ghost" className="w-full justify-between font-semibold">
-=======
-        <Button variant="ghost" className="w-full justify-between">
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
           <span>Customization</span>
-          {is_open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
+          {is_open ? (
+            <ChevronDown className="h-4 w-auto" />
+          ) : (
+            <ChevronRight className="h-4 w-auto" />
+          )}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">

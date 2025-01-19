@@ -14,7 +14,7 @@ export default function v1SearchRouter(
 
   fastify.get<{ Querystring: { value: string } }>(
     "/",
-    { preValidation },
+    { preValidation: preValidation },
     async (request, reply) => {
       try {
         const { value } = request.query;

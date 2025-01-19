@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import Admins from "./admin-and-members/Admins";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useQuery } from "@tanstack/react-query";
 import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
@@ -21,13 +25,13 @@ export default function InfoAdminsAndMembers() {
   return (
     <Collapsible onOpenChange={(is_open) => setIsOpen(is_open)}>
       <CollapsibleTrigger asChild>
-<<<<<<< HEAD
         <Button variant="ghost" className="w-full justify-between font-semibold">
-=======
-        <Button variant="ghost" className="w-full justify-between">
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
           <span>Admins & Members</span>
-          {is_open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
+          {is_open ? (
+            <ChevronDown className="h-4 w-auto" />
+          ) : (
+            <ChevronRight className="h-4 w-auto" />
+          )}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">

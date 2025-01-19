@@ -1,10 +1,14 @@
 "use client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-=======
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -12,7 +16,6 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pen, PenLine, X } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +25,7 @@ export default function ChangeName() {
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: session } = useSession();
+  const { session } = useAuth();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
@@ -31,15 +34,18 @@ export default function ChangeName() {
   const is_admin = useMemo(() => {
     if (!session || !conversation) return false;
 
-    return conversation.admins.some((user) => user.id === session.user.id);
+    return conversation.admins.some((user) => user.id === session.user?.id);
   }, [session, conversation]);
 
   const change_name = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/conversation/" + params.id + "/name", {
-          name: value,
-        });
+        const { status, message } = await PATCHRequest(
+          "/v1/conversation/" + params.id + "/name",
+          {
+            name: value,
+          }
+        );
 
         if (status !== "OK") throw new Error(message);
       } catch (error) {
@@ -48,20 +54,30 @@ export default function ChangeName() {
       }
     },
     onSuccess: async () => {
-      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({ ...prev!, name: value }));
-<<<<<<< HEAD
-      query_client.setQueryData<Conversation[]>([session?.user.id, "conversations"], (prev) => {
-        if (!prev) return [];
+      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({
+        ...prev!,
+        name: value,
+      }));
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "conversations"],
+        (prev) => {
+          if (!prev) return [];
 
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
-      });
+          return prev.map((convo) =>
+            convo.id === params.id ? { ...convo, name: value } : convo
+          );
+        }
+      );
 
-      query_client.setQueryData<Conversation[]>([session!.user.id, "active", "conversations"], (prev) => {
-        if (!prev) return [];
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
-      });
-=======
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "active", "conversations"],
+        (prev) => {
+          if (!prev) return [];
+          return prev.map((convo) =>
+            convo.id === params.id ? { ...convo, name: value } : convo
+          );
+        }
+      );
       setOpen(false);
       toast.success("name changed");
     },
@@ -77,7 +93,6 @@ export default function ChangeName() {
           <span>Change chat name</span>
         </Button>
       </DialogTrigger>
-<<<<<<< HEAD
       <DialogContent className="w-[35dvw]">
         <DialogHeader>
           <DialogTitle>Change name</DialogTitle>
@@ -87,12 +102,6 @@ export default function ChangeName() {
             <X className="h-4 w-auto" />
           </Button>
         </DialogClose>
-=======
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Change name</DialogTitle>
-        </DialogHeader>
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <form
           className="flex gap-2 items-center p-2"
           onSubmit={(e) => {

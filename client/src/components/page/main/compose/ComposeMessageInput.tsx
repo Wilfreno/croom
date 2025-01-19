@@ -36,7 +36,7 @@ export default function ComposeMessageInput() {
     placeholderData: [],
   });
   const { data: found_conversation, isError } = useQuery<Conversation[]>({
-    enabled: !!selected_users!.length,
+    enabled: !!selected_users?.length && !!session.user,
     queryKey: ["conversation", "members", selected_users],
     placeholderData: [],
   });

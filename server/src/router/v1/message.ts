@@ -19,7 +19,7 @@ export default function v1MessageRouter(
     Body: Omit<MessageSchema, "photos"> & {
       photos: { url: string; width: number; height: number }[];
     };
-  }>("/", { preValidation }, async (request, reply) => {
+  }>("/", { preValidation: preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
     try {
       const user = request.user as UserSchema & { id: string };
@@ -100,7 +100,7 @@ export default function v1MessageRouter(
   }>(
     "/:id/:key",
     {
-      preValidation,
+      preValidation: preValidation,
     },
     async (request, reply) => {
       let session: ClientSession | null = null;

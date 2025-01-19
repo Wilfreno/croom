@@ -15,22 +15,9 @@ export default function ComposeFoundMessages() {
     placeholderData: [],
   });
 
-  const { data: found_conversation, isError } = useQuery({
-    enabled: !!selected_users,
+  const { data: found_conversation, isError } = useQuery<Conversation[]>({
+    enabled: !!selected_users?.length && !!session.user,
     queryKey: ["conversation", "members", selected_users],
-    queryFn: async () => {
-      try {
-        const { data, message, status } = await GETRequest<Conversation[]>(
-          "/v1/conversation?members=" + session.user?.id + "," + selected_users![0][0]
-        );
-
-        if (status !== "OK") throw new Error(message);
-
-        return data;
-      } catch (error) {
-        throw error;
-      }
-    },
     placeholderData: [],
   });
 

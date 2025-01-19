@@ -1,6 +1,10 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { Conversation } from "@/lib/types/server-data-types";
@@ -10,10 +14,7 @@ import { useParams } from "next/navigation";
 import React, { useState } from "react";
 import UserInfoDialog from "../UserInfoDialog";
 import UserAvatar from "../../UserAvatar";
-<<<<<<< HEAD
 import ManageMember from "./ManageMember";
-=======
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
 
 export default function Members() {
   const [open, setOpen] = useState(false);
@@ -24,28 +25,35 @@ export default function Members() {
   return (
     <Collapsible>
       <CollapsibleTrigger asChild className="w-full">
-        <Button variant="ghost" className="w-full justify-between" onClick={() => setOpen((prev) => !prev)}>
+        <Button
+          variant="ghost"
+          className="w-full justify-between"
+          onClick={() => setOpen((prev) => !prev)}
+        >
           <span className="flex items-center gap-2">
             <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary text-primary">
               <UsersRound className="h-4 w-auto" />
             </span>
             <span>Members</span>
           </span>
-          {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
+          {open ? (
+            <ChevronDown className="h-4 w-auto" />
+          ) : (
+            <ChevronRight className="h-4 w-auto" />
+          )}
         </Button>
       </CollapsibleTrigger>
-<<<<<<< HEAD
       <CollapsibleContent className="grid gap-2 p-2">
         <ManageMember />
-=======
-      <CollapsibleContent className="space-y-2 p-2">
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
             {conversation?.members.map((user) => (
               <UserInfoDialog key={user.id} username={user.username}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
-                  <UserAvatar is_online={user.status === "ONLINE"} src={user.photo?.url} />
+                  <UserAvatar
+                    is_online={user.status === "ONLINE"}
+                    src={user.photo?.url}
+                  />
                   <p className="text-sm font-medium">{user.display_name}</p>
                 </Button>
               </UserInfoDialog>

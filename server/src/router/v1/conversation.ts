@@ -52,7 +52,6 @@ export default function v1ConversationRouter(
           name.push(found_user.display_name);
         }
 
-        console.log(members.map((member) => [member, ""]));
         const new_conversation = new Conversation({
           is_group_chat: members.length > 2,
           name: members.length > 2 ? name.join(", ") : "",
@@ -190,6 +189,7 @@ export default function v1ConversationRouter(
         const { members } = request.query;
         const user = request.user as UserSchema & { id: string };
 
+        console.log(request.isAuthenticated());
         if (!members)
           return reply
             .code(400)

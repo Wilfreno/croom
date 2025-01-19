@@ -1,5 +1,12 @@
 "use client";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { User } from "@/lib/types/server-data-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AtSign, Mail, Send, UserRound, X } from "lucide-react";
@@ -10,7 +17,13 @@ import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-export default function UserInfoDialog({ children, username }: { children: React.ReactNode; username: string }) {
+export default function UserInfoDialog({
+  children,
+  username,
+}: {
+  children: React.ReactNode;
+  username: string;
+}) {
   const [enabled, setEnabled] = useState(false);
 
   const query_client = useQueryClient();
@@ -36,15 +49,20 @@ export default function UserInfoDialog({ children, username }: { children: React
     if (!user_info || user_info.status === "ONLINE") return "";
     const last_online = new Date(user_info.last_online);
     const now = new Date();
-    const relative_date_in_seconds = Math.floor((now.getTime() - last_online.getTime()) / 1000);
+    const relative_date_in_seconds = Math.floor(
+      (now.getTime() - last_online.getTime()) / 1000
+    );
 
     const day = 60 * 60 * 24;
     const hour = 60 * 60;
     const minute = 60;
 
-    if (relative_date_in_seconds > day) return Math.floor(relative_date_in_seconds / day) + "day(s)";
-    if (relative_date_in_seconds > hour) return Math.floor(relative_date_in_seconds / hour) + "hour(s)";
-    if (relative_date_in_seconds > minute) return Math.floor(relative_date_in_seconds / minute) + "minute(s)";
+    if (relative_date_in_seconds > day)
+      return Math.floor(relative_date_in_seconds / day) + "day(s)";
+    if (relative_date_in_seconds > hour)
+      return Math.floor(relative_date_in_seconds / hour) + "hour(s)";
+    if (relative_date_in_seconds > minute)
+      return Math.floor(relative_date_in_seconds / minute) + "minute(s)";
     return relative_date_in_seconds + "seconds(s)";
   }, [user_info]);
 
@@ -53,11 +71,7 @@ export default function UserInfoDialog({ children, username }: { children: React
       <DialogTrigger asChild onClick={() => setEnabled(true)}>
         {children}
       </DialogTrigger>
-<<<<<<< HEAD
       <DialogContent className="w-[30rem]">
-=======
-      <DialogContent>
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
@@ -95,10 +109,7 @@ export default function UserInfoDialog({ children, username }: { children: React
             </div>
 
             <Button
-<<<<<<< HEAD
               variant="outline"
-=======
->>>>>>> 48594df86b677d2b1222ce8220c48d5ef0822e60
               className="justify-start w-fit"
               onClick={() => {
                 query_client.setQueryData<string[][]>(
