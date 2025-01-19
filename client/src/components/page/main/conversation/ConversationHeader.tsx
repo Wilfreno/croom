@@ -19,10 +19,15 @@ export default function ConversationHeader() {
     queryKey: ["sidebar", "info", "open"],
     placeholderData: true,
   });
-  const { data: conversation } = useQuery<Conversation>({
+  const {
+    data: conversation,
+    error,
+    isError,
+  } = useQuery<Conversation>({
     enabled: !!session,
     ...getConvoOptions(params.id),
   });
+  if (isError) throw error;
 
   const { data: conversation_info } = useQuery({
     enabled: !!session.user?.id && !!conversation,

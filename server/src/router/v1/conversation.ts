@@ -180,36 +180,51 @@ export default function v1ConversationRouter(
       }
     }
   );
-  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
-    try {
-      const { id } = request.params;
+  fastify.get<{ Params: { id: string } }>(
+    "/:id",
+    { preValidation },
+    async (request, reply) => {
+      try {
+        const { id } = request.params;
+        const user = request.user as UserSchema & { id: string };
 
-      const found_conversation = await Conversation.findOne({ _id: id })
-        .populate({
-          path: "members",
-          select: "email username display_name photo status last_online",
-          populate: { path: "photo", select: "url" },
-        })
-        .populate({
-          path: "admins",
-          select: "email username display_name photo status last_online",
-          populate: { path: "photo", select: "url" },
-        })
-        .populate({ path: "photo", select: "url" });
+        const found_conversation = await Conversation.findOne({ _id: id })
+          .populate({
+            path: "members",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          })
+          .populate({
+            path: "admins",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          })
+          .populate({ path: "photo", select: "url" });
 
-      if (!found_conversation)
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+
+        if (!found_conversation.members.some((member) => member.toString() === user.id))
+          return reply
+            .code(403)
+            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
+
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+
         return reply
-          .code(404)
-          .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
-
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", found_conversation.toJSON()));
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+          .code(200)
+          .send(JSONResponse("OK", "request successful", found_conversation.toJSON()));
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
     }
-  });
+  );
   fastify.get<{ Params: { id: string }; Querystring: { page: string } }>(
     "/:id/messages",
     { preValidation },
@@ -217,7 +232,6 @@ export default function v1ConversationRouter(
       try {
         const { id } = request.params;
         const { page } = request.query;
-        const user = request.user as UserSchema & { id: string };
 
         if (!page)
           return reply
@@ -232,19 +246,6 @@ export default function v1ConversationRouter(
           return reply
             .code(400)
             .send(JSONResponse("BAD_REQUEST", "page must be a number"));
-
-        const found_conversation = await Conversation.findOne({ _id: id }).select(
-          "members"
-        );
-        if (!found_conversation)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
-
-        if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply
-            .code(403)
-            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
         const limit = 15;
         const skip = (Number(page) - 1) * limit;

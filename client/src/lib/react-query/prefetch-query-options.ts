@@ -7,7 +7,9 @@ export function getConvoOptions(id: string): FetchQueryOptions<Conversation> {
     queryKey: ["conversation", id],
     queryFn: async () => {
       try {
-        const { data, message, status } = await GETRequest<Conversation>("/v1/conversation/" + id);
+        const { data, message, status } = await GETRequest<Conversation>(
+          "/v1/conversation/" + id
+        );
 
         if (status !== "OK") throw new Error(message);
 
@@ -16,5 +18,6 @@ export function getConvoOptions(id: string): FetchQueryOptions<Conversation> {
         throw error;
       }
     },
+    retry: false,
   };
 }
