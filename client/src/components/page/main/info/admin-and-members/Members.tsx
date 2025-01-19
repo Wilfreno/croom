@@ -48,7 +48,7 @@ export default function Members() {
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
             {conversation?.members.map((user) => (
-              <UserInfoDialog key={user.id} username={user.username}>
+              <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
                   <UserAvatar
                     is_online={user.status === "ONLINE"}

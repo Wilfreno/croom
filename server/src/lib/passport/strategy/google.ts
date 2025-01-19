@@ -76,8 +76,6 @@ export function googleStrategy() {
         done(null, exclude(user.toJSON(), ["password"]));
       } catch (error) {
         await session?.abortTransaction();
-
-        console.log(error);
         done(new Error("Oops! something went wrong"));
       }
     }

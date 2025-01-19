@@ -26,7 +26,6 @@ export type Photo = {
 export type Conversation = {
   id: string;
   name: string;
-  is_private: boolean;
   is_group_chat: boolean;
   admins: User[];
   members: User[];

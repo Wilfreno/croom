@@ -5,7 +5,6 @@ import Message from "../../database/models/Message";
 import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
-import Report from "../../database/models/Report";
 import { preValidation } from "../../lib/middleware";
 
 export default function v1ConversationRouter(
@@ -87,50 +86,6 @@ export default function v1ConversationRouter(
     }
   );
 
-  fastify.post<{ Body: { reported_user: string; conversation: string } }>(
-    "/report",
-    { preValidation },
-    async (request, reply) => {
-      let session: ClientSession | null = null;
-      try {
-        session = await startSession();
-        session.startTransaction();
-
-        const user = request.user as UserSchema & { id: string };
-        const { reported_user, conversation } = request.body;
-
-        const found_conversation = await Conversation.findOne({ _id: conversation });
-        if (!found_conversation)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
-        if (!found_conversation.members.some((member) => member.toString() === user.id))
-          return reply
-            .code(403)
-            .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
-
-        const report = new Report({
-          conversation: conversation,
-          submitted_by: user.id,
-          reported_user: reported_user,
-        });
-
-        await report.save({ session });
-
-        await session.commitTransaction();
-        await session.endSession();
-
-        return reply
-          .code(201)
-          .send(JSONResponse("CREATED", "report created", report.toJSON()));
-      } catch (error) {
-        await session?.abortTransaction();
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      }
-    }
-  );
-
   fastify.post<{ Body: { conversation: string } }>(
     "/leave",
     { preValidation },
@@ -189,7 +144,6 @@ export default function v1ConversationRouter(
         const { members } = request.query;
         const user = request.user as UserSchema & { id: string };
 
-        console.log(request.isAuthenticated());
         if (!members)
           return reply
             .code(400)
@@ -233,12 +187,12 @@ export default function v1ConversationRouter(
       const found_conversation = await Conversation.findOne({ _id: id })
         .populate({
           path: "members",
-          select: "username display_name photo status last_online",
+          select: "email username display_name photo status last_online",
           populate: { path: "photo", select: "url" },
         })
         .populate({
           path: "admins",
-          select: "username display_name photo status last_online",
+          select: "email username display_name photo status last_online",
           populate: { path: "photo", select: "url" },
         })
         .populate({ path: "photo", select: "url" });

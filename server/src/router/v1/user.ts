@@ -1,12 +1,12 @@
-import { compare, hash } from "bcrypt";
+import { hash } from "bcrypt";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import exclude from "../../lib/exclude";
 import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
 import { ClientSession, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
+import Report from "../../database/models/Report";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -14,8 +14,57 @@ export default function v1UserRouter(
   done: () => void
 ) {
   //create user
+  fastify.post<{ Body: { reported_user: string; reason: string } }>(
+    "/report",
+    { preValidation },
+    async (request, reply) => {
+      let session: ClientSession | null = null;
+      try {
+        session = await startSession();
+        session.startTransaction();
+
+        const user = request.user as UserSchema & { id: string };
+        const { reported_user, reason } = request.body;
+
+        const report = new Report({
+          submitted_by: user.id,
+          reported_user: reported_user,
+          reason,
+        });
+
+        await report.save({ session });
+
+        await session.commitTransaction();
+        await session.endSession();
+
+        return reply.code(201).send(JSONResponse("CREATED", "report created"));
+      } catch (error) {
+        await session?.abortTransaction();
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
 
   //read user
+
+  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
+    try {
+      const { id } = request.params;
+
+      const found_user = await User.findOne({ _id: id })
+        .select("email display_name username last_online photo")
+        .populate({ path: "photo", select: "url" });
+
+      if (!found_user)
+        return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+      return reply.code(200).send(JSONResponse("OK", "request successful"));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply;
+    }
+  });
   fastify.get<{ Querystring: { value: string } }>(
     "/search",
     {

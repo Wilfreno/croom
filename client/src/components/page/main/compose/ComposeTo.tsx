@@ -107,6 +107,14 @@ export default function ComposeTo() {
   }, []);
 
   useEffect(() => {
+    const cached_selected_users = query_client.getQueryData<string[][]>([
+      "compose",
+      "selected_users",
+    ]);
+
+    if (!!cached_selected_users?.length) setSelectedUsers(cached_selected_users);
+  }, []);
+  useEffect(() => {
     query_client.setQueryData(["compose", "selected_users"], selected_users);
   }, [selected_users]);
   return (

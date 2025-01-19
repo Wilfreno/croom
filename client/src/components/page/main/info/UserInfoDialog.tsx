@@ -7,42 +7,51 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { User } from "@/lib/types/server-data-types";
+import { Conversation, User } from "@/lib/types/server-data-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AtSign, Mail, Send, UserRound, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { GETRequest } from "@/lib/server/requests";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { GETRequest } from "@/lib/server/requests";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function UserInfoDialog({
   children,
-  username,
+  user,
 }: {
   children: React.ReactNode;
-  username: string;
+  user: User;
 }) {
-  const [enabled, setEnabled] = useState(false);
-
   const query_client = useQueryClient();
   const router = useRouter();
+  const { session } = useAuth();
+
+  async function startConversation() {
+    try {
+      const { data } = await GETRequest<Conversation[]>(
+        "/v1/conversation?members=" + session.user?.id + "," + user.id
+      );
+
+      if (!!data.length) {
+        router.push("/conversation/" + data[0].id);
+      } else {
+        query_client.setQueryData<string[][]>(
+          ["compose", "selected_users"],
+          [[user_info!.id, user_info!.display_name]]
+        );
+        router.push("/compose");
+      }
+    } catch {
+      toast.error("Oops! something went wrong");
+    }
+  }
 
   const { data: user_info } = useQuery<User>({
-    enabled,
-    queryKey: ["user", username],
-    queryFn: async () => {
-      try {
-        const { data, status, message } = await GETRequest<User>("/v1/user/" + username);
-
-        if (status !== "OK") throw new Error(message);
-        return data;
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
+    queryKey: ["user", user.id],
+    queryFn: () => user,
   });
 
   const last_online = useMemo(() => {
@@ -68,9 +77,7 @@ export default function UserInfoDialog({
 
   return (
     <Dialog>
-      <DialogTrigger asChild onClick={() => setEnabled(true)}>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="w-[30rem]">
         <DialogHeader>
           <DialogTitle></DialogTitle>
@@ -111,13 +118,7 @@ export default function UserInfoDialog({
             <Button
               variant="outline"
               className="justify-start w-fit"
-              onClick={() => {
-                query_client.setQueryData<string[][]>(
-                  ["compose", "selected_users"],
-                  [[user_info!.id, user_info!.display_name]]
-                );
-                router.push("/compose");
-              }}
+              onClick={startConversation}
             >
               <Send className="h-4 w-auto" />
               <span>Message</span>

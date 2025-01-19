@@ -63,7 +63,6 @@ export default function ComposeMessageInput() {
 
   const create_new_conversation = useMutation({
     mutationFn: async () => {
-      console.log([session.user?.id, ...selected_users!.map((user) => user[0])]);
       try {
         const { data, status, message } = await POSTRequest<Conversation>(
           "/v1/conversation",

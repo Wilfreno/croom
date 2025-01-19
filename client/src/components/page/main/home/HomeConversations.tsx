@@ -52,8 +52,6 @@ export default function HomeConversations() {
     return to_display;
   }, [conversations, conversation_search]);
 
-  console.log(to_display_conversation);
-
   return (
     <section className="h-full grid gap-2">
       <div className="flex items-center justify-between w-full mb-2">
