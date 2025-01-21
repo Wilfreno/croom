@@ -181,16 +181,59 @@ export default function ConversationMessage({
     return only_emoji;
   }, [message.text]);
 
+  const text_style = useMemo(() => {
+    let style = "font-sans py-2 max-w-96 break-words";
+
+    const is_sender = message.sender.id === session.user?.id;
+    if (no_text) {
+      style += " h-fit  text-4xl";
+
+      if (is_sender) style += " justify-self-end";
+      else style += " justify-self-start";
+    } else style += " bg-primary rounded-lg px-3";
+
+    if (!!quick_message_placement) {
+      style += is_sender ? " rounded-l-lg" : " rounded-r-lg";
+      switch (quick_message_placement) {
+        case "FIRST": {
+          style += is_sender ? "rounded-tr-lg rounded-br" : " rounded-tl-lg rounded-bl";
+          break;
+        }
+        case "MIDDLE": {
+          style += is_sender ? "  rounded-r" : " rounded-l";
+          break;
+        }
+        case "LAST": {
+          style += is_sender ? " rounded-br-lg rounded-tr" : "  rounded-tl";
+          if (!message.photos.length) style += " rounded-bl-lg";
+          break;
+        }
+      }
+    }
+
+    if (!!message.photos.length)
+      style += is_sender
+        ? " rounded-l-lg rounded-tr-lg rounded-br"
+        : " rounded-r-lg rounded-tl-lg rounded-bl";
+
+    return style;
+  }, [no_text, session.user, quick_message_placement, message]);
+
   const photo_style = useMemo(() => {
     let style = "h-fit w-full rounded-sm overflow-hidden grid";
 
+    if (!!message.photos.length) style += " mt-1";
     if (message.photos.length > 1) style += " bg-primary p-1";
     else if (message.photos.length === 1) style += " border shadow-sm";
-    if (message.text) style += " rounded-l-lg rounded-br-lg rounded-tr";
+    if (message.text)
+      style +=
+        message.sender.id === session.user?.id
+          ? " rounded-l-lg rounded-tr-lg rounded-br"
+          : " rounded-r-lg rounded-tl-lg rounded-bl";
 
     style += " grid-cols-" + Math.min(message.photos.length, 3);
     return style;
-  }, [message, message]);
+  }, [message]);
 
   const seen = useMutation({
     mutationFn: async () => {
@@ -234,37 +277,26 @@ export default function ConversationMessage({
         ref={div_ref}
         className={cn(
           "gap-2 w-full max-w-[25vw] grid",
-          message.sender.id === session.user?.id ? "ml-auto" : "grid-cols-[auto_1fr]"
+          message.sender.id === session.user?.id
+            ? "ml-auto"
+            : "grid-cols-[auto_1fr] items-end"
         )}
       >
         {message.sender.id !== session.user?.id && (
-          <Avatar>
+          <Avatar
+            className={cn(
+              quick_message_placement && quick_message_placement !== "LAST" && "opacity-0"
+            )}
+          >
             <AvatarImage src={message.sender.photo?.url} />
             <AvatarFallback>
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="grid gap-1">
+        <div className="grid">
           {!!message.text && (
-            <div
-              className={cn(
-                "font-sans py-2 max-w-96 break-words",
-                no_text
-                  ? "h-fit w-fit text-4xl justify-self-end relative"
-                  : "bg-primary  rounded-lg px-3",
-                !!quick_message_placement! &&
-                  quick_message_placement === "FIRST" &&
-                  "rounded-l-lg rounded-tr-lg rounded-br",
-                !!quick_message_placement! &&
-                  quick_message_placement === "MIDDLE" &&
-                  "rounded-l-lg rounded-r",
-                !!quick_message_placement! &&
-                  quick_message_placement === "LAST" &&
-                  "rounded-l-lg rounded-br-lg rounded-tr",
-                message.photos.length > 0 && "rounded-l-lg rounded-tr-lg rounded-br"
-              )}
-            >
+            <div className={text_style}>
               <span>{message.text}</span>
             </div>
           )}

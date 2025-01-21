@@ -30,7 +30,7 @@ fastify.register(cors, {
 //passport js
 fastify.register(secure_session, {
   key: readFileSync(path.join(__dirname, "session-key")),
-  cookie: { path: "/" },
+  cookie: { path: "/", maxAge: 60 * 60 * 24 * 30 },
 });
 fastify.register(passport.initialize());
 fastify.register(passport.secureSession());

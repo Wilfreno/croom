@@ -240,7 +240,11 @@ export default function ConversationMessageInput() {
         {!!text_input || !!photo_input.length ? (
           <Button
             variant="ghost"
-            disabled={(!text_input && !photo_input.length) || send_message.isPending}
+            disabled={
+              (!text_input && !photo_input.length) ||
+              send_message.isPending ||
+              uploading_image
+            }
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => send_message.mutate()}

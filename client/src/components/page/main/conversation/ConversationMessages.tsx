@@ -56,7 +56,7 @@ export default function ConversationMessages() {
 
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
-      <div className="mt-auto space-y-4">
+      <div className="mt-auto space-y-1">
         {!!found_messages?.pages.length &&
           !isError &&
           found_messages.pages.map((page, pages_index) =>
