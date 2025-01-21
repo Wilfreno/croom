@@ -248,10 +248,12 @@ export default function ConversationMessage({
         )}
         <div className="grid gap-1">
           {!!message.text && (
-            <p
+            <div
               className={cn(
                 "font-sans py-2 max-w-96 break-words",
-                no_text ? "bg-transparent text-4xl" : "bg-primary rounded-lg px-3",
+                no_text
+                  ? "h-fit w-fit text-4xl justify-self-end relative"
+                  : "bg-primary  rounded-lg px-3",
                 !!quick_message_placement! &&
                   quick_message_placement === "FIRST" &&
                   "rounded-l-lg rounded-tr-lg rounded-br",
@@ -264,8 +266,8 @@ export default function ConversationMessage({
                 message.photos.length > 0 && "rounded-l-lg rounded-tr-lg rounded-br"
               )}
             >
-              {message.text}
-            </p>
+              <span>{message.text}</span>
+            </div>
           )}
           <div className={photo_style}>
             {message.photos.map((photo) => (
