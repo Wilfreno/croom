@@ -1,10 +1,9 @@
 "use client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PATCHRequest } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
-import { Avatar } from "@radix-ui/react-avatar";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserRound } from "lucide-react";
 import Image from "next/image";
@@ -221,11 +220,11 @@ export default function ConversationMessage({
   }, [is_last_message]);
 
   return (
-    <>
+    <span className="grid gap-3">
       {show_time_interval && (
         <div
           key={message.id + "time_interval"}
-          className="text-center text-xs text-muted-foreground font-medium my-6"
+          className="text-center text-xs text-muted-foreground font-medium"
         >
           {time_interval_text}
         </div>
@@ -234,8 +233,8 @@ export default function ConversationMessage({
         key={message.id}
         ref={div_ref}
         className={cn(
-          "gap-4 w-full grid max-w-[25vw]",
-          message.sender.id === session.user?.id && "ml-auto"
+          "gap-2 w-full max-w-[25vw] grid",
+          message.sender.id === session.user?.id ? "ml-auto" : "grid-cols-[auto_1fr]"
         )}
       >
         {message.sender.id !== session.user?.id && (
@@ -284,6 +283,6 @@ export default function ConversationMessage({
           </div>
         </div>
       </div>
-    </>
+    </span>
   );
 }
