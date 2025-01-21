@@ -180,6 +180,7 @@ export default function v1ConversationRouter(
       }
     }
   );
+
   fastify.get<{ Params: { id: string } }>(
     "/:id",
     { preValidation },
@@ -188,19 +189,9 @@ export default function v1ConversationRouter(
         const { id } = request.params;
         const user = request.user as UserSchema & { id: string };
 
-        const found_conversation = await Conversation.findOne({ _id: id })
-          .populate({
-            path: "members",
-            select: "email username display_name photo status last_online",
-            populate: { path: "photo", select: "url" },
-          })
-          .populate({
-            path: "admins",
-            select: "email username display_name photo status last_online",
-            populate: { path: "photo", select: "url" },
-          })
-          .populate({ path: "photo", select: "url" });
+        let found_conversation = await Conversation.findOne({ _id: id });
 
+        console.log(found_conversation);
         if (!found_conversation)
           return reply
             .code(404)
@@ -216,9 +207,25 @@ export default function v1ConversationRouter(
             .code(404)
             .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
+        found_conversation = await found_conversation
+          .populate({
+            path: "members",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          })
+          .then(
+            async (convo) =>
+              await convo.populate({
+                path: "admins",
+                select: "email username display_name photo status last_online",
+                populate: { path: "photo", select: "url" },
+              })
+          )
+          .then(async (convo) => await convo.populate({ path: "photo", select: "url" }));
+
         return reply
           .code(200)
-          .send(JSONResponse("OK", "request successful", found_conversation.toJSON()));
+          .send(JSONResponse("OK", "request successful", found_conversation!.toJSON()));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
