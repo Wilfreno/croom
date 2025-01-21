@@ -6,7 +6,14 @@ import { POSTRequest, ServerResponse } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from "lucide-react";
+import {
+  Image as ImageIcon,
+  ImagePlus,
+  SendHorizontal,
+  Smile,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 import NextImage from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,11 +21,17 @@ import { useParams } from "next/navigation";
 import { ClientUploadedFileData } from "uploadthing/types";
 import { UploadthingButton } from "@/components/page/UploadthingButton";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ConversationMessageInput() {
   const [text_input, setTextInput] = useState("");
-  const [photo_input, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
+  const [photo_input, setPhotoInput] = useState<
+    { key: string; url: string; width: number; height: number }[]
+  >([]);
   const [uploading_image, setUploadingImage] = useState(false);
 
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -105,7 +118,10 @@ export default function ConversationMessageInput() {
           new_image.onerror = (err) => reject(err);
           new_image.src = res.url;
         });
-        setPhotoInput((prev) => [...prev, { key: res.key, url: res.url, width: image.width, height: image.height }]);
+        setPhotoInput((prev) => [
+          ...prev,
+          { key: res.key, url: res.url, width: image.width, height: image.height },
+        ]);
       } catch (error) {
         toast.error((error as Error).message);
         return;
@@ -232,7 +248,14 @@ export default function ConversationMessageInput() {
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>
         ) : (
-          <Button variant="ghost" className="aspect-square h-fit w-auto rounded-full p-2 self-center">
+          <Button
+            variant="ghost"
+            className="aspect-square h-fit w-auto rounded-full p-2"
+            onClick={() => {
+              setTextInput("👍");
+              send_message.mutate();
+            }}
+          >
             <ThumbsUp className="h-4 w-auto text-primary" />
           </Button>
         )}

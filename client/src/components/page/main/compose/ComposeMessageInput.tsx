@@ -166,7 +166,6 @@ export default function ComposeMessageInput() {
                 }}
                 onClientUploadComplete={onClientUploadComplete}
                 onUploadError={(e) => {
-                  console.log(e);
                   toast.error(e.message);
                   setUploadingImage(false);
                 }}
@@ -255,7 +254,15 @@ export default function ComposeMessageInput() {
         ) : (
           <Button
             variant="ghost"
-            className="aspect-square h-fit w-auto rounded-full p-2 self-center"
+            className="aspect-square h-fit w-auto rounded-full p-2"
+            onClick={() => {
+              setTextInput("👍");
+              if (!found_conversation || !found_conversation.length || isError) {
+                create_new_conversation.mutate();
+              } else {
+                send_message.mutate(found_conversation[0].id);
+              }
+            }}
           >
             <ThumbsUp className="h-4 w-auto text-primary" />
           </Button>

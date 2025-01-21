@@ -191,7 +191,6 @@ export default function v1ConversationRouter(
 
         let found_conversation = await Conversation.findOne({ _id: id });
 
-        console.log(found_conversation);
         if (!found_conversation)
           return reply
             .code(404)
