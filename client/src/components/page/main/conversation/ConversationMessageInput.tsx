@@ -46,12 +46,12 @@ export default function ConversationMessageInput() {
 
   const { data: conversation } = useQuery(getConvoOptions(params.id));
 
-  const send_message = useMutation({
-    mutationFn: async () => {
+  const send_message = useMutation<Message, Error, string>({
+    mutationFn: async (text) => {
       try {
         const { data, status, message } = await POSTRequest<Message>("/v1/message", {
           conversation: params.id,
-          text: text_input,
+          text: text ? text : text_input,
           photos: photo_input,
         });
 
@@ -261,7 +261,7 @@ export default function ConversationMessageInput() {
             }
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={() => send_message.mutate()}
+            onClick={() => send_message.mutate("")}
           >
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>
@@ -270,11 +270,10 @@ export default function ConversationMessageInput() {
             variant="ghost"
             className="aspect-square h-fit w-auto rounded-full p-2"
             onClick={() => {
-              setTextInput("👍");
-              send_message.mutate();
+              send_message.mutate("👍");
             }}
           >
-            <ThumbsUp className="h-4 w-auto text-primary" />
+            <ThumbsUp className="h-5 w-auto text-primary" />
           </Button>
         )}
       </form>
