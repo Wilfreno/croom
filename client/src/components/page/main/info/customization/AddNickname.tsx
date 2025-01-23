@@ -13,7 +13,7 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CaseSensitive, Check, PenLine, X } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import UserAvatar from "../../UserAvatar";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -30,8 +30,14 @@ export default function AddNickname() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
+
+  const conversation = useMemo(() => {
+    if (!query_response || query_response.status === "BLOCKED") return undefined;
+
+    return query_response.data as Conversation;
+  }, [query_response]);
 
   const set_nickname = useMutation({
     mutationFn: async () => {
