@@ -19,6 +19,7 @@ import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
 import { Conversation } from "@/lib/types/server-data-types";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 
 export default function ComposeMessageInput() {
   const [text_input, setTextInput] = useState("");
@@ -36,10 +37,15 @@ export default function ComposeMessageInput() {
     queryKey: ["compose", "selected_users"],
     placeholderData: [],
   });
-  const { data: found_conversation, isError } = useQuery<Conversation[]>({
+  const { data: found_conversations, isError } = useQuery<Conversation[]>({
     enabled: !!selected_users?.length && !!session.user,
     queryKey: ["conversation", "members", selected_users],
     placeholderData: [],
+  });
+
+  const { data: conversation } = useQuery({
+    enabled: !!found_conversations && !!found_conversations.length,
+    ...getConvoOptions(found_conversations![0]?.id),
   });
 
   const send_message = useMutation<
@@ -67,7 +73,7 @@ export default function ComposeMessageInput() {
     onSuccess: async (_, { conversation_id }) => {
       await query_client.refetchQueries({
         exact: true,
-        queryKey: ["conversation", "messages", found_conversation?.[0]?.id],
+        queryKey: ["conversation", "messages", found_conversations?.[0]?.id],
       });
       router.push("/conversation/" + conversation_id);
     },
@@ -149,6 +155,13 @@ export default function ComposeMessageInput() {
     }
     setUploadingImage(false);
   }
+
+  if (conversation && conversation.status === "BLOCKED")
+    return (
+      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
+        <span>You are unable to reply on this conversation</span>
+      </div>
+    );
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadthingButton
@@ -261,10 +274,10 @@ export default function ComposeMessageInput() {
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => {
-              if (!found_conversation || !found_conversation.length || isError) {
+              if (!found_conversations || !found_conversations.length || isError) {
                 create_new_conversation.mutate("");
               } else {
-                send_message.mutate({ conversation_id: found_conversation[0].id });
+                send_message.mutate({ conversation_id: found_conversations[0].id });
               }
             }}
           >
@@ -275,11 +288,11 @@ export default function ComposeMessageInput() {
             variant="ghost"
             className="aspect-square h-fit w-auto rounded-full p-2"
             onClick={() => {
-              if (!found_conversation || !found_conversation.length || isError) {
+              if (!found_conversations || !found_conversations.length || isError) {
                 create_new_conversation.mutate("👍");
               } else {
                 send_message.mutate({
-                  conversation_id: found_conversation[0].id,
+                  conversation_id: found_conversations[0].id,
                   message: "👍",
                 });
               }

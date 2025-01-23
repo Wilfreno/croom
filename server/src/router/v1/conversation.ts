@@ -175,6 +175,7 @@ export default function v1ConversationRouter(
       }
     }
   );
+
   //read
   fastify.get<{ Querystring: { members: string } }>(
     "/",
@@ -191,29 +192,17 @@ export default function v1ConversationRouter(
 
         const members_list = members.split(",");
 
-        const found_group_conversations = await Conversation.find({
+        const found_conversations = await Conversation.find({
           members: { $size: members_list.length, $all: members_list },
-          is_group_chat: true,
-        });
+        }).select("_id");
 
-        const found_non_group_conversations = await Conversation.find({
-          members: { $size: members_list.length, $all: members_list },
-          is_group_chat: false,
-        }).populate({
-          path: "members",
-          match: { _id: { $ne: user.id } },
-          select: "username display_name photo status last_online",
-          populate: { path: "photo", select: "url" },
-        });
-
-        return reply
-          .code(200)
-          .send(
-            JSONResponse("OK", "request successful", [
-              ...found_group_conversations.map((convo) => convo.toJSON()),
-              ...found_non_group_conversations.map((convo) => convo.toJSON()),
-            ])
-          );
+        return reply.code(200).send(
+          JSONResponse(
+            "OK",
+            "request successful",
+            found_conversations.map((convo) => convo.toJSON())
+          )
+        );
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
