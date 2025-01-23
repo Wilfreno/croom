@@ -182,15 +182,17 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const text_style = useMemo(() => {
-    let style = "font-sans py-2 max-w-96 break-words";
+    let style = "py-2 max-w-96 break-words";
 
     const is_sender = message.sender.id === session.user?.id;
-    if (no_text) {
-      style += " h-fit  text-4xl";
-
-      if (is_sender) style += " justify-self-end";
-      else style += " justify-self-start";
-    } else style += " bg-primary rounded-lg px-3";
+    if (no_text) style += " h-fit text-4xl";
+    else {
+      style += " rounded-lg px-3 text-sm shadow-sm border";
+      if (is_sender) style += " bg-primary";
+      else style += " bg-secondary";
+    }
+    if (is_sender) style += " justify-self-end";
+    else style += " justify-self-start";
 
     if (!!quick_message_placement) {
       style += is_sender ? " rounded-l-lg" : " rounded-r-lg";
@@ -222,13 +224,13 @@ export default function ConversationMessage({
   const photo_style = useMemo(() => {
     let style = "h-fit w-full rounded-sm overflow-hidden grid";
 
-    if (!!message.photos.length) style += " mt-1";
+    if (!!message.photos.length) style += " mt-px";
     if (message.photos.length > 1) style += " bg-primary p-1";
     else if (message.photos.length === 1) style += " border shadow-sm";
     if (message.text)
       style +=
         message.sender.id === session.user?.id
-          ? " rounded-l-lg rounded-tr-lg rounded-br"
+          ? " rounded-l-lg rounded-tr-sm rounded-br"
           : " rounded-r-lg rounded-tl-lg rounded-bl";
 
     style += " grid-cols-" + Math.min(message.photos.length, 3);
