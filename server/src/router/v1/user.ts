@@ -216,22 +216,22 @@ export default function v1UserRouter(
 
   //update
   fastify.patch<{
-    Params: { id: string; key: keyof UserSchema };
+    Params: { key: keyof UserSchema };
     Body: Omit<UserSchema, "photo"> & {
       photo: PhotoSchema;
-      blocked: string;
-      blocked_action: "ADD" | "REMOVE";
     };
-  }>("/:key", async (request, reply) => {
+  }>("/:key", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
     try {
-      const { id, key } = request.params;
-      const { username, display_name, password, photo, status, blocked, blocked_action } =
-        request.body;
+      const { key } = request.params;
+      const { username, display_name, password, photo, status } = request.body;
+      const { id } = request.user as UserSchema & { id: string };
 
       const found_user = await User.findOne({ _id: id });
       if (!found_user)
-        return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+        return reply
+          .code(409)
+          .send(JSONResponse("CONFLICT", "cannot update; user does not exist"));
 
       session = await startSession();
       session.startTransaction();
@@ -301,7 +301,7 @@ export default function v1UserRouter(
               .send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
 
           const new_photo = new Photo({
-            owner: found_user._id,
+            owner: id,
             type: "PROFILE",
             url: photo.url,
           });
@@ -333,64 +333,6 @@ export default function v1UserRouter(
             { session }
           );
 
-          break;
-        }
-        case "blocked": {
-          if (!blocked)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "blocked is required on the request body")
-              );
-
-          switch (blocked_action) {
-            case "ADD": {
-              if (
-                !found_user.blocked.some(
-                  (blocked_user) => blocked_user.toString() === blocked
-                )
-              )
-                return reply
-                  .code(409)
-                  .send(JSONResponse("CONFLICT", "user is already blocked"));
-
-              const found_found_blocked_user = await User.findOne({ _id: blocked });
-              if (!found_found_blocked_user)
-                return reply
-                  .code(404)
-                  .send(JSONResponse("NOT_FOUND", "user does not exist"));
-
-              await User.updateOne(
-                { _id: id },
-                { $push: { blocked: blocked }, last_updated: new Date() },
-                { session }
-              );
-              break;
-            }
-            case "REMOVE": {
-              if (
-                found_user.blocked.some(
-                  (blocked_user) => blocked_user.toString() === blocked
-                )
-              )
-                return reply
-                  .code(409)
-                  .send(JSONResponse("CONFLICT", "user is not blocked by you"));
-
-              const found_found_blocked_user = await User.findOne({ _id: blocked });
-              if (!found_found_blocked_user)
-                return reply
-                  .code(404)
-                  .send(JSONResponse("NOT_FOUND", "user does not exist"));
-
-              await User.updateOne(
-                { _id: id },
-                { $pull: { blocked: blocked }, last_updated: new Date() },
-                { session }
-              );
-              break;
-            }
-          }
           break;
         }
         default: {

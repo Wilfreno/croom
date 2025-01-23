@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import SidebarContent from "../SidebarContent";
 import { cn } from "@/lib/utils";
-import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { useParams } from "next/navigation";
 import InfoCustomization from "./InfoCustomization";
@@ -13,6 +12,8 @@ import dynamic from "next/dynamic";
 import InfoMedia from "./InfoMedia";
 import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useMemo } from "react";
+import { Block } from "@/lib/types/server-data-types";
 
 const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), {
   ssr: false,
@@ -25,7 +26,7 @@ export default function InfoSidebar() {
     queryKey: ["sidebar", "info", "open"],
     placeholderData: true,
   });
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
 
   const { data: conversation_info } = useQuery<
     | {
@@ -36,8 +37,8 @@ export default function InfoSidebar() {
       }
     | undefined
   >({
-    enabled: !!session.user?.id && !!conversation,
-    queryKey: ["conversation", "info", conversation],
+    enabled: !!session.user?.id && !!query_response,
+    queryKey: ["conversation", "info", query_response],
     placeholderData: {
       photo_url: undefined!,
       conversation_name: "",
@@ -46,6 +47,15 @@ export default function InfoSidebar() {
     },
   });
   const { photo_url, conversation_name, status, last_online } = conversation_info!;
+
+  const hide = useMemo(() => {
+    if (!query_response || !session.user) return true;
+
+    return (
+      query_response.status === "BLOCKED" &&
+      session.user.id !== (query_response?.data as Block).blocker
+    );
+  }, [query_response, session.user]);
 
   return (
     <SidebarContent className={cn(is_open == false && "hidden")}>
@@ -70,14 +80,16 @@ export default function InfoSidebar() {
           )}
         </div>
       </div>
-      <ScrollArea className="h-[60dvh]">
-        <div className="grid gap-2">
-          <InfoCustomization />
-          <InfoAdminsAndMembers />
-          <InfoMedia />
-          <InfoPrivacyAndSupport />
-        </div>
-      </ScrollArea>
+      {!hide && (
+        <ScrollArea className="h-[60dvh]">
+          <div className="grid gap-2">
+            <InfoCustomization />
+            <InfoAdminsAndMembers />
+            <InfoMedia />
+            <InfoPrivacyAndSupport />
+          </div>
+        </ScrollArea>
+      )}
     </SidebarContent>
   );
 }

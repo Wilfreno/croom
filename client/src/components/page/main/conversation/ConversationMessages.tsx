@@ -13,17 +13,12 @@ export default function ConversationMessages() {
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
 
-  const {
-    data: found_conversation,
-    isError,
-    error,
-  } = useQuery(getConvoOptions(params.id));
-
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const { data: found_messages } = useInfiniteQuery<{
     page_param: number;
     result: Message[];
   }>({
-    enabled: !!found_conversation && !!session.user,
+    enabled: !!query_response && !!session.user,
     queryKey: ["conversation", "messages", params.id],
     queryFn: async ({ pageParam }) => {
       try {
@@ -52,13 +47,11 @@ export default function ConversationMessages() {
     placeholderData: { pages: [], pageParams: [] },
   });
 
-  if (isError) throw error;
-
+  console.log(found_messages);
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col gap-px p-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
       <div className="mt-auto space-y-1">
         {!!found_messages?.pages.length &&
-          !isError &&
           found_messages.pages.map((page, pages_index) =>
             page.result.map((message, message_index) => (
               <ConversationMessage

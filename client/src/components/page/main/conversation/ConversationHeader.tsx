@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { Conversation, User } from "@/lib/types/server-data-types";
+import { Block, Conversation, User } from "@/lib/types/server-data-types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ellipsis } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -19,30 +19,38 @@ export default function ConversationHeader() {
     queryKey: ["sidebar", "info", "open"],
     placeholderData: true,
   });
-  const {
-    data: conversation,
-    error,
-    isError,
-  } = useQuery<Conversation>({
+  const { data: query_response } = useQuery({
     enabled: !!session,
     ...getConvoOptions(params.id),
   });
-  if (isError) throw error;
+
+  if (
+    query_response &&
+    query_response.status !== "OK" &&
+    query_response.status !== "BLOCKED"
+  )
+    throw new Error(query_response.message);
 
   const { data: conversation_info } = useQuery({
-    enabled: !!session.user?.id && !!conversation,
-    queryKey: ["conversation", "info", conversation],
+    enabled: !!session.user?.id && !!query_response,
+    queryKey: ["conversation", "info", query_response],
     queryFn: () => {
+      let conversation: Conversation;
       let last_online = "";
       let photo_url: string;
       let conversation_name = "";
       let status: User["status"] | null = null;
 
-      if (conversation!.is_group_chat) {
-        photo_url = conversation!.photo?.url || "";
-        conversation_name = conversation!.name;
+      if (query_response?.status === "OK") {
+        conversation = query_response.data as Conversation;
       } else {
-        const other_user = conversation?.members.find(
+        conversation = (query_response?.data as Block).conversation;
+      }
+      if (conversation.is_group_chat) {
+        photo_url = conversation.photo?.url || "";
+        conversation_name = conversation.name;
+      } else {
+        const other_user = conversation.members.find(
           (member) => member.id !== session.user?.id
         );
         if (!other_user)
@@ -51,7 +59,7 @@ export default function ConversationHeader() {
         status = other_user.status;
         photo_url = other_user.photo?.url || "";
 
-        conversation_name = conversation!.nicknames.find(
+        conversation_name = conversation.nicknames.find(
           (nickname) => nickname.user === other_user.id
         )!.value;
         if (!conversation_name) conversation_name = other_user.display_name;

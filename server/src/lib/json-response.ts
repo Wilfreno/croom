@@ -7,7 +7,8 @@ type ResponseStatus =
   | "FORBIDDEN"
   | "BAD_REQUEST"
   | "CREATED"
-  | "UNAUTHENTICATED";
+  | "UNAUTHENTICATED"
+  | "BLOCKED";
 
 /**
  *

@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { PATCHRequest, POSTRequest } from "@/lib/server/requests";
-import { Conversation } from "@/lib/types/server-data-types";
+import { DELETERequest, POSTRequest } from "@/lib/server/requests";
+import { Block, Conversation } from "@/lib/types/server-data-types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Flag, LogOut, ShieldMinus } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export default function InfoPrivacyAndSupport() {
@@ -33,17 +33,7 @@ export default function InfoPrivacyAndSupport() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
-
-  const is_blocked = useMemo(() => {
-    if (!session || !conversation) return false;
-
-    return session.user?.blocked.some(
-      (blocked_user) =>
-        blocked_user ===
-        conversation.members.find((member) => member.id !== session.user?.id)!.id
-    );
-  }, [session, conversation]);
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
 
   const report = useMutation({
     mutationFn: async () => {
@@ -79,13 +69,11 @@ export default function InfoPrivacyAndSupport() {
     },
   });
 
-  const block_user = useMutation<void, Error, "ADD" | "REMOVE">({
-    mutationFn: async (blocked_action) => {
+  const block_user = useMutation({
+    mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/user/blocked", {
-          blocked: conversation?.members.find((member) => member.id !== session.user?.id)
-            ?.id,
-          blocked_action,
+        const { status, message } = await POSTRequest("/v1/conversation/block", {
+          conversation: params.id,
         });
 
         if (status !== "OK") throw new Error(message);
@@ -94,14 +82,39 @@ export default function InfoPrivacyAndSupport() {
         throw error;
       }
     },
+    onSuccess: () => {
+      toast("user as been blocked");
+    },
+  });
+
+  const unblock_user = useMutation({
+    mutationFn: async () => {
+      try {
+        const { status, message } = await DELETERequest("/v1/conversation/block", {
+          conversation: params.id,
+        });
+
+        if (status !== "OK") throw new Error(message);
+      } catch (error) {
+        toast.error((error as Error).message);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast("user unblocked");
+    },
   });
 
   return (
     <Collapsible
       onOpenChange={(is_open) => {
         setOpen(is_open);
-        if (is_open && !conversation?.is_group_chat) {
-          const other_user = conversation?.members.find(
+        if (
+          is_open &&
+          query_response?.status === "OK" &&
+          !(query_response?.data as Conversation).is_group_chat
+        ) {
+          const other_user = (query_response?.data as Conversation).members.find(
             (member) => member.id !== session.user?.id
           );
 
@@ -152,7 +165,7 @@ export default function InfoPrivacyAndSupport() {
                       cancel
                     </Button>
                   </DialogClose>
-                  {conversation?.is_group_chat ? (
+                  {(query_response?.data as Conversation).is_group_chat ? (
                     <Button className="place-self-end">send</Button>
                   ) : (
                     <DialogClose
@@ -170,7 +183,7 @@ export default function InfoPrivacyAndSupport() {
             )}
           </DialogContent>
         </Dialog>
-        {conversation?.is_group_chat ? (
+        {(query_response?.data as Conversation)?.is_group_chat ? (
           <Button
             variant="ghost"
             className="w-full justify-start"
@@ -181,11 +194,12 @@ export default function InfoPrivacyAndSupport() {
             </span>
             <span>Leave group chat</span>
           </Button>
-        ) : is_blocked ? (
+        ) : query_response?.status === "BLOCKED" &&
+          (query_response?.data as Block).blocker === session.user?.id ? (
           <Button
             variant="secondary"
             className="w-full justify-start"
-            onClick={() => block_user.mutate("REMOVE")}
+            onClick={() => unblock_user.mutate()}
           >
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
               <ShieldMinus className="h-4 w-auto" />
@@ -196,7 +210,7 @@ export default function InfoPrivacyAndSupport() {
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => block_user.mutate("ADD")}
+            onClick={() => block_user.mutate()}
           >
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
               <ShieldMinus className="h-4 w-auto" />

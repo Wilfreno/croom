@@ -8,7 +8,8 @@ export type ServerResponse<T = null> = {
     | "FORBIDDEN"
     | "BAD_REQUEST"
     | "CREATED"
-    | "OUT_OF_BOUND";
+    | "OUT_OF_BOUND"
+    | "BLOCKED";
 
   message: string;
   data: T;

@@ -5,7 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { POSTRequest, ServerResponse } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
-import { InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  InfiniteData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Image as ImageIcon,
   ImagePlus,
@@ -26,6 +31,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 
 export default function ConversationMessageInput() {
   const [text_input, setTextInput] = useState("");
@@ -37,6 +43,8 @@ export default function ConversationMessageInput() {
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const params = useParams<{ id: string }>();
   const query_client = useQueryClient();
+
+  const { data: conversation } = useQuery(getConvoOptions(params.id));
 
   const send_message = useMutation({
     mutationFn: async () => {
@@ -130,6 +138,12 @@ export default function ConversationMessageInput() {
     setUploadingImage(false);
   }
 
+  if (conversation && conversation.status === "BLOCKED")
+    return (
+      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
+        <span>You are unable to reply on this conversation</span>
+      </div>
+    );
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadthingButton

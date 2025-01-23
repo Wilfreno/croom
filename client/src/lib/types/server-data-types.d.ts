@@ -48,3 +48,9 @@ export type Message = {
   date_created: Date;
   last_updated: Date;
 };
+
+export type Block = {
+  conversation: Conversation;
+  blocker: string;
+  date_created: Date;
+};

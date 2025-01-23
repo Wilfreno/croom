@@ -1,11 +1,12 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
-import { ClientSession, startSession, Types } from "mongoose";
+import { ClientSession, startSession } from "mongoose";
 import Conversation, { ConversationSchema } from "../../database/models/Conversation";
 import Message from "../../database/models/Message";
 import User, { UserSchema } from "../../database/models/User";
 import JSONResponse from "../../lib/json-response";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import { preValidation } from "../../lib/middleware";
+import Block from "../../database/models/Block";
 
 export default function v1ConversationRouter(
   fastify: FastifyInstance,
@@ -135,6 +136,45 @@ export default function v1ConversationRouter(
       }
     }
   );
+
+  fastify.post<{ Body: { conversation: string } }>(
+    "/block",
+    { preValidation },
+    async (request, reply) => {
+      let session: ClientSession | null = null;
+
+      try {
+        const { conversation } = request.body;
+        const user = request.user as UserSchema & { id: string };
+
+        const found_conversation = await Conversation.findOne({ _id: conversation });
+        if (!found_conversation)
+          return reply
+            .code(404)
+            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
+
+        if (found_conversation.is_group_chat)
+          return reply
+            .send(409)
+            .send(JSONResponse("CONFLICT", "only non group chats can be blocked"));
+
+        session = await startSession();
+        session.startTransaction();
+
+        const new_block = new Block({ conversation, blocker: user.id });
+
+        await new_block.save({ session });
+        await session.commitTransaction();
+        await session.endSession();
+
+        return reply.code(200).send(JSONResponse("OK", "conversation has been blocked"));
+      } catch (error) {
+        await session?.abortTransaction();
+        fastify.log.error(error);
+        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+      }
+    }
+  );
   //read
   fastify.get<{ Querystring: { members: string } }>(
     "/",
@@ -189,37 +229,50 @@ export default function v1ConversationRouter(
         const { id } = request.params;
         const user = request.user as UserSchema & { id: string };
 
-        let found_conversation = await Conversation.findOne({ _id: id });
+        const found_block = await Block.findOne({ conversation: id }).populate({
+          path: "conversation",
+          populate: {
+            path: "members",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          },
+        });
+
+        if (found_block)
+          return reply
+            .code(403)
+            .send(
+              JSONResponse(
+                "BLOCKED",
+                "you are blocked fom this conversation",
+                found_block.toJSON()
+              )
+            );
+
+        let found_conversation = await Conversation.findOne({ _id: id }).populate({
+          path: "members",
+          select: "email username display_name photo status last_online",
+          populate: { path: "photo", select: "url" },
+        });
 
         if (!found_conversation)
           return reply
             .code(404)
             .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
 
-        if (!found_conversation.members.some((member) => member.toString() === user.id))
+        if (
+          !found_conversation.members.some((member) => member._id.toString() === user.id)
+        )
           return reply
             .code(403)
             .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
-        if (!found_conversation)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
-
         found_conversation = await found_conversation
           .populate({
-            path: "members",
+            path: "admins",
             select: "email username display_name photo status last_online",
             populate: { path: "photo", select: "url" },
           })
-          .then(
-            async (convo) =>
-              await convo.populate({
-                path: "admins",
-                select: "email username display_name photo status last_online",
-                populate: { path: "photo", select: "url" },
-              })
-          )
           .then(async (convo) => await convo.populate({ path: "photo", select: "url" }));
 
         return reply

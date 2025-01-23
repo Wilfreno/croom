@@ -1,4 +1,4 @@
-import { FastifyReply, FastifyRequest, HookHandlerDoneFunction } from "fastify";
+import { FastifyReply, FastifyRequest } from "fastify";
 import JSONResponse from "./json-response";
 
 export async function preValidation(request: FastifyRequest, reply: FastifyReply) {
