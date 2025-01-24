@@ -187,7 +187,7 @@ export default function ConversationMessage({
     const is_sender = message.sender.id === session.user?.id;
     if (no_text) style += " h-fit text-4xl";
     else {
-      style += " rounded-lg px-3 text-sm shadow-sm border";
+      style += " rounded-lg px-4 text-sm shadow-sm border";
       if (is_sender) style += " bg-primary";
       else style += " bg-secondary";
     }

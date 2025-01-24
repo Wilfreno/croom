@@ -70,16 +70,14 @@ export default function v1MessageRouter(
             populate: { path: "photo", select: "url" },
           })
           .then((data) =>
-            data
-              .populate({ path: "conversation", select: "_id members" })
-              .then((data) =>
-                data.populate({ path: "photos", select: "url height width" })
-              )
+            data.populate({ path: "conversation", select: "members nicknames" })
           )
+          .then((data) => data.populate({ path: "photos", select: "url height width" }))
       ).toJSON();
 
       await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
       await session.commitTransaction();
+      await session.endSession();
 
       return reply.code(201).send(JSONResponse("CREATED", "message sent", message_json));
     } catch (error) {
