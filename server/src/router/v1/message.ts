@@ -180,6 +180,10 @@ export default function v1MessageRouter(
 
             switch (request_body.action) {
               case "ADD": {
+                if (found_message.seen_by.some((id) => id.toString() === user.id))
+                  return reply
+                    .code(409)
+                    .send(JSONResponse("CONFLICT", "user already seen the message"));
                 await Message.updateOne(
                   { _id: id },
                   { $push: { seen_by: user.id }, $set: { last_updated: new Date() } },
