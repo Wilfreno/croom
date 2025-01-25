@@ -32,14 +32,14 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
         conversation_name = convo.name;
         photo_url = convo.photo?.url;
       } else {
-        const other_user = convo.members.find(
-          (member) => member.id !== session.user?.id
-        )!;
+        const other_user = convo.members[0];
+
         photo_url = other_user.photo!.url;
 
-        conversation_name = convo.nicknames.find(
-          (nickname) => nickname.user === other_user.id
-        )!.value;
+        conversation_name =
+          convo.nicknames.find((nickname) => nickname.user === other_user.id)?.value ||
+          "";
+
         if (!conversation_name) conversation_name = other_user.display_name;
       }
 
@@ -78,6 +78,32 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       };
     }, [session, convo]);
 
+  console.log(convo);
+  const text_message = useMemo(() => {
+    if (!convo || !session.user) return;
+    let name = "";
+    let text = "";
+
+    if (convo.is_group_chat) {
+      name =
+        convo.nicknames.find((nickname) => nickname.user === convo.messages[0].sender.id)
+          ?.value || "";
+
+      if (!name) name = convo.messages[0].sender.display_name;
+      name += ": ";
+    } else if (convo.messages[0].sender.id === session.user.id) text += "you ";
+
+    text += name;
+
+    if (!!convo.messages[0].photos.length) {
+      if (convo.messages[0].photos.length > 1) text += " sent some photos";
+      else text += " sent a photo";
+    } else {
+      text += ": " + convo.messages[0].text;
+    }
+    return text;
+  }, [convo, session.user]);
+
   return (
     <Link
       key={convo.id}
@@ -99,14 +125,7 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
             seen ? "text-muted-foreground" : "font-semibold"
           )}
         >
-          <p className="truncate  max-w-56">
-            {convo.messages[0]?.sender.id === session.user?.id && <span>you: </span>}
-            <span>
-              {convo.messages[0].text
-                ? convo.messages[0].text
-                : convo.messages[0].sender.id + " sent a photo"}
-            </span>
-          </p>
+          <p className="truncate  max-w-56">{text_message}</p>
           <p>{time_interval_text}</p>
         </div>
       </div>

@@ -4,7 +4,7 @@ import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
-import { ClientSession, startSession } from "mongoose";
+import { ClientSession, model, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
 
@@ -131,26 +131,30 @@ export default function v1UserRouter(
             options: {
               sort: { date_created: -1 },
               limit: 1,
-              populate: { path: "sender", select: "_id" },
             },
-          })
-          .populate({ path: "members", select: "status" });
+            populate: [
+              { path: "sender", select: "display_name" },
+              { path: "seen_by", select: "_id" },
+            ],
+          });
 
         if (!found_conversation) continue;
 
         if (found_conversation.is_group_chat) {
-          conversations.push(found_conversation?.toJSON());
+          const group_chat = await found_conversation.populate({
+            path: "members",
+            select: "status",
+            match: { _id: { $ne: user.id } },
+          });
+          conversations.push(group_chat.toJSON());
         } else {
-          conversations.push(
-            (
-              await found_conversation.populate({
-                path: "members",
-                match: { _id: { $ne: user.id } },
-                select: "_id display_name photo status",
-                populate: { path: "photo", select: "url" },
-              })
-            ).toJSON()
-          );
+          const direct_convo = await found_conversation.populate({
+            path: "members",
+            select: "status display_name photo",
+            match: { _id: { $ne: user.id } },
+            populate: { path: "photo", select: "url" },
+          });
+          conversations.push(direct_convo.toJSON());
         }
       }
 

@@ -190,7 +190,7 @@ export default function v1MessageRouter(
               case "DELETE": {
                 await Message.updateOne(
                   { _id: id },
-                  { $pull: { seen_by: [user.id] }, $set: { last_updated: new Date() } },
+                  { $pull: { seen_by: user.id }, $set: { last_updated: new Date() } },
                   { session }
                 );
                 break;
