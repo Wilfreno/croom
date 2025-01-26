@@ -90,8 +90,7 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
           ?.value || "";
 
       if (!name) name = convo.messages[0].sender.display_name;
-      name += ": ";
-    } else if (convo.messages[0].sender.id === session.user.id) text += "you ";
+    } else if (convo.messages[0].sender.id === session.user.id) name += "you";
 
     text += name;
 
@@ -99,7 +98,10 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       if (convo.messages[0].photos.length > 1) text += " sent some photos";
       else text += " sent a photo";
     } else {
-      text += ": " + convo.messages[0].text;
+      if (convo.messages[0].sender.id === session.user.id) {
+        text += ": ";
+      }
+      text += convo.messages[0].text;
     }
     return text;
   }, [convo, session.user]);
