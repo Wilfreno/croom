@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 import { Message } from "@/lib/types/server-data-types";
 import { usePathname } from "next/navigation";
 import MessageToast from "../page/main/conversation/MessageToast";
+import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 
 const SocketIOContext = createContext<Socket<ServerToCLient, ClientToServer> | null>(
   null
@@ -26,11 +27,34 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   );
   const { session } = useAuth();
   const pathname = usePathname();
+  const query_client = useQueryClient();
 
   function onMessage(message: Message) {
     console.log(message);
     console.log(pathname);
-    if (!pathname.startsWith("/conversation/" + message.conversation.id)) {
+    console.log(pathname.startsWith("/conversation/" + message.conversation.id));
+    if (pathname.startsWith("/conversation/" + message.conversation.id)) {
+      query_client.setQueryData<
+        | InfiniteData<
+            {
+              page_param: number;
+              result: Message[];
+            },
+            unknown
+          >
+        | undefined
+      >(["conversation", "messages", message.conversation.id], (prev) => {
+        if (!prev) return;
+
+        return {
+          ...prev,
+          pages: prev.pages.map(({ page_param, result }, index) => ({
+            page_param,
+            result: index === prev.pages.length - 1 ? [...result, message] : result,
+          })),
+        };
+      });
+    } else {
       toast.custom((toast_id) => <MessageToast message={message} toast_id={toast_id} />, {
         duration: Infinity,
         className: "rounded-lg w-full hover:h-fit",
