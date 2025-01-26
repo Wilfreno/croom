@@ -17,7 +17,7 @@ export default function ConversationHeader() {
 
   const { data: info_sidebar_is_open } = useQuery({
     queryKey: ["sidebar", "info", "open"],
-    placeholderData: true,
+    queryFn: () => true,
   });
   const { data: query_response } = useQuery({
     enabled: !!session,
@@ -119,9 +119,7 @@ export default function ConversationHeader() {
           query_client.setQueryData<boolean>(["sidebar", "info", "open"], (prev) => !prev)
         }
       >
-        <Ellipsis
-          className={cn("w-auto", info_sidebar_is_open === true ? "h-2" : "h-4")}
-        />
+        <Ellipsis className={cn("w-auto", info_sidebar_is_open ? "h-2" : "h-4")} />
       </Button>
     </section>
   );

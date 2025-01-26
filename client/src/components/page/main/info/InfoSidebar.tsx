@@ -24,7 +24,6 @@ export default function InfoSidebar() {
   const { session } = useAuth();
   const { data: is_open } = useQuery({
     queryKey: ["sidebar", "info", "open"],
-    placeholderData: true,
   });
   const { data: query_response } = useQuery(getConvoOptions(params.id));
 
@@ -58,7 +57,7 @@ export default function InfoSidebar() {
   }, [query_response, session.user]);
 
   return (
-    <SidebarContent className={cn(is_open == false && "hidden")}>
+    <SidebarContent className={cn(!is_open && "hidden")}>
       <div className="flex flex-col items-center gap-4 my-10">
         <span className="relative">
           <Avatar className="aspect-square h-28 w-auto">
