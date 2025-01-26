@@ -84,9 +84,11 @@ export default function ConversationMessageInput() {
           })),
         };
       });
-      setTextInput("");
       setUploadingImage(false);
       setPhotoInput([]);
+      setTextInput("");
+      textarea_ref.current!.style.height = "auto";
+      //   textarea_ref.current!.style.height = textarea_ref.current!.scrollHeight + "px";
     },
   });
 
