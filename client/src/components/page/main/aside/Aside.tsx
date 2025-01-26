@@ -22,7 +22,7 @@ export default function Aside() {
   const query_client = useQueryClient();
 
   return (
-    <aside className="inset-y-0 flex flex-col items-center px-2 py-4">
+    <aside className="inset-y-0 flex-col items-center px-2 py-4 hidden sm:flex">
       <div className="flex flex-col items-center">
         <TooltipProvider>
           <Tooltip>

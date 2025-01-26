@@ -78,7 +78,6 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       };
     }, [session, convo]);
 
-  console.log(convo);
   const text_message = useMemo(() => {
     if (!convo || !session.user) return;
     let name = "";

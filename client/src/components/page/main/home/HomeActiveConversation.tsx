@@ -31,8 +31,8 @@ export default function HomeActiveConversations() {
 
   return (
     <section className="w-full flex flex-col gap-1">
-      <p className="font-bold">Active Conversations</p>
-      <ScrollArea className="w-80 min-h-20 py-2 pb-3">
+      <p className="font-bold hidden md:block">Active Conversations</p>
+      <ScrollArea className="w-[22rem] md:w-80 md:min-h-20 py-2 md:pb-3">
         <div className="flex items-center gap-2 mx-auto">
           {active_conversations?.map((conversation) => (
             <Link key={conversation.id} href={"/conversation/" + conversation.id}>

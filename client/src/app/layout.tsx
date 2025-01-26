@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn(work_sans.className, "w-full h-dvh")}>
+      <body className={cn(work_sans.className, "w-full h-dvh overflow-hidden")}>
         <ReactQueryProvider>
           <AuthProvider>
             <SocketIOProvider>{children}</SocketIOProvider>

@@ -54,12 +54,12 @@ export default function HomeConversations() {
   return (
     <section className="h-full grid gap-2">
       <div className="flex items-center justify-between w-full mb-2">
-        <p className="font-bold">Conversations</p>
+        <p className="font-bold hidden md:block">Conversations</p>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="aspect-square h-fit w-auto rounded-full p-2"
+                className="aspect-square h-fit w-auto rounded-full p-2 hidden md:inline-flex"
                 onClick={() => router.push("/compose")}
               >
                 <SquarePen className="h-4 w-auto" />
