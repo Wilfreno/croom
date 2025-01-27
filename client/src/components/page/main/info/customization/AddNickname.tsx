@@ -93,6 +93,7 @@ export default function AddNickname() {
     setNickname(conversation.nicknames);
   }, [conversation]);
 
+  console.log(conversation);
   return (
     <Dialog
       onOpenChange={(is_open) => {
@@ -110,7 +111,7 @@ export default function AddNickname() {
           <span>Add nicknames</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[40dvw] gap-10">
+      <DialogContent className="w-[22rem] rounded-sm gap-10">
         <DialogHeader>
           <DialogTitle>Add Nicknames</DialogTitle>
         </DialogHeader>
