@@ -13,12 +13,16 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Menu, SquarePen } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import useUserAgent from "@/components/hooks/useUserAgent";
 
 export default function HomeSideBar() {
   const { data: open } = useQuery({ queryKey: ["home", "sidebar"], queryFn: () => true });
+  const { is_mobile } = useUserAgent();
   const router = useRouter();
+  const pathname = usePathname();
 
+  if (is_mobile && pathname !== "/") return null;
   return (
     <SidebarContent
       className={cn(

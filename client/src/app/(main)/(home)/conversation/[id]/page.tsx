@@ -5,7 +5,7 @@ import MainContent from "@/components/page/main/MainContent";
 
 export default async function page() {
   return (
-    <MainContent className="grid grid-rows-[auto_1fr_auto]">
+    <MainContent className="grid grid-rows-[auto_1fr_auto] h-dvh max-h-dvh">
       <ConversationHeader />
       <ConversationMessages />
       <ConversationMessageInput />

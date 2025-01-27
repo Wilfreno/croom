@@ -182,7 +182,7 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const text_style = useMemo(() => {
-    let style = "py-2 max-w-96 break-words";
+    let style = "py-2 max-w-80 break-words";
 
     const is_sender = message.sender.id === session.user?.id;
     if (no_text) style += " h-fit text-4xl";
@@ -278,7 +278,7 @@ export default function ConversationMessage({
         key={message.id}
         ref={div_ref}
         className={cn(
-          "gap-2 w-full max-w-[25vw] grid",
+          "gap-2 w-full max-w-80 grid",
           message.sender.id === session.user?.id
             ? "ml-auto"
             : "grid-cols-[auto_1fr] items-end"

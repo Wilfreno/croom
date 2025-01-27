@@ -146,7 +146,7 @@ export default function ConversationMessageInput() {
       </div>
     );
   return (
-    <div className="flex items-end p-2 bg-transparent">
+    <div className="h-full flex items-end p-2 bg-transparent">
       <UploadthingButton
         endpoint="multiple_image"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
@@ -170,13 +170,13 @@ export default function ConversationMessageInput() {
       >
         <div className="w-full">
           {uploading_image || !!photo_input.length ? (
-            <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
+            <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
               <UploadthingButton
                 endpoint="multiple_image"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
                   button() {
-                    return <ImagePlus className="h-6 w-auto text-accent" />;
+                    return <ImagePlus className="h-4 md:h-6 w-auto text-accent" />;
                   },
                 }}
                 onClientUploadComplete={onClientUploadComplete}
@@ -187,7 +187,7 @@ export default function ConversationMessageInput() {
                 onUploadBegin={() => setUploadingImage(true)}
               />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-centergap-2">
                 {photo_input.map(({ url, key }, index) => (
                   <span key={url} className="relative">
                     <NextImage
@@ -195,14 +195,14 @@ export default function ConversationMessageInput() {
                       alt="image"
                       width={500}
                       height={500}
-                      className="aspect-square h-24 w-auto rounded-sm object-cover"
+                      className="aspect-square h-14 md:h-24 w-auto rounded-sm object-cover"
                       priority
                     />
                     <Button
                       className="aspect-square h-fit w-auto rounded-full absolute -top-2 -right-2 p-1"
                       onClick={() => delete_photo.mutate({ key, index })}
                     >
-                      <X className="h-4 w-auto" />
+                      <X className="h-3 md:h-4 w-auto" />
                     </Button>
                   </span>
                 ))}
