@@ -18,7 +18,7 @@ import useUserAgent from "@/components/hooks/useUserAgent";
 
 export default function HomeSideBar() {
   const { data: open } = useQuery({ queryKey: ["home", "sidebar"], queryFn: () => true });
-  const { is_mobile } = useUserAgent();
+  const { on_mobile: is_mobile } = useUserAgent();
   const router = useRouter();
   const pathname = usePathname();
 

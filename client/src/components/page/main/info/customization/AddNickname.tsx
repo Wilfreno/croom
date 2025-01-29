@@ -93,7 +93,6 @@ export default function AddNickname() {
     setNickname(conversation.nicknames);
   }, [conversation]);
 
-  console.log(conversation);
   return (
     <Dialog
       onOpenChange={(is_open) => {

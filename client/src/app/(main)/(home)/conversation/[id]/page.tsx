@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 
 export default function Page() {
-  const { is_mobile } = useUserAgent();
+  const { on_mobile: is_mobile } = useUserAgent();
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
 

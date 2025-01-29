@@ -28,7 +28,6 @@ export default function InfoSidebar() {
   const { data: is_open } = useQuery({ queryKey: ["sidebar", "info", "open"] });
   const { data: query_response } = useQuery(getConvoOptions(params.id));
 
-  console.log(query_response);
   const { data: conversation_info } = useQuery<{
     photo_url: string;
     conversation_name: string;
