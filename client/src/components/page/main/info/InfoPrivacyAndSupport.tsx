@@ -34,7 +34,6 @@ export default function InfoPrivacyAndSupport() {
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
   const { data: query_response } = useQuery(getConvoOptions(params.id));
-
   const report = useMutation({
     mutationFn: async () => {
       try {
@@ -142,7 +141,7 @@ export default function InfoPrivacyAndSupport() {
               <span>Report User</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="p-2 w-[40dvw]">
+          <DialogContent className="p-2 w-[24rem]">
             <DialogHeader>
               <DialogTitle></DialogTitle>
             </DialogHeader>
