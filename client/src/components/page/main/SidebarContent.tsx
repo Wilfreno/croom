@@ -11,7 +11,7 @@ export default function SidebarContent({
   return (
     <section
       className={cn(
-        "h-dvh max-h-dvh md:w-96 border shadow md:rounded-md bg-background p-2",
+        "w-dvw md:w-96 border shadow md:rounded-md bg-background p-2",
         className
       )}
     >

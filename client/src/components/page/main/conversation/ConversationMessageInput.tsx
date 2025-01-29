@@ -187,7 +187,7 @@ export default function ConversationMessageInput() {
                 onUploadBegin={() => setUploadingImage(true)}
               />
 
-              <div className="flex items-centergap-2">
+              <div className="flex items-center gap-2">
                 {photo_input.map(({ url, key }, index) => (
                   <span key={url} className="relative">
                     <NextImage

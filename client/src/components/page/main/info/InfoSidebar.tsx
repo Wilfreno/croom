@@ -15,6 +15,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMemo } from "react";
 import { Block } from "@/lib/types/server-data-types";
 import { Button } from "@/components/ui/button";
+import useUserAgent from "@/components/hooks/useUserAgent";
 
 const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), {
   ssr: false,
@@ -24,8 +25,11 @@ export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
   const query_client = useQueryClient();
+  const { on_mobile } = useUserAgent();
 
-  const { data: is_open } = useQuery({ queryKey: ["sidebar", "info", "open"] });
+  const { data: is_open } = useQuery({
+    queryKey: ["sidebar", "info", "open", on_mobile],
+  });
   const { data: query_response } = useQuery(getConvoOptions(params.id));
 
   const { data: conversation_info } = useQuery<{
@@ -46,6 +50,7 @@ export default function InfoSidebar() {
     );
   }, [query_response, session.user]);
 
+  console.log(is_open);
   return (
     <SidebarContent className={cn(!is_open && "hidden", "relative")}>
       <Button

@@ -11,14 +11,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 
 export default function Page() {
-  const { on_mobile: is_mobile } = useUserAgent();
+  const { on_mobile } = useUserAgent();
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
 
   const { data: is_open } = useQuery({
-    enabled: is_mobile,
-    queryKey: ["sidebar", "info", "open"],
-    queryFn: () => (is_mobile ? false : true),
+    queryKey: ["sidebar", "info", "open", on_mobile],
+    queryFn: () => !on_mobile,
   });
 
   const { data: query_response } = useQuery({
@@ -103,10 +102,9 @@ export default function Page() {
     },
   });
 
-  if (is_mobile && is_open) return null;
-
+  if (on_mobile && is_open) return null;
   return (
-    <MainContent className="grid grid-rows-[auto_1fr_auto] h-dvh max-h-dvh">
+    <MainContent className="grid grid-rows-[auto_1fr_auto] max-h-dvh">
       <ConversationHeader />
       <ConversationMessages />
       <ConversationMessageInput />
