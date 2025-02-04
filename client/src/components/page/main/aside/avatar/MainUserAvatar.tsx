@@ -2,19 +2,23 @@
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DELETERequest } from "@/lib/server/requests";
-import { UserRound } from "lucide-react";
+import { LogOut, Settings, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export default function MainUserAvatar() {
   const { session, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <DropdownMenu>
@@ -26,21 +30,51 @@ export default function MainUserAvatar() {
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" sideOffset={14}>
+      <DropdownMenuContent side="right" align="end" sideOffset={14}>
         <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={async () => {
-              try {
-                const { status, message } = await DELETERequest("/v1/user/session");
+          <div className="flex items-start gap-2 p-2 py-4 w-72">
+            <Avatar>
+              <AvatarImage src={session.user?.photo?.url} />
+              <AvatarFallback className="bg-background">
+                <UserRound className="h-1/2 w-auto" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid text-start">
+              <p className="font-medium max-w-64 truncate">
+                {session.user?.display_name}
+              </p>
+              <p className="text-xs">{session.user?.username}</p>
+            </div>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start cursor-pointer"
+              onClick={() => router.push("/settings")}
+            >
+              <Settings className="h-4 w-auto" />
+              <span>Settings</span>
+            </Button>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start cursor-pointer"
+              onClick={async () => {
+                try {
+                  const { status, message } = await DELETERequest("/v1/user/session");
 
-                if (status !== "OK") throw new Error(message);
-                await logout();
-              } catch (error) {
-                toast.error((error as Error).message);
-              }
-            }}
-          >
-            logout
+                  if (status !== "OK") throw new Error(message);
+                  await logout();
+                } catch (error) {
+                  toast.error((error as Error).message);
+                }
+              }}
+            >
+              <LogOut className="h-4 w-auto" />
+              <span>Logout</span>
+            </Button>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

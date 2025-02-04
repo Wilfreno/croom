@@ -114,7 +114,7 @@ export default function v1UserRouter(
       }
     }
   );
-  fastify.get("/conversations", { preHandler: preValidation }, async (request, reply) => {
+  fastify.get("/conversations", { preValidation }, async (request, reply) => {
     try {
       const user = request.user as UserSchema & { id: string };
 
@@ -167,68 +167,83 @@ export default function v1UserRouter(
     }
   });
 
-  fastify.get(
-    "/active-conversation",
-    { preHandler: preValidation },
-    async (request, reply) => {
-      try {
-        const user = request.user as UserSchema & { id: string };
+  fastify.get("/active-conversation", { preValidation }, async (request, reply) => {
+    try {
+      const user = request.user as UserSchema & { id: string };
 
-        const conversations = [];
+      const conversations = [];
 
-        for (const convo of user.conversations) {
-          const found_conversation = await Conversation.findOne({ _id: convo });
-          if (!found_conversation) continue;
+      for (const convo of user.conversations) {
+        const found_conversation = await Conversation.findOne({ _id: convo });
+        if (!found_conversation) continue;
 
-          for (const member of found_conversation.members) {
-            if (member.toString() === user.id) continue;
+        for (const member of found_conversation.members) {
+          if (member.toString() === user.id) continue;
 
-            const found_member = await User.findOne({ _id: member, status: "ONLINE" });
-            if (found_member) {
-              if (found_conversation.is_group_chat) {
-                conversations.push(
-                  (
-                    await found_conversation.populate({ path: "photo", select: "url" })
-                  ).toJSON()
-                );
-              } else {
-                conversations.push(
-                  (
-                    await found_conversation.populate({
-                      path: "members",
-                      match: { _id: { $ne: user.id } },
-                      select: "display_name photo",
-                      populate: { path: "photo", select: "url" },
-                    })
-                  ).toJSON()
-                );
-              }
-              break;
+          const found_member = await User.findOne({ _id: member, status: "ONLINE" });
+          if (found_member) {
+            if (found_conversation.is_group_chat) {
+              conversations.push(
+                (
+                  await found_conversation.populate({ path: "photo", select: "url" })
+                ).toJSON()
+              );
+            } else {
+              conversations.push(
+                (
+                  await found_conversation.populate({
+                    path: "members",
+                    match: { _id: { $ne: user.id } },
+                    select: "display_name photo",
+                    populate: { path: "photo", select: "url" },
+                  })
+                ).toJSON()
+              );
             }
+            break;
           }
         }
-
-        return reply
-          .code(200)
-          .send(JSONResponse("OK", "request successful", conversations));
-      } catch (error) {
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
       }
-    }
-  );
 
+      return reply
+        .code(200)
+        .send(JSONResponse("OK", "request successful", conversations));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+
+  fastify.get("/photos", { preValidation }, async (request, reply) => {
+    try {
+      const user = request.user as UserSchema & { id: string };
+
+      const found_photos = await Photo.find({ owner: user.id, type: "PROFILE" }).sort({
+        date_created: 1,
+      });
+
+      return reply.code(200).send(
+        JSONResponse(
+          "OK",
+          "request successful",
+          found_photos.map((photo) => photo.toJSON())
+        )
+      );
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   //update
   fastify.patch<{
     Params: { key: keyof UserSchema };
     Body: Omit<UserSchema, "photo"> & {
-      photo: PhotoSchema;
+      photo: { url: string; id: string };
     };
   }>("/:key", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
     try {
       const { key } = request.params;
-      const { username, display_name, password, photo, status } = request.body;
       const { id } = request.user as UserSchema & { id: string };
 
       const found_user = await User.findOne({ _id: id });
@@ -242,7 +257,7 @@ export default function v1UserRouter(
 
       switch (key) {
         case "username": {
-          if (!username)
+          if (!request.body.username)
             return reply
               .code(400)
               .send(
@@ -251,7 +266,7 @@ export default function v1UserRouter(
 
           await User.updateOne(
             { _id: id },
-            { $set: { username, last_updated: new Date() } },
+            { $set: { username: request.body.username, last_updated: new Date() } },
             { session }
           );
 
@@ -259,7 +274,7 @@ export default function v1UserRouter(
         }
 
         case "display_name": {
-          if (!display_name)
+          if (!request.body.display_name)
             return reply
               .code(400)
               .send(
@@ -271,14 +286,16 @@ export default function v1UserRouter(
 
           await User.updateOne(
             { _id: id },
-            { $set: { display_name, last_updated: new Date() } },
+            {
+              $set: { display_name: request.body.display_name, last_updated: new Date() },
+            },
             { session }
           );
 
           break;
         }
         case "password": {
-          if (!password)
+          if (!request.body.password)
             return reply
               .code(400)
               .send(
@@ -289,7 +306,7 @@ export default function v1UserRouter(
             { _id: id },
             {
               $set: {
-                password: await hash(password, 14),
+                password: await hash(request.body.password, 14),
                 last_updated: new Date(),
               },
             },
@@ -299,15 +316,31 @@ export default function v1UserRouter(
           break;
         }
         case "photo": {
-          if (!photo)
+          if (!request.body.photo)
             return reply
               .code(400)
               .send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
 
+          if (await Photo.findOne({ _id: request.body.photo.id })) {
+            await User.updateOne(
+              { _id: id },
+              { $set: { photo: request.body.photo.id, last_updated: new Date() } },
+              { session }
+            );
+            await Photo.updateOne(
+              {
+                _id: request.body.photo.id,
+              },
+              { $set: { date_created: new Date() } },
+              { session }
+            );
+            break;
+          }
+
           const new_photo = new Photo({
             owner: id,
             type: "PROFILE",
-            url: photo.url,
+            url: request.body.photo.url,
           });
 
           await new_photo.save();
@@ -357,49 +390,5 @@ export default function v1UserRouter(
     }
   });
 
-  //   //delete user
-
-  //   fastify.delete<{ Params: { username: string } }>("/:username", async (request, reply) => {
-  //     try {
-  //       const { username } = request.params;
-
-  //       const found_user = await User.exists({ username });
-
-  //       if (!found_user) return reply.code(404).send(JSONResponse("CONFLICT", " cannot delete user user does not exist"));
-
-  //       await User.deleteOne({ username });
-
-  //       return reply.code(200).send(JSONResponse("OK", "user deleted"));
-  //     } catch (error) {
-  //       fastify.log.error(error);
-  //       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-  //     }
-  //   });
-
-  fastify.delete(
-    "/session",
-    {
-      preHandler: preValidation,
-    },
-    async (_, reply) => {
-      try {
-        return reply
-          .code(200)
-          .setCookie("chatup-session-token", "", {
-            domain:
-              process.env.NODE_ENV === "production" ? "chatup.vercel.app" : "127.0.0.1",
-            path: "/",
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            httpOnly: true,
-            maxAge: 0,
-          })
-          .send(JSONResponse("OK", "user session is created"));
-      } catch (error) {
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      }
-    }
-  );
   done();
 }

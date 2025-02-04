@@ -1,5 +1,5 @@
 "use client";
-import { GETRequest, POSTRequest } from "@/lib/server/requests";
+import { GETRequest, PATCHRequest, POSTRequest } from "@/lib/server/requests";
 import { User } from "@/lib/types/server-data-types";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ import croom_logo from "../../../public/croom-logo.svg";
 import { toast } from "sonner";
 
 const AuthContext = createContext<{
-  session: { user: User | null };
+  session: { user: User | null; update: (data: Partial<User>) => Promise<void> };
   logout: () => Promise<void>;
   login: (
     strategy: "GOOGLE" | "LOCAL",
@@ -162,6 +162,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
+  async function update(updated_data: Partial<User>) {
+    try {
+      const { data, message, status } = await PATCHRequest<User>(
+        "/v1/auth/update",
+        updated_data
+      );
+
+      if (status !== "OK") {
+        toast.error(message);
+        return;
+      }
+      setSession(data);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   useEffect(() => {
     getSession();
   }, []);
@@ -175,7 +192,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   return (
     <AuthContext.Provider
       value={{
-        session: { user: session },
+        session: { user: session, update },
         logout,
         login,
         signup: { createOTP, submitForm },

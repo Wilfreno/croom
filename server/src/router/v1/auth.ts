@@ -2,10 +2,11 @@ import passport from "@fastify/passport";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import JSONResponse from "../../lib/json-response";
 import { ClientSession, startSession } from "mongoose";
-import User from "../../database/models/User";
+import User, { UserSchema } from "../../database/models/User";
 import { hash } from "bcrypt";
 import exclude from "../../lib/exclude";
 import OTP from "../../database/models/Otp";
+import { preValidation } from "../../lib/middleware";
 
 export default async function v1AuthRouter(
   fastify: FastifyInstance,
@@ -111,7 +112,7 @@ export default async function v1AuthRouter(
     }
   );
 
-  fastify.get("/session", async (request, reply) => {
+  fastify.get("/session", { preValidation }, async (request, reply) => {
     if (request.isUnauthenticated())
       return reply
         .code(401)
@@ -123,5 +124,19 @@ export default async function v1AuthRouter(
   fastify.get("/logout", async (request, reply) => {
     await request.logOut();
     return reply.redirect(client_url_origin + "/");
+  });
+
+  fastify.patch<{ Body: UserSchema }>("/update", async (request, reply) => {
+    try {
+      const user = request.user as UserSchema;
+      await request.logIn({ ...user, ...request.body });
+
+      return reply
+        .code(200)
+        .send(JSONResponse("OK", "session updated", { ...user, ...request.body }));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
   });
 }

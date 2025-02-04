@@ -22,7 +22,7 @@ export default function Aside() {
   const query_client = useQueryClient();
 
   return (
-    <aside className="h-dvh flex-col items-center px-2 py-4 hidden sm:flex">
+    <aside className="h-dvh flex-col items-center px-2 py-4 hidden sm:flex bg-background shadow-md border-r">
       <div className="flex flex-col items-center">
         <TooltipProvider>
           <Tooltip>
@@ -61,7 +61,7 @@ export default function Aside() {
           </TooltipProvider>
         ))} */}
       </div>
-      <div className="mt-auto flex flex-col items-center gap-4 mb-6">
+      <div className="mt-auto flex flex-col items-center gap-4">
         <MainUserAvatar />
       </div>
     </aside>
