@@ -8,30 +8,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { PATCHRequest } from "@/lib/server/requests";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { AtSign, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function SettingsChangeDisplayname() {
+export default function SettingsChangeUserName() {
   const [collapsible_is_open, setCollapsibleIsOpen] = useState(false);
   const [input_is_open, setInputIsOpen] = useState(false);
-  const [display_name, setDisplayname] = useState("");
+  const [username, setUsername] = useState("");
   const {
     session: { user, update },
   } = useAuth();
 
-  const change_display_name = useMutation({
+  const change_username = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/user/display_name", {
-          display_name,
+        const { status, message } = await PATCHRequest("/v1/user/username", {
+          username: "@" + "username",
         });
 
         if (status !== "OK") {
           toast.error(message);
           return;
         }
-        await update({ display_name });
+        await update({ username: "@" + username });
       } catch (error) {
         throw error;
       }
@@ -45,7 +45,7 @@ export default function SettingsChangeDisplayname() {
     <Collapsible onOpenChange={setCollapsibleIsOpen}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="w-full justify-between font-semibold">
-          <span>Change display name</span>
+          <span>Change username</span>
           {collapsible_is_open ? (
             <ChevronDown className="h-4 w-auto" />
           ) : (
@@ -56,43 +56,55 @@ export default function SettingsChangeDisplayname() {
       <CollapsibleContent>
         {input_is_open ? (
           <form
-            className="flex items-center gap-2 p-2"
+            className="flex items-center gap-2 p-2 relative"
             onSubmit={(e) => {
               e.preventDefault();
-              change_display_name.mutate();
+              change_username.mutate();
             }}
           >
+            <AtSign className="h-4 w-auto absolute top-1/2 left-4 -translate-y-1/2" />
             <Input
               autoFocus
               placeholder="Display name"
-              value={display_name}
-              onChange={(e) => setDisplayname(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="pl-8"
             />
             <Button
-              variant="outline"
               type="button"
+              variant="outline"
+              disabled={change_username.isPending}
               onClick={() => {
-                setDisplayname(user!.display_name);
-                setCollapsibleIsOpen(false);
+                setUsername(user!.username);
                 setInputIsOpen(false);
+                setCollapsibleIsOpen(false);
               }}
             >
               cancel
             </Button>
-            <Button disabled={change_display_name.isPending}>confirm</Button>
+            <Button
+              disabled={
+                !username ||
+                change_username.isPending ||
+                username === user?.username.slice(1)
+              }
+            >
+              confirm
+            </Button>
           </form>
         ) : (
           <div className="flex items-center gap-2 p-2">
-            <span className="border rounded-sm p-2 w-full bg-secondary text-sm">
-              {user?.display_name}
-            </span>
+            <p className="border rounded-sm p-2 w-full bg-secondary text-sm flex items-center gap-1">
+              <AtSign className="h-4 w-auto" />
+              <span>{user?.username.slice(1)}</span>
+            </p>
             <Button
               type="button"
               disabled={!user}
               variant="outline"
               className=""
               onClick={() => {
-                setDisplayname(user!.display_name);
+                setUsername(user!.username.slice(1));
                 setInputIsOpen(true);
               }}
             >

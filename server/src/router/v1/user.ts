@@ -264,6 +264,11 @@ export default function v1UserRouter(
                 JSONResponse("BAD_REQUEST", "username is required on the request body")
               );
 
+          if (await User.exists({ username: request.body.username }))
+            return reply
+              .code(409)
+              .send(JSONResponse("CONFLICT", "username already exist"));
+
           await User.updateOne(
             { _id: id },
             { $set: { username: request.body.username, last_updated: new Date() } },
