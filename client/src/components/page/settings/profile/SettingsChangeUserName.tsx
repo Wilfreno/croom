@@ -1,19 +1,13 @@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { PATCHRequest } from "@/lib/server/requests";
 import { useMutation } from "@tanstack/react-query";
-import { AtSign, ChevronDown, ChevronRight } from "lucide-react";
+import { AtSign } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SettingsChangeUserName() {
-  const [collapsible_is_open, setCollapsibleIsOpen] = useState(false);
   const [input_is_open, setInputIsOpen] = useState(false);
   const [username, setUsername] = useState("");
   const {
@@ -42,18 +36,9 @@ export default function SettingsChangeUserName() {
   });
 
   return (
-    <Collapsible onOpenChange={setCollapsibleIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="w-full justify-between font-semibold">
-          <span>Change username</span>
-          {collapsible_is_open ? (
-            <ChevronDown className="h-4 w-auto" />
-          ) : (
-            <ChevronRight className="h-4 w-auto" />
-          )}
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
+    <section>
+      <span className="font-semibold">Username</span>
+      <div>
         {input_is_open ? (
           <form
             className="flex items-center gap-2 p-2 relative"
@@ -77,7 +62,6 @@ export default function SettingsChangeUserName() {
               onClick={() => {
                 setUsername(user!.username);
                 setInputIsOpen(false);
-                setCollapsibleIsOpen(false);
               }}
             >
               cancel
@@ -112,7 +96,7 @@ export default function SettingsChangeUserName() {
             </Button>
           </div>
         )}
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+    </section>
   );
 }

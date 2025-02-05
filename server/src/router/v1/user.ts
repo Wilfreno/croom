@@ -219,7 +219,7 @@ export default function v1UserRouter(
       const user = request.user as UserSchema & { id: string };
 
       const found_photos = await Photo.find({ owner: user.id, type: "PROFILE" }).sort({
-        date_created: 1,
+        date_created: -1,
       });
 
       return reply.code(200).send(
@@ -238,7 +238,7 @@ export default function v1UserRouter(
   fastify.patch<{
     Params: { key: keyof UserSchema };
     Body: Omit<UserSchema, "photo"> & {
-      photo: { url: string; id: string };
+      photo: { url: string; id: string; key: string; width: number; height: number };
     };
   }>("/:key", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
@@ -339,25 +339,21 @@ export default function v1UserRouter(
               { $set: { date_created: new Date() } },
               { session }
             );
-            break;
+          } else {
+            const new_photo = new Photo({
+              owner: id,
+              type: "PROFILE",
+              ...request.body.photo,
+            });
+
+            await new_photo.save({ session });
+
+            await User.updateOne(
+              { _id: id },
+              { $set: { photo: new_photo._id, last_updated: new Date() } },
+              { session }
+            );
           }
-
-          const new_photo = new Photo({
-            owner: id,
-            type: "PROFILE",
-            url: request.body.photo.url,
-          });
-
-          await new_photo.save();
-
-          if (found_user.photo)
-            await Photo.deleteOne({ _id: found_user.photo }, { session });
-
-          await User.updateOne(
-            { _id: id },
-            { $set: { photo: new_photo._id, last_updated: new Date() } },
-            { session }
-          );
 
           break;
         }

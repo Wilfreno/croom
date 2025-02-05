@@ -17,6 +17,7 @@ export type Photo = {
   id: string;
   owner: User;
   type: "PROFILE" | "CHAT_ROOM" | "MESSAGE";
+  key: string;
   url: string;
   width: number;
   height: number;
