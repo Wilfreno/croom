@@ -107,8 +107,8 @@ export default function SettingsChangePhoto() {
   }
 
   return (
-    <section>
-      <div className="font-semibold w-full flex items-center justify-between pr-2">
+    <div>
+      <div className="font-semibold w-full flex items-start justify-between pr-2">
         <span>Profile photo </span>
         <UploadthingButton
           disabled={uploading}
@@ -192,6 +192,6 @@ export default function SettingsChangePhoto() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

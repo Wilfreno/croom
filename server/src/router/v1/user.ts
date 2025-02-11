@@ -2,9 +2,9 @@ import { hash } from "bcrypt";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
-import Photo, { PhotoSchema } from "../../database/models/Photo";
+import Photo from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
-import { ClientSession, model, startSession } from "mongoose";
+import { ClientSession, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
 
@@ -237,16 +237,17 @@ export default function v1UserRouter(
   //update
   fastify.patch<{
     Params: { key: keyof UserSchema };
-    Body: Omit<UserSchema, "photo"> & {
+    Body: Omit<UserSchema, "photo" | "password"> & {
       photo: { url: string; id: string; key: string; width: number; height: number };
+      password: { new: string; confirm: string };
     };
   }>("/:key", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
     try {
       const { key } = request.params;
-      const { id } = request.user as UserSchema & { id: string };
+      const user = request.user as UserSchema & { id: string };
 
-      const found_user = await User.findOne({ _id: id });
+      const found_user = await User.findOne({ _id: user.id });
       if (!found_user)
         return reply
           .code(409)
@@ -270,7 +271,7 @@ export default function v1UserRouter(
               .send(JSONResponse("CONFLICT", "username already exist"));
 
           await User.updateOne(
-            { _id: id },
+            { _id: user.id },
             { $set: { username: request.body.username, last_updated: new Date() } },
             { session }
           );
@@ -290,7 +291,7 @@ export default function v1UserRouter(
               );
 
           await User.updateOne(
-            { _id: id },
+            { _id: user.id },
             {
               $set: { display_name: request.body.display_name, last_updated: new Date() },
             },
@@ -307,11 +308,16 @@ export default function v1UserRouter(
                 JSONResponse("BAD_REQUEST", "password is required on the request body")
               );
 
+          if (request.body.password.new !== request.body.password.confirm)
+            return reply
+              .code(400)
+              .send(JSONResponse("BAD_REQUEST", "new password is not the same"));
+
           await User.updateOne(
-            { _id: id },
+            { _id: user.id },
             {
               $set: {
-                password: await hash(request.body.password, 14),
+                password: await hash(request.body.password.new, 14),
                 last_updated: new Date(),
               },
             },
@@ -328,7 +334,7 @@ export default function v1UserRouter(
 
           if (await Photo.findOne({ _id: request.body.photo.id })) {
             await User.updateOne(
-              { _id: id },
+              { _id: user.id },
               { $set: { photo: request.body.photo.id, last_updated: new Date() } },
               { session }
             );
@@ -341,7 +347,7 @@ export default function v1UserRouter(
             );
           } else {
             const new_photo = new Photo({
-              owner: id,
+              owner: user.id,
               type: "PROFILE",
               ...request.body.photo,
             });
@@ -349,27 +355,11 @@ export default function v1UserRouter(
             await new_photo.save({ session });
 
             await User.updateOne(
-              { _id: id },
+              { _id: user.id },
               { $set: { photo: new_photo._id, last_updated: new Date() } },
               { session }
             );
           }
-
-          break;
-        }
-        case "status": {
-          if (!status)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "status is required on the request body")
-              );
-
-          await User.updateOne(
-            { _id: id },
-            { $set: { status, last_updated: new Date() } },
-            { session }
-          );
 
           break;
         }

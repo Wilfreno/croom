@@ -36,12 +36,12 @@ export default function SettingsChangeUserName() {
   });
 
   return (
-    <section>
+    <div>
       <span className="font-semibold">Username</span>
       <div>
         {input_is_open ? (
           <form
-            className="flex items-center gap-2 p-2 relative"
+            className="flex items-center gap-2 relative"
             onSubmit={(e) => {
               e.preventDefault();
               change_username.mutate();
@@ -77,7 +77,7 @@ export default function SettingsChangeUserName() {
             </Button>
           </form>
         ) : (
-          <div className="flex items-center gap-2 p-2">
+          <div className="flex items-center gap-2">
             <p className="border rounded-sm p-2 w-full bg-secondary text-sm flex items-center gap-1">
               <AtSign className="h-4 w-auto" />
               <span>{user?.username.slice(1)}</span>
@@ -97,6 +97,6 @@ export default function SettingsChangeUserName() {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

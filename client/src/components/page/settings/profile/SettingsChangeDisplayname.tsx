@@ -35,11 +35,11 @@ export default function SettingsChangeDisplayname() {
   });
 
   return (
-    <section>
+    <div>
       <span className="font-semibold">Display name</span>
       {input_is_open ? (
         <form
-          className="flex items-center gap-2 p-2"
+          className="flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             change_display_name.mutate();
@@ -64,7 +64,7 @@ export default function SettingsChangeDisplayname() {
           <Button disabled={change_display_name.isPending}>confirm</Button>
         </form>
       ) : (
-        <div className="flex items-center gap-2 p-2">
+        <div className="flex items-center gap-2">
           <span className="border rounded-sm p-2 w-full bg-secondary text-sm">
             {user?.display_name}
           </span>
@@ -82,6 +82,6 @@ export default function SettingsChangeDisplayname() {
           </Button>
         </div>
       )}
-    </section>
+    </div>
   );
 }
