@@ -64,14 +64,8 @@ export default function ComposeTo() {
     queryKey: ["conversation", "members", selected_users],
     queryFn: async () => {
       try {
-        let members = "";
-
-        for (const member of selected_users!) {
-          members += "," + member[0];
-        }
-
         const { data, message, status } = await GETRequest<Conversation[]>(
-          "/v1/conversation?members=" + session.user?.id + members
+          "/v1/conversation?members=" + selected_users.join(",")
         );
 
         if (status !== "OK") throw new Error(message);
@@ -117,6 +111,7 @@ export default function ComposeTo() {
   useEffect(() => {
     query_client.setQueryData(["compose", "selected_users"], selected_users);
   }, [selected_users]);
+
   return (
     <section
       className={cn(
