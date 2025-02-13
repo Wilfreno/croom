@@ -2,7 +2,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { DELETERequest, GETRequest, PATCHRequest } from "@/lib/server/requests";
 import { Photo } from "@/lib/types/server-data-types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash, Upload, UserRound } from "lucide-react";
+import { Info, Trash, Upload, UserRound } from "lucide-react";
 import { UploadthingButton } from "../../UploadthingButton";
 import { toast } from "sonner";
 import { ClientUploadedFileData } from "uploadthing/types";
@@ -10,6 +10,12 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function SettingsChangePhoto() {
   const [uploading, setUploading] = useState(false);
@@ -59,6 +65,7 @@ export default function SettingsChangePhoto() {
       setUploading(false);
     },
   });
+
   const delete_photo = useMutation<void, Error, { id: string; index: number }>({
     mutationFn: async ({ id }) => {
       try {
@@ -144,7 +151,23 @@ export default function SettingsChangePhoto() {
           </AvatarFallback>
         </Avatar>
         <div className="grid gap-2 p-2 pl-10">
-          <p className="text-sm font-semibold self-start">Recent photos</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold self-start">Recent photos</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="h-4 w-auto" />
+                </TooltipTrigger>
+                <TooltipContent align="end" side="right">
+                  <span>
+                    There can only be <strong>5</strong> recent photos available, if you
+                    upload a new one when there&apos;s already <strong>5</strong> recent
+                    photos the last one will bew deleted.
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <div className="flex items-center gap-4 pl-10 min-h-20">
             {recent_photos?.slice(1).map((photo, index) => (
               <div

@@ -346,6 +346,14 @@ export default function v1UserRouter(
               { session }
             );
           } else {
+            if ((await Photo.countDocuments({ owner: user.id, type: "PROFILE" })) > 4) {
+              const last_photo = await Photo.findOne()
+                .sort({ date_created: 1 })
+                .select("_id");
+
+              await Photo.deleteOne({ _id: last_photo?.id }, { session });
+            }
+
             const new_photo = new Photo({
               owner: user.id,
               type: "PROFILE",
