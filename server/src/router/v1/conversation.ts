@@ -137,45 +137,6 @@ export default function v1ConversationRouter(
     }
   );
 
-  fastify.post<{ Body: { conversation: string } }>(
-    "/block",
-    { preValidation },
-    async (request, reply) => {
-      let session: ClientSession | null = null;
-
-      try {
-        const { conversation } = request.body;
-        const user = request.user as UserSchema & { id: string };
-
-        const found_conversation = await Conversation.findOne({ _id: conversation });
-        if (!found_conversation)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "conversation does not exist"));
-
-        if (found_conversation.is_group_chat)
-          return reply
-            .send(409)
-            .send(JSONResponse("CONFLICT", "only non group chats can be blocked"));
-
-        session = await startSession();
-        session.startTransaction();
-
-        const new_block = new Block({ conversation, blocker: user.id });
-
-        await new_block.save({ session });
-        await session.commitTransaction();
-        await session.endSession();
-
-        return reply.code(200).send(JSONResponse("OK", "conversation has been blocked"));
-      } catch (error) {
-        await session?.abortTransaction();
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      }
-    }
-  );
-
   //read
   fastify.get<{ Querystring: { members: string } }>(
     "/",
@@ -193,7 +154,7 @@ export default function v1ConversationRouter(
         const members_list = members.split(",");
 
         const found_conversations = await Conversation.find({
-          members: { $size: members_list.length, $all: members_list },
+          members: { $size: members_list.length, $all: [...members_list, user] },
         }).select("_id");
 
         return reply.code(200).send(
@@ -218,31 +179,13 @@ export default function v1ConversationRouter(
         const { id } = request.params;
         const user = request.user as UserSchema & { id: string };
 
-        const found_block = await Block.findOne({ conversation: id }).populate({
-          path: "conversation",
-          populate: {
+        let found_conversation = await Conversation.findOne({ _id: id })
+          .populate({
             path: "members",
             select: "email username display_name photo status last_online",
             populate: { path: "photo", select: "url" },
-          },
-        });
-
-        if (found_block)
-          return reply
-            .code(403)
-            .send(
-              JSONResponse(
-                "BLOCKED",
-                "you are blocked fom this conversation",
-                found_block.toJSON()
-              )
-            );
-
-        let found_conversation = await Conversation.findOne({ _id: id }).populate({
-          path: "members",
-          select: "email username display_name photo status last_online",
-          populate: { path: "photo", select: "url" },
-        });
+          })
+          .populate({ path: "photo", select: "url" });
 
         if (!found_conversation)
           return reply
@@ -256,14 +199,32 @@ export default function v1ConversationRouter(
             .code(403)
             .send(JSONResponse("FORBIDDEN", "you are not a member of this conversation"));
 
-        found_conversation = await found_conversation
-          .populate({
-            path: "admins",
-            select: "email username display_name photo status last_online",
-            populate: { path: "photo", select: "url" },
-          })
-          .then(async (convo) => await convo.populate({ path: "photo", select: "url" }));
+        if (!found_conversation.is_group_chat) {
+          const found_block = await Block.findOne({
+            blocked_user: user.id,
+            blocker: found_conversation.members.find(
+              (member) => member._id.toString() !== user.id
+            )!._id,
+          }).populate({
+            path: "conversation",
+            populate: {
+              path: "members",
+              select: "email username display_name photo status last_online",
+              populate: { path: "photo", select: "url" },
+            },
+          });
 
+          if (found_block)
+            return reply
+              .code(403)
+              .send(
+                JSONResponse(
+                  "BLOCKED",
+                  "you are blocked fom this conversation",
+                  found_block.toJSON()
+                )
+              );
+        }
         return reply
           .code(200)
           .send(JSONResponse("OK", "request successful", found_conversation!.toJSON()));

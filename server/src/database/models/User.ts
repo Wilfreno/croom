@@ -61,7 +61,7 @@ const userSchema = new Schema<UserSchema>({
   blocked: [
     {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Block",
       default: [],
     },
   ],

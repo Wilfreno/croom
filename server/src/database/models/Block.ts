@@ -1,15 +1,15 @@
 import { model, Schema, Types } from "mongoose";
 
 export type BlockSchema = {
-  conversation: Types.ObjectId;
+  blocked_user: Types.ObjectId;
   blocker: Types.ObjectId;
   date_created: Date;
 };
 
 const blockSchema = new Schema<BlockSchema>({
-  conversation: {
+  blocked_user: {
     type: Schema.Types.ObjectId,
-    ref: "Conversation",
+    ref: "User",
     required: true,
     unique: true,
   },

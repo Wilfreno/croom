@@ -51,7 +51,7 @@ export type Message = {
 };
 
 export type Block = {
-  conversation: Conversation;
+  conversation: User;
   blocker: string;
   date_created: Date;
 };

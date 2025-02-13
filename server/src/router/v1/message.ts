@@ -6,6 +6,7 @@ import { ClientSession, startSession } from "mongoose";
 import Photo, { PhotoSchema } from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
 import { preValidation } from "../../lib/middleware";
+import Block from "../../database/models/Block";
 
 export default function v1MessageRouter(
   fastify: FastifyInstance,
@@ -31,6 +32,27 @@ export default function v1MessageRouter(
         return reply
           .code(404)
           .send(JSONResponse("NOT_FOUND", "Conversation does not exist"));
+
+      if (!found_conversation.is_group_chat) {
+        const found_block = await Block.findOne({
+          blocked_user: user.id,
+          blocker: found_conversation.members.find(
+            (member) => member._id.toString() !== user.id
+          )!._id,
+        }).populate({
+          path: "conversation",
+          populate: {
+            path: "members",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          },
+        });
+
+        if (found_block)
+          return reply
+            .code(403)
+            .send(JSONResponse("BLOCKED", "you are blocked fom this conversation"));
+      }
       session = await startSession();
       session.startTransaction();
 

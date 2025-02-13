@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
-import { Conversation } from "@/lib/types/server-data-types";
+import { Block, Conversation } from "@/lib/types/server-data-types";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
@@ -156,12 +156,24 @@ export default function ComposeMessageInput() {
     setUploadingImage(false);
   }
 
-  if (conversation && conversation.status === "BLOCKED")
-    return (
-      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
-        <span>You are unable to reply on this conversation</span>
-      </div>
-    );
+  if (conversation && conversation.status === "BLOCKED") {
+    if ((conversation.data as Block).blocker) {
+      return (
+        <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
+          <span>
+            You have blocked this user, neither of you can reply on this conversation
+          </span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
+          <span>You are unable to reply on this conversation</span>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadthingButton
