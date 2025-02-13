@@ -7,7 +7,6 @@ import Conversation from "../../database/models/Conversation";
 import { ClientSession, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
-import Block from "../../database/models/Block";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -39,42 +38,6 @@ export default function v1UserRouter(
         await session.endSession();
 
         return reply.code(201).send(JSONResponse("CREATED", "report created"));
-      } catch (error) {
-        await session?.abortTransaction();
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      }
-    }
-  );
-  fastify.post<{ Body: { blocked_user: string } }>(
-    "/block",
-    { preValidation },
-    async (request, reply) => {
-      let session: ClientSession | null = null;
-
-      try {
-        const { blocked_user } = request.body;
-        const user = request.user as UserSchema & { id: string };
-
-        const found_user = await User.findOne({ _id: blocked_user });
-        if (!found_user)
-          return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
-
-        if (await Block.exists({ blocker: user.id, blocked_user }))
-          return reply
-            .code(409)
-            .send(JSONResponse("CONFLICT", "user has already been blocked"));
-
-        session = await startSession();
-        session.startTransaction();
-
-        const new_block = new Block({ blocked_user, blocker: user.id });
-        await new_block.save({ session });
-
-        await session.commitTransaction();
-        await session.endSession();
-
-        return reply.code(200).send(JSONResponse("OK", "conversation has been blocked"));
       } catch (error) {
         await session?.abortTransaction();
         fastify.log.error(error);

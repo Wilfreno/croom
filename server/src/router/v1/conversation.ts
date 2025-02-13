@@ -201,29 +201,25 @@ export default function v1ConversationRouter(
 
         if (!found_conversation.is_group_chat) {
           const found_block = await Block.findOne({
-            blocked_user: user.id,
-            blocker: found_conversation.members.find(
-              (member) => member._id.toString() !== user.id
-            )!._id,
-          }).populate({
-            path: "conversation",
-            populate: {
-              path: "members",
-              select: "email username display_name photo status last_online",
-              populate: { path: "photo", select: "url" },
-            },
+            $or: [
+              {
+                blocked_user: found_conversation.members[0]._id,
+                blocker: found_conversation.members[1]._id,
+              },
+              {
+                blocked_user: found_conversation.members[1]._id,
+                blocker: found_conversation.members[0]._id,
+              },
+            ],
           });
 
           if (found_block)
-            return reply
-              .code(403)
-              .send(
-                JSONResponse(
-                  "BLOCKED",
-                  "you are blocked fom this conversation",
-                  found_block.toJSON()
-                )
-              );
+            return reply.code(403).send(
+              JSONResponse("BLOCKED", "you are blocked fom this conversation", {
+                ...found_block.toJSON(),
+                conversation: found_conversation.toJSON(),
+              })
+            );
         }
         return reply
           .code(200)

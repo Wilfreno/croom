@@ -33,7 +33,9 @@ export default function InfoPrivacyAndSupport() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: query_response } = useQuery(getConvoOptions(params.id));
+
+  const { data: query_response, refetch } = useQuery(getConvoOptions(params.id));
+
   const report = useMutation({
     mutationFn: async () => {
       try {
@@ -71,8 +73,10 @@ export default function InfoPrivacyAndSupport() {
   const block_user = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await POSTRequest("/v1/conversation/block", {
-          conversation: params.id,
+        const { status, message } = await POSTRequest("/v1/block", {
+          blocked_user: (query_response?.data as Conversation).members.find(
+            (member) => member.id !== session.user?.id
+          )?.id,
         });
 
         if (status !== "OK") throw new Error(message);
@@ -81,7 +85,8 @@ export default function InfoPrivacyAndSupport() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refetch();
       toast("user as been blocked");
     },
   });
@@ -89,8 +94,8 @@ export default function InfoPrivacyAndSupport() {
   const unblock_user = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await DELETERequest("/v1/conversation/block", {
-          conversation: params.id,
+        const { status, message } = await DELETERequest("/v1/block", {
+          id: (query_response?.data as Block).id,
         });
 
         if (status !== "OK") throw new Error(message);
@@ -99,7 +104,8 @@ export default function InfoPrivacyAndSupport() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refetch();
       toast("user unblocked");
     },
   });
@@ -197,10 +203,10 @@ export default function InfoPrivacyAndSupport() {
           (query_response?.data as Block).blocker === session.user?.id ? (
           <Button
             variant="secondary"
-            className="w-full justify-start"
+            className="w-full justify-start text-destructive"
             onClick={() => unblock_user.mutate()}
           >
-            <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
+            <span className="aspect-square h-fit w-auto p-2 rounded-full ">
               <ShieldMinus className="h-4 w-auto" />
             </span>
             <span>Unblock User</span>

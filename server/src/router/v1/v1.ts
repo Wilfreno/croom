@@ -6,6 +6,7 @@ import v1ConversationRouter from "./conversation";
 import v1MessageRouter from "./message";
 import v1AuthRouter from "./auth";
 import v1PhotoRouter from "./photo";
+import v1BlockRouter from "./block";
 
 export default function v1Router(
   fastify: FastifyInstance,
@@ -19,5 +20,7 @@ export default function v1Router(
   fastify.register(v1MessageRouter, { prefix: "/message" });
   fastify.register(v1SearchRouter, { prefix: "/search" });
   fastify.register(v1PhotoRouter, { prefix: "/photo" });
+  fastify.register(v1BlockRouter, { prefix: "/block" });
+
   done();
 }
