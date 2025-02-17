@@ -8,6 +8,7 @@ import { ClientSession, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
 import Block from "../../database/models/Block";
+import { UTApi } from "uploadthing/server";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -412,5 +413,37 @@ export default function v1UserRouter(
     }
   });
 
+  //delete
+  const upload_thing_api = new UTApi({});
+
+  fastify.delete("/", { preValidation }, async (request, reply) => {
+    let session: ClientSession | null = null;
+
+    try {
+      const user = request.user as { id: string };
+      if (!(await User.findOne({ _id: user.id })))
+        return reply.code(200).send(JSONResponse("OK", "user already not exist"));
+
+      session = await startSession();
+      session.startTransaction();
+
+      const found_photos = await Photo.find({ owner: user.id, type: "PROFILE" });
+
+      for (const photo of found_photos) {
+        await Photo.deleteOne({ _id: photo._id }, { session });
+        await upload_thing_api.deleteFiles(photo.key);
+      }
+
+      await User.deleteOne({ _id: user.id }, { session });
+
+      await session.commitTransaction();
+      await session.endSession();
+    } catch (error) {
+      await session?.abortTransaction();
+
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   done();
 }

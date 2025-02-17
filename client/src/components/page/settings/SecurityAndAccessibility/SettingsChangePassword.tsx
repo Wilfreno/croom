@@ -38,7 +38,7 @@ export default function SettingsChangePassword() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <span className="font-semibold">Password</span>
+        <span className="font-medium">Password</span>
         <Button
           variant="outline"
           onClick={() => {

@@ -9,7 +9,7 @@ export default function page() {
         <CardHeader>
           <CardTitle className="text-3xl">Settings</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className="grid gap-8">
           <SettingsProfile />
           <SettingsSecurityAndAccessibility />
         </CardContent>

@@ -60,7 +60,7 @@ export default function SettingsBlockedUsers() {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <span className="font-semibold">Blocked Users</span>
+        <span className="font-medium">Blocked Users</span>
         <Button variant="outline" onClick={() => setOpen((prev) => !prev)}>
           {open ? "Close" : "See list"}
         </Button>
