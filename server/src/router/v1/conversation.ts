@@ -151,10 +151,12 @@ export default function v1ConversationRouter(
             .code(400)
             .send(JSONResponse("BAD_REQUEST", 'search query key "members" is required'));
 
-        const members_list = members.split(",");
+        const members_list = [...members.split(","), user.id];
 
+        console.log("MEMBERS_LIST:", members_list);
+        console.log("[...MEMBERS_LIST, USER.ID]", [...members_list, user.id]);
         const found_conversations = await Conversation.find({
-          members: { $size: members_list.length, $all: [...members_list, user] },
+          members: { $size: members_list.length, $all: members_list },
         }).select("_id");
 
         return reply.code(200).send(

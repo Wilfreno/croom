@@ -156,6 +156,7 @@ export default function ComposeMessageInput() {
     setUploadingImage(false);
   }
 
+  if (!conversation) return null;
   if (conversation && conversation.status === "BLOCKED") {
     if ((conversation.data as Block).blocker) {
       return (

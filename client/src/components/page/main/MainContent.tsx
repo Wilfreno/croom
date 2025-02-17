@@ -9,7 +9,7 @@ export default function MainContent({
   className?: string;
 }) {
   return (
-    <section className={cn("grow md:rounded-lg bg-background", className)}>
+    <section className={cn("grow md:rounded-lg bg-background border shadow", className)}>
       {children}
     </section>
   );

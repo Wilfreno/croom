@@ -65,7 +65,7 @@ export default function ComposeTo() {
     queryFn: async () => {
       try {
         const { data, message, status } = await GETRequest<Conversation[]>(
-          "/v1/conversation?members=" + selected_users.join(",")
+          "/v1/conversation?members=" + selected_users.map((users) => users[0]).join(",")
         );
 
         if (status !== "OK") throw new Error(message);
@@ -112,10 +112,11 @@ export default function ComposeTo() {
     query_client.setQueryData(["compose", "selected_users"], selected_users);
   }, [selected_users]);
 
+  console.log(found_conversation);
   return (
     <section
       className={cn(
-        "w-full border-b flex items-center p-3 relative gap-4 z-50 bg-background",
+        "w-full border-b flex items-center p-3 relative gap-4 z-50",
         !!selected_users?.length && "shadow-lg"
       )}
     >
