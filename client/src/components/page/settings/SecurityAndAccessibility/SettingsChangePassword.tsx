@@ -39,8 +39,17 @@ export default function SettingsChangePassword() {
     <div>
       <div className="flex items-center justify-between">
         <span className="font-semibold">Password</span>
-        <Button variant="outline" onClick={() => setOpen((prev) => !prev)}>
-          Change
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (open) {
+              setPassword({ new: "", confirm: "" });
+              setSeePassword([false, false]);
+            }
+            setOpen((prev) => !prev);
+          }}
+        >
+          {open ? "Cancel" : "Change"}
         </Button>
       </div>
       <div ref={div_ref} className={cn(open ? "grid gap-2 relative" : "hidden")}>
