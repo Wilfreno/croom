@@ -7,6 +7,7 @@ import Conversation from "../../database/models/Conversation";
 import { ClientSession, startSession } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
+import Block from "../../database/models/Block";
 
 export default function v1UserRouter(
   fastify: FastifyInstance,
@@ -227,6 +228,28 @@ export default function v1UserRouter(
           "OK",
           "request successful",
           found_photos.map((photo) => photo.toJSON())
+        )
+      );
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+  fastify.get("/blocked", { preValidation }, async (request, reply) => {
+    try {
+      const user = request.user as UserSchema & { id: string };
+
+      const found_blocks = await Block.find({ blocker: user.id }).populate({
+        path: "blocked_user",
+        select: "username photo",
+        populate: { path: "photo", select: "url" },
+      });
+
+      return reply.code(200).send(
+        JSONResponse(
+          "OK",
+          "request successful",
+          found_blocks.map((block) => block.toJSON())
         )
       );
     } catch (error) {

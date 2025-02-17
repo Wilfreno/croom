@@ -7,7 +7,6 @@ export type User = {
   status: "OFFLINE" | "ONLINE";
   photo?: Photo;
   conversations: string[];
-  blocked: string[];
   last_online: Date;
   date_created: Date;
   last_updated: Date;

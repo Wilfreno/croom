@@ -3,17 +3,20 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GETRequest } from "@/lib/server/requests";
+import { DELETERequest, GETRequest } from "@/lib/server/requests";
 import { Block } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRound } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export default function SettingsBlockedUsers() {
   const [open, setOpen] = useState(false);
   const { session } = useAuth();
   const div_ref = useRef<HTMLDivElement>(null);
+
+  const query_client = useQueryClient();
 
   const { data: blocked_list } = useQuery({
     enabled: open,
@@ -31,34 +34,68 @@ export default function SettingsBlockedUsers() {
     },
   });
 
+  const unblock = useMutation<void, Error, { id: string; index: number }>({
+    mutationFn: async ({ id }) => {
+      try {
+        const {} = await DELETERequest("/v1/block", { id });
+      } catch (error) {
+        toast.error((error as Error).message);
+        throw error;
+      }
+    },
+    onSuccess: (_, { index }) => {
+      query_client.setQueryData<Block[]>([session.user!.id, "blocked"], (prev) => {
+        if (!prev) return [];
+
+        return prev.toSpliced(index, 1);
+      });
+      toast("user unblocked");
+    },
+  });
+
+  useEffect(() => {
+    if (open) div_ref.current?.scrollIntoView();
+  }, [open]);
+
   return (
-    <div>
+    <div className="grid gap-4">
       <div className="flex items-center justify-between">
         <span className="font-semibold">Blocked Users</span>
         <Button variant="outline" onClick={() => setOpen((prev) => !prev)}>
           {open ? "Close" : "See list"}
         </Button>
       </div>
-      <div ref={div_ref} className={cn(open ? "grid gap-2 relative" : "hidden")}>
-        <ScrollArea className="h-40dvh">
-          {Array.from({ length: 20 }).map(() =>
-            blocked_list?.map(({ blocked_user }) => (
-              <div key={blocked_user.id} className="flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={blocked_user.photo?.url} />
-                  <AvatarFallback>
-                    <UserRound className="h-1/2 w-auto" />
-                  </AvatarFallback>
-                </Avatar>
-                <span>{blocked_user.username}</span>
-                <Button variant="destructive" className="justify-self-end">
-                  Unblock
-                </Button>
-              </div>
-            ))
-          )}
-        </ScrollArea>
-      </div>
+      <ScrollArea
+        ref={div_ref}
+        className={cn(open ? "h-[40dvh] rounded-sm border " : "hidden")}
+      >
+        <div>
+          {blocked_list?.map(({ blocked_user, id }, index) => (
+            <div
+              key={index}
+              className={cn(
+                "flex items-center gap-4 p-2 pr-4",
+                index % 2 === 0 ? "bg-muted/40" : "bg-background"
+              )}
+            >
+              <Avatar>
+                <AvatarImage src={blocked_user.photo?.url} />
+                <AvatarFallback>
+                  <UserRound className="h-1/2 w-auto" />
+                </AvatarFallback>
+              </Avatar>
+              <span>{blocked_user.username}</span>
+              <Button
+                variant="outline"
+                className="ml-auto text-destructive"
+                onClick={() => unblock.mutate({ id, index })}
+              >
+                Unblock
+              </Button>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
