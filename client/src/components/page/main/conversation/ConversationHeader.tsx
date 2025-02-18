@@ -42,7 +42,7 @@ export default function ConversationHeader() {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          className="aspect-square h-fit w-auto p-1"
+          className="aspect-square h-fit w-auto p-1 md:hidden"
           onClick={() => router.push("/")}
         >
           <ArrowLeft className="h-4 w-auto" />
