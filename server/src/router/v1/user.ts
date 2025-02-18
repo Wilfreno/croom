@@ -431,7 +431,7 @@ export default function v1UserRouter(
 
       for (const photo of found_photos) {
         await Photo.deleteOne({ _id: photo._id }, { session });
-        await upload_thing_api.deleteFiles(photo.key);
+        if (photo.key) await upload_thing_api.deleteFiles(photo.key);
       }
 
       await User.deleteOne({ _id: user.id }, { session });

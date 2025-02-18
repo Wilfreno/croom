@@ -181,14 +181,7 @@ export default function v1ConversationRouter(
         const { id } = request.params;
         const user = request.user as UserSchema & { id: string };
 
-        let found_conversation = await Conversation.findOne({ _id: id })
-          .populate({
-            path: "members",
-            select: "email username display_name photo status last_online",
-            populate: { path: "photo", select: "url" },
-          })
-          .populate({ path: "photo", select: "url" });
-
+        let found_conversation = await Conversation.findOne({ _id: id });
         if (!found_conversation)
           return reply
             .code(404)
@@ -205,12 +198,12 @@ export default function v1ConversationRouter(
           const found_block = await Block.findOne({
             $or: [
               {
-                blocked_user: found_conversation.members[0]._id,
-                blocker: found_conversation.members[1]._id,
+                blocked_user: found_conversation.members[0],
+                blocker: found_conversation.members[1],
               },
               {
-                blocked_user: found_conversation.members[1]._id,
-                blocker: found_conversation.members[0]._id,
+                blocked_user: found_conversation.members[1],
+                blocker: found_conversation.members[0],
               },
             ],
           });
@@ -223,6 +216,15 @@ export default function v1ConversationRouter(
               })
             );
         }
+
+        found_conversation = await found_conversation
+          .populate({
+            path: "members",
+            select: "email username display_name photo status last_online",
+            populate: { path: "photo", select: "url" },
+          })
+          .then(async (convo) => await convo.populate({ path: "photo", select: "url" }));
+
         return reply
           .code(200)
           .send(JSONResponse("OK", "request successful", found_conversation!.toJSON()));

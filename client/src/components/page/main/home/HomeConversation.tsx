@@ -34,13 +34,13 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       } else {
         const other_user = convo.members[0];
 
-        photo_url = other_user.photo!.url;
+        photo_url = other_user?.photo!.url;
 
         conversation_name =
-          convo.nicknames.find((nickname) => nickname.user === other_user.id)?.value ||
+          convo.nicknames.find((nickname) => nickname.user === other_user?.id)?.value ||
           "";
 
-        if (!conversation_name) conversation_name = other_user.display_name;
+        if (!conversation_name) conversation_name = other_user?.display_name;
       }
 
       if (session.user?.id === convo.messages[0].sender.id) {

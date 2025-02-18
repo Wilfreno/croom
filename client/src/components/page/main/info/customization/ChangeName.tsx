@@ -26,7 +26,7 @@ export default function ChangeName() {
 
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: conversation } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
   const input_ref = useRef<HTMLInputElement>(null);

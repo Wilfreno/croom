@@ -13,7 +13,7 @@ import InfoMedia from "./InfoMedia";
 import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMemo } from "react";
-import { Block } from "@/lib/types/server-data-types";
+import { Block, Conversation } from "@/lib/types/server-data-types";
 import { Button } from "@/components/ui/button";
 import useUserAgent from "@/components/hooks/useUserAgent";
 
@@ -44,13 +44,15 @@ export default function InfoSidebar() {
   const hide = useMemo(() => {
     if (!query_response || !session.user) return true;
 
-    return (
-      query_response.status === "BLOCKED" &&
-      session.user.id !== (query_response?.data as Block).blocker
+    if (query_response.status === "BLOCKED") {
+      return session.user.id !== (query_response?.data as Block).blocker;
+    }
+
+    return !(query_response?.data as Conversation).members.find(
+      (member) => member.id !== session.user?.id
     );
   }, [query_response, session.user]);
 
-  console.log(is_open);
   return (
     <SidebarContent className={cn(!is_open && "hidden", "relative")}>
       <Button
