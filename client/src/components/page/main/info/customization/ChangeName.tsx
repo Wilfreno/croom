@@ -26,22 +26,24 @@ export default function ChangeName() {
 
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const { data: conversation } = useQuery(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
   const input_ref = useRef<HTMLInputElement>(null);
 
   const is_admin = useMemo(() => {
-    if (!session || !conversation) return false;
+    if (!session || !query_response) return false;
 
-    return conversation.admins.some((user) => user.id === session.user?.id);
-  }, [session, conversation]);
+    return (query_response.data as Conversation).admins.some(
+      (user) => user.id === session.user?.id
+    );
+  }, [session, query_response]);
 
   const change_name = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await PATCHRequest(
-          "/v1/conversation/" + params.id + "/name",
+          "/v1/query_response/" + params.id + "/name",
           {
             name: value,
           }
@@ -54,7 +56,7 @@ export default function ChangeName() {
       }
     },
     onSuccess: async () => {
-      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({
+      query_client.setQueryData<Conversation>(["query_response", params.id], (prev) => ({
         ...prev!,
         name: value,
       }));
@@ -84,7 +86,7 @@ export default function ChangeName() {
   });
 
   return (
-    <Dialog onOpenChange={() => setValue(conversation!.name)}>
+    <Dialog onOpenChange={() => setValue((query_response?.data as Conversation).name)}>
       <DialogTrigger asChild>
         <Button variant="ghost" disabled={!is_admin} className="w-full justify-start">
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary">
@@ -158,11 +160,11 @@ export default function ChangeName() {
               className="w-full justify-between"
               type="button"
               onClick={() => {
-                setValue(conversation!.name);
+                setValue((query_response?.data as Conversation).name);
                 setOpen(true);
               }}
             >
-              <span>{conversation?.name}</span>
+              <span>{(query_response?.data as Conversation).name}</span>
               <span className="aspect-square h-fit w-auto p-2 bg-background shadow-sm border rounded-full text-primary">
                 <Pen className="h-4 w-auto" />
               </span>
