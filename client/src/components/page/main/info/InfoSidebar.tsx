@@ -59,7 +59,10 @@ export default function InfoSidebar() {
         variant="ghost"
         className="md:hidden absolute top-2 left-0"
         onClick={() =>
-          query_client.setQueryData<boolean>(["sidebar", "info", "open"], false)
+          query_client.setQueryData<boolean>(
+            ["sidebar", "info", "open", on_mobile],
+            false
+          )
         }
       >
         <ArrowLeft className="h-6 w-auto" />

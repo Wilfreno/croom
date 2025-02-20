@@ -67,7 +67,10 @@ export default function ConversationHeader() {
       <Button
         className="aspect-square h-fit w-auto rounded-full p-1"
         onClick={() =>
-          query_client.setQueryData<boolean>(["sidebar", "info", "open"], (prev) => !prev)
+          query_client.setQueryData<boolean>(
+            ["sidebar", "info", "open", on_mobile],
+            (prev) => !prev
+          )
         }
       >
         <Ellipsis className={cn("w-auto", info_sidebar_is_open ? "h-2" : "h-4")} />

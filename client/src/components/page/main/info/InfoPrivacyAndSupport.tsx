@@ -157,7 +157,7 @@ export default function InfoPrivacyAndSupport() {
               <span>Report User</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="p-2 w-[24rem]">
+          <DialogContent className="p-2 w-96 md:[30dvh]">
             <DialogHeader>
               <DialogTitle></DialogTitle>
             </DialogHeader>
