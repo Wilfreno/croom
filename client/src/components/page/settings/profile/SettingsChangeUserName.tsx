@@ -18,7 +18,7 @@ export default function SettingsChangeUserName() {
     mutationFn: async () => {
       try {
         const { status, message } = await PATCHRequest("/v1/user/username", {
-          username: "@" + "username",
+          username: "@" + username,
         });
 
         if (status !== "OK") {

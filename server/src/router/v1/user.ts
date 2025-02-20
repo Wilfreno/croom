@@ -280,6 +280,7 @@ export default function v1UserRouter(
       session = await startSession();
       session.startTransaction();
 
+      console.log(request.body.username);
       switch (key) {
         case "username": {
           if (!request.body.username)
