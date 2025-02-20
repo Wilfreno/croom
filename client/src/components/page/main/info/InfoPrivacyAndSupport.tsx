@@ -1,4 +1,5 @@
 import { useAuth } from "@/components/providers/AuthProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -13,12 +14,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { DELETERequest, POSTRequest } from "@/lib/server/requests";
 import { Block, Conversation } from "@/lib/types/server-data-types";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Flag, LogOut, ShieldMinus } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Flag,
+  LogOut,
+  ShieldMinus,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -152,39 +162,88 @@ export default function InfoPrivacyAndSupport() {
               <DialogTitle></DialogTitle>
             </DialogHeader>
             {!!to_report_user ? (
-              <section className="rounded-md p-2 grid gap-4">
-                <div>
-                  <span>Report: </span>
-                  <span className="font-medium">{to_report_user.display_name}</span>
-                </div>
-                <Textarea
-                  className="resize-none min-h-96"
-                  placeholder="Reason"
-                  rows={1}
-                  value={report_reason}
-                  onChange={(e) => setReportSeason(e.currentTarget.value)}
-                />
-                <div className="flex justify-between">
-                  <DialogClose asChild>
-                    <Button variant="secondary" className="place-self-end">
+              <>
+                <DialogHeader>
+                  <DialogTitle></DialogTitle>
+                </DialogHeader>
+                <DialogClose asChild className="absolute top-2 right-2">
+                  <Button variant="ghost" className="aspect-square h-fit w-auto p-2">
+                    <X className="h-4 w-auto" />
+                  </Button>
+                </DialogClose>
+                <section className="rounded-md p-2 grid gap-4">
+                  <div>
+                    <span>Report: </span>
+                    <span className="font-medium">{to_report_user.display_name}</span>
+                  </div>
+                  <Textarea
+                    className="resize-none min-h-96"
+                    placeholder="Reason"
+                    rows={1}
+                    value={report_reason}
+                    onChange={(e) => setReportSeason(e.currentTarget.value)}
+                  />
+                  <div className="flex justify-between">
+                    <Button
+                      variant="secondary"
+                      className="place-self-end"
+                      onClick={() => setToReportUser(undefined)}
+                    >
                       cancel
                     </Button>
-                  </DialogClose>
-                  {(query_response?.data as Conversation).is_group_chat ? (
-                    <Button className="place-self-end">send</Button>
-                  ) : (
-                    <DialogClose
-                      asChild
-                      disabled={!report_reason}
-                      onClick={() => report.mutate()}
-                    >
+                    {(query_response?.data as Conversation).is_group_chat ? (
                       <Button className="place-self-end">send</Button>
-                    </DialogClose>
-                  )}
-                </div>
-              </section>
+                    ) : (
+                      <DialogClose
+                        asChild
+                        disabled={!report_reason}
+                        onClick={() => report.mutate()}
+                      >
+                        <Button className="place-self-end">send</Button>
+                      </DialogClose>
+                    )}
+                  </div>
+                </section>
+              </>
             ) : (
-              <section></section>
+              <>
+                <DialogHeader>
+                  <DialogTitle>Report user</DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="h-[40dvh] grid gap-2 mt-4">
+                  <section>
+                    {(query_response?.data as Conversation).members
+                      .filter((member) => member.id !== session.user?.id)
+                      .map((member) => (
+                        <div key={member.id} className="flex items-center gap-2">
+                          <Avatar>
+                            <AvatarImage src={member.photo?.url} />
+                            <AvatarFallback>
+                              <UserRound className="h-1/2 w-auto" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.display_name}</span>
+                          <Button
+                            variant="destructive"
+                            className="ml-auto"
+                            onClick={() =>
+                              setToReportUser({
+                                id: member.id,
+                                display_name: member.display_name,
+                              })
+                            }
+                          >
+                            report
+                          </Button>
+                        </div>
+                      ))}
+                  </section>
+                </ScrollArea>
+
+                <DialogClose asChild className="justify-self-end">
+                  <Button variant="outline">close</Button>
+                </DialogClose>
+              </>
             )}
           </DialogContent>
         </Dialog>
