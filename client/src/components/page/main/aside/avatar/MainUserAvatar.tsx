@@ -11,10 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DELETERequest } from "@/lib/server/requests";
 import { LogOut, Settings, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 export default function MainUserAvatar() {
   const { session, logout } = useAuth();
@@ -61,16 +59,7 @@ export default function MainUserAvatar() {
             <Button
               variant="ghost"
               className="w-full justify-start cursor-pointer"
-              onClick={async () => {
-                try {
-                  const { status, message } = await DELETERequest("/v1/user/session");
-
-                  if (status !== "OK") throw new Error(message);
-                  await logout();
-                } catch (error) {
-                  toast.error((error as Error).message);
-                }
-              }}
+              onClick={async () => await logout()}
             >
               <LogOut className="h-4 w-auto" />
               <span>Logout</span>
