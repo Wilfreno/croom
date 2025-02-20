@@ -14,12 +14,12 @@ export default function LoginContent() {
   if (from) search_params += "?from=" + from;
 
   return (
-    <section className="w-[30vw] grid gap-8">
-      <span className="grid gap-4">
+    <section className="grow grid grid-rows-[1fr_auto] pb-10 md:gap-8 ">
+      <span className="flex flex-col justify-center gap-4 p-4">
         <LoginForm />
         <LoginWGoogle />
       </span>
-      <span>
+      <span className="justify-self-center">
         Don&apos;t have an account?
         <Link href={"/sign-up" + search_params} className="text-primary" prefetch>
           <Button variant="link">Sign Up</Button>

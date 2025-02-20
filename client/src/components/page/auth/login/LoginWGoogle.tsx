@@ -13,7 +13,7 @@ export default function LoginWGoogle() {
       onClick={async () => {
         await login("GOOGLE");
       }}
-      className="gap-4"
+      className="gap-4 w-full"
     >
       <span>Continue with Google</span>
       <GoogleSvg className="h-6 w-auto" />
