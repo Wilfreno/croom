@@ -63,7 +63,7 @@ export default function SignUpForm() {
 
   return (
     <section className="grid gap-4">
-      <form className="grid gap-10" autoComplete="off">
+      <form className="grid gap-8" autoComplete="off">
         <section className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -110,7 +110,6 @@ export default function SignUpForm() {
                 onFocus={() => setDisplayNameFocused(true)}
                 onBlur={() => !form.display_name && setDisplayNameFocused(false)}
               />
-              <AtSign className="h-4 w-auto absolute left-3 top-1/2 -translate-y-1/2" />
               {display_name_focused && (
                 <p className="text-xs text-primary">This is how others see you</p>
               )}
@@ -119,29 +118,31 @@ export default function SignUpForm() {
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
             <div className="grid gap-1">
-              <div className="relative">
-                <Input
-                  type={see_password[0] ? "text" : "password"}
-                  id="password"
-                  placeholder="Password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, password: e.target.value }))
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-full w-auto p-2  absolute right-2 top-1/2 -translate-y-1/2"
-                  onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
-                >
-                  {see_password[0] ? (
-                    <Eye className="h-full w-auto" />
-                  ) : (
-                    <EyeOff className="h-full w-auto" />
-                  )}
-                </Button>
+              <div>
+                <div className="relative">
+                  <Input
+                    type={see_password[0] ? "text" : "password"}
+                    id="password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, password: e.target.value }))
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-full w-auto p-2  absolute right-2 top-1/2 -translate-y-1/2"
+                    onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
+                  >
+                    {see_password[0] ? (
+                      <Eye className="h-full w-auto" />
+                    ) : (
+                      <EyeOff className="h-full w-auto" />
+                    )}
+                  </Button>
+                </div>
                 {form.password && form.password.length < 8 && (
                   <p className="text-xs text-muted-foreground text-red-500">
                     Password must be at least 8 characters long
@@ -232,7 +233,7 @@ export default function SignUpForm() {
               </p>
             </DialogContent>
           ) : (
-            <DialogContent className="w-[32rem]">
+            <DialogContent className="w-dvw md:w-[32rem]">
               <DialogHeader>
                 <DialogTitle></DialogTitle>
               </DialogHeader>
@@ -263,27 +264,27 @@ export default function SignUpForm() {
                 <InputOTPGroup className="w-full flex justify-between space-x-5">
                   <InputOTPSlot
                     index={0}
-                    className="aspect-square w-11 h-auto text-base border rounded first:rounded-l"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l"
                   />
                   <InputOTPSlot
                     index={1}
-                    className="aspect-square w-11 h-auto text-base border rounded"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded"
                   />
                   <InputOTPSlot
                     index={2}
-                    className="aspect-square w-11 h-auto text-base border rounded"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded"
                   />
                   <InputOTPSlot
                     index={3}
-                    className="aspect-square w-11 h-auto text-base border rounded"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded"
                   />
                   <InputOTPSlot
                     index={4}
-                    className="aspect-square w-11 h-auto text-base border rounded"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded"
                   />
                   <InputOTPSlot
                     index={5}
-                    className="aspect-square w-11 h-auto text-base border rounded last:rounded-r"
+                    className="aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r"
                   />
                 </InputOTPGroup>
               </InputOTP>
@@ -319,7 +320,7 @@ export default function SignUpForm() {
           )}
         </Dialog>
       </form>
-      <span>
+      <span className="justify-self-center">
         Already have an account?
         <Link href={"/login" + search_params}>
           <Button variant="link" className="text-primary">
