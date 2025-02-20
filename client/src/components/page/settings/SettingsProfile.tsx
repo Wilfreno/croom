@@ -7,10 +7,10 @@ export default function SettingsProfile() {
   return (
     <section className="grid gap-4">
       <span className="text-xl font-semibold">Profile</span>
-      <div className="grid gap-8">
+      <div className="grid gap-4 md:gap-8">
+        <SettingsChangePhoto />
         <SettingsChangeDisplayname />
         <SettingsChangeUserName />
-        <SettingsChangePhoto />
       </div>
     </section>
   );

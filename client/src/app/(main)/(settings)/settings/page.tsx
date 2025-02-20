@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function page() {
   return (
-    <main className="pl-16 p-2">
-      <Card>
+    <main className="md:pl-16 md:p-2">
+      <Card className=" rounded-none md:rounded-md">
         <CardHeader>
           <CardTitle className="text-3xl">Settings</CardTitle>
         </CardHeader>

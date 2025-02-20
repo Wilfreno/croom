@@ -114,7 +114,7 @@ export default function SettingsChangePhoto() {
   }
 
   return (
-    <div>
+    <div className="grid gap-4">
       <div className="font-semibold w-full flex items-start justify-between pr-2">
         <span>Profile photo </span>
         <UploadthingButton
@@ -138,7 +138,7 @@ export default function SettingsChangePhoto() {
           onUploadBegin={() => setUploading(true)}
         />
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center justify-center md:justify-start">
         <Avatar
           className={cn(
             "aspect-square h-36 w-auto shadow-md border",
@@ -150,7 +150,7 @@ export default function SettingsChangePhoto() {
             <UserRound className="h-1/2 w-auto" />
           </AvatarFallback>
         </Avatar>
-        <div className="grid gap-2 p-2 pl-10">
+        <div className="hidden md:grid gap-2 p-2 pl-10 ">
           <div className="flex items-center gap-2">
             <p className="text-sm font-semibold self-start">Recent photos</p>
             <TooltipProvider>
