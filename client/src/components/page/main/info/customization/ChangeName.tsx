@@ -1,6 +1,14 @@
 "use client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { PATCHRequest } from "@/lib/server/requests";
@@ -8,7 +16,6 @@ import { Conversation } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pen, PenLine, X } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,24 +25,29 @@ export default function ChangeName() {
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: session } = useSession();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { session } = useAuth();
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
   const input_ref = useRef<HTMLInputElement>(null);
 
   const is_admin = useMemo(() => {
-    if (!session || !conversation) return false;
+    if (!session || !query_response) return false;
 
-    return conversation.admins.some((user) => user.id === session.user.id);
-  }, [session, conversation]);
+    return (query_response.data as Conversation).admins.some(
+      (user) => user.id === session.user?.id
+    );
+  }, [session, query_response]);
 
   const change_name = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/conversation/" + params.id + "/name", {
-          name: value,
-        });
+        const { status, message } = await PATCHRequest(
+          "/v1/query_response/" + params.id + "/name",
+          {
+            name: value,
+          }
+        );
 
         if (status !== "OK") throw new Error(message);
       } catch (error) {
@@ -44,14 +56,37 @@ export default function ChangeName() {
       }
     },
     onSuccess: async () => {
-      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => ({ ...prev!, name: value }));
+      query_client.setQueryData<Conversation>(["query_response", params.id], (prev) => ({
+        ...prev!,
+        name: value,
+      }));
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "conversations"],
+        (prev) => {
+          if (!prev) return [];
+
+          return prev.map((convo) =>
+            convo.id === params.id ? { ...convo, name: value } : convo
+          );
+        }
+      );
+
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "active", "conversations"],
+        (prev) => {
+          if (!prev) return [];
+          return prev.map((convo) =>
+            convo.id === params.id ? { ...convo, name: value } : convo
+          );
+        }
+      );
       setOpen(false);
       toast.success("name changed");
     },
   });
 
   return (
-    <Dialog onOpenChange={() => setValue(conversation!.name)}>
+    <Dialog onOpenChange={() => setValue((query_response?.data as Conversation).name)}>
       <DialogTrigger asChild>
         <Button variant="ghost" disabled={!is_admin} className="w-full justify-start">
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary">
@@ -60,10 +95,15 @@ export default function ChangeName() {
           <span>Change chat name</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[35dvw]">
         <DialogHeader>
           <DialogTitle>Change name</DialogTitle>
         </DialogHeader>
+        <DialogClose asChild className="absolute top-2 right-2">
+          <Button variant="ghost" className="aspect-auto h-fit w-auto p-2 rounded-full">
+            <X className="h-4 w-auto" />
+          </Button>
+        </DialogClose>
         <form
           className="flex gap-2 items-center p-2"
           onSubmit={(e) => {
@@ -120,11 +160,11 @@ export default function ChangeName() {
               className="w-full justify-between"
               type="button"
               onClick={() => {
-                setValue(conversation!.name);
+                setValue((query_response?.data as Conversation).name);
                 setOpen(true);
               }}
             >
-              <span>{conversation?.name}</span>
+              <span>{(query_response?.data as Conversation).name}</span>
               <span className="aspect-square h-fit w-auto p-2 bg-background shadow-sm border rounded-full text-primary">
                 <Pen className="h-4 w-auto" />
               </span>

@@ -5,8 +5,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { POSTRequest, ServerResponse } from "@/lib/server/requests";
 import { Message } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
-import { InfiniteData, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from "lucide-react";
+import {
+  InfiniteData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  Image as ImageIcon,
+  ImagePlus,
+  SendHorizontal,
+  Smile,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 import NextImage from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,23 +26,32 @@ import { useParams } from "next/navigation";
 import { ClientUploadedFileData } from "uploadthing/types";
 import { UploadthingButton } from "@/components/page/UploadthingButton";
 import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 
 export default function ConversationMessageInput() {
   const [text_input, setTextInput] = useState("");
-  const [photo_input, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
+  const [photo_input, setPhotoInput] = useState<
+    { key: string; url: string; width: number; height: number }[]
+  >([]);
   const [uploading_image, setUploadingImage] = useState(false);
 
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const params = useParams<{ id: string }>();
   const query_client = useQueryClient();
 
-  const send_message = useMutation({
-    mutationFn: async () => {
+  const { data: conversation } = useQuery(getConvoOptions(params.id));
+
+  const send_message = useMutation<Message, Error, string>({
+    mutationFn: async (text) => {
       try {
         const { data, status, message } = await POSTRequest<Message>("/v1/message", {
           conversation: params.id,
-          text: text_input,
+          text: text ? text : text_input,
           photos: photo_input,
         });
 
@@ -63,9 +84,10 @@ export default function ConversationMessageInput() {
           })),
         };
       });
-      setTextInput("");
       setUploadingImage(false);
       setPhotoInput([]);
+      setTextInput("");
+      textarea_ref.current!.style.height = "auto";
     },
   });
 
@@ -105,7 +127,10 @@ export default function ConversationMessageInput() {
           new_image.onerror = (err) => reject(err);
           new_image.src = res.url;
         });
-        setPhotoInput((prev) => [...prev, { key: res.key, url: res.url, width: image.width, height: image.height }]);
+        setPhotoInput((prev) => [
+          ...prev,
+          { key: res.key, url: res.url, width: image.width, height: image.height },
+        ]);
       } catch (error) {
         toast.error((error as Error).message);
         return;
@@ -114,8 +139,14 @@ export default function ConversationMessageInput() {
     setUploadingImage(false);
   }
 
+  if (conversation && conversation.status === "BLOCKED")
+    return (
+      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
+        <span>You are unable to reply on this conversation</span>
+      </div>
+    );
   return (
-    <div className="flex items-end p-2 bg-transparent">
+    <div className="h-full flex items-end p-2 bg-transparent">
       <UploadthingButton
         endpoint="multiple_image"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
@@ -139,13 +170,13 @@ export default function ConversationMessageInput() {
       >
         <div className="w-full">
           {uploading_image || !!photo_input.length ? (
-            <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
+            <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
               <UploadthingButton
                 endpoint="multiple_image"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
                   button() {
-                    return <ImagePlus className="h-6 w-auto text-accent" />;
+                    return <ImagePlus className="h-4 md:h-6 w-auto text-accent" />;
                   },
                 }}
                 onClientUploadComplete={onClientUploadComplete}
@@ -164,14 +195,14 @@ export default function ConversationMessageInput() {
                       alt="image"
                       width={500}
                       height={500}
-                      className="aspect-square h-24 w-auto rounded-sm object-cover"
+                      className="aspect-square h-14 md:h-24 w-auto rounded-sm object-cover"
                       priority
                     />
                     <Button
                       className="aspect-square h-fit w-auto rounded-full absolute -top-2 -right-2 p-1"
                       onClick={() => delete_photo.mutate({ key, index })}
                     >
-                      <X className="h-4 w-auto" />
+                      <X className="h-3 md:h-4 w-auto" />
                     </Button>
                   </span>
                 ))}
@@ -224,16 +255,26 @@ export default function ConversationMessageInput() {
         {!!text_input || !!photo_input.length ? (
           <Button
             variant="ghost"
-            disabled={(!text_input && !photo_input.length) || send_message.isPending}
+            disabled={
+              (!text_input && !photo_input.length) ||
+              send_message.isPending ||
+              uploading_image
+            }
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={() => send_message.mutate()}
+            onClick={() => send_message.mutate("")}
           >
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>
         ) : (
-          <Button variant="ghost" className="aspect-square h-fit w-auto rounded-full p-2 self-center">
-            <ThumbsUp className="h-4 w-auto text-primary" />
+          <Button
+            variant="ghost"
+            className="aspect-square h-fit w-auto rounded-full p-2"
+            onClick={() => {
+              send_message.mutate("👍");
+            }}
+          >
+            <ThumbsUp className="h-5 w-auto text-primary" />
           </Button>
         )}
       </form>

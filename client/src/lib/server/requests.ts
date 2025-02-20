@@ -8,14 +8,16 @@ export type ServerResponse<T = null> = {
     | "FORBIDDEN"
     | "BAD_REQUEST"
     | "CREATED"
-    | "OUT_OF_BOUND";
+    | "OUT_OF_BOUND"
+    | "BLOCKED";
 
   message: string;
   data: T;
 };
 
 const server_url = process.env.NEXT_PUBLIC_SERVER!;
-if (!server_url) throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
+if (!server_url)
+  throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
 function pathChecker(path: string) {
   if (!path.startsWith("/")) throw new Error("path must start with /");
 }
@@ -39,7 +41,10 @@ async function responseJSON<T>(response: Response) {
  * @example
  *  const {status , message, data} = await POSTRequest("/v1/user", { id: 123 })
  */
-export async function POSTRequest<R>(path: string, body?: object): Promise<ServerResponse<R>> {
+export async function POSTRequest<R>(
+  path: string,
+  body?: object
+): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
@@ -71,7 +76,10 @@ export async function POSTRequest<R>(path: string, body?: object): Promise<Serve
  *
  *  const {status , message, data} = await http_request.GET("/v1/user", { id: 123 }) // the path will become /v1/user?id=123
  */
-export async function GETRequest<R>(path: string, query_params?: Record<string, string>): Promise<ServerResponse<R>> {
+export async function GETRequest<R>(
+  path: string,
+  query_params?: Record<string, string>
+): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
     let request = path;
@@ -79,6 +87,9 @@ export async function GETRequest<R>(path: string, query_params?: Record<string, 
 
     const response = await fetch(server_url + request, {
       method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
       credentials: "include",
     });
 
@@ -96,7 +107,10 @@ export async function GETRequest<R>(path: string, query_params?: Record<string, 
  * @example
  *  const {status , message, data} = await POSTRequest("/v1/user", { id: 123 })
  */
-export async function PATCHRequest<R>(path: string, body?: object): Promise<ServerResponse<R>> {
+export async function PATCHRequest<R>(
+  path: string,
+  body?: object
+): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 
@@ -127,7 +141,10 @@ export async function PATCHRequest<R>(path: string, body?: object): Promise<Serv
  *
  *  const {status , message, data} = await DELETERequest("/v1/user", { id: 123 })
  */
-export async function DELETERequest<R>(path: string, body?: object): Promise<ServerResponse<R>> {
+export async function DELETERequest<R>(
+  path: string,
+  body?: object
+): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
 

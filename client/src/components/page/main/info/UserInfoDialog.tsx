@@ -1,59 +1,84 @@
 "use client";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { User } from "@/lib/types/server-data-types";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Conversation, User } from "@/lib/types/server-data-types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AtSign, Mail, Send, UserRound, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { GETRequest } from "@/lib/server/requests";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { GETRequest } from "@/lib/server/requests";
+import { useAuth } from "@/components/providers/AuthProvider";
 
-export default function UserInfoDialog({ children, username }: { children: React.ReactNode; username: string }) {
-  const [enabled, setEnabled] = useState(false);
-
+export default function UserInfoDialog({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: User;
+}) {
   const query_client = useQueryClient();
   const router = useRouter();
+  const { session } = useAuth();
+
+  async function startConversation() {
+    try {
+      const { data } = await GETRequest<Conversation[]>(
+        "/v1/conversation?members=" + session.user?.id + "," + user.id
+      );
+
+      if (!!data.length) {
+        router.push("/conversation/" + data[0].id);
+      } else {
+        query_client.setQueryData<string[][]>(
+          ["compose", "selected_users"],
+          [[user_info!.id, user_info!.display_name]]
+        );
+        router.push("/compose");
+      }
+    } catch {
+      toast.error("Oops! something went wrong");
+    }
+  }
 
   const { data: user_info } = useQuery<User>({
-    enabled,
-    queryKey: ["user", username],
-    queryFn: async () => {
-      try {
-        const { data, status, message } = await GETRequest<User>("/v1/user/" + username);
-
-        if (status !== "OK") throw new Error(message);
-        return data;
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
+    queryKey: ["user", user.id],
+    queryFn: () => user,
   });
 
   const last_online = useMemo(() => {
     if (!user_info || user_info.status === "ONLINE") return "";
     const last_online = new Date(user_info.last_online);
     const now = new Date();
-    const relative_date_in_seconds = Math.floor((now.getTime() - last_online.getTime()) / 1000);
+    const relative_date_in_seconds = Math.floor(
+      (now.getTime() - last_online.getTime()) / 1000
+    );
 
     const day = 60 * 60 * 24;
     const hour = 60 * 60;
     const minute = 60;
 
-    if (relative_date_in_seconds > day) return Math.floor(relative_date_in_seconds / day) + "day(s)";
-    if (relative_date_in_seconds > hour) return Math.floor(relative_date_in_seconds / hour) + "hour(s)";
-    if (relative_date_in_seconds > minute) return Math.floor(relative_date_in_seconds / minute) + "minute(s)";
-    return relative_date_in_seconds + "seconds(s)";
+    if (relative_date_in_seconds > day)
+      return Math.floor(relative_date_in_seconds / day) + " day(s)";
+    if (relative_date_in_seconds > hour)
+      return Math.floor(relative_date_in_seconds / hour) + " hour(s)";
+    if (relative_date_in_seconds > minute)
+      return Math.floor(relative_date_in_seconds / minute) + " minute(s)";
+    return relative_date_in_seconds + " seconds(s)";
   }, [user_info]);
 
   return (
     <Dialog>
-      <DialogTrigger asChild onClick={() => setEnabled(true)}>
-        {children}
-      </DialogTrigger>
-      <DialogContent>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="w-[30rem]">
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
@@ -91,14 +116,9 @@ export default function UserInfoDialog({ children, username }: { children: React
             </div>
 
             <Button
+              variant="outline"
               className="justify-start w-fit"
-              onClick={() => {
-                query_client.setQueryData<string[][]>(
-                  ["compose", "selected_users"],
-                  [[user_info!.id, user_info!.display_name]]
-                );
-                router.push("/compose");
-              }}
+              onClick={startConversation}
             >
               <Send className="h-4 w-auto" />
               <span>Message</span>

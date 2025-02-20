@@ -1,8 +1,15 @@
 "use client";
 import { UploadthingButton } from "@/components/page/UploadthingButton";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { PATCHRequest, ServerResponse } from "@/lib/server/requests";
 import { Conversation } from "@/lib/types/server-data-types";
@@ -19,6 +26,7 @@ export default function ChangePhoto() {
   const [new_photo, setNewPhoto] = useState<{ key: string; url: string }>();
   const [uploading_image, setUploadingImage] = useState(false);
 
+  const { session } = useAuth();
   const params = useParams<{ id: string }>();
   const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
   const query_client = useQueryClient();
@@ -51,9 +59,12 @@ export default function ChangePhoto() {
   const set_new_photo = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest("/v1/conversation/" + params.id + "/photo", {
-          photo: { url: new_photo?.url },
-        });
+        const { status, message } = await PATCHRequest(
+          "/v1/conversation/" + params.id + "/photo",
+          {
+            photo: { url: new_photo?.url },
+          }
+        );
 
         if (status !== "OK") throw new Error(message);
       } catch (error) {
@@ -66,6 +77,29 @@ export default function ChangePhoto() {
 
         return { ...prev, photo: { ...prev.photo, url: new_photo!.url } };
       });
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "conversations"],
+        (prev) => {
+          if (!prev) return [];
+
+          return prev.map((convo) =>
+            convo.id === params.id
+              ? { ...convo, photo: { ...convo.photo, url: new_photo!.url } }
+              : convo
+          );
+        }
+      );
+      query_client.setQueryData<Conversation[]>(
+        [session.user?.id, "active", "conversations"],
+        (prev) => {
+          if (!prev) return [];
+          return prev.map((convo) =>
+            convo.id === params.id
+              ? { ...convo, photo: { ...convo.photo, url: new_photo!.url } }
+              : convo
+          );
+        }
+      );
       setNewPhoto(undefined);
       setOpen(false);
     },
@@ -93,26 +127,35 @@ export default function ChangePhoto() {
   return (
     <Dialog open={open}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start" onClick={() => setOpen((prev) => !prev)}>
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => setOpen((prev) => !prev)}
+        >
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary text-primary">
             <ImageIcon className="h-4 w-auto" />
           </span>
           <span>Change photo</span>
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[30dvw]">
         <DialogHeader className="text-center">
           <DialogTitle>Change Photo</DialogTitle>
         </DialogHeader>
         <section className="grid justify-center my-10 gap-4">
-          <Avatar className={cn("aspect-square h-auto w-48", uploading_image && "animate-pulse")}>
+          <Avatar
+            className={cn(
+              "aspect-square h-auto w-48",
+              uploading_image && "animate-pulse"
+            )}
+          >
             <AvatarImage src={new_photo ? new_photo.url : conversation?.photo?.url} />
             <AvatarFallback>
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
           <UploadthingButton
-            disabled={uploading_image}
+            disabled={uploading_image || !session}
             endpoint="single_image"
             className="ut-button:h-fit ut-button:w-auto ut-button:p-2  ut-button:text-primary  ut-button:font-medium  ut-button:bg-background ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
             content={{

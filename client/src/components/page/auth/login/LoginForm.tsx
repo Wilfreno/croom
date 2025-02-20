@@ -1,12 +1,10 @@
 "use client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtSign, Eye, EyeOff } from "lucide-react";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 
 export default function LoginForm() {
   const [credentials, setCredentials] = useState({
@@ -15,8 +13,8 @@ export default function LoginForm() {
   });
   const [loading, setLoading] = useState(false);
   const [view_password, setViewPassword] = useState(false);
-  const from = useSearchParams().get("from");
-  const router = useRouter();
+
+  const { login } = useAuth();
 
   return (
     <form
@@ -24,14 +22,11 @@ export default function LoginForm() {
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
-        const sign_in = await signIn("credentials", {
-          username: "@" + credentials.username,
+
+        await login("LOCAL", {
+          username: credentials.username,
           password: credentials.password,
         });
-
-        if (sign_in?.error) toast(sign_in.error);
-
-        router.push(from ? from : "/");
         setLoading(false);
       }}
     >
@@ -42,7 +37,9 @@ export default function LoginForm() {
           className="pl-10"
           placeholder="Username"
           value={credentials.username}
-          onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
+          onChange={(e) =>
+            setCredentials((prev) => ({ ...prev, username: e.target.value }))
+          }
         />
       </div>
       <div className=" grid gap-2">
@@ -66,7 +63,11 @@ export default function LoginForm() {
             onClick={() => setViewPassword((prev) => !prev)}
             type="button"
           >
-            {view_password ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
+            {view_password ? (
+              <Eye className="h-full w-full" />
+            ) : (
+              <EyeOff className="h-full w-full" />
+            )}
           </Button>
         </div>
 

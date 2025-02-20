@@ -6,7 +6,7 @@ export type User = {
   email: string;
   status: "OFFLINE" | "ONLINE";
   photo?: Photo;
-  chat_rooms: ChatRoom[];
+  conversations: string[];
   last_online: Date;
   date_created: Date;
   last_updated: Date;
@@ -16,6 +16,7 @@ export type Photo = {
   id: string;
   owner: User;
   type: "PROFILE" | "CHAT_ROOM" | "MESSAGE";
+  key: string;
   url: string;
   width: number;
   height: number;
@@ -25,7 +26,6 @@ export type Photo = {
 export type Conversation = {
   id: string;
   name: string;
-  is_private: boolean;
   is_group_chat: boolean;
   admins: User[];
   members: User[];
@@ -36,6 +36,7 @@ export type Conversation = {
   date_created: Date;
   last_updated: Date;
 };
+
 export type Message = {
   id: string;
   conversation: Conversation;
@@ -46,4 +47,12 @@ export type Message = {
   seen_by: User[];
   date_created: Date;
   last_updated: Date;
+};
+
+export type Block = {
+  id: string;
+  blocked_user: User;
+  blocker: string;
+  conversation: Conversation;
+  date_created: Date;
 };

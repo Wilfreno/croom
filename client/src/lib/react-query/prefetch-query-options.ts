@@ -1,20 +1,21 @@
 import { FetchQueryOptions } from "@tanstack/react-query";
-import { GETRequest } from "../server/requests";
-import { Conversation } from "../types/server-data-types";
+import { GETRequest, ServerResponse } from "../server/requests";
+import { Block, Conversation } from "../types/server-data-types";
 
-export function getConvoOptions(id: string): FetchQueryOptions<Conversation> {
+export function getConvoOptions(
+  id: string
+): FetchQueryOptions<ServerResponse<Conversation | Block>> {
   return {
     queryKey: ["conversation", id],
     queryFn: async () => {
       try {
-        const { data, message, status } = await GETRequest<Conversation>("/v1/conversation/" + id);
+        const response = await GETRequest<Conversation>("/v1/conversation/" + id);
 
-        if (status !== "OK") throw new Error(message);
-
-        return data;
+        return response;
       } catch (error) {
         throw error;
       }
     },
+    retry: false,
   };
 }

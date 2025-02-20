@@ -1,46 +1,76 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SidebarContent from "../SidebarContent";
 import { cn } from "@/lib/utils";
-import { Conversation } from "@/lib/types/server-data-types";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
 import { useParams } from "next/navigation";
 import InfoCustomization from "./InfoCustomization";
-import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserRound } from "lucide-react";
+import { ArrowLeft, UserRound } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import dynamic from "next/dynamic";
+import InfoMedia from "./InfoMedia";
+import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useMemo } from "react";
+import { Block, Conversation } from "@/lib/types/server-data-types";
+import { Button } from "@/components/ui/button";
+import useUserAgent from "@/components/hooks/useUserAgent";
 
-const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), { ssr: false });
+const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), {
+  ssr: false,
+});
 
 export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
-  const { data: session } = useSession();
-  const { data: is_open } = useQuery({ queryKey: ["sidebar", "info", "open"], placeholderData: true });
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { session } = useAuth();
+  const query_client = useQueryClient();
+  const { on_mobile } = useUserAgent();
 
-  const { data: conversation_info } = useQuery<
-    | {
-        photo_url: string;
-        conversation_name: string;
-        status: "OFFLINE" | "ONLINE" | null;
-        last_online: string;
-      }
-    | undefined
-  >({
-    enabled: !!session?.user.id && !!conversation,
-    queryKey: ["conversation", "info", conversation],
-    placeholderData: { photo_url: undefined!, conversation_name: "", status: null, last_online: "" },
+  const { data: is_open } = useQuery({
+    queryKey: ["sidebar", "info", "open", on_mobile],
   });
-  const { photo_url, conversation_name, status, last_online } = conversation_info!;
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
+
+  const { data: conversation_info } = useQuery<{
+    photo_url: string;
+    conversation_name: string;
+    status: "OFFLINE" | "ONLINE" | null;
+    last_online: string;
+  }>({
+    queryKey: ["conversation", "info", query_response],
+  });
+
+  const hide = useMemo(() => {
+    if (!query_response || !session.user) return true;
+
+    if (query_response.status === "BLOCKED") {
+      return session.user.id !== (query_response?.data as Block).blocker;
+    }
+
+    return !(query_response?.data as Conversation).members.find(
+      (member) => member.id !== session.user?.id
+    );
+  }, [query_response, session.user]);
 
   return (
-    <SidebarContent className={cn("", !is_open && "")}>
+    <SidebarContent className={cn(!is_open && "hidden", "relative")}>
+      <Button
+        variant="ghost"
+        className="md:hidden absolute top-2 left-0"
+        onClick={() =>
+          query_client.setQueryData<boolean>(
+            ["sidebar", "info", "open", on_mobile],
+            false
+          )
+        }
+      >
+        <ArrowLeft className="h-6 w-auto" />
+      </Button>
       <div className="flex flex-col items-center gap-4 my-10">
         <span className="relative">
           <Avatar className="aspect-square h-28 w-auto">
-            <AvatarImage src={photo_url} />
+            <AvatarImage src={conversation_info?.photo_url} />
             <AvatarFallback>
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
@@ -50,16 +80,26 @@ export default function InfoSidebar() {
           )}
         </span>
         <div className="text-center">
-          <p className="font-medium text-lg truncate max-w-72">{conversation_name}</p>
-          {!!last_online && <p className="text-xs font-medium text-muted-foreground">Online {last_online}</p>}
+          <p className="font-medium text-lg truncate max-w-72">
+            {conversation_info?.conversation_name}
+          </p>
+          {!!conversation_info?.last_online && (
+            <p className="text-xs font-medium text-muted-foreground">
+              Online {conversation_info?.last_online}
+            </p>
+          )}
         </div>
       </div>
-      <ScrollArea className="h-[60dvh]">
-        <div className="grid gap-4">
-          <InfoCustomization />
-          <InfoAdminsAndMembers />
-        </div>
-      </ScrollArea>
+      {!hide && (
+        <ScrollArea className="h-[60dvh]">
+          <div className="grid gap-2">
+            <InfoCustomization />
+            <InfoAdminsAndMembers />
+            <InfoMedia />
+            <InfoPrivacyAndSupport />
+          </div>
+        </ScrollArea>
+      )}
     </SidebarContent>
   );
 }

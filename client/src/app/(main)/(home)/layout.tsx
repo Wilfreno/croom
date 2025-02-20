@@ -3,7 +3,7 @@ import React from "react";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="w-full h-dvh max-h-dvh flex gap-4 p-4 bg-secondary">
+    <section className="w-full h-dvh flex md:gap-2 md:p-2 md:pl-16">
       <HomeSideBar />
       {children}
     </section>
