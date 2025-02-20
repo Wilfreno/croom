@@ -260,7 +260,7 @@ export default function ConversationMessage({
 
   useEffect(() => {
     if (!is_last_message) return;
-    div_ref.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    div_ref.current?.scrollIntoView({ behavior: "instant", block: "nearest" });
     seen.mutate();
   }, [is_last_message]);
 
