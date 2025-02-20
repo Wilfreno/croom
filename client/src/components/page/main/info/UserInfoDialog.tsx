@@ -67,12 +67,12 @@ export default function UserInfoDialog({
     const minute = 60;
 
     if (relative_date_in_seconds > day)
-      return Math.floor(relative_date_in_seconds / day) + "day(s)";
+      return Math.floor(relative_date_in_seconds / day) + " day(s)";
     if (relative_date_in_seconds > hour)
-      return Math.floor(relative_date_in_seconds / hour) + "hour(s)";
+      return Math.floor(relative_date_in_seconds / hour) + " hour(s)";
     if (relative_date_in_seconds > minute)
-      return Math.floor(relative_date_in_seconds / minute) + "minute(s)";
-    return relative_date_in_seconds + "seconds(s)";
+      return Math.floor(relative_date_in_seconds / minute) + " minute(s)";
+    return relative_date_in_seconds + " seconds(s)";
   }, [user_info]);
 
   return (

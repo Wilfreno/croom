@@ -33,7 +33,7 @@ export default function ManageMember() {
   const div_ref = useRef<HTMLDivElement>(null);
 
   const query_client = useQueryClient();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
 
   const { data: result } = useQuery({
     queryKey: ["search", "user", debounced_value],
@@ -107,10 +107,13 @@ export default function ManageMember() {
   });
 
   const is_admin = useMemo(() => {
-    if (!session || !conversation) return false;
+    if (!session || !query_response?.data) return false;
 
-    return conversation.admins.some((user) => user.id === session.user?.id);
-  }, [session, conversation]);
+    return (query_response?.data as Conversation).admins.some(
+      (user) => user.id === session.user?.id
+    );
+  }, [session, query_response]);
+
   useEffect(() => {
     function handleCLick(event: MouseEvent) {
       if (div_ref.current && !div_ref.current.contains(event.target as Node)) {
@@ -188,7 +191,9 @@ export default function ManageMember() {
                             </p>
                           </div>
                         </div>
-                        {conversation?.members.some((member) => member.id === user.id) ? (
+                        {(query_response?.data as Conversation).members.some(
+                          (member) => member.id === user.id
+                        ) ? (
                           <Button
                             disabled={
                               members.isPending && members.variables.id === user.id
@@ -234,7 +239,7 @@ export default function ManageMember() {
             <span className="text-lg font-semibold">Members</span>
             <ScrollArea className="h-[30dvh]">
               <div className="grid gap-2 p-2">
-                {conversation?.members.map((user, index) => (
+                {(query_response?.data as Conversation).members.map((user, index) => (
                   <div key={user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <UserAvatar

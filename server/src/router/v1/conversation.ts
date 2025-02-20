@@ -223,6 +223,14 @@ export default function v1ConversationRouter(
             select: "email username display_name photo status last_online",
             populate: { path: "photo", select: "url" },
           })
+          .then(
+            async (convo) =>
+              await convo.populate({
+                path: "admins",
+                select: "email username display_name photo status last_online",
+                populate: { path: "photo", select: "url" },
+              })
+          )
           .then(async (convo) => await convo.populate({ path: "photo", select: "url" }));
 
         return reply

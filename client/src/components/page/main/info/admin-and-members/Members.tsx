@@ -20,7 +20,7 @@ export default function Members() {
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: conversation } = useQuery(getConvoOptions(params.id));
 
   return (
     <Collapsible>
@@ -47,7 +47,7 @@ export default function Members() {
         <ManageMember />
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
-            {conversation?.members.map((user) => (
+            {(conversation?.data as Conversation).members.map((user) => (
               <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
                   <UserAvatar

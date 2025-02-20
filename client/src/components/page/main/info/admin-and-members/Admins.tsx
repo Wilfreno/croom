@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { Conversation } from "@/lib/types/server-data-types";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, UserRoundCog } from "lucide-react";
 import { useParams } from "next/navigation";
@@ -15,13 +14,15 @@ import { useState } from "react";
 import UserInfoDialog from "../UserInfoDialog";
 import UserAvatar from "../../UserAvatar";
 import ManageAdmin from "./ManageAdmin";
+import { Conversation } from "@/lib/types/server-data-types";
 
 export default function Admins() {
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
 
+  console.log(query_response);
   return (
     <Collapsible>
       <CollapsibleTrigger asChild className="w-full">
@@ -47,8 +48,8 @@ export default function Admins() {
         <ManageAdmin />
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
-            {conversation?.admins.map((user) => (
-              <UserInfoDialog key={user.id} user_id={user.username}>
+            {(query_response?.data as Conversation).admins.map((user) => (
+              <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
                   <UserAvatar
                     is_online={user.status === "ONLINE"}

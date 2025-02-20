@@ -24,13 +24,15 @@ export default function ManageAdmin() {
   const { session } = useAuth();
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
   const is_admin = useMemo(() => {
-    if (!conversation || !session) return false;
-    return conversation.admins.some((user) => user.id === session.user?.id);
-  }, [session, conversation]);
+    if (!query_response || !session) return false;
+    return (query_response.data as Conversation).admins.some(
+      (user) => user.id === session.user?.id
+    );
+  }, [session, query_response]);
 
   const manage_admin = useMutation<
     void,
@@ -94,7 +96,7 @@ export default function ManageAdmin() {
         </DialogClose>
         <ScrollArea className="h-[40dvh]">
           <div className="grid gap-2">
-            {conversation?.members.map((user) => (
+            {(query_response?.data as Conversation).members.map((user) => (
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
@@ -107,7 +109,9 @@ export default function ManageAdmin() {
                 </div>
                 {user.id === session.user?.id ? (
                   <p className="text-xs font-semibold text-muted-foreground mr-4">You</p>
-                ) : conversation?.admins.some((admin) => admin.id === user.id) ? (
+                ) : (query_response?.data as Conversation).admins.some(
+                    (admin) => admin.id === user.id
+                  ) ? (
                   <Button
                     disabled={manage_admin.isPending}
                     size="sm"

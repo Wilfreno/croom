@@ -18,9 +18,9 @@ export default function InfoAdminsAndMembers() {
   const [is_open, setIsOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
 
-  if (!conversation?.is_group_chat) return null;
+  if (!(query_response?.data as Conversation)?.is_group_chat) return null;
 
   return (
     <Collapsible onOpenChange={(is_open) => setIsOpen(is_open)}>
