@@ -13,7 +13,7 @@ import { GETRequest } from "@/lib/server/requests";
 import { Conversation, User } from "@/lib/types/server-data-types";
 import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, UserRound, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import UserAvatar from "../UserAvatar";
@@ -112,7 +112,6 @@ export default function ComposeTo() {
     query_client.setQueryData(["compose", "selected_users"], selected_users);
   }, [selected_users]);
 
-  console.log(found_conversation);
   return (
     <section
       className={cn(
@@ -187,8 +186,16 @@ export default function ComposeTo() {
             </motion.div>
           )}
       </AnimatePresence>
-
-      <Label htmlFor="add-member">To: </Label>
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          className="aspect-square h-fit w-auto p-1 md:hidden"
+          onClick={() => router.push("/")}
+        >
+          <ArrowLeft className="h-4 w-auto" />
+        </Button>
+        <Label htmlFor="add-member">To: </Label>
+      </div>
       {!!selected_users && selected_users?.length > 5 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

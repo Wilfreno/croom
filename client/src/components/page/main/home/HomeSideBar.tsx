@@ -27,7 +27,7 @@ export default function HomeSideBar() {
     <SidebarContent
       className={cn(
         open
-          ? "grid grid-rows-[auto_auto_1fr] gap-2 pt-5 md:grid-rows-[auto_1fr] md:gap-4 md:py-5"
+          ? "grid grid-rows-[auto_auto_1fr] gap-4 pt-4 md:grid-rows-[auto_1fr] md:gap-4 md:py-5"
           : "hidden"
       )}
     >
