@@ -8,6 +8,7 @@ import { Message } from "@/lib/types/server-data-types";
 import { usePathname } from "next/navigation";
 import MessageToast from "../page/main/conversation/MessageToast";
 import { InfiniteData, useQueryClient } from "@tanstack/react-query";
+import useUserAgent from "../hooks/useUserAgent";
 
 const SocketIOContext = createContext<Socket<ServerToCLient, ClientToServer> | null>(
   null
@@ -28,6 +29,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   const { session } = useAuth();
   const pathname = usePathname();
   const query_client = useQueryClient();
+  const { on_mobile } = useUserAgent();
 
   function onMessage(message: Message) {
     console.log(message);
@@ -55,9 +57,11 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         };
       });
     } else {
+      console.log(on_mobile);
       toast.custom((toast_id) => <MessageToast message={message} toast_id={toast_id} />, {
         duration: Infinity,
         className: "rounded-lg w-full hover:h-fit",
+        position: on_mobile ? "top-center" : "bottom-right",
       });
     }
   }
@@ -82,7 +86,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
       socket.off("ERROR", onError);
       socket.off("MESSAGE", onMessage);
     };
-  }, [session.user, pathname]);
+  }, [session.user, pathname, on_mobile]);
 
   return <SocketIOContext.Provider value={socket}>{children}</SocketIOContext.Provider>;
 }
