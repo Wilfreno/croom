@@ -104,7 +104,7 @@ export default function Page() {
 
   if (on_mobile && is_open) return null;
   return (
-    <MainContent className="grid grid-rows-[auto_1fr_auto] max-h-dvh">
+    <MainContent className="grid grid-rows-[auto_1fr_auto]">
       <ConversationHeader />
       <ConversationMessages />
       <ConversationMessageInput />
