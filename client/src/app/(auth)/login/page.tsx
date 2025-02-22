@@ -1,4 +1,5 @@
 import LoginContent from "@/components/page/auth/login/LoginContent";
+import { Suspense } from "react";
 
 export default function page() {
   return (
@@ -12,7 +13,9 @@ export default function page() {
           we&apos;re excited to see you
         </h2>
       </div>
-      <LoginContent />
+      <Suspense>
+        <LoginContent />
+      </Suspense>
     </section>
   );
 }

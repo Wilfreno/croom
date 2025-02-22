@@ -28,7 +28,7 @@ export default function ChangePhoto() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery<Conversation>(getConvoOptions(params.id));
+  const { data: query_response } = useQuery(getConvoOptions(params.id));
   const query_client = useQueryClient();
 
   const delete_photo = useMutation({
@@ -149,7 +149,13 @@ export default function ChangePhoto() {
               uploading_image && "animate-pulse"
             )}
           >
-            <AvatarImage src={new_photo ? new_photo.url : conversation?.photo?.url} />
+            <AvatarImage
+              src={
+                new_photo
+                  ? new_photo.url
+                  : (query_response?.data as Conversation).photo?.url
+              }
+            />
             <AvatarFallback>
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
