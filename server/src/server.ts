@@ -13,16 +13,30 @@ import passportStrategy from "./lib/passport/passport-strategy";
 import socketio from "fastify-socket.io";
 import socketIOServer from "./websocket/socketio-server";
 
+const node_env = process.env.NODE_ENV!;
+let client_origin;
+let redis_host = "localhost";
+
+if (node_env === "PRODUCTION") {
+  client_origin = process.env.CLIENT_PRODUCTION_ORIGIN;
+  if (!client_origin)
+    throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
+
+  redis_host = process.env.REDIS_HOST!;
+  if (!redis_host) throw new Error("REDIS_HOST does not exist as environment variable");
+} else {
+  client_origin = process.env.CLIENT_DEVELOPMENT_ORIGIN;
+  if (!client_origin)
+    throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
+}
+
 const fastify = Fastify({
   logger: true,
 });
 
 //Cross-origin resource sharing restriction
 fastify.register(cors, {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? ["https://chatup.vercel.app", "wss://chatup.vercel.app"]
-      : ["http://localhost:3000"],
+  origin: client_origin,
   methods: ["POST", "GET", "PATCH", "DELETE"],
   credentials: true,
 });
@@ -39,25 +53,22 @@ fastify.register(passportStrategy);
 //redis
 fastify
   .register(redis, {
-    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
+    host: redis_host,
     namespace: "storage",
   })
   .register(redis, {
-    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
+    host: redis_host,
     namespace: "pub",
   })
   .register(redis, {
-    host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
+    host: redis_host,
     namespace: "sub",
   });
 
 //websocket
 fastify.register(socketio, {
   cors: {
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://chatup.vercel.app"
-        : "http://localhost:3000",
+    origin: client_origin,
     methods: ["POST", "GET"],
     credentials: true,
   },
@@ -75,7 +86,7 @@ fastify.register(connectToDB).then(async () => {
   await fastify
     .listen({
       port: 8000,
-      host: process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost",
+      host: "0.0.0.0",
     })
     .catch((error) => {
       fastify.log.error(error);

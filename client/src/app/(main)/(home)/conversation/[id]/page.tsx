@@ -14,7 +14,6 @@ export default function Page() {
   const { on_mobile } = useUserAgent();
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-
   const { data: is_open } = useQuery({
     queryKey: ["sidebar", "info", "open", on_mobile],
     queryFn: () => !on_mobile,
@@ -104,7 +103,7 @@ export default function Page() {
 
   if (on_mobile && is_open) return null;
   return (
-    <MainContent className="grid grid-rows-[auto_1fr_auto] max-h-dvh">
+    <MainContent className="grid grid-rows-[auto_1fr_auto]">
       <ConversationHeader />
       <ConversationMessages />
       <ConversationMessageInput />

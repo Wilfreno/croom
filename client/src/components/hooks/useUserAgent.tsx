@@ -7,12 +7,25 @@ export default function useUserAgent() {
 
   useEffect(() => {
     if (navigator) {
-      setIsMobile(
+      if (
         /Mobi|Android|iPhone|iPad|iPod|BlackBerry|Windows Phone/i.test(
           navigator.userAgent
         )
-      );
+      ) {
+        setIsMobile(true);
+      } else {
+        setIsMobile(window.innerWidth < 768);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return {

@@ -35,8 +35,8 @@ export default function ConversationHeader() {
   return (
     <section
       className={cn(
-        "w-full border-b flex items-center justify-between  relative gap-4 p-3 shadow-lg h-full",
-        on_mobile ? "p-2 w-dvw" : ""
+        "w-full border-b flex items-center justify-between  relative gap-4  shadow-lg h-full",
+        on_mobile ? "p-2" : "p-3"
       )}
     >
       <div className="flex items-center gap-4">
