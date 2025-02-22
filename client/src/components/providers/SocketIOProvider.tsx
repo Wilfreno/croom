@@ -82,7 +82,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
       socket.off("ERROR", onError);
       socket.off("MESSAGE", onMessage);
     };
-  }, [session.user]);
+  }, [session.user, pathname]);
 
   return <SocketIOContext.Provider value={socket}>{children}</SocketIOContext.Provider>;
 }

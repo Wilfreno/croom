@@ -14,7 +14,6 @@ export default function Page() {
   const { on_mobile } = useUserAgent();
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-
   const { data: is_open } = useQuery({
     queryKey: ["sidebar", "info", "open", on_mobile],
     queryFn: () => !on_mobile,

@@ -43,18 +43,20 @@ export default function MessageToast({
         <Link
           href={"/conversation/" + message.conversation.id}
           target="_blank"
-          className="hidden group-hover:inline-flex absolute bottom-2 right-8"
+          className="hidden group-hover:inline-flex absolute bottom-4 right-8"
         >
           <Button size="sm" variant="secondary">
             view
           </Button>
         </Link>
-        <div className="grid items-start w-full max-h-[50dvh] overflow-y-auto overflow-x-hidden">
-          <p className="text-sm font-medium">{display_name}</p>
+        <div>
+          <div className="grid items-start w-full  overflow-y-auto">
+            <p className="text-sm font-medium">{display_name}</p>
+          </div>
+          <span className="text-xs pl-1 text-start">
+            {message.photos.length > 1 ? " Sent some photos" : message.text}
+          </span>
         </div>
-        <span className="text-xs pl-1 ">
-          {message.photos.length > 1 ? " Sent some photos" : message.text}
-        </span>
       </div>
       {message.photos.length === 1 && (
         <div className="relative aspect-video w-full h-auto mt-2">
