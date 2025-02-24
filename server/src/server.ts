@@ -15,14 +15,13 @@ import socketIOServer from "./websocket/socketio-server";
 
 const node_env = process.env.NODE_ENV!;
 let client_origin;
-let redis_host = "localhost";
+const redis_host = "127.0.0.1";
 
-if (node_env === "PRODUCTION") {
+if (node_env === "production") {
   client_origin = process.env.CLIENT_PRODUCTION_ORIGIN;
   if (!client_origin)
     throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
 
-  redis_host = process.env.REDIS_HOST!;
   if (!redis_host) throw new Error("REDIS_HOST does not exist as environment variable");
 } else {
   client_origin = process.env.CLIENT_DEVELOPMENT_ORIGIN;
