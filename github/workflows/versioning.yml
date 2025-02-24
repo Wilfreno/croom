@@ -1,8 +1,8 @@
 name: Create Release Version
 
-on:
-  push:
-    branches: [main, wing]
+# on:
+#   push:
+#     branches: [main, wing]
 
 jobs:
   release:

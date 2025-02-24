@@ -6,10 +6,10 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "redis-start": "sudo systemctl enable redis-server",
-    "dev": " NODE_ENV=DEVELOPMENT pnpm redis-start && nodemon --delay 1500ms ./src/server.ts",
+    "dev": "pnpm redis-start && nodemon --delay 1500ms ./src/server.ts",
     "production": "pnpm build && pnpm start",
     "build": "tsc --build ",
-    "start": "NODE_ENV=PRODUCTION node build/server.js"
+    "start": "NODE_ENV=production pnpm redis-start && node build/server.js"
   },
   "keywords": [],
   "author": "",
