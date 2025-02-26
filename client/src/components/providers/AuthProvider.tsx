@@ -205,9 +205,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       ) : (
         <section className="fixed z-50 w-full h-full bg-background grid place-items-center ">
           <div className="relative flex flex-col items-center justify-center gap-2">
-            <Image src={croom_logo} alt="logo" className="" />
-            <span className="text-6xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
-              Croom
+            <Image src={croom_logo} alt="logo" className="aspect-square h-40 w-auto" />
+            <span className="text-5xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
+              Chatup
             </span>
           </div>
         </section>
