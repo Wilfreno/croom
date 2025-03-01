@@ -7,7 +7,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import croom_logo from "../../../public/croom-logo.svg";
 import { toast } from "sonner";
 
-const AuthContext = createContext<{
+export type AuthContextType = {
   session: { user: User | null; update: (data: Partial<User>) => Promise<void> };
   logout: () => Promise<void>;
   login: (
@@ -27,7 +27,9 @@ const AuthContext = createContext<{
     }) => Promise<void>;
     createOTP: (email: string) => Promise<void>;
   };
-} | null>(null);
+};
+
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useAuth() {
   const context = useContext(AuthContext);

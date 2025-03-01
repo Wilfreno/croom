@@ -1,7 +1,8 @@
-import LoginContent from "@/components/page/auth/login/LoginContent";
-import { Suspense } from "react";
+import LoginForm from "@/components/page/auth/login/LoginForm";
+import LoginWGoogle from "@/components/page/auth/login/LoginWGoogle";
+import NavigateToSignUpButton from "@/components/page/auth/login/NavigateToSignUpButton";
 
-export default function page() {
+export default function Page() {
   return (
     <section className="h-full grow flex flex-col gap-10 md:px-[10vw]">
       <div className="space-y-4 hidden md:block">
@@ -13,9 +14,13 @@ export default function page() {
           we&apos;re excited to see you
         </h2>
       </div>
-      <Suspense>
-        <LoginContent />
-      </Suspense>
+      <div className="grow grid grid-rows-[1fr_auto] pb-10 md:gap-8 ">
+        <div className="flex flex-col gap-4">
+          <LoginForm />
+          <LoginWGoogle />
+        </div>
+        <NavigateToSignUpButton />
+      </div>
     </section>
   );
 }

@@ -3,8 +3,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtSign, Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
+import LoginForgetPasswordButton from "./LoginForgetPasswordButton";
 
 export default function LoginForm() {
   const [credentials, setCredentials] = useState({
@@ -18,6 +18,7 @@ export default function LoginForm() {
 
   return (
     <form
+      data-testid="login-form"
       className="space-y-5"
       onSubmit={async (e) => {
         e.preventDefault();
@@ -37,9 +38,7 @@ export default function LoginForm() {
           className="pl-10"
           placeholder="Username"
           value={credentials.username}
-          onChange={(e) =>
-            setCredentials((prev) => ({ ...prev, username: e.target.value }))
-          }
+          onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
         />
       </div>
       <div className=" grid gap-2">
@@ -56,6 +55,7 @@ export default function LoginForm() {
             }
           />
           <Button
+            data-testid="view-password-button"
             className="p-2 absolute right-2 top-1/2 -translate-y-1/2"
             size="icon"
             variant="ghost"
@@ -63,23 +63,12 @@ export default function LoginForm() {
             onClick={() => setViewPassword((prev) => !prev)}
             type="button"
           >
-            {view_password ? (
-              <Eye className="h-full w-full" />
-            ) : (
-              <EyeOff className="h-full w-full" />
-            )}
+            {view_password ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
           </Button>
         </div>
-
-        <Link href="#" className="text-primary text-left text-bold text-sm my-2">
-          forgot your password?
-        </Link>
+        <LoginForgetPasswordButton />
       </div>
-      <Button
-        disabled={!credentials.username || !credentials.password || loading}
-        className="w-full text-base"
-        type="submit"
-      >
+      <Button disabled={!credentials.username || !credentials.password || loading} className="w-full text-base" type="submit">
         Login
       </Button>
     </form>
