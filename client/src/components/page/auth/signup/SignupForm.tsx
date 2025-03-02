@@ -1,13 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
@@ -63,7 +56,7 @@ export default function SignUpForm() {
 
   return (
     <section className="grid gap-4">
-      <form className="grid gap-8" autoComplete="off">
+      <form data-testid="signup-form" className="grid gap-8" autoComplete="off">
         <section className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -84,16 +77,16 @@ export default function SignUpForm() {
                   id="username"
                   placeholder="Username"
                   value={form.username}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, username: e.target.value }))
-                  }
+                  onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
                   onFocus={() => setUsernameFocused(true)}
                   onBlur={() => !form.username && setUsernameFocused(false)}
                 />
                 <AtSign className="h-4 w-auto absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
               {username_focused && (
-                <p className="text-xs text-primary">This is how others find you</p>
+                <span data-testid="username-info" className="text-xs text-primary">
+                  This is how others find you
+                </span>
               )}
             </div>
           </div>
@@ -104,14 +97,14 @@ export default function SignUpForm() {
                 id="username"
                 placeholder="Display name"
                 value={form.display_name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, display_name: e.target.value }))
-                }
+                onChange={(e) => setForm((prev) => ({ ...prev, display_name: e.target.value }))}
                 onFocus={() => setDisplayNameFocused(true)}
                 onBlur={() => !form.display_name && setDisplayNameFocused(false)}
               />
               {display_name_focused && (
-                <p className="text-xs text-primary">This is how others see you</p>
+                <span data-testid="display-name-info" className="text-xs text-primary">
+                  This is how others see you
+                </span>
               )}
             </div>
           </div>
@@ -125,9 +118,7 @@ export default function SignUpForm() {
                     id="password"
                     placeholder="Password"
                     value={form.password}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, password: e.target.value }))
-                    }
+                    onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
                   />
                   <Button
                     type="button"
@@ -136,17 +127,13 @@ export default function SignUpForm() {
                     className="h-full w-auto p-2  absolute right-2 top-1/2 -translate-y-1/2"
                     onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
                   >
-                    {see_password[0] ? (
-                      <Eye className="h-full w-auto" />
-                    ) : (
-                      <EyeOff className="h-full w-auto" />
-                    )}
+                    {see_password[0] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
                   </Button>
                 </div>
                 {form.password && form.password.length < 8 && (
-                  <p className="text-xs text-muted-foreground text-red-500">
+                  <span data-testid="short-password-message" className="text-xs text-muted-foreground text-red-500">
                     Password must be at least 8 characters long
-                  </p>
+                  </span>
                 )}
               </div>
             </div>
@@ -174,17 +161,13 @@ export default function SignUpForm() {
                   className="h-full w-auto p-2 absolute right-2 top-1/2 -translate-y-1/2"
                   onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
                 >
-                  {see_password[1] ? (
-                    <Eye className="h-full w-auto" />
-                  ) : (
-                    <EyeOff className="h-full w-auto" />
-                  )}
+                  {see_password[1] ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
                 </Button>
               </div>
               {form.confirm_password && form.password !== form.confirm_password && (
-                <p className="text-xs text-muted-foreground text-red-500">
+                <span data-testid="password-not-same" className="text-xs text-muted-foreground text-red-500">
                   Password is not the same
-                </p>
+                </span>
               )}
             </div>
           </div>
@@ -228,9 +211,7 @@ export default function SignUpForm() {
               </DialogHeader>
               <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
 
-              <p className="font-bold text-muted-foreground animate-pulse">
-                Creating new user
-              </p>
+              <p className="font-bold text-muted-foreground animate-pulse">Creating new user</p>
             </DialogContent>
           ) : (
             <DialogContent className="w-dvw md:w-[32rem]">
@@ -242,60 +223,29 @@ export default function SignUpForm() {
                   <Button variant="outline">Back</Button>
                 </DialogClose>
                 <p className="">An OTP was sent to your email:</p>
-                <p className="italic font-medium">
-                  {form.email ? form.email : "user@example.com"}
-                </p>
+                <p className="italic font-medium">{form.email ? form.email : "user@example.com"}</p>
                 <div className="my-5">
                   <p> Please check your inbox.</p>
-                  <p className="text-xs font-medium text-muted-foreground">
-                    or check your spam section
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground">or check your spam section</p>
                 </div>
               </div>
               <InputOTP
                 maxLength={6}
                 pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
                 value={form.pin}
-                onChange={(value) =>
-                  setForm((prev) => ({ ...prev, pin: value.toUpperCase() }))
-                }
+                onChange={(value) => setForm((prev) => ({ ...prev, pin: value.toUpperCase() }))}
                 autoFocus
               >
                 <InputOTPGroup className="w-full flex justify-between space-x-5">
-                  <InputOTPSlot
-                    index={0}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l"
-                  />
-                  <InputOTPSlot
-                    index={1}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded"
-                  />
-                  <InputOTPSlot
-                    index={2}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded"
-                  />
-                  <InputOTPSlot
-                    index={3}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded"
-                  />
-                  <InputOTPSlot
-                    index={4}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded"
-                  />
-                  <InputOTPSlot
-                    index={5}
-                    className="aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r"
-                  />
+                  <InputOTPSlot index={0} className="aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l" />
+                  <InputOTPSlot index={1} className="aspect-square  md:w-11 h-auto text-base border rounded" />
+                  <InputOTPSlot index={2} className="aspect-square  md:w-11 h-auto text-base border rounded" />
+                  <InputOTPSlot index={3} className="aspect-square  md:w-11 h-auto text-base border rounded" />
+                  <InputOTPSlot index={4} className="aspect-square  md:w-11 h-auto text-base border rounded" />
+                  <InputOTPSlot index={5} className="aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r" />
                 </InputOTPGroup>
               </InputOTP>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="mx-auto"
-                disabled={!resend.open}
-                type="button"
-                onClick={handleResend}
-              >
+              <Button size="sm" variant="ghost" className="mx-auto" disabled={!resend.open} type="button" onClick={handleResend}>
                 resend {!resend.open && "(" + resend.time + ")"}
               </Button>
               <Button
@@ -320,14 +270,14 @@ export default function SignUpForm() {
           )}
         </Dialog>
       </form>
-      <span className="justify-self-center">
-        Already have an account?
+      <div className="justify-self-center">
+        <span>Already have an account?</span>
         <Link href={"/login" + search_params}>
           <Button variant="link" className="text-primary">
             Login
           </Button>
         </Link>
-      </span>
+      </div>
     </section>
   );
 }

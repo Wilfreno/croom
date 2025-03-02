@@ -1,6 +1,7 @@
 import LoginForm from "@/components/page/auth/login/LoginForm";
 import LoginWGoogle from "@/components/page/auth/login/LoginWGoogle";
 import NavigateToSignUpButton from "@/components/page/auth/login/NavigateToSignUpButton";
+import { Suspense } from "react";
 
 export default function Page() {
   return (
@@ -19,7 +20,9 @@ export default function Page() {
           <LoginForm />
           <LoginWGoogle />
         </div>
-        <NavigateToSignUpButton />
+        <Suspense>
+          <NavigateToSignUpButton />
+        </Suspense>
       </div>
     </section>
   );

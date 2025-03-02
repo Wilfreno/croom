@@ -1,5 +1,9 @@
 {
   "prettier.printWidth": 150,
   "editor.formatOnSave": true,
-  "cSpell.words": ["Convo", "sonner", "uploadthing"]
+  "cSpell.words": [
+    "Convo",
+    "sonner",
+    "uploadthing"
+  ]
 }

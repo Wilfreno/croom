@@ -122,7 +122,7 @@ describe("Logging in", () => {
 
     // input an incorrect password
     await userEvent.type(username_input, mock_data.user.username);
-    await userEvent.type(password_input, "password");
+    await userEvent.type(password_input, "incorrect-password");
     await userEvent.click(login_button);
     expect(toast.error).toHaveBeenCalledWith("Incorrect Password");
 

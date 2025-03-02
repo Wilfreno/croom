@@ -8,7 +8,7 @@ const mock_data: MockData = {
   user: {
     id: "1",
     email: "test@email.com",
-    password: "123456",
+    password: "password",
     username: "@test",
     display_name: "test",
     status: "ONLINE",
