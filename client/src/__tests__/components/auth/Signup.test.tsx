@@ -1,12 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, MockInstance, vi } from "vitest";
 import SignupEmailInput from "@/components/page/auth/signup/SignupEmailInput";
 import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
 import MockQueryClientProvider from "@/__tests__/mocks/MockQueryClientProvider";
 import mock_data from "@/__tests__/mocks/mock-data";
 import SignupUsernameInput from "@/components/page/auth/signup/SignupUsernameInput";
-import { defaultShouldDehydrateQuery, QueryClient } from "@tanstack/react-query";
+import {
+  dataTagErrorSymbol,
+  dataTagSymbol,
+  defaultShouldDehydrateQuery,
+  QueryClient,
+  QueryKey,
+  SetDataOptions,
+  Updater,
+} from "@tanstack/react-query";
 import SignupDisplaynameInput from "@/components/page/auth/signup/SignupDisplaynameInput";
 import { ServerResponse } from "@/lib/server/requests";
 import SignupPasswordInput from "@/components/page/auth/signup/SignupPasswordInput";
@@ -23,20 +31,32 @@ vi.mock(import("@tanstack/react-query"), async (importOriginal) => {
 
 vi.mock("@/lib/server/requests", () => ({
   GETRequest: vi.fn(async (path) => {
-    const path_array = (path as string).split("/");
     let response: ServerResponse = {
       data: null,
       message: "",
       status: "NOT_FOUND",
     };
+    if ((path as string).startsWith("/v1/user/email")) {
+      const path_array = (path as string).split("/");
 
-    if (path_array[4] === mock_data.user.email)
-      response = {
-        data: null,
-        message: "",
-        status: "OK",
-      };
+      if (path_array[4] === mock_data.user.email)
+        response = {
+          data: null,
+          message: "",
+          status: "OK",
+        };
+    }
 
+    if ((path as string).startsWith("/v1/user/username")) {
+      const path_array = (path as string).split("/");
+
+      if (path_array[4] === mock_data.user.username)
+        response = {
+          data: null,
+          message: "",
+          status: "OK",
+        };
+    }
     return response;
   }),
 }));
@@ -45,6 +65,22 @@ vi.mock("@/components/hooks/useDebounce", () => ({ default: vi.fn((value) => val
 
 describe("Signing up", () => {
   let query_client: QueryClient;
+  let setQueryData: MockInstance<
+    <
+      TQueryFnData = unknown,
+      TTaggedQueryKey extends QueryKey = QueryKey,
+      TInferredQueryFnData = TTaggedQueryKey extends {
+        [dataTagSymbol]: infer TaggedValue;
+        [dataTagErrorSymbol]: unknown;
+      }
+        ? TaggedValue
+        : TQueryFnData
+    >(
+      queryKey: TTaggedQueryKey,
+      updater: Updater<NoInfer<TInferredQueryFnData> | undefined, NoInfer<TInferredQueryFnData> | undefined>,
+      options?: SetDataOptions
+    ) => TInferredQueryFnData | undefined
+  >;
 
   beforeEach(() => {
     query_client = new QueryClient({
@@ -57,28 +93,26 @@ describe("Signing up", () => {
         },
       },
     });
+    setQueryData = vi.spyOn(query_client, "setQueryData");
   });
 
   describe("Email input", () => {
-    function EmailInput() {
-      return render(
+    beforeEach(() => {
+      render(
         <MockQueryClientProvider query_client={query_client}>
           <MockAuthProvider>
             <SignupEmailInput />
           </MockAuthProvider>
         </MockQueryClientProvider>
       );
-    }
+    });
 
     it("should display a label and an email input", () => {
-      EmailInput();
-
       expect(screen.getByLabelText("Email")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
     });
 
     it("should call query_client when the inputs value change", async () => {
-      EmailInput();
       const spy = vi.spyOn(query_client, "setQueryData");
       const email_input = screen.getByPlaceholderText("Email");
       await userEvent.type(email_input, mock_data.user.email);
@@ -87,7 +121,6 @@ describe("Signing up", () => {
     });
 
     it("should display a message when the email is available", async () => {
-      EmailInput();
       const email_input = screen.getByPlaceholderText("Email");
 
       await userEvent.type(email_input, "valid@email.com");
@@ -96,7 +129,6 @@ describe("Signing up", () => {
     });
 
     it("should display a message when the email is already used", async () => {
-      EmailInput();
       const email_input = screen.getByPlaceholderText("Email");
 
       await userEvent.type(email_input, mock_data.user.email);
@@ -105,7 +137,6 @@ describe("Signing up", () => {
     });
 
     it("should display a message when the email is already used", async () => {
-      EmailInput();
       const email_input = screen.getByPlaceholderText("Email");
 
       await userEvent.type(email_input, "email");
@@ -115,42 +146,45 @@ describe("Signing up", () => {
   });
 
   describe("Username input", () => {
-    function usernameInput() {
-      return render(
+    let username_input: HTMLElement;
+
+    beforeEach(() => {
+      render(
         <MockQueryClientProvider query_client={query_client}>
           <MockAuthProvider>
             <SignupUsernameInput />
           </MockAuthProvider>
         </MockQueryClientProvider>
       );
-    }
+      username_input = screen.getByPlaceholderText("Username");
+    });
 
     it("should display a label and a username input", () => {
-      usernameInput();
-
       expect(screen.getByLabelText("Username")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
+      expect(username_input).toBeInTheDocument();
     });
 
     it("should call query_client when inputs value change", async () => {
-      usernameInput();
-
-      const spy = vi.spyOn(query_client, "setQueryData");
-      const input = screen.getByPlaceholderText("Username");
-
-      await userEvent.type(input, mock_data.user.username);
-
-      expect(spy).toBeCalled();
+      await userEvent.type(username_input, mock_data.user.username);
+      expect(setQueryData).toBeCalled();
     });
 
     it("should display a message to explain what a username is when the input is focused", async () => {
-      usernameInput();
-
-      const input = screen.getByPlaceholderText("Username");
-
-      await userEvent.click(input);
+      await userEvent.click(username_input);
 
       expect(screen.getByTestId("username-info")).toBeInTheDocument();
+    });
+
+    it("should display a message whether the username is available or already used", async () => {
+      // should display that username is available
+      await userEvent.type(username_input, "@mock_test");
+      expect(screen.getByTestId("username-available")).toBeInTheDocument();
+
+      await userEvent.clear(username_input);
+
+      // should display that username is already used
+      await userEvent.type(username_input, mock_data.user.username.slice(1));
+      expect(screen.getByTestId("username-already-used")).toBeInTheDocument();
     });
   });
 
