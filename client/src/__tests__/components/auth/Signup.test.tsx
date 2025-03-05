@@ -1,131 +1,377 @@
-import mock_data from "@/__tests__/mocks/mock-data";
-import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
-import Page from "@/app/(auth)/sign-up/page";
-import SignUpForm from "@/components/page/auth/signup/SignupForm";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import SignupEmailInput from "@/components/page/auth/signup/SignupEmailInput";
+import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
+import MockQueryClientProvider from "@/__tests__/mocks/MockQueryClientProvider";
+import mock_data from "@/__tests__/mocks/mock-data";
+import SignupUsernameInput from "@/components/page/auth/signup/SignupUsernameInput";
+import { defaultShouldDehydrateQuery, QueryClient } from "@tanstack/react-query";
+import SignupDisplaynameInput from "@/components/page/auth/signup/SignupDisplaynameInput";
+import { ServerResponse } from "@/lib/server/requests";
+import SignupPasswordInput from "@/components/page/auth/signup/SignupPasswordInput";
+import SignUpDialog from "@/components/page/auth/signup/SignUpDialog";
+import React from "react";
+// module mocks
+vi.mock(import("@tanstack/react-query"), async (importOriginal) => {
+  const mod = await importOriginal();
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn((path) => path),
-  }),
-  useSearchParams: () => ({
-    get: vi.fn((params) => params),
+  return {
+    ...mod,
+  };
+});
+
+vi.mock("@/lib/server/requests", () => ({
+  GETRequest: vi.fn(async (path) => {
+    const path_array = (path as string).split("/");
+    let response: ServerResponse = {
+      data: null,
+      message: "",
+      status: "NOT_FOUND",
+    };
+
+    if (path_array[4] === mock_data.user.email)
+      response = {
+        data: null,
+        message: "",
+        status: "OK",
+      };
+
+    return response;
   }),
 }));
 
+vi.mock("@/components/hooks/useDebounce", () => ({ default: vi.fn((value) => value) }));
+
 describe("Signing up", () => {
-  it("checks whether all the elements is rendered for signup page", () => {
-    render(
-      <MockAuthProvider>
-        <Page />
-      </MockAuthProvider>
-    );
+  let query_client: QueryClient;
 
-    const heading_1 = screen.getByRole("heading", { name: /Welcome!/i });
-    const heading_2 = screen.getByRole("heading", { name: /Sign Up for a great experience/i });
-    const form = screen.getByTestId("signup-form");
-    const email_input = screen.getByPlaceholderText(/Email/i);
-    const username_input = screen.getByPlaceholderText(/Username/i);
-    const display_name_input = screen.getByPlaceholderText(/Display name/i);
-    const password_input = screen.getByPlaceholderText("Password");
-    const confirm_password_input = screen.getByPlaceholderText("Confirm Password");
-    const dialog_button = screen.getByRole("button", { name: /Submit/i });
-    const navigate_to_login_page_button = screen.getByRole("button", { name: /Login/i });
-
-    expect(heading_1).toBeInTheDocument();
-    expect(heading_2).toBeInTheDocument();
-    expect(form).toBeInTheDocument();
-    expect(email_input).toBeInTheDocument();
-    expect(username_input).toBeInTheDocument();
-    expect(display_name_input).toBeInTheDocument();
-    expect(password_input).toBeInTheDocument();
-    expect(confirm_password_input).toBeInTheDocument();
-    expect(dialog_button).toBeInTheDocument();
-    expect(navigate_to_login_page_button).toBeInTheDocument();
+  beforeEach(() => {
+    query_client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 5 * 60 * 1000,
+        },
+        dehydrate: {
+          shouldDehydrateQuery: (query) => defaultShouldDehydrateQuery(query) || query.state.status === "pending",
+        },
+      },
+    });
   });
 
-  it("displays an info to explain what username and display name is", async () => {
-    render(
-      <MockAuthProvider>
-        <SignUpForm />
-      </MockAuthProvider>
-    );
-    const username_input = screen.getByPlaceholderText(/Username/i);
-    const display_name_input = screen.getByPlaceholderText(/Display name/i);
+  describe("Email input", () => {
+    function EmailInput() {
+      return render(
+        <MockQueryClientProvider query_client={query_client}>
+          <MockAuthProvider>
+            <SignupEmailInput />
+          </MockAuthProvider>
+        </MockQueryClientProvider>
+      );
+    }
 
-    await userEvent.type(username_input, mock_data.user.username);
-    const username_info = screen.getByTestId("username-info");
-    expect(username_info).toBeInTheDocument();
+    it("should display a label and an email input", () => {
+      EmailInput();
 
-    await userEvent.type(display_name_input, mock_data.user.display_name);
-    const display_name_info = screen.getByTestId("display-name-info");
-    expect(display_name_info).toBeInTheDocument();
+      expect(screen.getByLabelText("Email")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
+    });
+
+    it("should call query_client when the inputs value change", async () => {
+      EmailInput();
+      const spy = vi.spyOn(query_client, "setQueryData");
+      const email_input = screen.getByPlaceholderText("Email");
+      await userEvent.type(email_input, mock_data.user.email);
+
+      expect(spy).toBeCalled();
+    });
+
+    it("should display a message when the email is available", async () => {
+      EmailInput();
+      const email_input = screen.getByPlaceholderText("Email");
+
+      await userEvent.type(email_input, "valid@email.com");
+
+      expect(await screen.findByTestId("email-available")).toBeInTheDocument();
+    });
+
+    it("should display a message when the email is already used", async () => {
+      EmailInput();
+      const email_input = screen.getByPlaceholderText("Email");
+
+      await userEvent.type(email_input, mock_data.user.email);
+
+      expect(await screen.findByTestId("email-already-used")).toBeInTheDocument();
+    });
+
+    it("should display a message when the email is already used", async () => {
+      EmailInput();
+      const email_input = screen.getByPlaceholderText("Email");
+
+      await userEvent.type(email_input, "email");
+
+      expect(await screen.findByTestId("email-invalid")).toBeInTheDocument();
+    });
   });
 
-  it("enable the submit button only when all the input has value", async () => {
-    render(
-      <MockAuthProvider>
-        <SignUpForm />
-      </MockAuthProvider>
-    );
-    const email_input = screen.getByPlaceholderText(/Email/i);
-    const username_input = screen.getByPlaceholderText(/Username/i);
-    const display_name_input = screen.getByPlaceholderText(/Display name/i);
-    const password_input = screen.getByPlaceholderText("Password");
-    const confirm_password_input = screen.getByPlaceholderText("Confirm Password");
-    const submit_button = screen.getByRole("button", { name: /Submit/i });
+  describe("Username input", () => {
+    function usernameInput() {
+      return render(
+        <MockQueryClientProvider query_client={query_client}>
+          <MockAuthProvider>
+            <SignupUsernameInput />
+          </MockAuthProvider>
+        </MockQueryClientProvider>
+      );
+    }
 
-    // button is disabled by default
-    expect(submit_button).toBeDisabled();
+    it("should display a label and a username input", () => {
+      usernameInput();
 
-    // button will be disabled when only some input has value
+      expect(screen.getByLabelText("Username")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
+    });
 
-    await userEvent.type(email_input, mock_data.user.email);
-    expect(submit_button).toBeDisabled();
+    it("should call query_client when inputs value change", async () => {
+      usernameInput();
 
-    await userEvent.type(username_input, mock_data.user.username);
-    expect(submit_button).toBeDisabled();
+      const spy = vi.spyOn(query_client, "setQueryData");
+      const input = screen.getByPlaceholderText("Username");
 
-    await userEvent.type(display_name_input, mock_data.user.display_name);
-    expect(submit_button).toBeDisabled();
+      await userEvent.type(input, mock_data.user.username);
 
-    await userEvent.type(password_input, mock_data.user.password!);
-    expect(submit_button).toBeDisabled();
+      expect(spy).toBeCalled();
+    });
 
-    await userEvent.type(confirm_password_input, mock_data.user.password!);
-    expect(submit_button).toBeEnabled();
+    it("should display a message to explain what a username is when the input is focused", async () => {
+      usernameInput();
+
+      const input = screen.getByPlaceholderText("Username");
+
+      await userEvent.click(input);
+
+      expect(screen.getByTestId("username-info")).toBeInTheDocument();
+    });
   });
 
-  it("disable the submit button when password and confirm password does not meet a desired criteria", async () => {
-    render(
-      <MockAuthProvider>
-        <SignUpForm />
-      </MockAuthProvider>
-    );
-    const username_input = screen.getByPlaceholderText(/Username/i);
-    const display_name_input = screen.getByPlaceholderText(/Display name/i);
-    const password_input = screen.getByPlaceholderText("Password");
-    const confirm_password_input = screen.getByPlaceholderText("Confirm Password");
-    const submit_button = screen.getByRole("button", { name: /Submit/i });
+  describe("Displayname Input", () => {
+    function displayNameInput() {
+      return render(
+        <MockQueryClientProvider query_client={query_client}>
+          <MockAuthProvider>
+            <SignupDisplaynameInput />
+          </MockAuthProvider>
+        </MockQueryClientProvider>
+      );
+    }
 
-    await userEvent.type(username_input, mock_data.user.username);
-    await userEvent.type(display_name_input, mock_data.user.display_name);
+    it("should display a label and a display name input", () => {
+      displayNameInput();
 
-    // when the password has lower than 8 characters the button is disabled and a message will the rendered
-    await userEvent.type(password_input, "short");
-    const password_too_short_message = screen.getByTestId("short-password-message");
-    expect(password_too_short_message).toBeInTheDocument();
-    expect(submit_button).toBeDisabled();
+      expect(screen.getByLabelText("Display name"));
+      expect(screen.getByPlaceholderText("Display name"));
+    });
 
-    await userEvent.clear(password_input);
-    await userEvent.type(password_input, mock_data.user.password!);
+    it("should call query_client when inputs value change", async () => {
+      displayNameInput();
 
-    // when the password and confirm password value is not the same the signup button will be disabled and a message will be displayed
-    await userEvent.type(confirm_password_input, "not-the-same-password");
-    const password_not_same_message = screen.getByTestId("password-not-same");
-    expect(password_not_same_message).toBeInTheDocument();
-    expect(submit_button).toBeDisabled();
+      const spy = vi.spyOn(query_client, "setQueryData");
+
+      const input = screen.getByPlaceholderText("Display name");
+
+      await userEvent.type(input, mock_data.user.display_name);
+
+      expect(spy).toBeCalled();
+    });
+
+    it("should display a message to explain what a display name is when the input is focused", async () => {
+      displayNameInput();
+
+      const input = screen.getByPlaceholderText("Display name");
+
+      await userEvent.click(input);
+
+      expect(screen.getByTestId("display-name-info")).toBeInTheDocument();
+    });
+  });
+
+  describe("Password input", () => {
+    function passwordInput() {
+      return render(
+        <MockQueryClientProvider query_client={query_client}>
+          <MockAuthProvider>
+            <SignupPasswordInput />
+          </MockAuthProvider>
+        </MockQueryClientProvider>
+      );
+    }
+
+    it("should display a label and an input for password and confirm password", () => {
+      passwordInput();
+
+      expect(screen.getByLabelText("Password")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Password")).toBeInTheDocument();
+      expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Confirm Password")).toBeInTheDocument();
+    });
+
+    it("should call query_client when password's input value change", async () => {
+      passwordInput();
+
+      const spy = vi.spyOn(query_client, "setQueryData");
+
+      const input = screen.getByPlaceholderText("Password");
+
+      await userEvent.type(input, "password");
+
+      expect(spy).toBeCalled();
+    });
+
+    it("should change the icon when password's eye button is clicked", async () => {
+      passwordInput();
+
+      // EyeOff is the default icon
+      expect(screen.getByTestId("eye-off-1")).toBeInTheDocument();
+      expect(screen.queryByTestId("eye-on-1")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId("see-password-1"));
+
+      expect(screen.queryByTestId("eye-off-1")).not.toBeInTheDocument();
+      expect(screen.getByTestId("eye-on-1")).toBeInTheDocument();
+    });
+
+    it("should change the inputs type when password's eye button is clicked", async () => {
+      passwordInput();
+
+      const input = screen.getByPlaceholderText("Password");
+      const button = screen.getByTestId("see-password-1");
+
+      //password is the type by default
+      expect(input).toHaveAttribute("type", "password");
+
+      await userEvent.click(button);
+
+      expect(input).toHaveAttribute("type", "text");
+    });
+
+    it("should call query_client when confirm password's input value change", async () => {
+      passwordInput();
+
+      const spy = vi.spyOn(query_client, "setQueryData");
+
+      const input = screen.getByPlaceholderText("Confirm Password");
+
+      await userEvent.type(input, "password");
+
+      expect(spy).toBeCalled();
+    });
+    it("should change the icon when change password's eye button is clicked", async () => {
+      passwordInput();
+
+      // EyeOff is the default icon
+      expect(screen.getByTestId("eye-off-2")).toBeInTheDocument();
+      expect(screen.queryByTestId("eye-on-2")).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByTestId("see-password-2"));
+
+      expect(screen.queryByTestId("eye-off-2")).not.toBeInTheDocument();
+      expect(screen.getByTestId("eye-on-2")).toBeInTheDocument();
+    });
+
+    it("should change the inputs type when confirm password's eye button is clicked", async () => {
+      passwordInput();
+
+      const input = screen.getByPlaceholderText("Confirm Password");
+
+      // password is the type by default
+      expect(input).toHaveAttribute("type", "password");
+
+      await userEvent.click(screen.getByTestId("see-password-2"));
+
+      expect(input).toHaveAttribute("type", "text");
+    });
+
+    it("should display a message when the password is shorter than 8 characters", async () => {
+      passwordInput();
+
+      const input = screen.getByPlaceholderText("Password");
+
+      await userEvent.type(input, "pass");
+      expect(screen.getByTestId("short-password-message")).toBeInTheDocument();
+    });
+
+    it("should display a message when the confirm password is not the same as password", async () => {
+      passwordInput();
+
+      const input = screen.getByPlaceholderText("Confirm Password");
+
+      await userEvent.type(input, "pass");
+      expect(screen.getByTestId("password-not-same")).toBeInTheDocument();
+    });
+  });
+
+  describe("Signup button", () => {
+    function submitButton(other_components?: React.ReactNode) {
+      return render(
+        <MockQueryClientProvider query_client={query_client}>
+          <MockAuthProvider>
+            {other_components}
+            <SignUpDialog />
+          </MockAuthProvider>
+        </MockQueryClientProvider>
+      );
+    }
+
+    it("should display a disabled submit button", () => {
+      submitButton();
+
+      const button = screen.getByRole("button", { name: "Submit" });
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
+
+    describe("Sign up Dialog", () => {
+      let email_input: HTMLElement;
+      let username_input: HTMLElement;
+      let display_name_input: HTMLElement;
+      let password_input: HTMLElement;
+      let confirm_password_input: HTMLElement;
+      let submit_button: HTMLElement;
+
+      beforeEach(async () => {
+        submitButton(
+          <>
+            <SignupEmailInput />
+            <SignupUsernameInput />
+            <SignupDisplaynameInput />
+            <SignupPasswordInput />
+          </>
+        );
+        email_input = screen.getByPlaceholderText("Email");
+        username_input = screen.getByPlaceholderText("Username");
+        display_name_input = screen.getByPlaceholderText("Display name");
+        password_input = screen.getByPlaceholderText("Password");
+        confirm_password_input = screen.getByPlaceholderText("Confirm Password");
+        submit_button = screen.getByRole("button", { name: "Submit" });
+
+        await userEvent.type(email_input, "test@test.email");
+        await userEvent.type(username_input, mock_data.user.username);
+        await userEvent.type(display_name_input, mock_data.user.display_name);
+        await userEvent.type(password_input, mock_data.user.password!);
+        await userEvent.type(confirm_password_input, mock_data.user.password!);
+      });
+
+      afterEach(async () => {
+        await userEvent.clear(email_input);
+        await userEvent.clear(username_input);
+        await userEvent.clear(display_name_input);
+        await userEvent.clear(password_input);
+        await userEvent.clear(confirm_password_input);
+      });
+
+      it("should enable the submit button when all the form has valid values", async () => {
+        expect(submit_button).toBeEnabled();
+      });
+    });
   });
 });

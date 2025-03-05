@@ -5,16 +5,11 @@ import JSONResponse from "../../lib/json-response";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import OTPEmail from "../../lib/email/Otp";
 import OTP, { OTPSchema } from "../../database/models/Otp";
-export default function v1OTPRouter(
-  fastify: FastifyInstance,
-  _: FastifyPluginOptions,
-  done: () => void
-) {
+import User from "../../database/models/User";
+
+export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   const gmail_user = process.env.GMAIL_USER;
-  if (!gmail_user)
-    throw new Error(
-      "GMAIL_USER is missing from your .env file \n GMAIL_USER is your gmail address"
-    );
+  if (!gmail_user) throw new Error("GMAIL_USER is missing from your .env file \n GMAIL_USER is your gmail address");
 
   const gmail_password = process.env.GMAIL_2F_AUTH_APP_PASS;
   if (!gmail_password)
@@ -26,13 +21,9 @@ export default function v1OTPRouter(
     try {
       const { email } = request.body;
 
-      if (!email)
-        return reply
-          .code(400)
-          .send(
-            JSONResponse("BAD_REQUEST", "email field is required on the request body")
-          );
+      if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email field is required on the request body"));
 
+      if (await User.exists({ email })) return reply.code(409).send(JSONResponse("CONFLICT", "user already exist"));
       const transport = createTransport({
         service: "gmail",
         auth: {
@@ -43,10 +34,7 @@ export default function v1OTPRouter(
 
       const verify = await transport.verify();
 
-      if (!verify)
-        reply
-          .code(500)
-          .send(JSONResponse("INTERNAL_SERVER_ERROR", "email transport verify failed"));
+      if (!verify) reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR", "email transport verify failed"));
 
       const chars = "abcdefghijklmnopqrstuvwxyz1234567890";
       let random_string = "";
@@ -72,15 +60,11 @@ export default function v1OTPRouter(
       const info = await transport.sendMail({
         from: "chatup.dev.noreply@gmail.com",
         to: email,
-        subject:
-          "welcome to Chat Up your verification code is " +
-          random_string.toLocaleUpperCase(),
+        subject: "welcome to Chat Up your verification code is " + random_string.toLocaleUpperCase(),
         html,
       });
 
-      return reply
-        .code(201)
-        .send(JSONResponse("CREATED", "OTP verification code is sent", info));
+      return reply.code(201).send(JSONResponse("CREATED", "OTP verification code is sent", info));
     } catch (error) {
       console.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -90,20 +74,11 @@ export default function v1OTPRouter(
   fastify.post<{ Body: OTPSchema }>("/authenticate", async (request, reply) => {
     try {
       const { pin, email } = request.body;
-      if (!pin || !email)
-        return reply
-          .code(400)
-          .send(
-            JSONResponse(
-              "BAD_REQUEST",
-              "otp and email field is required on the request body"
-            )
-          );
+      if (!pin || !email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp and email field is required on the request body"));
 
       const found_otp = await OTP.findOne({ email, pin });
 
-      if (!found_otp)
-        return reply.code(401).send(JSONResponse("UNAUTHORIZED", "otp is incorrect"));
+      if (!found_otp) return reply.code(401).send(JSONResponse("UNAUTHORIZED", "otp is incorrect"));
 
       await OTP.deleteMany({ email });
       return reply.code(200).send(JSONResponse("OK", "otp verified"));

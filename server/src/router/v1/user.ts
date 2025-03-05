@@ -10,43 +10,35 @@ import Report from "../../database/models/Report";
 import Block from "../../database/models/Block";
 import { UTApi } from "uploadthing/server";
 
-export default function v1UserRouter(
-  fastify: FastifyInstance,
-  _: FastifyPluginOptions,
-  done: () => void
-) {
+export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
-  fastify.post<{ Body: { reported_user: string; reason: string } }>(
-    "/report",
-    { preValidation },
-    async (request, reply) => {
-      let session: ClientSession | null = null;
-      try {
-        session = await startSession();
-        session.startTransaction();
+  fastify.post<{ Body: { reported_user: string; reason: string } }>("/report", { preValidation }, async (request, reply) => {
+    let session: ClientSession | null = null;
+    try {
+      session = await startSession();
+      session.startTransaction();
 
-        const user = request.user as UserSchema & { id: string };
-        const { reported_user, reason } = request.body;
+      const user = request.user as UserSchema & { id: string };
+      const { reported_user, reason } = request.body;
 
-        const report = new Report({
-          submitted_by: user.id,
-          reported_user: reported_user,
-          reason,
-        });
+      const report = new Report({
+        submitted_by: user.id,
+        reported_user: reported_user,
+        reason,
+      });
 
-        await report.save({ session });
+      await report.save({ session });
 
-        await session.commitTransaction();
-        await session.endSession();
+      await session.commitTransaction();
+      await session.endSession();
 
-        return reply.code(201).send(JSONResponse("CREATED", "report created"));
-      } catch (error) {
-        await session?.abortTransaction();
-        fastify.log.error(error);
-        return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-      }
+      return reply.code(201).send(JSONResponse("CREATED", "report created"));
+    } catch (error) {
+      await session?.abortTransaction();
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
-  );
+  });
 
   //read user
 
@@ -58,8 +50,7 @@ export default function v1UserRouter(
         .select("email display_name username last_online photo")
         .populate({ path: "photo", select: "url" });
 
-      if (!found_user)
-        return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
 
       return reply.code(200).send(JSONResponse("OK", "request successful"));
     } catch (error) {
@@ -116,6 +107,20 @@ export default function v1UserRouter(
       }
     }
   );
+
+  fastify.get<{ Params: { email: string } }>("/email/:email", async (request, reply) => {
+    try {
+      const { email } = request.params;
+      const found_user = await User.findOne({ email });
+
+      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
+
+      return reply.code(200).send(JSONResponse("OK", "user found"));
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
   fastify.get("/conversations", { preValidation }, async (request, reply) => {
     try {
       const user = request.user as UserSchema & { id: string };
@@ -160,9 +165,7 @@ export default function v1UserRouter(
         }
       }
 
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", conversations));
+      return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -185,11 +188,7 @@ export default function v1UserRouter(
           const found_member = await User.findOne({ _id: member, status: "ONLINE" });
           if (found_member) {
             if (found_conversation.is_group_chat) {
-              conversations.push(
-                (
-                  await found_conversation.populate({ path: "photo", select: "url" })
-                ).toJSON()
-              );
+              conversations.push((await found_conversation.populate({ path: "photo", select: "url" })).toJSON());
             } else {
               conversations.push(
                 (
@@ -207,9 +206,7 @@ export default function v1UserRouter(
         }
       }
 
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", conversations));
+      return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -258,6 +255,7 @@ export default function v1UserRouter(
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
   });
+
   //update
   fastify.patch<{
     Params: { key: keyof UserSchema };
@@ -272,10 +270,7 @@ export default function v1UserRouter(
       const user = request.user as UserSchema & { id: string };
 
       const found_user = await User.findOne({ _id: user.id });
-      if (!found_user)
-        return reply
-          .code(409)
-          .send(JSONResponse("CONFLICT", "cannot update; user does not exist"));
+      if (!found_user) return reply.code(409).send(JSONResponse("CONFLICT", "cannot update; user does not exist"));
 
       session = await startSession();
       session.startTransaction();
@@ -283,37 +278,17 @@ export default function v1UserRouter(
       console.log(request.body.username);
       switch (key) {
         case "username": {
-          if (!request.body.username)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "username is required on the request body")
-              );
+          if (!request.body.username) return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
 
-          if (await User.exists({ username: request.body.username }))
-            return reply
-              .code(409)
-              .send(JSONResponse("CONFLICT", "username already exist"));
+          if (await User.exists({ username: request.body.username })) return reply.code(409).send(JSONResponse("CONFLICT", "username already exist"));
 
-          await User.updateOne(
-            { _id: user.id },
-            { $set: { username: request.body.username, last_updated: new Date() } },
-            { session }
-          );
+          await User.updateOne({ _id: user.id }, { $set: { username: request.body.username, last_updated: new Date() } }, { session });
 
           break;
         }
 
         case "display_name": {
-          if (!request.body.display_name)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse(
-                  "BAD_REQUEST",
-                  "display_name is required on the request body"
-                )
-              );
+          if (!request.body.display_name) return reply.code(400).send(JSONResponse("BAD_REQUEST", "display_name is required on the request body"));
 
           await User.updateOne(
             { _id: user.id },
@@ -326,17 +301,10 @@ export default function v1UserRouter(
           break;
         }
         case "password": {
-          if (!request.body.password)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "password is required on the request body")
-              );
+          if (!request.body.password) return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
 
           if (request.body.password.new !== request.body.password.confirm)
-            return reply
-              .code(400)
-              .send(JSONResponse("BAD_REQUEST", "new password is not the same"));
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "new password is not the same"));
 
           await User.updateOne(
             { _id: user.id },
@@ -352,17 +320,10 @@ export default function v1UserRouter(
           break;
         }
         case "photo": {
-          if (!request.body.photo)
-            return reply
-              .code(400)
-              .send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
+          if (!request.body.photo) return reply.code(400).send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
 
           if (await Photo.findOne({ _id: request.body.photo.id })) {
-            await User.updateOne(
-              { _id: user.id },
-              { $set: { photo: request.body.photo.id, last_updated: new Date() } },
-              { session }
-            );
+            await User.updateOne({ _id: user.id }, { $set: { photo: request.body.photo.id, last_updated: new Date() } }, { session });
             await Photo.updateOne(
               {
                 _id: request.body.photo.id,
@@ -372,9 +333,7 @@ export default function v1UserRouter(
             );
           } else {
             if ((await Photo.countDocuments({ owner: user.id, type: "PROFILE" })) > 4) {
-              const last_photo = await Photo.findOne()
-                .sort({ date_created: 1 })
-                .select("_id");
+              const last_photo = await Photo.findOne().sort({ date_created: 1 }).select("_id");
 
               await Photo.deleteOne({ _id: last_photo?.id }, { session });
             }
@@ -387,19 +346,13 @@ export default function v1UserRouter(
 
             await new_photo.save({ session });
 
-            await User.updateOne(
-              { _id: user.id },
-              { $set: { photo: new_photo._id, last_updated: new Date() } },
-              { session }
-            );
+            await User.updateOne({ _id: user.id }, { $set: { photo: new_photo._id, last_updated: new Date() } }, { session });
           }
 
           break;
         }
         default: {
-          return reply
-            .code(400)
-            .send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
+          return reply.code(400).send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
         }
       }
 
@@ -422,8 +375,7 @@ export default function v1UserRouter(
 
     try {
       const user = request.user as { id: string };
-      if (!(await User.findOne({ _id: user.id })))
-        return reply.code(200).send(JSONResponse("OK", "user already not exist"));
+      if (!(await User.findOne({ _id: user.id }))) return reply.code(200).send(JSONResponse("OK", "user already not exist"));
 
       session = await startSession();
       session.startTransaction();
