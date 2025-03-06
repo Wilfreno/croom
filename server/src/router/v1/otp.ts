@@ -21,7 +21,8 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
     try {
       const { email } = request.body;
 
-      if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email field is required on the request body"));
+      if (!email)
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "email field is required on the request body"));
 
       if (await User.exists({ email })) return reply.code(409).send(JSONResponse("CONFLICT", "user already exist"));
       const transport = createTransport({
@@ -45,6 +46,7 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
 
       const otp = new OTP({
         email: email,
+        type: "SIGNUP",
         pin: random_string.toUpperCase(),
       });
 
@@ -74,7 +76,8 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
   fastify.post<{ Body: OTPSchema }>("/authenticate", async (request, reply) => {
     try {
       const { pin, email } = request.body;
-      if (!pin || !email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp and email field is required on the request body"));
+      if (!pin || !email)
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp and email field is required on the request body"));
 
       const found_otp = await OTP.findOne({ email, pin });
 

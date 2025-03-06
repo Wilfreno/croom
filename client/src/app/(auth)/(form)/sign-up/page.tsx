@@ -2,7 +2,7 @@ import SignUpForm from "@/components/page/auth/signup/SignupForm";
 import { getQueryClient } from "@/lib/react-query/get-query-client";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 
-export default async function Page() {
+export default async function page() {
   const query_client = getQueryClient();
 
   await query_client.prefetchQuery({

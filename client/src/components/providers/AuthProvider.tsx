@@ -18,7 +18,13 @@ export type AuthContextType = {
     }
   ) => Promise<void>;
   signup: {
-    submitForm: (data: { email: string; username: string; password: string; display_name: string; pin: string }) => Promise<void>;
+    submitForm: (data: {
+      email: string;
+      username: string;
+      password: string;
+      display_name: string;
+      pin: string;
+    }) => Promise<void>;
     createOTP: (email: string) => Promise<void>;
   };
 };
@@ -45,7 +51,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       const { data, status } = await GETRequest<User>("/v1/auth/session");
 
       if (status !== "OK") {
-        if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up")) router.replace("/login");
+        if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up") && !pathname.startsWith("/recover"))
+          router.replace("/login");
         return;
       }
 
@@ -162,9 +169,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!session) return;
-    if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) router.push("/");
-  }, [session]);
+    if (!session) {
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up") && !pathname.startsWith("/recover"))
+        router.push("/login");
+    } else {
+      if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) router.push("/");
+    }
+  }, [session, pathname]);
 
   return (
     <AuthContext.Provider
@@ -177,7 +188,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     >
       {session ? (
         children
-      ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") ? (
+      ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") || pathname.startsWith("/recover") ? (
         children
       ) : (
         <section className="fixed z-50 w-full h-full bg-background grid place-items-center ">

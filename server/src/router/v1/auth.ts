@@ -19,6 +19,7 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
     if (!client_url_origin) throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
   }
 
+  //create
   fastify.post<{
     Body: {
       username: string;
@@ -46,13 +47,13 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
 
       if (await User.exists({ username })) return reply.code(409).send(JSONResponse("CONFLICT", "user already exist"));
 
-      if (!(await OTP.exists({ email, pin })))
+      if (!(await OTP.exists({ email, type: "SIGNUP", pin })))
         return reply.code(401).send(JSONResponse("UNAUTHORIZED", "otp is incorrect"));
 
       session = await startSession();
       session.startTransaction();
 
-      await OTP.deleteMany({ email }, { session });
+      await OTP.deleteMany({ email, type: "SIGNUP" }, { session });
 
       const new_user = new User({
         display_name,
@@ -78,6 +79,27 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
   });
 
   fastify.post("/local/login", passport.authenticate("local"));
+
+  fastify.post<{ Body: { email: string } }>("/recover", async (request, reply) => {
+    let session: ClientSession | null = null;
+
+    try {
+      const { email } = request.body;
+
+      if (!User.exists({ email })) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+
+      session = await startSession();
+      session.startTransaction();
+      //
+      await session.commitTransaction();
+      await session.endSession();
+    } catch (error) {
+      await session?.abortTransaction();
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+  //read
   fastify.get("/google/login", passport.authenticate("google"));
   fastify.get(
     "/google/callback",
@@ -103,6 +125,7 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
     return reply.redirect(client_url_origin + "/");
   });
 
+  //update
   fastify.patch<{ Body: UserSchema }>("/update", async (request, reply) => {
     try {
       const user = request.user as UserSchema;

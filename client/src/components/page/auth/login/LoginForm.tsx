@@ -68,7 +68,11 @@ export default function LoginForm() {
         </div>
         <LoginForgetPasswordButton />
       </div>
-      <Button disabled={!credentials.username || !credentials.password || loading} className="w-full text-base" type="submit">
+      <Button
+        disabled={!credentials.username || !credentials.password || loading}
+        className="w-full text-base"
+        type="submit"
+      >
         Login
       </Button>
     </form>
