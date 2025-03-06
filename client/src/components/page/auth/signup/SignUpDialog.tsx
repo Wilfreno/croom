@@ -77,19 +77,19 @@ export default function SignUpDialog() {
           Submit
         </Button>
       </DialogTrigger>
-      <DialogContent className={cn("w-[32rem]", creating_otp && "grid place-items-center")}>
+      <DialogContent className={cn("w-[32rem]", (creating_otp || submitting_form) && "grid place-items-center ")}>
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
         {creating_otp ? (
           <>
-            <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
-            <p className="font-bold text-xl text-primary">Sending OTP</p>
+            <Snail className="h-24 w-auto stroke-1 stroke-primary/80 animate-pulse" />
+            <p className="font-semibold text-primary animate-pulse">Sending OTP</p>
           </>
         ) : submitting_form ? (
           <>
-            <Snail className="h-24 w-auto stroke-1 stroke-muted-foreground" />
-            <p className="font-bold text-muted-foreground animate-pulse">Creating new user</p>
+            <Snail className="h-24 w-auto stroke-1 stroke-primary/80 animate-pulse" />
+            <p className="font-medium text-primary animate-pulse">Creating new user</p>
           </>
         ) : (
           <>
@@ -124,15 +124,28 @@ export default function SignUpDialog() {
               autoFocus
             >
               <InputOTPGroup className="w-full flex justify-between space-x-5">
-                <InputOTPSlot index={0} className="aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l" />
+                <InputOTPSlot
+                  index={0}
+                  className="aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l"
+                />
                 <InputOTPSlot index={1} className="aspect-square  md:w-11 h-auto text-base border rounded" />
                 <InputOTPSlot index={2} className="aspect-square  md:w-11 h-auto text-base border rounded" />
                 <InputOTPSlot index={3} className="aspect-square  md:w-11 h-auto text-base border rounded" />
                 <InputOTPSlot index={4} className="aspect-square  md:w-11 h-auto text-base border rounded" />
-                <InputOTPSlot index={5} className="aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r" />
+                <InputOTPSlot
+                  index={5}
+                  className="aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r"
+                />
               </InputOTPGroup>
             </InputOTP>
-            <Button size="sm" variant="ghost" className="mx-auto" disabled={!resend.open} type="button" onClick={handleResend}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mx-auto"
+              disabled={!resend.open}
+              type="button"
+              onClick={handleResend}
+            >
               resend {!resend.open && "(" + resend.time + ")"}
             </Button>
             <Button
