@@ -29,28 +29,11 @@ jobs:
 
       - name: SSH to EC2 instance and restart server
         run: |
-          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_INSTANCE }} << EOF
-              source ~/.bashrc
-              source ~/.profile
-              cd ~/app/server
-             
-              
-              if ! command -v pnpm &> /dev/null; then
-                echo "corepack not found! Installing..."
-                npm install --global corepack@latest
-                corepack enable pnpm
-              fi
-              
-              if ! command -v pnpm &> /dev/null; then
-                echo "pnpm not found! Installing..."
-                corepack prepare pnpm@latest --activate
-              fi
-             
-              if ! command -v pm2 &> /dev/null; then
-                echo "pm2 not found! Installing..."
-                pnpm install -g pm2
-              fi
-              
-              pnpm install
-              pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
+          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_INSTANCE }} << "EOF"
+            set -e   
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 22.14.0
+            pnpm install --frozen-lockfile              
+            pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
           EOF
