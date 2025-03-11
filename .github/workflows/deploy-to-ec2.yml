@@ -2,10 +2,10 @@ name: Deploy to EC2
 
 on:
   push:
-    paths:
-      - "server/**"
+    # paths:
+    #   - "server/**"
     branches:
-      - "main"
+      - "wing"
 
 jobs:
   deploy_to_ec2:
@@ -23,8 +23,8 @@ jobs:
 
       - name: Push files to EC2 instance
         run: |-
-          rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' -e 
-          "ssh -i chat-up.pem" 
+          rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' \
+          -e  "ssh -i chat-up.pem" -o StrictHostKeyChecking=no" \
           ./server ubuntu@${{secrets.EC2_INSTANCE}}:~/app
 
       - name: SSH to EC2 instance and restart server
