@@ -47,5 +47,5 @@ jobs:
               fi
               
               pnpm install
-              pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- start
+              pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
           EOF
