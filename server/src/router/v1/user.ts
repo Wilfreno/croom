@@ -4,17 +4,14 @@ import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
-import { ClientSession, startSession } from "mongoose";
+import { ClientSession, Document, startSession, Types } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
 import Block from "../../database/models/Block";
 import { UTApi } from "uploadthing/server";
+import OTP from "../../database/models/Otp";
 
-export default function v1UserRouter(
-  fastify: FastifyInstance,
-  _: FastifyPluginOptions,
-  done: () => void
-) {
+export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
   fastify.post<{ Body: { reported_user: string; reason: string } }>(
     "/report",
@@ -49,7 +46,6 @@ export default function v1UserRouter(
   );
 
   //read user
-
   fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
     try {
       const { id } = request.params;
@@ -58,8 +54,7 @@ export default function v1UserRouter(
         .select("email display_name username last_online photo")
         .populate({ path: "photo", select: "url" });
 
-      if (!found_user)
-        return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
+      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
 
       return reply.code(200).send(JSONResponse("OK", "request successful"));
     } catch (error) {
@@ -67,49 +62,72 @@ export default function v1UserRouter(
       return reply;
     }
   });
-  fastify.get<{ Querystring: { value: string } }>(
-    "/search",
-    {
-      preValidation,
-    },
+  fastify.get<{ Querystring: { value: string } }>("/search", { preValidation }, async (request, reply) => {
+    try {
+      const { value } = request.query;
+      const user = request.user as UserSchema & { id: string };
+
+      const found_users = await User.find({
+        $and: [
+          {
+            $or: [
+              {
+                username: {
+                  $regex: "^" + value,
+                  $options: "i",
+                },
+              },
+              {
+                display_name: {
+                  $regex: "^" + value,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+          {
+            _id: { $ne: user.id },
+          },
+        ],
+      })
+        .select("display_name username photo status")
+        .populate({ path: "photo", select: "url" });
+
+      return reply.code(200).send(
+        JSONResponse(
+          "OK",
+          "request successful",
+          found_users.map((user) => user.toJSON())
+        )
+      );
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+
+  fastify.get<{ Params: { type: "email" | "username"; value: string } }>(
+    "/check/:type/:value",
     async (request, reply) => {
       try {
-        const { value } = request.query;
-        const user = request.user as UserSchema & { id: string };
+        const { type, value } = request.params;
 
-        const found_users = await User.find({
-          $and: [
-            {
-              $or: [
-                {
-                  username: {
-                    $regex: "^" + value,
-                    $options: "i",
-                  },
-                },
-                {
-                  display_name: {
-                    $regex: "^" + value,
-                    $options: "i",
-                  },
-                },
-              ],
-            },
-            {
-              _id: { $ne: user.id },
-            },
-          ],
-        })
-          .select("display_name username photo status")
-          .populate({ path: "photo", select: "url" });
+        switch (type) {
+          case "email": {
+            if (!(await User.exists({ email: value })))
+              return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
 
-        return reply.code(200).send(
-          JSONResponse(
-            "OK",
-            "request successful",
-            found_users.map((user) => user.toJSON())
-          )
-        );
+            break;
+          }
+          case "username": {
+            if (!(await User.exists({ username: value })))
+              return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
+
+            break;
+          }
+        }
+
+        return reply.code(200).send(JSONResponse("OK", "user found"));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -160,9 +178,7 @@ export default function v1UserRouter(
         }
       }
 
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", conversations));
+      return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -185,11 +201,7 @@ export default function v1UserRouter(
           const found_member = await User.findOne({ _id: member, status: "ONLINE" });
           if (found_member) {
             if (found_conversation.is_group_chat) {
-              conversations.push(
-                (
-                  await found_conversation.populate({ path: "photo", select: "url" })
-                ).toJSON()
-              );
+              conversations.push((await found_conversation.populate({ path: "photo", select: "url" })).toJSON());
             } else {
               conversations.push(
                 (
@@ -207,9 +219,7 @@ export default function v1UserRouter(
         }
       }
 
-      return reply
-        .code(200)
-        .send(JSONResponse("OK", "request successful", conversations));
+      return reply.code(200).send(JSONResponse("OK", "request successful", conversations));
     } catch (error) {
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
@@ -258,6 +268,7 @@ export default function v1UserRouter(
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
   });
+
   //update
   fastify.patch<{
     Params: { key: keyof UserSchema };
@@ -272,10 +283,7 @@ export default function v1UserRouter(
       const user = request.user as UserSchema & { id: string };
 
       const found_user = await User.findOne({ _id: user.id });
-      if (!found_user)
-        return reply
-          .code(409)
-          .send(JSONResponse("CONFLICT", "cannot update; user does not exist"));
+      if (!found_user) return reply.code(409).send(JSONResponse("CONFLICT", "cannot update; user does not exist"));
 
       session = await startSession();
       session.startTransaction();
@@ -284,16 +292,10 @@ export default function v1UserRouter(
       switch (key) {
         case "username": {
           if (!request.body.username)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "username is required on the request body")
-              );
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "username is required on the request body"));
 
           if (await User.exists({ username: request.body.username }))
-            return reply
-              .code(409)
-              .send(JSONResponse("CONFLICT", "username already exist"));
+            return reply.code(409).send(JSONResponse("CONFLICT", "username already exist"));
 
           await User.updateOne(
             { _id: user.id },
@@ -306,14 +308,7 @@ export default function v1UserRouter(
 
         case "display_name": {
           if (!request.body.display_name)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse(
-                  "BAD_REQUEST",
-                  "display_name is required on the request body"
-                )
-              );
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "display_name is required on the request body"));
 
           await User.updateOne(
             { _id: user.id },
@@ -327,16 +322,10 @@ export default function v1UserRouter(
         }
         case "password": {
           if (!request.body.password)
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "password is required on the request body")
-              );
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
 
           if (request.body.password.new !== request.body.password.confirm)
-            return reply
-              .code(400)
-              .send(JSONResponse("BAD_REQUEST", "new password is not the same"));
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "new password is not the same"));
 
           await User.updateOne(
             { _id: user.id },
@@ -353,9 +342,7 @@ export default function v1UserRouter(
         }
         case "photo": {
           if (!request.body.photo)
-            return reply
-              .code(400)
-              .send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "photo is required on the request body"));
 
           if (await Photo.findOne({ _id: request.body.photo.id })) {
             await User.updateOne(
@@ -372,9 +359,7 @@ export default function v1UserRouter(
             );
           } else {
             if ((await Photo.countDocuments({ owner: user.id, type: "PROFILE" })) > 4) {
-              const last_photo = await Photo.findOne()
-                .sort({ date_created: 1 })
-                .select("_id");
+              const last_photo = await Photo.findOne().sort({ date_created: 1 }).select("_id");
 
               await Photo.deleteOne({ _id: last_photo?.id }, { session });
             }
@@ -397,9 +382,7 @@ export default function v1UserRouter(
           break;
         }
         default: {
-          return reply
-            .code(400)
-            .send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
+          return reply.code(400).send(JSONResponse("BAD_REQUEST", "request parameter mus be a key of User"));
         }
       }
 
@@ -411,6 +394,49 @@ export default function v1UserRouter(
       await session?.abortTransaction();
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+
+  fastify.patch<{ Body: { email: string; password: string[]; pin: string } }>("/recover", async (request, reply) => {
+    let session: ClientSession | null = null;
+
+    try {
+      const { email, password, pin } = request.body;
+
+      console.log(email);
+      console.log(password);
+      console.log(pin);
+      if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email is required on the request body"));
+
+      if (!password)
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
+
+      if (!pin) return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp is required on the request body"));
+
+      if (password[0] !== password[1])
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is not the same"));
+
+      if (!(await OTP.exists({ email, pin, type: "RECOVER" })))
+        return reply.code(401).send(JSONResponse("UNAUTHORIZED", "invalid otp"));
+
+      session = await startSession();
+      session.startTransaction();
+
+      await User.updateOne(
+        { email },
+        { $set: { password: await hash(password[0], 14), last_updated: new Date() } },
+        { session }
+      );
+
+      await OTP.deleteOne({ email, pin, type: "RECOVER" }, { session });
+
+      await session.commitTransaction();
+      await session.endSession();
+
+      return reply.code(200).send(JSONResponse("OK", "password changed"));
+    } catch (error) {
+      await session?.abortTransaction();
+      fastify.log.error(error);
     }
   });
 

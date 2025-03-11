@@ -56,3 +56,10 @@ export type Block = {
   conversation: Conversation;
   date_created: Date;
 };
+
+export type Otp = {
+  email: string;
+  type: "SIGNUP" | "RECOVER";
+  pin: string;
+  date_created: Date;
+};

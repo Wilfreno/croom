@@ -1,7 +1,7 @@
 import { Body, Html, Tailwind, Heading, Section, Text, Container, Head, Hr, Link } from "@react-email/components";
 import * as React from "react";
 
-export default function Email({ username, code }: { username: string; code: string }) {
+export default function RecoverEmail({ username, code }: { username: string; code: string }) {
   return (
     <Html>
       <Head />
@@ -22,7 +22,8 @@ export default function Email({ username, code }: { username: string; code: stri
                 Hi <strong>{username}</strong>
               </Text>
               <Text>
-                Welcome to <strong>Chat Up !</strong> , Use the verification code below to proceed your sign up process:
+                An account recovery is requested for this email , Use the verification code below to proceed your
+                request:
               </Text>
             </Section>
             <Section className="my-[8dvh] text-center">
@@ -34,9 +35,10 @@ export default function Email({ username, code }: { username: string; code: stri
             <Section>
               <Text className="text-xs text-slate-500 text-justify">
                 This email is was sent to you from{" "}
-                <Link href="https://chatup-wing.vercel.app/">{"(https://chatup-wing.vercel.app/)"}</Link>. if you did
-                not expect an email from us reset your password, further secure your email address and email us on{" "}
-                <strong>chatup.dev@gmail.com</strong> so we can delete your information in our system.
+                <Link href="https://www.chat-up.xyz/">{"(https://www.chat-up.xyz/login)"}</Link>. if you did not expect
+                an email from us reset your password, further secure your email address. If you don't remember using
+                your email on our site, email us on <strong>chatup.dev.service@gmail.com</strong> so we can delete your
+                information in our system.
               </Text>
             </Section>
           </Container>

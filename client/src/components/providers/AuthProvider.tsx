@@ -7,7 +7,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import croom_logo from "../../../public/croom-logo.svg";
 import { toast } from "sonner";
 
-const AuthContext = createContext<{
+export type AuthContextType = {
   session: { user: User | null; update: (data: Partial<User>) => Promise<void> };
   logout: () => Promise<void>;
   login: (
@@ -25,16 +25,23 @@ const AuthContext = createContext<{
       display_name: string;
       pin: string;
     }) => Promise<void>;
-    createOTP: (email: string) => Promise<void>;
+    createOTP: (email: string, type: "SIGNUP" | "RECOVER") => Promise<void>;
   };
-} | null>(null);
+};
+
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+/**
+ *  A custom hook for the applications authentication system
+ *
+ * @returns  {AuthContext}
+ *
+ *  @see {@link AuthContext}
+ */
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context)
-    throw new Error(
-      "useSession hook is only available on components under SessionProvider"
-    );
+  if (!context) throw new Error("useSession hook is only available on components under SessionProvider");
   return context;
 }
 
@@ -45,15 +52,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   const server_url = process.env.NEXT_PUBLIC_SERVER;
-  if (!server_url)
-    throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
+  if (!server_url) throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
 
   async function getSession() {
     try {
       const { data, status } = await GETRequest<User>("/v1/auth/session");
 
       if (status !== "OK") {
-        if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up"))
+        if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up") && !pathname.startsWith("/recover"))
           router.replace("/login");
         return;
       }
@@ -64,10 +70,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  async function login(
-    strategy: "GOOGLE" | "LOCAL",
-    credentials: { username: string; password: string } | undefined
-  ) {
+  async function login(strategy: "GOOGLE" | "LOCAL", credentials: { username: string; password: string } | undefined) {
     switch (strategy) {
       case "GOOGLE": {
         try {
@@ -78,19 +81,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       }
       case "LOCAL": {
         try {
-          if (!credentials)
-            throw new Error("LOCAL strategy requires username and password credentials");
+          if (!credentials) throw new Error("LOCAL strategy requires username and password credentials");
 
           const { username, password } = credentials;
-          if (!username)
-            throw new Error(
-              "username is required on the credentials and cannot be empty"
-            );
+          if (!username) throw new Error("username is required on the credentials and cannot be empty");
 
-          if (!password)
-            throw new Error(
-              "password is required on the credentials and cannot be empty"
-            );
+          if (!password) throw new Error("password is required on the credentials and cannot be empty");
 
           const response = await fetch(server_url + "/v1/auth/local/login", {
             method: "POST",
@@ -121,10 +117,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  async function createOTP(email: string) {
+  async function createOTP(email: string, type: "SIGNUP" | "RECOVER") {
     try {
       const { status, message } = await POSTRequest("/v1/otp", {
         email,
+        type,
       });
 
       if (status !== "CREATED") throw new Error(message);
@@ -150,7 +147,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       const { status, message } = await POSTRequest("/v1/auth/signup", {
         email,
         password,
-        username: "@" + username,
+        username,
         display_name,
         pin,
       });
@@ -164,10 +161,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   async function update(updated_data: Partial<User>) {
     try {
-      const { data, message, status } = await PATCHRequest<User>(
-        "/v1/auth/update",
-        updated_data
-      );
+      const { data, message, status } = await PATCHRequest<User>("/v1/auth/update", updated_data);
 
       if (status !== "OK") {
         toast.error(message);
@@ -184,10 +178,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!session) return;
-    if (pathname.startsWith("/login") || pathname.startsWith("/sign-up"))
-      router.push("/");
-  }, [session]);
+    if (!session) {
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/sign-up") && !pathname.startsWith("/recover"))
+        router.push("/login");
+    } else {
+      if (pathname.startsWith("/login") || pathname.startsWith("/sign-up")) router.push("/");
+    }
+  }, [session, pathname]);
 
   return (
     <AuthContext.Provider
@@ -200,14 +197,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     >
       {session ? (
         children
-      ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") ? (
+      ) : pathname.startsWith("/login") || pathname.startsWith("/sign-up") || pathname.startsWith("/recover") ? (
         children
       ) : (
         <section className="fixed z-50 w-full h-full bg-background grid place-items-center ">
           <div className="relative flex flex-col items-center justify-center gap-2">
-            <Image src={croom_logo} alt="logo" className="" />
-            <span className="text-6xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
-              Croom
+            <Image src={croom_logo} alt="logo" className="aspect-square h-40 w-auto" />
+            <span className="text-5xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
+              Chatup
             </span>
           </div>
         </section>
