@@ -37,5 +37,9 @@ jobs:
             cd ~/app/server
             pnpm install --frozen-lockfile 
             pnpm install pm2 -g
-            pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
+           if ! pm2 restart chatup-server; then
+             echo "PM2 restart failed. Checking logs..."
+             pm2 logs chatup-server --lines 50
+             exit 1
+            fi
           EOF
