@@ -35,6 +35,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
            
             cd ~/app/server
-            pnpm install --frozen-lockfile              
+            pnpm install --frozen-lockfile 
+            pnpm install pm2 -g
             pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
           EOF
