@@ -13,8 +13,7 @@
 
 # Content
 - [Website](#website)
-- [Features](#features)
-- [Technology used](#technologies-used)
+- [Technology used](#technology-used)
 - [Run the app locally](#run-the-app-locally)
     - [Configure Client](#configure-client)
         - [Clone the repository](#clone-the-github-repository)
@@ -31,15 +30,24 @@
         
 
 # Website 
-:globe_with_meridians: <https://hanapbh.vercel.app/nearby>
+:globe_with_meridians: <https://www.chat-up.xyz/>
 
 # Technology Used
-- [Next.js](https://nextjs.org/)
-- [React.js](https://react.dev/)
-- [Tailwind-css](https://tailwindcss.com/)
-- [Mongoose.js](https://mongoosejs.com/)
-- [Fastify](https://fastify.dev/)
-- [Redis](https://redis.io/)
+- Client
+    - [Next.js](https://nextjs.org/)
+    - [React.js](https://react.dev/)
+    - [TanStack Query](https://tanstack.com/)
+    - [Tailwind-css](https://tailwindcss.com/)
+    - [ShadCN](https://ui.shadcn.com/)
+    - [UploadThing](https://uploadthing.com/)
+- Server
+    - [Mongoose.js](https://mongoosejs.com/)
+    - [Fastify](https://fastify.dev/)
+    - [Redis](https://redis.io/)
+    - [SocketIO](https://socket.io/)
+    - [Passport.js](https://www.passportjs.org)
+    - [Nodemailer](https://www.nodemailer.com/)
+
 
 # Run the App Locally
 ## Clone the github [repository](https://github.com/Wilfreno/chatup)
