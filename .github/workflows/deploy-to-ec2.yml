@@ -28,6 +28,24 @@ jobs:
           ./server ubuntu@${{secrets.EC2_INSTANCE}}:~/app
 
       - name: SSH to EC2 instance and restart server
-        run: |-
-          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{secrets.EC2_INSTANCE}} \
-          "bash -l -c 'cd ~/app/server && pnpm install && pm2 restart chatup-server'"
+        run: |
+          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_INSTANCE }} << EOF
+              source ~/.bashrc
+              source ~/.profile
+              cd ~/app/server
+             
+              corepack enable pnpm
+
+              if ! command -v pnpm &> /dev/null; then
+                echo "pnpm not found! Installing..."
+                corepack prepare pnpm@latest --activate
+              fi
+             
+              if ! command -v pm2 &> /dev/null; then
+                echo "pm2 not found! Installing..."
+                pnpm install -g pm2
+              fi
+              
+              pnpm install
+              pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- start
+          EOF
