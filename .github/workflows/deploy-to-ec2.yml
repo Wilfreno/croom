@@ -2,10 +2,10 @@ name: Deploy to EC2
 
 on:
   push:
-    paths:
-      - "server/**"
+    # paths:
+    #   - "server/**"
     branches:
-      - "main"
+      - "wing"
 
 jobs:
   deploy_to_ec2:
@@ -30,22 +30,37 @@ jobs:
       - name: SSH to EC2 instance and restart server
         run: |
           ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_INSTANCE }} << "EOF"
+            
+            echo "load NVM into the SSH connection"
             set -e   
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
            
+            echo "go to server directory"
             cd ~/app/server
 
-            pnpm install --frozen-lockfile 
+            echo "install all dependencies"
+            pnpm install --frozen-lockfile
+            
+            echo "setup pnpm to enable global installment of dependencies"
             pnpm setup
             export PNPM_HOME=$(pnpm env get PNPM_HOME)
             export PATH="$PNPM_HOME:$PATH"
 
+            echo "install pm2"
             pnpm install pm2 -g
 
-           if ! pm2 restart chatup-server; then
-             echo "PM2 restart failed. Checking logs..."
-             pm2 logs chatup-server --lines 50
-             exit 1
-            fi
+            echo "save environment variables"
+            printf "%s" "${{secrets.SERVER_ENV}}" > .env
+
+            echo "build project"
+            pnpm build
+
+            echo "create session key"
+            cd /build
+            npx --yes @fastify/secure-session > session-key
+
+            echo "restart server"
+            cd ..
+            pm2 restart chatup-server --update-env || pm2 start pnpm --name "chatup-server" -- run start
           EOF
