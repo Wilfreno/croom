@@ -35,6 +35,9 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22.14.0
             
+            NODE_PATH="\$(nvm which 22.14.0)"
+            export PATH="\$(dirname \$NODE_PATH):\$PATH"
+
             export PATH="\$HOME/.local/share/pnpm:\$PATH"
             export PNPM_HOME="\$HOME/.local/share/pnpm"
             export PATH="\$PNPM_HOME:\$PATH"
