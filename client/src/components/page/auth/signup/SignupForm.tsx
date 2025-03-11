@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { Suspense } from "react";
 import SignupEmailInput from "./SignupEmailInput";
 import SignupUsernameInput from "./SignupUsernameInput";
 import SignupDisplaynameInput from "./SignupDisplaynameInput";
@@ -19,7 +19,9 @@ export default function SignUpForm() {
         </div>
         <SignUpDialog />
       </form>
-      <SignupNavigateToLoginPage />
+      <Suspense>
+        <SignupNavigateToLoginPage />
+      </Suspense>
     </section>
   );
 }
