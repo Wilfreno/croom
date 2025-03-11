@@ -37,6 +37,10 @@ jobs:
             
             NODE_PATH="\$(nvm which 22.14.0)"
             export PATH="\$(dirname \$NODE_PATH):\$PATH"
+            if ! command -v corepack &> /dev/null; then
+               npm install --global corepack@latest
+            fi
+
 
             export PATH="\$HOME/.local/share/pnpm:\$PATH"
             export PNPM_HOME="\$HOME/.local/share/pnpm"
