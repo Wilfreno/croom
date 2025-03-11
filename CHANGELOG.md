@@ -1,3 +1,13 @@
+## [1.0.3](https://github.com/Wilfreno/chatup/compare/v1.0.2...v1.0.3) (2025-03-11)
+
+
+### Bug Fixes
+
+* does not go to server directory when connection to ec2 instance ([fd7e619](https://github.com/Wilfreno/chatup/commit/fd7e619083a5a4b30873734e041021f3ca49d662))
+* run command for pushing files on ec2 instance action ([23133b9](https://github.com/Wilfreno/chatup/commit/23133b9baee9ec6d576bc243b7e3fca59679e599))
+* typo on run command for pushing files on ec2 instance action ([fc0cdc8](https://github.com/Wilfreno/chatup/commit/fc0cdc8e8a400a195f3ec904c68b4b4f3c07bd02))
+* use production instead of start ([3afca20](https://github.com/Wilfreno/chatup/commit/3afca208b15136dd79ca106485da2f734c46e01e))
+
 ## [1.0.2](https://github.com/Wilfreno/chatup/compare/v1.0.1...v1.0.2) (2025-03-11)
 
 
