@@ -35,11 +35,14 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
            
             cd ~/app/server
+
             pnpm install --frozen-lockfile 
             pnpm setup
+            export PNPM_HOME=$(pnpm env get PNPM_HOME)
+            export PATH="$PNPM_HOME:$PATH"
+
             pnpm install pm2 -g
 
-            
            if ! pm2 restart chatup-server; then
              echo "PM2 restart failed. Checking logs..."
              pm2 logs chatup-server --lines 50
