@@ -29,11 +29,5 @@ jobs:
 
       - name: SSH to EC2 instance and restart server
         run: |-
-          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{secrets.EC2_INSTANCE}} << EOF
-            source ~/.bashrc
-            source ~/.profile
-            export PATH=$PATH:/home/ubuntu/.local/bin 
-            cd ~/app/server
-            pnpm install
-            pm2 restart chatup-server
-          EOF
+          ssh -i "chat-up.pem" -o StrictHostKeyChecking=no ubuntu@${{secrets.EC2_INSTANCE}} \
+          "bash -l -c 'cd ~/app/server && pnpm install && pm2 restart chatup-server'"
