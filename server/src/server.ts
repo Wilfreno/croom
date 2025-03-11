@@ -19,14 +19,12 @@ const redis_host = "127.0.0.1";
 
 if (node_env === "production") {
   client_origin = process.env.CLIENT_PRODUCTION_ORIGIN;
-  if (!client_origin)
-    throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
+  if (!client_origin) throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
 
   if (!redis_host) throw new Error("REDIS_HOST does not exist as environment variable");
 } else {
   client_origin = process.env.CLIENT_DEVELOPMENT_ORIGIN;
-  if (!client_origin)
-    throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
+  if (!client_origin) throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
 }
 
 const fastify = Fastify({

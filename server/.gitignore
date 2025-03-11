@@ -1,6 +1,6 @@
 
 /node_modules
-/react-email
+/react-email/node_modules
 /build
 
 .env
