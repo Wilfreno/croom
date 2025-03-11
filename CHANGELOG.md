@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Wilfreno/chatup/compare/v1.0.0...v1.0.1) (2025-03-11)
+
+
+### Bug Fixes
+
+*  SignupNavigateToLoginPage component is not wrapped with a Suspense component ([5ec2766](https://github.com/Wilfreno/chatup/commit/5ec276664d8588b766133e4ddbfca5e04f0318d0))
+
 # 1.0.0 (2025-02-25)
 
 
