@@ -34,6 +34,8 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm use 22.14.0
+            
+            cd ~/app/server
             pnpm install --frozen-lockfile              
             pm2 restart chatup-server || pm2 start pnpm --name "chatup-server" -- production
           EOF
