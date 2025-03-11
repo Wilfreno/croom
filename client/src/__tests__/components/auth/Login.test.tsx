@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import LoginForm from "@/components/page/auth/login/LoginForm";
 import userEvent from "@testing-library/user-event";
@@ -36,10 +36,8 @@ describe("Logging in", () => {
       </MockAuthProvider>
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Connect and Chat with your friends and Communities" })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "we're excited to see you" })).toBeInTheDocument();
+    expect(screen.getByTestId("login-page-h1")).toBeInTheDocument();
+    expect(screen.getByTestId("login-page-h2")).toBeInTheDocument();
   });
 
   it("should display a link to signup page", () => {
@@ -47,16 +45,15 @@ describe("Logging in", () => {
 
     expect(screen.getByRole("link", { name: "Sign Up" }));
   });
+
   describe("Login w/ credentials", () => {
-    beforeEach(() => {
+    it("should display a form, username input, password input, and a button", () => {
       render(
         <MockAuthProvider>
           <LoginForm />
         </MockAuthProvider>
       );
-    });
 
-    it("should display a form, username input, password input, and a button", () => {
       expect(screen.getByTestId("login-form")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
       expect(screen.getByPlaceholderText("Password")).toBeInTheDocument();
@@ -64,6 +61,12 @@ describe("Logging in", () => {
     });
 
     it("disables login button when username or password input is empty", async () => {
+      render(
+        <MockAuthProvider>
+          <LoginForm />
+        </MockAuthProvider>
+      );
+
       const login_button = screen.getByRole("button", { name: /login/i });
       const username_input = screen.getByPlaceholderText(/username/i);
       const password_input = screen.getByPlaceholderText(/password/i);
@@ -82,7 +85,6 @@ describe("Logging in", () => {
     });
 
     it("renders succinct error message message that is displayed temporarily.", async () => {
-      // renders the LoginForm component with the MockAuthProvider and simulates the login function that is context by the MockAuthProvider
       render(
         <MockAuthProvider
           mock_data={{
@@ -102,7 +104,7 @@ describe("Logging in", () => {
         </MockAuthProvider>
       );
 
-      const login_button = screen.getByRole("button", { name: /login/i });
+      const login_button = screen.getByRole("button", { name: "Login" });
       const username_input = screen.getByPlaceholderText(/username/i);
       const password_input = screen.getByPlaceholderText(/password/i);
 
@@ -145,7 +147,7 @@ describe("Logging in", () => {
         </MockAuthProvider>
       );
 
-      expect(screen.getByRole("button", { name: "Continue with GOOGLE" })).toBeInTheDocument();
+      expect(screen.getByTestId("login-w-google")).toBeInTheDocument();
     });
 
     it('redirects to GOOGLE OAuth when the user click the "Continue with Google" button', async () => {
@@ -168,6 +170,4 @@ describe("Logging in", () => {
       expect(router.push).toHaveBeenCalledWith("/");
     });
   });
-
-  describe("Forgot password", () => {});
 });

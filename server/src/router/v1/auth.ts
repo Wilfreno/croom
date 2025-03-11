@@ -80,25 +80,6 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
 
   fastify.post("/local/login", passport.authenticate("local"));
 
-  fastify.post<{ Body: { email: string } }>("/recover", async (request, reply) => {
-    let session: ClientSession | null = null;
-
-    try {
-      const { email } = request.body;
-
-      if (!User.exists({ email })) return reply.code(404).send(JSONResponse("NOT_FOUND", "user does not exist"));
-
-      session = await startSession();
-      session.startTransaction();
-      //
-      await session.commitTransaction();
-      await session.endSession();
-    } catch (error) {
-      await session?.abortTransaction();
-      fastify.log.error(error);
-      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-    }
-  });
   //read
   fastify.get("/google/login", passport.authenticate("google"));
   fastify.get(

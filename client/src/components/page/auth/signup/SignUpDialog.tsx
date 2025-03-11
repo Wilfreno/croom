@@ -41,7 +41,7 @@ export default function SignUpDialog() {
       setResend((prev) => ({ ...prev, time: prev.time - 1 }));
     }, 1000);
     setResend((prev) => ({ ...prev, open: false, interval_id: id }));
-    await createOTP(form!.email);
+    await createOTP(form!.email, "SIGNUP");
     setResend((prev) => ({ ...prev, interval_id: id }));
   }
 
@@ -57,7 +57,7 @@ export default function SignUpDialog() {
       onOpenChange={async (e) => {
         if (!e) return;
         setCreatingOTP(true);
-        await createOTP(form!.email);
+        await createOTP(form!.email, "SIGNUP");
         setCreatingOTP(false);
       }}
     >

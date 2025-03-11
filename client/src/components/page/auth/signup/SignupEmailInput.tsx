@@ -64,7 +64,7 @@ export default function SignupEmailInput() {
           return;
         }
 
-        const { status, message } = await GETRequest("/v1/user/email/" + debounced_email_value);
+        const { status, message } = await GETRequest("/v1/user/check/email/" + debounced_email_value);
         if (status === "OK") {
           query_client.setQueryData<{ checking: boolean; status?: "ALREADY_USED" | "AVAILABLE" | "INVALID" }>(
             ["signup", "form", "email", "check"],
@@ -127,7 +127,12 @@ export default function SignupEmailInput() {
               email_check?.status === "ALREADY_USED" && "border-destructive border-2 focus-visible:ring-destructive"
             )}
           />
-          {email_check?.checking && <Loading data-testid="email-input-loading" className="h-4 w-auto absolute top-1/2 -translate-y-1/2 right-2" />}
+          {email_check?.checking && (
+            <Loading
+              data-testid="email-input-loading"
+              className="h-4 w-auto absolute top-1/2 -translate-y-1/2 right-2"
+            />
+          )}
         </div>
         {email_check?.status === "AVAILABLE" && (
           <span data-testid="email-available" className="text-xs text-green-500">

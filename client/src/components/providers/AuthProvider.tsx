@@ -25,11 +25,19 @@ export type AuthContextType = {
       display_name: string;
       pin: string;
     }) => Promise<void>;
-    createOTP: (email: string) => Promise<void>;
+    createOTP: (email: string, type: "SIGNUP" | "RECOVER") => Promise<void>;
   };
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
+/**
+ *  A custom hook for the applications authentication system
+ *
+ * @returns  {AuthContext}
+ *
+ *  @see {@link AuthContext}
+ */
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -109,10 +117,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }
 
-  async function createOTP(email: string) {
+  async function createOTP(email: string, type: "SIGNUP" | "RECOVER") {
     try {
       const { status, message } = await POSTRequest("/v1/otp", {
         email,
+        type,
       });
 
       if (status !== "CREATED") throw new Error(message);

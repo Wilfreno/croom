@@ -20,7 +20,7 @@ import { ServerResponse } from "@/lib/server/requests";
 import SignupPasswordInput from "@/components/page/auth/signup/SignupPasswordInput";
 import SignUpDialog from "@/components/page/auth/signup/SignUpDialog";
 import React from "react";
-// module mocks
+
 vi.mock(import("@tanstack/react-query"), async (importOriginal) => {
   const mod = await importOriginal();
 
@@ -36,10 +36,9 @@ vi.mock("@/lib/server/requests", () => ({
       message: "",
       status: "NOT_FOUND",
     };
-    if ((path as string).startsWith("/v1/user/email")) {
+    if ((path as string).startsWith("/v1/user/check/email")) {
       const path_array = (path as string).split("/");
-
-      if (path_array[4] === mock_data.user.email)
+      if (path_array.pop() === mock_data.user.email)
         response = {
           data: null,
           message: "",
@@ -47,10 +46,10 @@ vi.mock("@/lib/server/requests", () => ({
         };
     }
 
-    if ((path as string).startsWith("/v1/user/username")) {
+    if ((path as string).startsWith("/v1/user/check/username")) {
       const path_array = (path as string).split("/");
 
-      if (path_array[4] === mock_data.user.username)
+      if (path_array.pop() === mock_data.user.username)
         response = {
           data: null,
           message: "",
@@ -133,15 +132,15 @@ describe("Signing up", () => {
 
       await userEvent.type(email_input, mock_data.user.email);
 
-      expect(await screen.findByTestId("email-already-used")).toBeInTheDocument();
+      expect(screen.getByTestId("email-already-used")).toBeInTheDocument();
     });
 
-    it("should display a message when the email is already used", async () => {
+    it("should display a message when the email is invalid", async () => {
       const email_input = screen.getByPlaceholderText("Email");
 
       await userEvent.type(email_input, "email");
 
-      expect(await screen.findByTestId("email-invalid")).toBeInTheDocument();
+      expect(screen.getByTestId("email-invalid")).toBeInTheDocument();
     });
   });
 

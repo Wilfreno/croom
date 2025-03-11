@@ -4,11 +4,12 @@ import JSONResponse from "../../lib/json-response";
 import User, { UserSchema } from "../../database/models/User";
 import Photo from "../../database/models/Photo";
 import Conversation from "../../database/models/Conversation";
-import { ClientSession, startSession } from "mongoose";
+import { ClientSession, Document, startSession, Types } from "mongoose";
 import { preValidation } from "../../lib/middleware";
 import Report from "../../database/models/Report";
 import Block from "../../database/models/Block";
 import { UTApi } from "uploadthing/server";
+import OTP from "../../database/models/Otp";
 
 export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   //create user
@@ -45,7 +46,6 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
   );
 
   //read user
-
   fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
     try {
       const { id } = request.params;
@@ -62,82 +62,78 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       return reply;
     }
   });
-  fastify.get<{ Querystring: { value: string } }>(
-    "/search",
-    {
-      preValidation,
-    },
+  fastify.get<{ Querystring: { value: string } }>("/search", { preValidation }, async (request, reply) => {
+    try {
+      const { value } = request.query;
+      const user = request.user as UserSchema & { id: string };
+
+      const found_users = await User.find({
+        $and: [
+          {
+            $or: [
+              {
+                username: {
+                  $regex: "^" + value,
+                  $options: "i",
+                },
+              },
+              {
+                display_name: {
+                  $regex: "^" + value,
+                  $options: "i",
+                },
+              },
+            ],
+          },
+          {
+            _id: { $ne: user.id },
+          },
+        ],
+      })
+        .select("display_name username photo status")
+        .populate({ path: "photo", select: "url" });
+
+      return reply.code(200).send(
+        JSONResponse(
+          "OK",
+          "request successful",
+          found_users.map((user) => user.toJSON())
+        )
+      );
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+
+  fastify.get<{ Params: { type: "email" | "username"; value: string } }>(
+    "/check/:type/:value",
     async (request, reply) => {
       try {
-        const { value } = request.query;
-        const user = request.user as UserSchema & { id: string };
+        const { type, value } = request.params;
 
-        const found_users = await User.find({
-          $and: [
-            {
-              $or: [
-                {
-                  username: {
-                    $regex: "^" + value,
-                    $options: "i",
-                  },
-                },
-                {
-                  display_name: {
-                    $regex: "^" + value,
-                    $options: "i",
-                  },
-                },
-              ],
-            },
-            {
-              _id: { $ne: user.id },
-            },
-          ],
-        })
-          .select("display_name username photo status")
-          .populate({ path: "photo", select: "url" });
+        switch (type) {
+          case "email": {
+            if (!(await User.exists({ email: value })))
+              return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
 
-        return reply.code(200).send(
-          JSONResponse(
-            "OK",
-            "request successful",
-            found_users.map((user) => user.toJSON())
-          )
-        );
+            break;
+          }
+          case "username": {
+            if (!(await User.exists({ username: value })))
+              return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
+
+            break;
+          }
+        }
+
+        return reply.code(200).send(JSONResponse("OK", "user found"));
       } catch (error) {
         fastify.log.error(error);
         return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
       }
     }
   );
-
-  fastify.get<{ Params: { email: string } }>("/email/:email", async (request, reply) => {
-    try {
-      const { email } = request.params;
-      const found_user = await User.findOne({ email });
-
-      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
-
-      return reply.code(200).send(JSONResponse("OK", "user found"));
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-    }
-  });
-  fastify.get<{ Params: { username: string } }>("/username/:username", async (request, reply) => {
-    try {
-      const { username } = request.params;
-
-      const found_user = await User.findOne({ username });
-      if (!found_user) return reply.code(404).send(JSONResponse("NOT_FOUND", "email is does not exist"));
-
-      return reply.code(200).send(JSONResponse("OK", "user found"));
-    } catch (error) {
-      fastify.log.error(error);
-      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
-    }
-  });
   fastify.get("/conversations", { preValidation }, async (request, reply) => {
     try {
       const user = request.user as UserSchema & { id: string };
@@ -398,6 +394,49 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       await session?.abortTransaction();
       fastify.log.error(error);
       return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
+    }
+  });
+
+  fastify.patch<{ Body: { email: string; password: string[]; pin: string } }>("/recover", async (request, reply) => {
+    let session: ClientSession | null = null;
+
+    try {
+      const { email, password, pin } = request.body;
+
+      console.log(email);
+      console.log(password);
+      console.log(pin);
+      if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email is required on the request body"));
+
+      if (!password)
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
+
+      if (!pin) return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp is required on the request body"));
+
+      if (password[0] !== password[1])
+        return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is not the same"));
+
+      if (!(await OTP.exists({ email, pin, type: "RECOVER" })))
+        return reply.code(401).send(JSONResponse("UNAUTHORIZED", "invalid otp"));
+
+      session = await startSession();
+      session.startTransaction();
+
+      await User.updateOne(
+        { email },
+        { $set: { password: await hash(password[0], 14), last_updated: new Date() } },
+        { session }
+      );
+
+      await OTP.deleteOne({ email, pin, type: "RECOVER" }, { session });
+
+      await session.commitTransaction();
+      await session.endSession();
+
+      return reply.code(200).send(JSONResponse("OK", "password changed"));
+    } catch (error) {
+      await session?.abortTransaction();
+      fastify.log.error(error);
     }
   });
 

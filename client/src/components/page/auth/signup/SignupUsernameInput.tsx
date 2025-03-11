@@ -51,7 +51,7 @@ export default function SignupUsernameInput() {
           }
         );
 
-        const { status, message } = await GETRequest("/v1/user/username/@" + debounced_username);
+        const { status, message } = await GETRequest("/v1/user/check/username/@" + debounced_username);
 
         if (status === "OK") {
           query_client.setQueryData<{ checking: boolean; status?: "ALREADY_USED" | "AVAILABLE" }>(

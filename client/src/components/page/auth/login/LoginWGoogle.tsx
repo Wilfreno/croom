@@ -9,6 +9,7 @@ export default function LoginWGoogle() {
 
   return (
     <Button
+      data-testid="login-w-google"
       variant="secondary"
       onClick={async () => {
         await login("GOOGLE");

@@ -25,7 +25,7 @@ const otpSchema = new Schema<OTPSchema>(
     date_created: {
       type: Date,
       default: Date.now,
-      expires: 60 * 30,
+      expires: 60 * 10,
     },
   },
   { versionKey: false }
