@@ -24,7 +24,7 @@ jobs:
       - name: Push files to EC2 instance
         run: |
           rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' \
-          -e  "ssh -i chat-up.pem" -o StrictHostKeyChecking=no \
+          -e  "ssh -i chat-up.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
           ./server ubuntu@${{secrets.EC2_INSTANCE}}:~/app
 
       - name: SSH to EC2 instance and restart server
