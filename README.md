@@ -30,7 +30,7 @@
         
 
 # Website 
-:globe_with_meridians: <https://hanapbh.vercel.app/nearby>
+:globe_with_meridians: <https://www.chat-up.xyz/>
 
 # Technology Used
 - Client
