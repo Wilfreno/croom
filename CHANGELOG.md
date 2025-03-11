@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/Wilfreno/chatup/compare/v1.0.1...v1.0.2) (2025-03-11)
+
+
+### Bug Fixes
+
+* action for server deployment uses env instead of action secret directly ([9917d54](https://github.com/Wilfreno/chatup/commit/9917d542ec527699bbe3c63db1266c3c6d24d638))
+
 ## [1.0.1](https://github.com/Wilfreno/chatup/compare/v1.0.0...v1.0.1) (2025-03-11)
 
 
