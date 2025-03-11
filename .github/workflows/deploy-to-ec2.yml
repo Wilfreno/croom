@@ -2,10 +2,10 @@ name: Deploy to EC2
 
 on:
   push:
-    # paths:
-    #   - "server/**"
+    paths:
+      - "server/**"
     branches:
-      - "wing"
+      - "main"
 
 jobs:
   deploy_to_ec2:
