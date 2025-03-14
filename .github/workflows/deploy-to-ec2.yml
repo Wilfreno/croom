@@ -51,7 +51,7 @@ jobs:
             pnpm add pm2 -g
 
             echo "save environment variables"
-            echo "${{secrets.SERVER_ENV}}"| base64 --decode > .env
+            printf "%s" "${{secrets.SERVER_ENV}}" | base64 --decode > .env
 
             echo "build project"
             pnpm build

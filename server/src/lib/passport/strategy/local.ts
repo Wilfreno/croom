@@ -12,14 +12,11 @@ export default function localStrategy() {
       });
 
       if (!found_user) return done(new Error("User does not exist"));
-      if (!found_user.password)
-        return done(new Error("Cannot login via credentials, login via GOOGLE"));
-      if (!(await compare(found_user.password, password)))
-        return done(new Error("Incorrect password"));
+      if (!found_user.password) return done(new Error("Cannot login via credentials, login via GOOGLE"));
+      if (!(await compare(found_user.password, password))) return done(new Error("Incorrect password"));
 
       return done(null, exclude(found_user.toJSON(), ["password"]));
     } catch (error) {
-      console.log("ERROR::", error);
       return done(new Error("Oops! something went wrong"));
     }
   });
