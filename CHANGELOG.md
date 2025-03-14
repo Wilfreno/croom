@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/Wilfreno/chatup/compare/v1.0.4...v1.0.5) (2025-03-14)
+
+
+### Bug Fixes
+
+* deploy to ec2 instance action pushes the server directory on ~/app/server instead of ~/app ([6824f3b](https://github.com/Wilfreno/chatup/commit/6824f3bd1f6935b972bd269f0e0a84f1b1cafe06))
+
 ## [1.0.4](https://github.com/Wilfreno/chatup/compare/v1.0.3...v1.0.4) (2025-03-14)
 
 
