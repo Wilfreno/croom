@@ -8,11 +8,7 @@ import v1AuthRouter from "./auth";
 import v1PhotoRouter from "./photo";
 import v1BlockRouter from "./block";
 
-export default function v1Router(
-  fastify: FastifyInstance,
-  _: FastifyPluginOptions,
-  done: () => void
-) {
+export default function v1Router(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   fastify.register(v1AuthRouter, { prefix: "/auth" });
   fastify.register(v1UserRouter, { prefix: "/user" });
   fastify.register(v1OTPRouter, { prefix: "/otp" });
