@@ -94,7 +94,6 @@ fastify.register(connectToDB).then(async () => {
     .catch((error) => {
       fastify.log.error(error);
       fastify.redis["sub"].unsubscribe("MESSAGE");
-      fastify.redis["sub"].unsubscribe("NOTIFICATION");
       fastify.redis["storage"].quit();
       process.exit(1);
     });
