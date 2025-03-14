@@ -1,3 +1,10 @@
+## [1.0.8](https://github.com/Wilfreno/chatup/compare/v1.0.7...v1.0.8) (2025-03-14)
+
+
+### Bug Fixes
+
+* storing .env to ec2 instance with echo ([109d904](https://github.com/Wilfreno/chatup/commit/109d904c333feaa9fd5ae0d08f540b136919011d))
+
 ## [1.0.7](https://github.com/Wilfreno/chatup/compare/v1.0.6...v1.0.7) (2025-03-14)
 
 
