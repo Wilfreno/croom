@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Wilfreno/chatup/compare/v1.0.3...v1.0.4) (2025-03-14)
+
+
+### Bug Fixes
+
+* cors policy not accepting right domain name ([9f64161](https://github.com/Wilfreno/chatup/commit/9f6416162b3d900174a3fb07bfaa606afc51c317))
+
 ## [1.0.3](https://github.com/Wilfreno/chatup/compare/v1.0.2...v1.0.3) (2025-03-11)
 
 
