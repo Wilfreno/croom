@@ -40,7 +40,7 @@ jobs:
             cd ~/app
 
             echo "install all dependencies"
-            pnpm install --frozen-lockfile
+            pnpm install 
             
             echo "setup pnpm to enable global installment of dependencies"
             pnpm setup
@@ -48,10 +48,10 @@ jobs:
             export PATH="$PNPM_HOME:$PATH"
 
             echo "install pm2"
-            pnpm install pm2 -g
+            pnpm add pm2 -g
 
             echo "save environment variables"
-            printf "%s" "${{secrets.SERVER_ENV}}" > .env
+            echo "${{secrets.SERVER_ENV}}"| base64 --decode > .env
 
             echo "build project"
             pnpm build
