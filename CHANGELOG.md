@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/Wilfreno/chatup/compare/v1.0.5...v1.0.6) (2025-03-14)
+
+
+### Bug Fixes
+
+* delete redis subscription to NOTIFICATION channel ([d644f14](https://github.com/Wilfreno/chatup/commit/d644f14fb3250a9f7df18e3d8f5d7d822a32eec9))
+
 ## [1.0.5](https://github.com/Wilfreno/chatup/compare/v1.0.4...v1.0.5) (2025-03-14)
 
 
