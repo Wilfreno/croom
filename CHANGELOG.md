@@ -1,3 +1,10 @@
+## [1.0.9](https://github.com/Wilfreno/chatup/compare/v1.0.8...v1.0.9) (2025-03-14)
+
+
+### Bug Fixes
+
+* disable base 64 encoding of .env while deploying to ec2 instance ([1ee9e1f](https://github.com/Wilfreno/chatup/commit/1ee9e1f2e922b09f9d0339e0bd159400b83df543))
+
 ## [1.0.8](https://github.com/Wilfreno/chatup/compare/v1.0.7...v1.0.8) (2025-03-14)
 
 
