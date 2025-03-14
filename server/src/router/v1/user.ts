@@ -401,12 +401,9 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
 
     try {
       const { email, password, pin } = request.body;
-
       if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email is required on the request body"));
-
       if (!password)
         return reply.code(400).send(JSONResponse("BAD_REQUEST", "password is required on the request body"));
-
       if (!pin) return reply.code(400).send(JSONResponse("BAD_REQUEST", "otp is required on the request body"));
 
       if (password[0] !== password[1])
