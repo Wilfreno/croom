@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/Wilfreno/chatup/compare/v1.0.6...v1.0.7) (2025-03-14)
+
+
+### Bug Fixes
+
+* improper storing of secrets to .env file on ec2 instancee ([ebbe396](https://github.com/Wilfreno/chatup/commit/ebbe396923a142c64a8d5b6662c758a4573d5aa6))
+
 ## [1.0.6](https://github.com/Wilfreno/chatup/compare/v1.0.5...v1.0.6) (2025-03-14)
 
 
