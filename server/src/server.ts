@@ -14,17 +14,23 @@ import socketio from "fastify-socket.io";
 import socketIOServer from "./websocket/socketio-server";
 
 const node_env = process.env.NODE_ENV!;
-let client_origin;
+let client_origin = [];
 const redis_host = "127.0.0.1";
 
 if (node_env === "production") {
-  client_origin = process.env.CLIENT_PRODUCTION_ORIGIN;
-  if (!client_origin) throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
+  const client_origin_1 = process.env.CLIENT_PRODUCTION_ORIGIN_1;
+  if (!client_origin_1) throw new Error("CLIENT_PRODUCTION_ORIGIN_1 is missing from your .env file");
+  client_origin.push(client_origin_1);
+
+  const client_origin_2 = process.env.CLIENT_PRODUCTION_ORIGIN_2;
+  if (!client_origin_2) throw new Error("CLIENT_PRODUCTION_ORIGIN_2 is missing from your .env file");
+  client_origin.push(client_origin_2);
 
   if (!redis_host) throw new Error("REDIS_HOST does not exist as environment variable");
 } else {
-  client_origin = process.env.CLIENT_DEVELOPMENT_ORIGIN;
-  if (!client_origin) throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
+  const client_origin_1 = process.env.CLIENT_DEVELOPMENT_ORIGIN;
+  if (!client_origin_1) throw new Error("CLIENT_DEVELOPMENT_ORIGIN is missing from your .env file");
+  client_origin.push(client_origin_1);
 }
 
 const fastify = Fastify({

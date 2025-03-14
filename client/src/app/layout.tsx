@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import AuthProvider from "@/components/providers/AuthProvider";
 import SocketIOProvider from "@/components/providers/SocketIOProvider";
+import { Analytics } from "@vercel/analytics/react";
 
 const work_sans = Work_Sans({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           </AuthProvider>
         </ReactQueryProvider>
         <Toaster richColors expand={true} />
+        <Analytics />
       </body>
     </html>
   );
