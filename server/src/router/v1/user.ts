@@ -288,7 +288,6 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       session = await startSession();
       session.startTransaction();
 
-      console.log(request.body.username);
       switch (key) {
         case "username": {
           if (!request.body.username)
@@ -403,9 +402,6 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
     try {
       const { email, password, pin } = request.body;
 
-      console.log(email);
-      console.log(password);
-      console.log(pin);
       if (!email) return reply.code(400).send(JSONResponse("BAD_REQUEST", "email is required on the request body"));
 
       if (!password)
