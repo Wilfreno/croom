@@ -37,7 +37,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
            
             echo "go to server directory"
-            cd ~/app
+            cd ~/server
 
             echo "install all dependencies"
             pnpm install 

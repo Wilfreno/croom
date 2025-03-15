@@ -10,7 +10,6 @@ export default function v1PhotoRouter(fastify: FastifyInstance, _: FastifyPlugin
   const upload_thing_api = new UTApi({});
   fastify.delete<{ Body: { id: string } }>("/", { preValidation }, async (request, reply) => {
     let session: ClientSession | null = null;
-
     try {
       const { id } = request.body;
       const user = request.user as UserSchema & { id: string };
