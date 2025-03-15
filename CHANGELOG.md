@@ -1,3 +1,10 @@
+## [1.0.13](https://github.com/Wilfreno/chatup/compare/v1.0.12...v1.0.13) (2025-03-15)
+
+
+### Bug Fixes
+
+* deploying to ec2 instance creates ERR_PNPM_ENV_UNKNOWN_SUBCOMMAND This subcommand is not known ([7f2699a](https://github.com/Wilfreno/chatup/commit/7f2699a8699038af8950dd117494274da5262dca))
+
 ## [1.0.12](https://github.com/Wilfreno/chatup/compare/v1.0.11...v1.0.12) (2025-03-15)
 
 
