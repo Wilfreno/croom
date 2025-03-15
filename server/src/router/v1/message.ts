@@ -8,11 +8,7 @@ import Conversation from "../../database/models/Conversation";
 import { preValidation } from "../../lib/middleware";
 import Block from "../../database/models/Block";
 
-export default function v1MessageRouter(
-  fastify: FastifyInstance,
-  _: FastifyPluginOptions,
-  done: () => void
-) {
+export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPluginOptions, done: () => void) {
   const redis_pub = fastify.redis["pub"];
 
   //create
@@ -28,17 +24,12 @@ export default function v1MessageRouter(
 
       const found_conversation = await Conversation.findOne({ _id: conversation });
 
-      if (!found_conversation)
-        return reply
-          .code(404)
-          .send(JSONResponse("NOT_FOUND", "Conversation does not exist"));
+      if (!found_conversation) return reply.code(404).send(JSONResponse("NOT_FOUND", "Conversation does not exist"));
 
       if (!found_conversation.is_group_chat) {
         const found_block = await Block.findOne({
           blocked_user: user.id,
-          blocker: found_conversation.members.find(
-            (member) => member._id.toString() !== user.id
-          )!._id,
+          blocker: found_conversation.members.find((member) => member._id.toString() !== user.id)!._id,
         }).populate({
           path: "conversation",
           populate: {
@@ -48,10 +39,7 @@ export default function v1MessageRouter(
           },
         });
 
-        if (found_block)
-          return reply
-            .code(403)
-            .send(JSONResponse("BLOCKED", "you are blocked fom this conversation"));
+        if (found_block) return reply.code(403).send(JSONResponse("BLOCKED", "you are blocked fom this conversation"));
       }
       session = await startSession();
       session.startTransaction();
@@ -78,11 +66,7 @@ export default function v1MessageRouter(
       }
 
       await new_message.save({ session });
-      await Conversation.updateOne(
-        { _id: conversation },
-        { $push: { messages: new_message._id } },
-        { session }
-      );
+      await Conversation.updateOne({ _id: conversation }, { $push: { messages: new_message._id } }, { session });
 
       const message_json = (
         await new_message
@@ -91,9 +75,7 @@ export default function v1MessageRouter(
             select: "username display_name photo",
             populate: { path: "photo", select: "url" },
           })
-          .then((data) =>
-            data.populate({ path: "conversation", select: "members nicknames" })
-          )
+          .then((data) => data.populate({ path: "conversation", select: "members nicknames" }))
           .then((data) => data.populate({ path: "photos", select: "url height width" }))
       ).toJSON();
 
@@ -130,14 +112,9 @@ export default function v1MessageRouter(
         const user = request.user as UserSchema & { id: string };
 
         const found_message = await Message.findOne({ _id: id });
-        if (!found_message)
-          return reply
-            .code(404)
-            .send(JSONResponse("NOT_FOUND", "message does not exist"));
+        if (!found_message) return reply.code(404).send(JSONResponse("NOT_FOUND", "message does not exist"));
         if (found_message.status === "DELETED")
-          return reply
-            .code(409)
-            .send(JSONResponse("FORBIDDEN", "message already deleted"));
+          return reply.code(409).send(JSONResponse("FORBIDDEN", "message already deleted"));
 
         session = await startSession();
         session.startTransaction();
@@ -155,12 +132,7 @@ export default function v1MessageRouter(
             if (!request_body.action)
               return reply
                 .code(400)
-                .send(
-                  JSONResponse(
-                    "BAD_REQUEST",
-                    'action "ADD" or "DELETE is required on the request body'
-                  )
-                );
+                .send(JSONResponse("BAD_REQUEST", 'action "ADD" or "DELETE is required on the request body'));
 
             switch (request_body.action) {
               case "ADD": {
@@ -193,19 +165,12 @@ export default function v1MessageRouter(
             if (!request_body.action)
               return reply
                 .code(400)
-                .send(
-                  JSONResponse(
-                    "BAD_REQUEST",
-                    'action "ADD" or "DELETE is required on the request body'
-                  )
-                );
+                .send(JSONResponse("BAD_REQUEST", 'action "ADD" or "DELETE is required on the request body'));
 
             switch (request_body.action) {
               case "ADD": {
                 if (found_message.seen_by.some((id) => id.toString() === user.id))
-                  return reply
-                    .code(409)
-                    .send(JSONResponse("CONFLICT", "user already seen the message"));
+                  return reply.code(409).send(JSONResponse("CONFLICT", "user already seen the message"));
                 await Message.updateOne(
                   { _id: id },
                   { $push: { seen_by: user.id }, $set: { last_updated: new Date() } },
@@ -225,11 +190,7 @@ export default function v1MessageRouter(
             break;
           }
           default:
-            return reply
-              .code(400)
-              .send(
-                JSONResponse("BAD_REQUEST", "can only update text, photos, and seen_by")
-              );
+            return reply.code(400).send(JSONResponse("BAD_REQUEST", "can only update text, photos, and seen_by"));
         }
 
         await session.commitTransaction();
