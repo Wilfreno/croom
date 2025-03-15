@@ -1,3 +1,10 @@
+## [1.0.11](https://github.com/Wilfreno/chatup/compare/v1.0.10...v1.0.11) (2025-03-15)
+
+
+### Bug Fixes
+
+* deployment of files to ec2 instance ([666a571](https://github.com/Wilfreno/chatup/commit/666a571636d66bc23417778f8797feb1679463f5))
+
 ## [1.0.10](https://github.com/Wilfreno/chatup/compare/v1.0.9...v1.0.10) (2025-03-15)
 
 
