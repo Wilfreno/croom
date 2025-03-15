@@ -1,3 +1,10 @@
+## [1.0.12](https://github.com/Wilfreno/chatup/compare/v1.0.11...v1.0.12) (2025-03-15)
+
+
+### Bug Fixes
+
+* goes to non existent /app instead of /server ([53c5ca7](https://github.com/Wilfreno/chatup/commit/53c5ca72ae3456630903571769b4fb9522c9ee47))
+
 ## [1.0.11](https://github.com/Wilfreno/chatup/compare/v1.0.10...v1.0.11) (2025-03-15)
 
 
