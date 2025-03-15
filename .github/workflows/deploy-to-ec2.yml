@@ -23,9 +23,9 @@ jobs:
 
       - name: Push files to EC2 instance
         run: |
-          cd ./server && rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' --exclude "react-email" \
-           -e  "ssh -i chat-up.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-           /server ubuntu@${{secrets.EC2_INSTANCE}}:~/app
+          rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.env' --exclude "react-email" \
+          -e  "ssh -i chat-up.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+          ./server ubuntu@${{secrets.EC2_INSTANCE}}:~/
 
       - name: SSH to EC2 instance and restart server
         run: |
