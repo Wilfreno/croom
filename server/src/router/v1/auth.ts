@@ -12,7 +12,7 @@ export default async function v1AuthRouter(fastify: FastifyInstance, _: FastifyP
   let client_url_origin;
 
   if (process.env.NODE_ENV === "production") {
-    client_url_origin = process.env.CLIENT_PRODUCTION_ORIGIN;
+    client_url_origin = process.env.CLIENT_PRODUCTION_ORIGIN_1;
     if (!client_url_origin) throw new Error("CLIENT_PRODUCTION_ORIGIN is missing from your .env file");
   } else {
     client_url_origin = process.env.CLIENT_DEVELOPMENT_ORIGIN;
