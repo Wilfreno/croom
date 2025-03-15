@@ -80,6 +80,7 @@ export default function v1MessageRouter(fastify: FastifyInstance, _: FastifyPlug
       ).toJSON();
 
       await redis_pub.publish("MESSAGE", JSON.stringify(message_json));
+
       await session.commitTransaction();
       await session.endSession();
 
