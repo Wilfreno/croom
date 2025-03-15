@@ -16,7 +16,6 @@ export default function v1PhotoRouter(fastify: FastifyInstance, _: FastifyPlugin
       const user = request.user as UserSchema & { id: string };
 
       const found_photo = await Photo.findOne({ _id: id });
-
       if (!found_photo) return reply.code(404).send(JSONResponse("NOT_FOUND", "photo does not exist"));
 
       if (found_photo.owner.toString() !== user.id)
