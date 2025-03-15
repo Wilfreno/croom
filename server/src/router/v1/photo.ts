@@ -27,6 +27,7 @@ export default function v1PhotoRouter(fastify: FastifyInstance, _: FastifyPlugin
       await Photo.deleteOne({ _id: id }, { session });
 
       if (found_photo.key) await upload_thing_api.deleteFiles(found_photo.key);
+
       await session.commitTransaction();
       await session.endSession();
 
