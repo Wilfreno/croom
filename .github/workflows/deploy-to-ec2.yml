@@ -44,7 +44,7 @@ jobs:
             
             echo "setup pnpm to enable global installment of dependencies"
             pnpm setup
-            export PNPM_HOME=$(pnpm env get PNPM_HOME)
+            export PNPM_HOME="$HOME/.local/share/pnpm"
             export PATH="$PNPM_HOME:$PATH"
 
             echo "install pm2"

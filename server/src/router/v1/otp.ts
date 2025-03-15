@@ -75,7 +75,6 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
         type,
         pin: random_string.toUpperCase(),
       });
-
       await otp.save({ session });
 
       switch (type) {
