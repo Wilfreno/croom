@@ -1,3 +1,10 @@
+## [1.0.14](https://github.com/Wilfreno/chatup/compare/v1.0.13...v1.0.14) (2025-03-15)
+
+
+### Bug Fixes
+
+* double quotes on env gets remove ([f29fe5c](https://github.com/Wilfreno/chatup/commit/f29fe5cbc2571b0c07f586079fbc2f21746c6aee))
+
 ## [1.0.13](https://github.com/Wilfreno/chatup/compare/v1.0.12...v1.0.13) (2025-03-15)
 
 
