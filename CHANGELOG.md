@@ -1,3 +1,10 @@
+## [1.0.15](https://github.com/Wilfreno/chatup/compare/v1.0.14...v1.0.15) (2025-03-15)
+
+
+### Bug Fixes
+
+* auth route uses old client origin ([282b58f](https://github.com/Wilfreno/chatup/commit/282b58ffeb001d47c6ba067fbb2a7b5e8b5ecb0d))
+
 ## [1.0.14](https://github.com/Wilfreno/chatup/compare/v1.0.13...v1.0.14) (2025-03-15)
 
 
