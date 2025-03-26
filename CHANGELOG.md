@@ -1,3 +1,10 @@
+## [1.0.16](https://github.com/Wilfreno/chatup/compare/v1.0.15...v1.0.16) (2025-03-26)
+
+
+### Bug Fixes
+
+* username does not have @ when logging in ([ce04c45](https://github.com/Wilfreno/chatup/commit/ce04c45c97dd907bfe57d40dda575c3de4c0f2ae))
+
 ## [1.0.15](https://github.com/Wilfreno/chatup/compare/v1.0.14...v1.0.15) (2025-03-15)
 
 
