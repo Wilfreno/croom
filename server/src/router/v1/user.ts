@@ -415,13 +415,14 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
       session = await startSession();
       session.startTransaction();
 
+      console.log("PASSWORD::", password);
       await User.updateOne(
         { email },
         { $set: { password: await hash(password[0], 14), last_updated: new Date() } },
         { session }
       );
 
-      await OTP.deleteOne({ email, pin, type: "RECOVER" }, { session });
+      await OTP.deleteOne({ email, type: "RECOVER" }, { session });
 
       await session.commitTransaction();
       await session.endSession();
@@ -430,6 +431,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
     } catch (error) {
       await session?.abortTransaction();
       fastify.log.error(error);
+      return reply.code(500).send(JSONResponse("INTERNAL_SERVER_ERROR"));
     }
   });
 
