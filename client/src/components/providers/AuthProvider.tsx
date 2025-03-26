@@ -90,10 +90,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
           const response = await fetch(server_url + "/v1/auth/local/login", {
             method: "POST",
+            credentials: "include",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username: "@" + username, password }),
           });
 
           if (!response.ok) {

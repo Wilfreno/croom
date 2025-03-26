@@ -89,7 +89,7 @@ export default function Page() {
           <Check className="h-20 w-auto text-green-500 stroke-2 bg-secondary rounded-full" />
         </div>
         <Button size="lg" variant="link" className="text-xl">
-          <Link href="/login    ">Login</Link>
+          <Link href="/login">Login</Link>
         </Button>
       </section>
     );
