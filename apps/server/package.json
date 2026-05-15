@@ -9,7 +9,8 @@
     "dev": "pnpm redis-start && nodemon --delay 1500ms ./src/server.ts",
     "production": "pnpm build && pnpm start",
     "build": "tsc --build ",
-    "start": "pnpm redis-start && NODE_ENV=production node build/server.js"
+    "start": "pnpm redis-start && NODE_ENV=production node build/server.js",
+    "check-types": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

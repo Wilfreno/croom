@@ -4,3 +4,6 @@
 /build
 
 .env
+session-key
+
+
