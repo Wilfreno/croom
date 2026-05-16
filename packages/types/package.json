@@ -1,0 +1,29 @@
+{
+  "name": "@repo/types",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./database/models": {
+      "types": "./dist/database/models/index.d.ts",
+      "import": "./dist/database/models/index.js",
+      "default": "./dist/database/models/index.js"
+    }
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "latest"
+  },
+  "dependencies": {
+    "mongoose": "^8.8.3"
+  }
+}
