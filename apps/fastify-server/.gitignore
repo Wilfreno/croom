@@ -1,0 +1,9 @@
+
+/node_modules
+/react-email/node_modules
+/build
+
+.env
+session-key
+
+

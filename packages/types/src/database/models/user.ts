@@ -1,3 +1,4 @@
+import { AuthServiceOptions, UserStatus } from '@repo/enums'
 import { Types } from 'mongoose'
 
 export interface User {
@@ -5,9 +6,10 @@ export interface User {
   username: string
   password?: string
   email: string
-  status: 'OFFLINE' | 'ONLINE'
+  status: UserStatus
   photo: Types.ObjectId
   conversations: Types.ObjectId[]
+  auth_service: AuthServiceOptions[]
   last_online: Date
   date_created: Date
   last_updated: Date
