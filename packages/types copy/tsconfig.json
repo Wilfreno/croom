@@ -1,0 +1,10 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "resolvePackageJsonExports": true,
+    "outDir": "../enums/dist",
+    "rootDir": "../enums/src"
+  },
+  "include": ["../enums/src"],
+  "exclude": ["../enums/node_modules", "../enums/dist"]
+}
