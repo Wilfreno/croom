@@ -2,10 +2,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { HydratedDocument } from 'mongoose';
 
-export type UserDocument = HydratedDocument<UserSchema>;
+export type UserDocument = HydratedDocument<User>;
 
 @Schema({ collection: 'user' })
-export class UserSchema {
+export class User {
   @Prop({ type: String, required: true })
   display_name!: string;
 
@@ -39,4 +39,4 @@ export class UserSchema {
   last_updated!: Date;
 }
 
-export const CatSchema = SchemaFactory.createForClass(UserSchema);
+export const UserSchema = SchemaFactory.createForClass(User);

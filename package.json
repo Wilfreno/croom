@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "dev": "turbo dev"
+    "dev": "turbo dev",
+    "build:libs": "turbo build --filter='./packages/*' --force"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",

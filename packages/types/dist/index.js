@@ -1,1 +1,1 @@
-export * from './database/models';
+export {};

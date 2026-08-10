@@ -1,2 +1,2 @@
-export * from './database/models';
+export {};
 //# sourceMappingURL=index.d.ts.map
