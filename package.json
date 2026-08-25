@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "preinstall": "pnpm build:libs",
     "dev": "turbo dev",
     "build:libs": "turbo build --filter='./packages/*' --force"
   },
