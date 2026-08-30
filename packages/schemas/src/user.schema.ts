@@ -7,36 +7,36 @@ export type UserDocument = HydratedDocument<User>;
 @Schema({ collection: 'user' })
 export class User {
   @Prop({ type: String, required: true })
-  display_name!: string;
+  displayName!: string;
 
   @Prop({ type: String, required: true })
-  username!: string;
+  userName!: string;
 
   @Prop({ type: String, required: false })
   password?: string;
 
-  @Prop({ type: String, required: true, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ })
+  @Prop({ type: String, required: true, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, unique: true })
   email!: string;
 
-  @Prop({ type: UserStatus, enum: UserStatus, required: false })
+  @Prop({ type: String, enum: UserStatus, required: false, default: UserStatus.OFFLINE })
   status!: UserStatus;
 
   @Prop({
-    type: [AuthServiceOptions],
-    enum: UserStatus,
+    type: [String],
+    enum: AuthServiceOptions,
     required: true,
-    default: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
+    default: [AuthServiceOptions.WITH_EMAIL_AND_PASSWORD],
   })
-  auth_service!: AuthServiceOptions[];
+  authService!: AuthServiceOptions[];
 
   @Prop({ type: Date, required: false, default: Date.now })
-  last_online!: Date;
+  lastOnline!: Date;
 
   @Prop({ type: Date, required: false, default: Date.now })
-  date_created!: Date;
+  dateCreated!: Date;
 
   @Prop({ type: Date, required: false, default: Date.now })
-  last_updated!: Date;
+  lastUpdated!: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

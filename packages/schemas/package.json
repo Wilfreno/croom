@@ -3,7 +3,7 @@
   "main": "dist-cjs/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "tsc --watch --preserveWatchOutput & tsc -p tsconfig.cjs.json --watch --preserveWatchOutput & wait",
     "build": "tsc && tsc -p tsconfig.cjs.json"
   },
   "exports": {
@@ -12,22 +12,17 @@
       "import": "./dist/index.js",
       "require": "./dist-cjs/index.js",
       "default": "./dist-cjs/index.js"
-    },
-    "./user": {
-      "types": "./dist/user.d.ts",
-      "import": "./dist/user.js",
-      "require": "./dist-cjs/user.js",
-      "default": "./dist-cjs/user.js"
     }
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@repo/enums": "workspace:*",
+    "@repo/constants": "workspace:*",
     "typescript": "latest"
   },
   "peerDependencies": {
     "mongoose": "^8.8.3",
-     "@nestjs/mongoose": "^11.0.4"
+    "@nestjs/mongoose": "^11.0.4"
   },
   "dependencies": {
     "mongoose": "^8.8.3"
