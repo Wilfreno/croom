@@ -419,6 +419,9 @@ importers:
       typescript:
         specifier: latest
         version: 7.0.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.12.4)(jiti@2.6.1)(jsdom@26.1.0)(terser@5.47.1)
 
   packages/models:
     dependencies:
@@ -453,6 +456,9 @@ importers:
       typescript:
         specifier: latest
         version: 7.0.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.12.4)(jiti@2.6.1)(jsdom@26.1.0)(terser@5.47.1)
 
   packages/schemas:
     dependencies:
@@ -536,6 +542,9 @@ importers:
       typescript:
         specifier: latest
         version: 7.0.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.12.4)(jiti@2.6.1)(jsdom@26.1.0)(terser@5.47.1)
 
 packages:
 

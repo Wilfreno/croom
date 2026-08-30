@@ -2,7 +2,8 @@
   "scripts": {
     "preinstall": "pnpm build:libs",
     "dev": "turbo dev --filter='!react-email-starter'",
-    "build:libs": "turbo build --filter='./packages/*' --force"
+    "build:libs": "turbo build --filter='./packages/*' --force",
+    "test": "turbo test"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
