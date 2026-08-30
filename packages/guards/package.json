@@ -1,0 +1,31 @@
+{
+  "name": "@repo/guards",
+  "main": "dist-cjs/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc --watch --preserveWatchOutput & tsc -p tsconfig.cjs.json --watch --preserveWatchOutput & wait",
+    "build": "tsc && tsc -p tsconfig.cjs.json"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist-cjs/index.js",
+      "default": "./dist-cjs/index.js"
+    }
+  },
+  "dependencies": {
+    "@repo/constants": "workspace:*",
+    "@repo/types": "workspace:*",
+    "@repo/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "latest"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/throttler": "^6.4.0"
+  }
+}
