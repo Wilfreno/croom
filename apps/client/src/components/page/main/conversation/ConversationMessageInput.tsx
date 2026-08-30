@@ -201,7 +201,6 @@ export default function ConversationMessageInput() {
               className={cn(
                 'resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
 
-                // (!!text_input || !!photo_input.length) && "rounded-lg"
               )}
               ref={textareaRef}
               placeholder="Aa"

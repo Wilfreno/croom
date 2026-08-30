@@ -45,8 +45,6 @@ export class OtpService {
   }
 
   async create({ email, type }: CreateOtpDto) {
-    // a spent streak restricts the email itself, so this runs before anything
-    // else: a locked-out address must not be able to cycle in a fresh pin
     await this.assertNotLockedOut({ email, type });
 
     const userExist = await this.userModel.getUserExistByEmail(email);
@@ -69,9 +67,6 @@ export class OtpService {
 
     await this.otpModel.create({ email, type, pin });
 
-    // a resend leaves the earlier pins working, since the user types whichever
-    // mail lands first -- but only a few, because each one still live is
-    // another value a blind guess can hit
     await this.otpModel.trim({ email, type }, OTP_MAX_LIVE);
     await this.mailService.sendOtp(email, pin, type);
   }

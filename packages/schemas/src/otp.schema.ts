@@ -27,6 +27,4 @@ export const OTPSchema = SchemaFactory.createForClass(OTP);
 
 OTPSchema.index({ email: 1, type: 1 });
 
-// mongodb removes the document once it is older than the expiry window, so a
-// stale pin can never be verified
 OTPSchema.index({ dateCreated: 1 }, { expireAfterSeconds: OTP_EXPIRY_MINUTES * SECONDS_IN_MINUTE });

@@ -11,7 +11,7 @@ const HTTP_STATUS_MAP: Record<number, ServerResponseStatus> = {
   [HttpStatus.CONFLICT]: 'CONFLICT',
   [HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE]: 'OUT OF BOUND',
   [HttpStatus.TOO_MANY_REQUESTS]: 'TOO MANY REQUESTS',
-  423: 'BLOCKED', // Locked
+  423: 'BLOCKED',
 };
 
 /**

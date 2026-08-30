@@ -46,8 +46,6 @@ export class RateLimitGuard extends ThrottlerGuard {
     const paths = Array.isArray(by) ? by : [by];
     const parts = paths.map((path) => toTrackerPart(readPath(req, path)));
 
-    // one missing part would collapse different callers onto a shared bucket,
-    // so fall back to the IP rather than count them together
     if (parts.some((part) => part === undefined)) return `ip:${req.ip}`;
 
     return `by:${parts.join('|')}`;

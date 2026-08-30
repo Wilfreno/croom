@@ -12,7 +12,6 @@ import { RateLimitGuard } from './rate-limit.guard';
   imports: [
     ThrottlerModule.forRoot({
       throttlers: [
-        // only a fallback -- every @RateLimit() route overrides both values
         { name: RATE_LIMIT_THROTTLER, limit: 60, ttl: seconds(60) },
       ],
     }),

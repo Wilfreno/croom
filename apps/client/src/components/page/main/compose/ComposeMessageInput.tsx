@@ -127,7 +127,6 @@ export default function ComposeMessageInput() {
     }>[],
   ) {
     for (const res of response) {
-      console.log(res);
       try {
         const image = await new Promise<HTMLImageElement>((resolve, reject) => {
           const newImage = new Image();

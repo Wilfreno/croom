@@ -113,7 +113,6 @@ export default function ComposeTo() {
               initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -10, opacity: 0 }}
-              // transition={{ type: "tween", ease: "easeInOut" }}
               className="absolute top-full left-0 w-full bg-background border shadow-md py-3 px-5 rounded-b text-sm z-40"
             >
               <strong>You</strong> ,

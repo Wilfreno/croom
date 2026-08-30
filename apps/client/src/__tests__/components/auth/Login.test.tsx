@@ -11,14 +11,12 @@ import { useRouter } from "next/navigation";
 import Page from "@/app/(auth)/(form)/login/page";
 import NavigateToSignUpButton from "@/components/page/auth/login/NavigateToSignUpButton";
 
-// mocks the module sonner so toast.error()  can be accessed on the test environment
 vi.mock("sonner", () => ({
   toast: {
     error: vi.fn((message) => message),
   },
 }));
 
-// creates a mock module for next/navigation so push()  can be accessed on the test environment
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn((path) => path),
@@ -71,14 +69,11 @@ describe("Logging in", () => {
       const usernameInput = screen.getByPlaceholderText(/username/i);
       const passwordInput = screen.getByPlaceholderText(/password/i);
 
-      // button is disabled by default
       expect(loginButton).toBeDisabled();
 
-      // button is disabled when only the username input has a value
       await userEvent.type(usernameInput, mockData.user.username);
       expect(loginButton).toBeDisabled();
 
-      // button is disabled when only the password input has a value
       await userEvent.type(passwordInput, mockData.user.password!);
       await userEvent.clear(usernameInput);
       expect(loginButton).toBeDisabled();
@@ -108,29 +103,24 @@ describe("Logging in", () => {
       const usernameInput = screen.getByPlaceholderText(/username/i);
       const passwordInput = screen.getByPlaceholderText(/password/i);
 
-      // input a username that does not exist
       await userEvent.type(usernameInput, "username");
       await userEvent.type(passwordInput, mockData.user.password!);
       await userEvent.click(loginButton);
       expect(toast.error).toHaveBeenCalledWith("User does not exist");
 
-      //clear existing inputs
       vi.clearAllMocks();
       await userEvent.clear(usernameInput);
       await userEvent.clear(passwordInput);
 
-      // input an incorrect password
       await userEvent.type(usernameInput, mockData.user.username);
       await userEvent.type(passwordInput, "incorrect-password");
       await userEvent.click(loginButton);
       expect(toast.error).toHaveBeenCalledWith("Incorrect Password");
 
-      //clear existing inputs
       vi.clearAllMocks();
       await userEvent.clear(usernameInput);
       await userEvent.clear(passwordInput);
 
-      //input a valid credentials
       await userEvent.type(usernameInput, mockData.user.username);
       await userEvent.type(passwordInput, mockData.user.password!);
       await userEvent.click(loginButton);

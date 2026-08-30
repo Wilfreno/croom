@@ -18,7 +18,6 @@ export function useSocketIO() {
 
 export default function SocketIOProvider({ children }: { children: React.ReactNode }) {
   const socketUrl = process.env.NEXT_PUBLIC_SERVER;
-//   if (!socket_url) throw new Error('NEXT_PUBLIC_SERVER is missing from your .env.local file');
 
   const [socket, setSocket] = useState<Socket<ServerToCLient, ClientToServer> | null>(null);
   const { session } = useAuth();
@@ -27,9 +26,6 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   const { onMobile } = useUserAgent();
 
   function onMessage(message: Message) {
-    console.log(message);
-    console.log(pathname);
-    console.log(pathname.startsWith('/conversation/' + message.conversation.id));
     if (pathname.startsWith('/conversation/' + message.conversation.id)) {
       queryClient.setQueryData<
         | InfiniteData<
@@ -52,7 +48,6 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         };
       });
     } else {
-      console.log(onMobile);
       toast.custom((toastId) => <MessageToast message={message} toastId={toastId} />, {
         duration: Infinity,
         className: 'rounded-lg w-full hover:h-fit',

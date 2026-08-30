@@ -37,7 +37,4 @@ export const OtpAttemptSchema = SchemaFactory.createForClass(OtpAttempt);
 
 OtpAttemptSchema.index({ email: 1, type: 1 }, { unique: true });
 
-// every write bumps date_updated, so a record is dropped one lockout window
-// after the last failure: an unfinished streak resets itself, and a lockout is
-// cleaned up right about when it lapses
 OtpAttemptSchema.index({ dateUpdated: 1 }, { expireAfterSeconds: OTP_LOCKOUT_SECONDS });

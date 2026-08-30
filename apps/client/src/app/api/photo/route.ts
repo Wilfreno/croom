@@ -9,7 +9,6 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ status: "OK", message: "photo deleted" });
   } catch (error) {
-    console.log(error);
     return NextResponse.json({ status: "INTERVAL_SERVER_ERROR", message: "Oops! something went wrong" });
   }
 }

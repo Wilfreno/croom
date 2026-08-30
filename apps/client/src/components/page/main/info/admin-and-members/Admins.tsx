@@ -18,7 +18,6 @@ export default function Admins() {
   const params = useParams<{ id: string }>();
   const { data: queryResponse } = useQuery(getConvoOptions(params.id));
 
-  console.log(queryResponse);
   return (
     <Collapsible>
       <CollapsibleTrigger asChild className="w-full">

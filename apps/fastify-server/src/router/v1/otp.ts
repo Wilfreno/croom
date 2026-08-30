@@ -25,7 +25,6 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
         -yI_eA6hffwN27Bv9kBag)}`
     );
 
-  // create
   fastify.post<{ Body: { email: string; type: "SIGNUP" | "RECOVER" } }>("/", async (request, reply) => {
     let session: ClientSession | null = null;
 

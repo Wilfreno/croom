@@ -15,8 +15,6 @@ import { useQueryClient } from "@tanstack/react-query";
 export default function Aside() {
   const iconStyles = cn("h-6 w-auto");
 
-  //   const items = [{ name: "Home", icon: <House className={icon_styles} />, link: "/" }];
-
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
@@ -44,22 +42,6 @@ export default function Aside() {
             <TooltipContent side="right">Home</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        {/* {items.map((item) => (
-          <TooltipProvider key={item.name}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={item.name === "Home" ? "default" : "outline"}
-                  className="aspect-square h-fit w-auto p-2 rounded-lg"
-                  onClick={() => router.push(item.link)}
-                >
-                  {item.icon}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.name}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))} */}
       </div>
       <div className="mt-auto flex flex-col items-center gap-4">
         <MainUserAvatar />

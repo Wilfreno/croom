@@ -10,8 +10,8 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import type { User } from '@repo/schemas';
 import croomLogo from '../../../public/croom-logo.svg';
+import type { User } from '@repo/schemas';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -36,7 +36,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   const serverUrl = process.env.NEXT_PUBLIC_SERVER;
-  //   if (!server_url) throw new Error('NEXT_PUBLIC_SERVER is missing from your .env.local file');
 
   async function getSession() {
     try {
@@ -98,7 +97,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     try {
       router.push(serverUrl + '/v1/auth/logout');
     } catch (error) {
-      console.log(error);
     }
   }
 

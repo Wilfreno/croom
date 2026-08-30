@@ -28,7 +28,6 @@ export class UserService {
     private readonly otpService: OtpService,
   ) {}
 
-  //create
   async createUser({
     email,
     password,
@@ -85,7 +84,6 @@ export class UserService {
     }
   }
 
-  //read
   async checkAvailability({ type, value }: CheckValueDTO) {
     try {
       switch (type) {
@@ -114,6 +112,4 @@ export class UserService {
     }
   }
 
-  //update
-  //delete
 }

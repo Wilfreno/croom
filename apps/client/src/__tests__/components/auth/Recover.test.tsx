@@ -81,12 +81,10 @@ describe("Recover Account", () => {
     it("should display a disabled button while the input has no value", async () => {
       const button = screen.getByRole("button", { name: "Search" });
 
-      // disabled by default
       expect(button).toBeDisabled();
 
       await userEvent.type(screen.getByPlaceholderText("Search your email"), mockData.user.email);
 
-      // is enabled when the input has value
       expect(button).toBeEnabled();
     });
 

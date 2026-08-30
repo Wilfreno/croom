@@ -3,8 +3,6 @@ import type { ServerResponse } from "@repo/types";
 export type { ServerResponse };
 
 const serverUrl = process.env.NEXT_PUBLIC_SERVER!;
-// if (!server_url)
-//   throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
 function pathChecker(path: string) {
   if (!path.startsWith("/")) throw new Error("path must start with /");
 }

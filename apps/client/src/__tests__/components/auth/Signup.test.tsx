@@ -175,13 +175,11 @@ describe("Signing up", () => {
     });
 
     it("should display a message whether the username is available or already used", async () => {
-      // should display that username is available
       await userEvent.type(usernameInput, "@mock_test");
       expect(screen.getByTestId("username-available")).toBeInTheDocument();
 
       await userEvent.clear(usernameInput);
 
-      // should display that username is already used
       await userEvent.type(usernameInput, mockData.user.username.slice(1));
       expect(screen.getByTestId("username-already-used")).toBeInTheDocument();
     });
@@ -263,7 +261,6 @@ describe("Signing up", () => {
     it("should change the icon when password's eye button is clicked", async () => {
       passwordInput();
 
-      // EyeOff is the default icon
       expect(screen.getByTestId("eye-off-1")).toBeInTheDocument();
       expect(screen.queryByTestId("eye-on-1")).not.toBeInTheDocument();
 
@@ -279,7 +276,6 @@ describe("Signing up", () => {
       const input = screen.getByPlaceholderText("Password");
       const button = screen.getByTestId("see-password-1");
 
-      //password is the type by default
       expect(input).toHaveAttribute("type", "password");
 
       await userEvent.click(button);
@@ -301,7 +297,6 @@ describe("Signing up", () => {
     it("should change the icon when change password's eye button is clicked", async () => {
       passwordInput();
 
-      // EyeOff is the default icon
       expect(screen.getByTestId("eye-off-2")).toBeInTheDocument();
       expect(screen.queryByTestId("eye-on-2")).not.toBeInTheDocument();
 
@@ -316,7 +311,6 @@ describe("Signing up", () => {
 
       const input = screen.getByPlaceholderText("Confirm Password");
 
-      // password is the type by default
       expect(input).toHaveAttribute("type", "password");
 
       await userEvent.click(screen.getByTestId("see-password-2"));
