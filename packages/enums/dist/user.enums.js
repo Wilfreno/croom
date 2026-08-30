@@ -1,5 +1,10 @@
 export var UserStatus;
 (function (UserStatus) {
-    UserStatus[UserStatus["OFFLINE"] = 0] = "OFFLINE";
-    UserStatus[UserStatus["ONLINE"] = 1] = "ONLINE";
+    UserStatus["OFFLINE"] = "offline";
+    UserStatus["ONLINE"] = "online";
 })(UserStatus || (UserStatus = {}));
+export var CheckUserDataType;
+(function (CheckUserDataType) {
+    CheckUserDataType["EMAIL"] = "email";
+    CheckUserDataType["USER_NAME"] = "username";
+})(CheckUserDataType || (CheckUserDataType = {}));

@@ -1,5 +1,9 @@
 export declare enum UserStatus {
-    OFFLINE = 0,
-    ONLINE = 1
+    OFFLINE = "offline",
+    ONLINE = "online"
+}
+export declare enum CheckUserDataType {
+    EMAIL = "email",
+    USER_NAME = "username"
 }
 //# sourceMappingURL=user.enums.d.ts.map

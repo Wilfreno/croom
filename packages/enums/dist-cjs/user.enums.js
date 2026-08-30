@@ -1,8 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserStatus = void 0;
+exports.CheckUserDataType = exports.UserStatus = void 0;
 var UserStatus;
 (function (UserStatus) {
-    UserStatus[UserStatus["OFFLINE"] = 0] = "OFFLINE";
-    UserStatus[UserStatus["ONLINE"] = 1] = "ONLINE";
+    UserStatus["OFFLINE"] = "offline";
+    UserStatus["ONLINE"] = "online";
 })(UserStatus || (exports.UserStatus = UserStatus = {}));
+var CheckUserDataType;
+(function (CheckUserDataType) {
+    CheckUserDataType["EMAIL"] = "email";
+    CheckUserDataType["USER_NAME"] = "username";
+})(CheckUserDataType || (exports.CheckUserDataType = CheckUserDataType = {}));
