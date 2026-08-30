@@ -1,15 +1,20 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { CheckValueDTO } from './dto/check-value.dto';
 import { UserService } from './user.service';
+import { CreateUserDto } from "./dto/create-user.dto";
 
 @Controller({ path: 'user', version: '1' })
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // create
+  @Post()
+  async createUser(@Body() data: CreateUserDto) {
+    console.log(data)
+    return this.userService.createUser(data)
+  }
 
-  //read
-
-  //update
-
-  //delete
+  @Get('/check/:type/:value')
+  async checkAvailability(@Param() param: CheckValueDTO) {
+    return this.userService.checkAvailability(param);
+  }
 }
