@@ -4,7 +4,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "tsc --watch --preserveWatchOutput & tsc -p tsconfig.cjs.json --watch --preserveWatchOutput & wait",
-    "build": "tsc && tsc -p tsconfig.cjs.json"
+    "build": "tsc && tsc -p tsconfig.cjs.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "exports": {
     ".": {
@@ -16,15 +18,16 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "@nestjs/config": "^4.0.4"
   },
   "dependencies": {
+    "@repo/constants": "workspace:*",
     "@repo/enums": "workspace:*",
     "@repo/schemas": "workspace:*",
-    "@repo/constants": "workspace:*",
     "mongoose": "^8.8.3",
     "zod": "^4.4.3"
   }
