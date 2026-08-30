@@ -6,7 +6,7 @@ const containsMoreThanTwelveCharactersSchema = z.string().min(12);
 const containsUpperCaseSchema = z.string().regex(/[A-Z]/);
 const containsLowerCaseSchema = z.string().regex(/[a-z]/);
 const containsNumberSchema = z.string().regex(/[0-9]/);
-const containsSymbolSchema = z.string().regex(/[^A-za-z0-9]/);
+const containsSymbolSchema = z.string().regex(/[^A-Za-z0-9]/);
 export function isEmail(email: string) {
   return emailSchema.safeParse(email).success;
 }
