@@ -2,12 +2,12 @@ import { createUploadthing, type FileRouter } from "uploadthing/next";
 const f = createUploadthing();
 
 export const ourFileRouter = {
-  multiple_image: f({ image: { minFileCount: 1, maxFileCount: 30, maxFileSize: "4MB" } }).onUploadComplete(async ({ file }) => {
-    return { photo_url: file.url };
+  multipleImage: f({ image: { minFileCount: 1, maxFileCount: 30, maxFileSize: "4MB" } }).onUploadComplete(async ({ file }) => {
+    return { photoUrl: file.url };
   }),
-  single_image: f({ image: { minFileCount: 1, maxFileCount: 1, maxFileSize: "4MB" } }).onUploadComplete(
+  singleImage: f({ image: { minFileCount: 1, maxFileCount: 1, maxFileSize: "4MB" } }).onUploadComplete(
     async ({ file }) => {
-      return { photo_url: file.url };
+      return { photoUrl: file.url };
     }
   ),
 } satisfies FileRouter;

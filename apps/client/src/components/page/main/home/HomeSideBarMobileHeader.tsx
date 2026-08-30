@@ -40,7 +40,7 @@ export default function HomeSideBarMobileHeader() {
               </Avatar>
               <div className="flex flex-col items-center">
                 <span className="text-lg font-medium truncate max-w-64">
-                  {session.user?.display_name}
+                  {session.user?.displayName}
                 </span>
                 <span className="text-xs text-muted-foreground truncate max-w-60">
                   {session.user?.username}

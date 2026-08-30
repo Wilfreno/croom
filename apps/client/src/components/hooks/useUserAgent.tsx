@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function useUserAgent() {
-  const [on_mobile, setIsMobile] = useState(false);
+  const [onMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (navigator) {
@@ -29,6 +29,6 @@ export default function useUserAgent() {
   }, []);
 
   return {
-    on_mobile,
+    onMobile,
   };
 }

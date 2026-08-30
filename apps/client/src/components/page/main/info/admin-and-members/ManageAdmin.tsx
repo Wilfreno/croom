@@ -1,70 +1,54 @@
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Conversation } from "@/lib/types/server-data-types";
-import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { UserRound, UserRoundPlus, X } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
-import { PATCHRequest } from "@/lib/server/requests";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
+import { PATCHRequest } from '@/lib/server/requests';
+import { cn } from '@/lib/utils';
+import { Conversation } from '@repo/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { UserRound, UserRoundPlus, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useMemo } from 'react';
+import { toast } from 'sonner';
 
 export default function ManageAdmin() {
   const { session } = useAuth();
 
   const params = useParams<{ id: string }>();
-  const { data: query_response } = useQuery(getConvoOptions(params.id));
-  const query_client = useQueryClient();
+  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const queryClient = useQueryClient();
 
-  const is_admin = useMemo(() => {
-    if (!query_response || !session) return false;
-    return (query_response.data as Conversation).admins.some(
-      (user) => user.id === session.user?.id
-    );
-  }, [session, query_response]);
+  const isAdmin = useMemo(() => {
+    if (!queryResponse || !session) return false;
+    return (queryResponse.data as Conversation).admins.some((user) => user.id === session.user?.id);
+  }, [session, queryResponse]);
 
-  const manage_admin = useMutation<
-    void,
-    Error,
-    { admin: string; admin_action: "ADD" | "REMOVE" }
-  >({
-    mutationFn: async ({ admin, admin_action }) => {
+  const manageAdmin = useMutation<void, Error, { admin: string; adminAction: 'ADD' | 'REMOVE' }>({
+    mutationFn: async ({ admin, adminAction }) => {
       try {
-        const { message, status } = await PATCHRequest(
-          "/v1/conversation/" + params.id + "/admins",
-          {
-            admin_action,
-            admin,
-          }
-        );
-        if (status !== "OK") throw new Error(message);
+        const { message, status } = await PATCHRequest('/v1/conversation/' + params.id + '/admins', {
+          adminAction,
+          admin,
+        });
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
       }
     },
-    onSuccess: (_, { admin, admin_action }) => {
-      query_client.setQueryData<Conversation>(["conversation", params.id], (prev) => {
+    onSuccess: (_, { admin, adminAction }) => {
+      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => {
         if (!prev) return;
 
-        switch (admin_action) {
-          case "ADD": {
+        switch (adminAction) {
+          case 'ADD': {
             return {
               ...prev,
               admins: [...prev.admins, prev.members.find((user) => user.id === admin)!],
             };
           }
-          case "REMOVE":
+          case 'REMOVE':
             return { ...prev, admins: prev.admins.filter((user) => user.id !== admin) };
         }
       });
@@ -76,8 +60,8 @@ export default function ManageAdmin() {
       <DialogTrigger asChild>
         <Button
           variant="secondary"
-          className={cn(is_admin ? "w-full p-2  font-medium text-primary" : "hidden")}
-          disabled={!is_admin}
+          className={cn(isAdmin ? 'w-full p-2  font-medium text-primary' : 'hidden')}
+          disabled={!isAdmin}
         >
           <span className="aspect-square h-fit w-auto rounded-full p-2 ">
             <UserRoundPlus className="h-4 w-auto" />
@@ -96,7 +80,7 @@ export default function ManageAdmin() {
         </DialogClose>
         <ScrollArea className="h-[40dvh]">
           <div className="grid gap-2">
-            {(query_response?.data as Conversation).members.map((user) => (
+            {(queryResponse?.data as Conversation).members.map((user) => (
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
@@ -105,30 +89,24 @@ export default function ManageAdmin() {
                       <UserRound className="h-1/2 w-auto" />
                     </AvatarFallback>
                   </Avatar>
-                  <p className="truncate max-w-80">{user.display_name}</p>
+                  <p className="truncate max-w-80">{user.displayName}</p>
                 </div>
                 {user.id === session.user?.id ? (
                   <p className="text-xs font-semibold text-muted-foreground mr-4">You</p>
-                ) : (query_response?.data as Conversation).admins.some(
-                    (admin) => admin.id === user.id
-                  ) ? (
+                ) : (queryResponse?.data as Conversation).admins.some((admin) => admin.id === user.id) ? (
                   <Button
-                    disabled={manage_admin.isPending}
+                    disabled={manageAdmin.isPending}
                     size="sm"
                     variant="destructive"
-                    onClick={() =>
-                      manage_admin.mutate({ admin: user.id, admin_action: "REMOVE" })
-                    }
+                    onClick={() => manageAdmin.mutate({ admin: user.id, adminAction: 'REMOVE' })}
                   >
                     Remove
                   </Button>
                 ) : (
                   <Button
-                    disabled={manage_admin.isPending}
+                    disabled={manageAdmin.isPending}
                     size="sm"
-                    onClick={() =>
-                      manage_admin.mutate({ admin: user.id, admin_action: "ADD" })
-                    }
+                    onClick={() => manageAdmin.mutate({ admin: user.id, adminAction: 'ADD' })}
                   >
                     Add
                   </Button>

@@ -1,40 +1,35 @@
-"use client";
-import useDebounce from "@/components/hooks/useDebounce";
-import { useAuth } from "@/components/providers/AuthProvider";
+'use client';
+import useDebounce from '@/components/hooks/useDebounce';
+import { useAuth } from '@/components/providers/AuthProvider';
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Conversation } from "@/lib/types/server-data-types";
-import { useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Conversation } from '@repo/types';
+import { useQueryClient } from '@tanstack/react-query';
+import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function SearchConversation() {
-  const [input_value, setInputValue] = useState("");
-  const debounced_value = useDebounce(input_value);
+  const [inputValue, setInputValue] = useState('');
+  const debouncedValue = useDebounce(inputValue);
 
   const { session } = useAuth();
-  const query_client = useQueryClient();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!debounced_value) {
-      query_client.resetQueries({ exact: true, queryKey: ["conversation", "search"] });
+    if (!debouncedValue) {
+      queryClient.resetQueries({ exact: true, queryKey: ['conversation', 'search'] });
     } else {
-      const conversations = query_client.getQueryData<Conversation[]>([
-        session.user?.id,
-        "conversations",
-      ]);
+      const conversations = queryClient.getQueryData<Conversation[]>([session.user?.id, 'conversations']);
       if (!conversations) return;
       const result = conversations.filter(
         (convo) =>
-          convo.name.toLowerCase().startsWith(debounced_value.toLowerCase()) ||
-          convo.members[0].display_name
-            .toLowerCase()
-            .startsWith(debounced_value.toLowerCase())
+          convo.name.toLowerCase().startsWith(debouncedValue.toLowerCase()) ||
+          convo.members[0].displayName.toLowerCase().startsWith(debouncedValue.toLowerCase()),
       );
-      query_client.setQueryData(["conversation", "search"], result);
+      queryClient.setQueryData(['conversation', 'search'], result);
     }
-  }, [debounced_value]);
+  }, [debouncedValue]);
 
   return (
     <div className="relative">
@@ -46,7 +41,7 @@ export default function SearchConversation() {
         placeholder="Search"
         id="search"
         className="pl-8"
-        value={input_value}
+        value={inputValue}
         onChange={(e) => setInputValue(e.currentTarget.value)}
       />
     </div>

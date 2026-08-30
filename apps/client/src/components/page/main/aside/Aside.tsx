@@ -13,13 +13,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Aside() {
-  const icon_styles = cn("h-6 w-auto");
+  const iconStyles = cn("h-6 w-auto");
 
   //   const items = [{ name: "Home", icon: <House className={icon_styles} />, link: "/" }];
 
   const router = useRouter();
   const pathname = usePathname();
-  const query_client = useQueryClient();
+  const queryClient = useQueryClient();
 
   return (
     <aside className="inset-y-0 fixed  flex-col items-center px-2 py-4 hidden md:flex bg-background shadow-md border-r">
@@ -31,14 +31,14 @@ export default function Aside() {
                 className="aspect-square h-fit w-auto p-2 rounded-lg"
                 onClick={() => {
                   if (pathname === "/") {
-                    query_client.setQueryData<boolean>(
+                    queryClient.setQueryData<boolean>(
                       ["home", "sidebar"],
                       (prev) => !prev
                     );
                   } else router.push("/");
                 }}
               >
-                <House className={icon_styles} />
+                <House className={iconStyles} />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Home</TooltipContent>

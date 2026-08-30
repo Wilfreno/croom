@@ -1,21 +1,16 @@
-"use client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import SearchConversation from "./SearchConversation";
-import { Button } from "@/components/ui/button";
-import { SquarePen } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { GETRequest } from "@/lib/server/requests";
-import { Conversation } from "@/lib/types/server-data-types";
-import { useMemo } from "react";
-import HomeConversation from "./HomeConversation";
-import { useAuth } from "@/components/providers/AuthProvider";
+'use client';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { GETRequest } from '@/lib/server/requests';
+import { Conversation } from '@repo/types';
+import { useQuery } from '@tanstack/react-query';
+import { SquarePen } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import HomeConversation from './HomeConversation';
+import SearchConversation from './SearchConversation';
 
 export default function HomeConversations() {
   const router = useRouter();
@@ -23,14 +18,12 @@ export default function HomeConversations() {
 
   const { data: conversations } = useQuery({
     enabled: !!session,
-    queryKey: [session.user?.id, "conversations"],
+    queryKey: [session.user?.id, 'conversations'],
     queryFn: async () => {
       try {
-        const { data, status, message } = await GETRequest<Conversation[]>(
-          "/v1/user/conversations"
-        );
+        const { data, status, message } = await GETRequest<Conversation[]>('/v1/user/conversations');
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
         return data;
       } catch (error) {
         throw error;
@@ -39,18 +32,18 @@ export default function HomeConversations() {
     placeholderData: [],
   });
 
-  const { data: conversation_search } = useQuery<Conversation[]>({
-    queryKey: ["conversation", "search"],
+  const { data: conversationSearch } = useQuery<Conversation[]>({
+    queryKey: ['conversation', 'search'],
   });
 
-  const to_display_conversation = useMemo(() => {
-    let to_display: Conversation[] = [];
+  const toDisplayConversation = useMemo(() => {
+    let toDisplay: Conversation[] = [];
 
-    if (conversation_search) to_display = conversation_search;
-    else to_display = conversations!;
+    if (conversationSearch) toDisplay = conversationSearch;
+    else toDisplay = conversations!;
 
-    return to_display;
-  }, [conversations, conversation_search]);
+    return toDisplay;
+  }, [conversations, conversationSearch]);
   return (
     <section className="h-full grid gap-2">
       <div className="flex items-center justify-between w-full mb-2">
@@ -60,7 +53,7 @@ export default function HomeConversations() {
             <TooltipTrigger asChild>
               <Button
                 className="aspect-square h-fit w-auto rounded-full p-2 hidden md:inline-flex"
-                onClick={() => router.push("/compose")}
+                onClick={() => router.push('/compose')}
               >
                 <SquarePen className="h-4 w-auto" />
               </Button>
@@ -74,7 +67,7 @@ export default function HomeConversations() {
       <SearchConversation />
       <ScrollArea className="h-[65dvh]">
         <div className="grid gap-1">
-          {to_display_conversation.map((convo) => (
+          {toDisplayConversation.map((convo) => (
             <HomeConversation key={convo.id} convo={convo} />
           ))}
         </div>

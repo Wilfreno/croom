@@ -1,37 +1,32 @@
-import { useAuth } from "@/components/providers/AuthProvider";
-import { DELETERequest, GETRequest, PATCHRequest } from "@/lib/server/requests";
-import { Photo } from "@/lib/types/server-data-types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Info, Trash, Upload, UserRound } from "lucide-react";
-import { UploadthingButton } from "../../UploadthingButton";
-import { toast } from "sonner";
-import { ClientUploadedFileData } from "uploadthing/types";
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DELETERequest, GETRequest, PATCHRequest } from '@/lib/server/requests';
+import { cn } from '@/lib/utils';
+import { Photo } from '@repo/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Info, Trash, Upload, UserRound } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { ClientUploadedFileData } from 'uploadthing/types';
+import { UploadthingButton } from '../../UploadthingButton';
 
 export default function SettingsChangePhoto() {
   const [uploading, setUploading] = useState(false);
 
-  const query_client = useQueryClient();
+  const queryClient = useQueryClient();
   const {
     session: { user, update },
   } = useAuth();
 
-  const { data: recent_photos } = useQuery({
-    queryKey: [user, "photos"],
+  const { data: recentPhotos } = useQuery({
+    queryKey: [user, 'photos'],
     queryFn: async () => {
       try {
-        const { data, message, status } = await GETRequest<Photo[]>("/v1/user/photos");
+        const { data, message, status } = await GETRequest<Photo[]>('/v1/user/photos');
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
         return data;
       } catch (error) {
         throw error;
@@ -39,7 +34,7 @@ export default function SettingsChangePhoto() {
     },
   });
 
-  const change_photo = useMutation<
+  const changePhoto = useMutation<
     void,
     Error,
     Partial<{
@@ -50,35 +45,35 @@ export default function SettingsChangePhoto() {
       height: number;
     }>
   >({
-    mutationFn: async (new_photo) => {
+    mutationFn: async (newPhoto) => {
       try {
-        const { message, status } = await PATCHRequest("/v1/user/photo", {
-          photo: new_photo,
+        const { message, status } = await PATCHRequest('/v1/user/photo', {
+          photo: newPhoto,
         });
-        if (status !== "OK") toast.error(message);
+        if (status !== 'OK') toast.error(message);
       } catch (error) {
         throw error;
       }
     },
-    onSuccess: (_, new_photo) => {
-      update({ photo: new_photo as Photo });
+    onSuccess: (_, newPhoto) => {
+      update({ photo: newPhoto as Photo });
       setUploading(false);
     },
   });
 
-  const delete_photo = useMutation<void, Error, { id: string; index: number }>({
+  const deletePhoto = useMutation<void, Error, { id: string; index: number }>({
     mutationFn: async ({ id }) => {
       try {
-        const { status, message } = await DELETERequest("/v1/photo/", { id });
+        const { status, message } = await DELETERequest('/v1/photo/', { id });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
     onSuccess: (_, { index }) => {
-      query_client.setQueryData<Photo[]>([user, "photos"], (prev) => {
+      queryClient.setQueryData<Photo[]>([user, 'photos'], (prev) => {
         if (!prev) return [];
         return prev.toSpliced(index + 1, 1);
       });
@@ -87,26 +82,26 @@ export default function SettingsChangePhoto() {
 
   async function onClientUploadComplete(
     response: ClientUploadedFileData<{
-      photo_url: string;
-    }>[]
+      photoUrl: string;
+    }>[],
   ) {
     for (const res of response) {
       try {
         const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const new_image = new Image();
+          const newImage = new Image();
 
-          new_image.onload = () => resolve(new_image);
-          new_image.onerror = (err) => reject(err);
-          new_image.src = res.url;
+          newImage.onload = () => resolve(newImage);
+          newImage.onerror = (err) => reject(err);
+          newImage.src = res.url;
         });
-        change_photo.mutate({
+        changePhoto.mutate({
           key: res.key,
           url: res.url,
           width: image.width,
           height: image.height,
         });
       } catch (error) {
-        toast.error("Oops! something went wrong");
+        toast.error('Oops! something went wrong');
         setUploading(false);
         throw error;
       }
@@ -119,7 +114,7 @@ export default function SettingsChangePhoto() {
         <span>Profile photo </span>
         <UploadthingButton
           disabled={uploading}
-          endpoint="single_image"
+          endpoint="singleImage"
           className="ut-button:h-fit ut-button:w-fit ut-button:p-2 ut-button:gap-2 ut-uploading:ut-button:bg-primary/50 ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
           content={{
             button() {
@@ -139,12 +134,7 @@ export default function SettingsChangePhoto() {
         />
       </div>
       <div className="flex items-center justify-center md:justify-start">
-        <Avatar
-          className={cn(
-            "aspect-square h-36 w-auto shadow-md border",
-            uploading && "animate-pulse"
-          )}
-        >
+        <Avatar className={cn('aspect-square h-36 w-auto shadow-md border', uploading && 'animate-pulse')}>
           <AvatarImage src={user?.photo?.url} />
           <AvatarFallback>
             <UserRound className="h-1/2 w-auto" />
@@ -160,16 +150,15 @@ export default function SettingsChangePhoto() {
                 </TooltipTrigger>
                 <TooltipContent align="end" side="right">
                   <span>
-                    There can only be <strong>5</strong> recent photos available, if you
-                    upload a new one when there&apos;s already <strong>5</strong> recent
-                    photos the last one will bew deleted.
+                    There can only be <strong>5</strong> recent photos available, if you upload a new one when
+                    there&apos;s already <strong>5</strong> recent photos the last one will bew deleted.
                   </span>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
           <div className="flex items-center gap-4 pl-10 min-h-20">
-            {recent_photos?.slice(1).map((photo, index) => (
+            {recentPhotos?.slice(1).map((photo, index) => (
               <div
                 key={photo.id}
                 className="aspect-square h-24 w-auto shadow-sm flex items-center justify-center cursor-pointer relative hover:shadow-md hover:border group"
@@ -177,15 +166,13 @@ export default function SettingsChangePhoto() {
                 <Button
                   variant="outline"
                   className={cn(
-                    "absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 text-green-500 hover:text-green-500 hidden group-hover:inline-flex z-50",
-                    delete_photo.isPending &&
-                      delete_photo.variables.index === index &&
-                      "hidden group-hover:hidden",
-                    uploading && "hidden group-hover:hidden"
+                    'absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 text-green-500 hover:text-green-500 hidden group-hover:inline-flex z-50',
+                    deletePhoto.isPending && deletePhoto.variables.index === index && 'hidden group-hover:hidden',
+                    uploading && 'hidden group-hover:hidden',
                   )}
                   onClick={() => {
                     setUploading(true);
-                    change_photo.mutate(photo);
+                    changePhoto.mutate(photo);
                   }}
                 >
                   change
@@ -193,16 +180,14 @@ export default function SettingsChangePhoto() {
                 <Button
                   variant="outline"
                   className="absolute -top-2 -right-2 aspect-square h-fit w-auto rounded-full p-1 z-50"
-                  onClick={() => delete_photo.mutate({ id: photo.id, index })}
+                  onClick={() => deletePhoto.mutate({ id: photo.id, index })}
                 >
                   <Trash className="h-4 w-auto text-destructive" />
                 </Button>
                 <Avatar
                   className={cn(
-                    "h-full w-full rounded-none z-10",
-                    delete_photo.isPending &&
-                      delete_photo.variables.index === index &&
-                      "blur-md"
+                    'h-full w-full rounded-none z-10',
+                    deletePhoto.isPending && deletePhoto.variables.index === index && 'blur-md',
                   )}
                 >
                   <AvatarImage src={photo?.url} />

@@ -1,47 +1,45 @@
-"use client";
+'use client';
 
-import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { GETRequest } from "@/lib/server/requests";
-import { Message } from "@/lib/types/server-data-types";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import { toast } from "sonner";
-import ConversationMessage from "./ConversationMessage";
-import { useAuth } from "@/components/providers/AuthProvider";
+import { useAuth } from '@/components/providers/AuthProvider';
+import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
+import { GETRequest } from '@/lib/server/requests';
+import { Message } from '@repo/types';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
+import ConversationMessage from './ConversationMessage';
 
 export default function ConversationMessages() {
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
 
-  const { data: query_response } = useQuery(getConvoOptions(params.id));
-  const { data: found_messages } = useInfiniteQuery<{
-    page_param: number;
+  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: foundMessages } = useInfiniteQuery<{
+    pageParam: number;
     result: Message[];
   }>({
-    enabled: !!query_response && !!session.user,
-    queryKey: ["conversation", "messages", params.id],
+    enabled: !!queryResponse && !!session.user,
+    queryKey: ['conversation', 'messages', params.id],
     queryFn: async ({ pageParam }) => {
       try {
-        const page_param = pageParam as number;
+        const page = pageParam as number;
         const {
           data: result,
           status,
           message,
-        } = await GETRequest<Message[]>(
-          "/v1/conversation/" + params.id + "/messages?page=" + page_param
-        );
+        } = await GETRequest<Message[]>('/v1/conversation/' + params.id + '/messages?page=' + page);
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
 
-        return { page_param, result };
+        return { pageParam: page, result };
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
     initialPageParam: 1,
-    getNextPageParam: (last_page) => {
-      if (last_page.result.length) return last_page.page_param + 1;
+    getNextPageParam: (lastPage) => {
+      if (lastPage.result.length) return lastPage.pageParam + 1;
       return undefined;
     },
     placeholderData: { pages: [], pageParams: [] },
@@ -50,20 +48,19 @@ export default function ConversationMessages() {
   return (
     <div className="h-full w-full max-h-[80dvh] flex flex-col px-1 overflow-y-auto scrollbar scrollbar-thumb-gray-300  scrollbar-track-background">
       <div className="mt-auto space-y-px">
-        {!!found_messages?.pages.length &&
-          found_messages.pages.map((page, pages_index) =>
-            page.result.map((message, message_index) => (
+        {!!foundMessages?.pages.length &&
+          foundMessages.pages.map((page, pagesIndex) =>
+            page.result.map((message, messageIndex) => (
               <ConversationMessage
                 key={message.id}
                 message={message}
-                prev_message={page.result[message_index - 1]}
-                next_message={page.result[message_index + 1]}
-                is_last_message={
-                  pages_index === found_messages.pages.length - 1 &&
-                  message_index === page.result.length - 1
+                prevMessage={page.result[messageIndex - 1]}
+                nextMessage={page.result[messageIndex + 1]}
+                isLastMessage={
+                  pagesIndex === foundMessages.pages.length - 1 && messageIndex === page.result.length - 1
                 }
               />
-            ))
+            )),
           )}
       </div>
     </div>

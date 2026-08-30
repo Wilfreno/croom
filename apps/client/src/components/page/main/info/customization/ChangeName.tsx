@@ -1,94 +1,72 @@
-"use client";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { PATCHRequest } from "@/lib/server/requests";
-import { Conversation } from "@/lib/types/server-data-types";
-import { cn } from "@/lib/utils";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Pen, PenLine, X } from "lucide-react";
-import { useParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+'use client';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
+import { PATCHRequest } from '@/lib/server/requests';
+import { cn } from '@/lib/utils';
+import { Conversation } from '@repo/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Pen, PenLine, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function ChangeName() {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState('');
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const { data: query_response } = useQuery(getConvoOptions(params.id));
-  const query_client = useQueryClient();
+  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const queryClient = useQueryClient();
 
-  const input_ref = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const is_admin = useMemo(() => {
-    if (!session || !query_response) return false;
+  const isAdmin = useMemo(() => {
+    if (!session || !queryResponse) return false;
 
-    return (query_response.data as Conversation).admins.some(
-      (user) => user.id === session.user?.id
-    );
-  }, [session, query_response]);
+    return (queryResponse.data as Conversation).admins.some((user) => user.id === session.user?.id);
+  }, [session, queryResponse]);
 
-  const change_name = useMutation({
+  const changeName = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest(
-          "/v1/query_response/" + params.id + "/name",
-          {
-            name: value,
-          }
-        );
+        const { status, message } = await PATCHRequest('/v1/query_response/' + params.id + '/name', {
+          name: value,
+        });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
     onSuccess: async () => {
-      query_client.setQueryData<Conversation>(["query_response", params.id], (prev) => ({
+      queryClient.setQueryData<Conversation>(['query_response', params.id], (prev) => ({
         ...prev!,
         name: value,
       }));
-      query_client.setQueryData<Conversation[]>(
-        [session.user?.id, "conversations"],
-        (prev) => {
-          if (!prev) return [];
+      queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
+        if (!prev) return [];
 
-          return prev.map((convo) =>
-            convo.id === params.id ? { ...convo, name: value } : convo
-          );
-        }
-      );
+        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
+      });
 
-      query_client.setQueryData<Conversation[]>(
-        [session.user?.id, "active", "conversations"],
-        (prev) => {
-          if (!prev) return [];
-          return prev.map((convo) =>
-            convo.id === params.id ? { ...convo, name: value } : convo
-          );
-        }
-      );
+      queryClient.setQueryData<Conversation[]>([session.user?.id, 'active', 'conversations'], (prev) => {
+        if (!prev) return [];
+        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
+      });
       setOpen(false);
-      toast.success("name changed");
+      toast.success('name changed');
     },
   });
 
   return (
-    <Dialog onOpenChange={() => setValue((query_response?.data as Conversation).name)}>
+    <Dialog onOpenChange={() => setValue((queryResponse?.data as Conversation).name)}>
       <DialogTrigger asChild>
-        <Button variant="ghost" disabled={!is_admin} className="w-full justify-start">
+        <Button variant="ghost" disabled={!isAdmin} className="w-full justify-start">
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary">
             <PenLine className="h-4 w-auto text-primary" />
           </span>
@@ -108,14 +86,14 @@ export default function ChangeName() {
           className="flex gap-2 items-center p-2"
           onSubmit={(e) => {
             e.preventDefault();
-            change_name.mutate();
+            changeName.mutate();
           }}
         >
           {open ? (
             <>
               <div className="relative w-full">
                 <Input
-                  ref={input_ref}
+                  ref={inputRef}
                   placeholder="Change name"
                   autoComplete="off"
                   autoFocus
@@ -126,12 +104,12 @@ export default function ChangeName() {
                   type="button"
                   variant="outline"
                   className={cn(
-                    "aspect-square h-fit w-auto p-1 rounded-full absolute top-1/2 right-2 -translate-y-1/2",
-                    !value && "hidden"
+                    'aspect-square h-fit w-auto p-1 rounded-full absolute top-1/2 right-2 -translate-y-1/2',
+                    !value && 'hidden',
                   )}
                   onClick={() => {
-                    setValue("");
-                    input_ref.current?.focus();
+                    setValue('');
+                    inputRef.current?.focus();
                   }}
                 >
                   <X className="h-3 w-auto" />
@@ -149,7 +127,7 @@ export default function ChangeName() {
                 type="submit"
                 variant="secondary"
                 className="aspect-square h-fit w-auto p-2 rounded-full"
-                disabled={change_name.isPending}
+                disabled={changeName.isPending}
               >
                 <Check className="h-4 w-auto text-green-500" />
               </Button>
@@ -160,11 +138,11 @@ export default function ChangeName() {
               className="w-full justify-between"
               type="button"
               onClick={() => {
-                setValue((query_response?.data as Conversation).name);
+                setValue((queryResponse?.data as Conversation).name);
                 setOpen(true);
               }}
             >
-              <span>{(query_response?.data as Conversation).name}</span>
+              <span>{(queryResponse?.data as Conversation).name}</span>
               <span className="aspect-square h-fit w-auto p-2 bg-background shadow-sm border rounded-full text-primary">
                 <Pen className="h-4 w-auto" />
               </span>

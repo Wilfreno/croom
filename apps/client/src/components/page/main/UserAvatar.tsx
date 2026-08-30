@@ -6,11 +6,11 @@ import { UserRound } from "lucide-react";
 
 export default function UserAvatar({
   src,
-  is_online,
+  isOnline,
   className,
 }: {
   src?: string;
-  is_online: boolean;
+  isOnline: boolean;
   className?: string;
 }) {
   return (
@@ -21,7 +21,7 @@ export default function UserAvatar({
           <UserRound className="h-1/2 w-auto" />
         </AvatarFallback>
       </Avatar>
-      {is_online && (
+      {isOnline && (
         <div className="bg-green-500 aspect-square h-4 border-2 border-background w-auto rounded-full absolute bottom-0 right-0"></div>
       )}
     </div>

@@ -1,11 +1,11 @@
-import { upload_thing_api } from "@/lib/server/uploadthing";
+import { uploadThingApi } from "@/lib/server/uploadthing";
 import { NextResponse } from "next/server";
 
 export async function DELETE(request: Request) {
   try {
     const { key } = await request.json();
 
-    await upload_thing_api.deleteFiles(key);
+    await uploadThingApi.deleteFiles(key);
 
     return NextResponse.json({ status: "OK", message: "photo deleted" });
   } catch (error) {

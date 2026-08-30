@@ -1,32 +1,19 @@
-export type ServerResponse<T = null> = {
-  status:
-    | "OK"
-    | "UNAUTHORIZED"
-    | "NOT_FOUND"
-    | "INTERNAL_SERVER_ERROR"
-    | "CONFLICT"
-    | "FORBIDDEN"
-    | "BAD_REQUEST"
-    | "CREATED"
-    | "OUT_OF_BOUND"
-    | "BLOCKED";
+import type { ServerResponse } from "@repo/types";
 
-  message: string;
-  data: T;
-};
+export type { ServerResponse };
 
-const server_url = process.env.NEXT_PUBLIC_SERVER!;
-if (!server_url)
-  throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
+const serverUrl = process.env.NEXT_PUBLIC_SERVER!;
+// if (!server_url)
+//   throw new Error("NEXT_PUBLIC_SERVER is missing from your .env.local file");
 function pathChecker(path: string) {
   if (!path.startsWith("/")) throw new Error("path must start with /");
 }
 
 async function responseJSON<T>(response: Response) {
   try {
-    const response_json = (await response.json()) as ServerResponse<T>;
+    const responseJson = (await response.json()) as ServerResponse<T>;
 
-    return response_json;
+    return responseJson;
   } catch (error) {
     throw error;
   }
@@ -48,7 +35,7 @@ export async function POSTRequest<R>(
   try {
     pathChecker(path);
 
-    const response = await fetch(server_url + path, {
+    const response = await fetch(serverUrl + path, {
       method: "POST",
       headers: body
         ? {
@@ -78,14 +65,14 @@ export async function POSTRequest<R>(
  */
 export async function GETRequest<R>(
   path: string,
-  query_params?: Record<string, string>
+  queryParams?: Record<string, string>
 ): Promise<ServerResponse<R>> {
   try {
     pathChecker(path);
     let request = path;
-    if (query_params) request += "?" + new URLSearchParams(query_params).toString();
+    if (queryParams) request += "?" + new URLSearchParams(queryParams).toString();
 
-    const response = await fetch(server_url + request, {
+    const response = await fetch(serverUrl + request, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -114,7 +101,7 @@ export async function PATCHRequest<R>(
   try {
     pathChecker(path);
 
-    const response = await fetch(server_url + path, {
+    const response = await fetch(serverUrl + path, {
       method: "PATCH",
       headers: body
         ? {
@@ -148,7 +135,7 @@ export async function DELETERequest<R>(
   try {
     pathChecker(path);
 
-    const response = await fetch(server_url + path, {
+    const response = await fetch(serverUrl + path, {
       method: "DELETE",
       headers: body
         ? {

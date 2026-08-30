@@ -4,12 +4,12 @@ import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 
 export default function useURLSearchParams() {
-  const search_params = useSearchParams();
+  const searchParams = useSearchParams();
 
-  const url_search_params = useMemo(() => {
+  const urlSearchParams = useMemo(() => {
     const url = new URL(window.location.href);
     return new URLSearchParams(url.search);
-  }, [search_params]);
+  }, [searchParams]);
 
-  return { url_search_params };
+  return { urlSearchParams };
 }

@@ -21,7 +21,7 @@ export default function SettingsDeleteAccount() {
 
   const { logout } = useAuth();
 
-  const delete_account = useMutation({
+  const deleteAccount = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await DELETERequest("/v1/user");
@@ -62,7 +62,7 @@ export default function SettingsDeleteAccount() {
                 disabled={value.toUpperCase() !== "DELETE"}
                 variant="destructive"
                 className="justify-self-end"
-                onClick={() => delete_account.mutate()}
+                onClick={() => deleteAccount.mutate()}
               >
                 Confirm
               </Button>
