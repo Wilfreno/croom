@@ -3,7 +3,7 @@
   "main": "dist-cjs/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "tsc --watch --preserveWatchOutput & tsc -p tsconfig.cjs.json --watch --preserveWatchOutput & wait",
     "build": "tsc && tsc -p tsconfig.cjs.json"
   },
   "exports": {
@@ -12,20 +12,21 @@
       "import": "./dist/index.js",
       "require": "./dist-cjs/index.js",
       "default": "./dist-cjs/index.js"
-    },
-    "./database/models": {
-      "types": "./dist/database/models/index.d.ts",
-      "import": "./dist/database/models/index.js",
-      "require": "./dist-cjs/database/models/index.js",
-      "default": "./dist-cjs/database/models/index.js"
     }
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@repo/enums": "workspace:*",
     "typescript": "latest"
   },
+  "peerDependencies": {
+    "axios": "^1.19.0",
+    "react": "^19.0.0-rc-66855b96-20241106",
+    "@types/react": "^18",
+    "@tanstack/react-query": "^5.62.0"
+  },
   "dependencies": {
+    "@repo/enums": "workspace:*",
+    "@repo/schemas": "workspace:*",
     "mongoose": "^8.8.3"
   }
 }
