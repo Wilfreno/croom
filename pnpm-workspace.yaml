@@ -1,4 +1,5 @@
 packages:
   - apps/client
   - apps/server
+  - apps/react-email
   - "packages/*"

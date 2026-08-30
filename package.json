@@ -1,7 +1,7 @@
 {
   "scripts": {
     "preinstall": "pnpm build:libs",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter='!react-email-starter'",
     "build:libs": "turbo build --filter='./packages/*' --force"
   },
   "devDependencies": {
@@ -11,5 +11,10 @@
     "semantic-release": "^24.2.3",
     "turbo": "^2.9.14"
   },
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "bcrypt"
+    ]
+  }
 }
