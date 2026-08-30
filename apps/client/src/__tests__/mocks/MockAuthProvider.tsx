@@ -1,4 +1,5 @@
-import { AuthContext, AuthContextType } from "@/components/providers/AuthProvider";
+import { AuthContext } from "@/components/providers/AuthProvider";
+import { AuthContextType } from "@repo/types";
 import React from "react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import AuthProvider from "@/components/providers/AuthProvider";
@@ -22,7 +23,7 @@ type props = {
        { // your react element or component here.. }
       </MockAuthProvider>
    */
-  mock_data?: Partial<AuthContextType>;
+  mockData?: Partial<AuthContextType>;
 };
 
 /**
@@ -33,24 +34,24 @@ type props = {
  * @see {@link AuthProvider}
  */
 
-export default function MockAuthProvider({ children, mock_data }: props) {
+export default function MockAuthProvider({ children, mockData }: props) {
   return (
     <AuthContext.Provider
       value={{
         session: {
-          user: mock_data?.session?.user || null,
-          update: mock_data?.session?.update
-            ? mock_data?.session?.update
+          user: mockData?.session?.user || null,
+          update: mockData?.session?.update
+            ? mockData?.session?.update
             : async () => {},
         },
-        logout: mock_data?.logout ? mock_data?.logout : async () => {},
-        login: mock_data?.login ? mock_data?.login : async () => {},
+        logout: mockData?.logout ? mockData?.logout : async () => {},
+        login: mockData?.login ? mockData?.login : async () => {},
         signup: {
-          submitForm: mock_data?.signup?.submitForm
-            ? mock_data?.signup?.submitForm
+          submitForm: mockData?.signup?.submitForm
+            ? mockData?.signup?.submitForm
             : async () => {},
-          createOTP: mock_data?.signup?.createOTP
-            ? mock_data?.signup?.createOTP
+          createOTP: mockData?.signup?.createOTP
+            ? mockData?.signup?.createOTP
             : async () => {},
         },
       }}

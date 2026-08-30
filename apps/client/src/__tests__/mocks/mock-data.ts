@@ -1,29 +1,29 @@
-import { Otp, User } from "@/lib/types/server-data-types";
+import { Otp, User } from '@repo/types';
 
 type MockData = {
   user: User;
   otp: Otp;
 };
 
-const mock_data: MockData = {
+const mockData: MockData = {
   user: {
-    id: "1",
-    email: "test@email.com",
-    password: "password",
-    username: "@test",
-    display_name: "test",
-    status: "ONLINE",
-    last_online: new Date(),
-    last_updated: new Date(),
-    date_created: new Date(),
+    id: '1',
+    email: 'test@email.com',
+    password: 'password',
+    username: '@test',
+    displayName: 'test',
+    status: 'ONLINE',
+    lastOnline: new Date(),
+    lastUpdated: new Date(),
+    dateCreated: new Date(),
     conversations: [],
   },
   otp: {
-    email: "test@email.com",
-    pin: "123XYZ",
-    type: "RECOVER",
-    date_created: new Date(),
+    email: 'test@email.com',
+    pin: '123XYZ',
+    type: 'RECOVER',
+    dateCreated: new Date(),
   },
 };
 
-export default mock_data;
+export default mockData;

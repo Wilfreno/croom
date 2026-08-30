@@ -19,15 +19,15 @@ export default function Page() {
   const [resend, setResend] = useState<{
     time: number;
     open: boolean;
-    interval_id?: NodeJS.Timeout;
+    intervalId?: NodeJS.Timeout;
   }>({ time: 30, open: true });
   const [password, setPassword] = useState(["", ""]);
-  const [see_password, setSeePassword] = useState([false, false]);
+  const [seePassword, setSeePassword] = useState([false, false]);
 
   const params = useParams<{ email: string }>();
   const router = useRouter();
 
-  const otp_check = useMutation({
+  const otpCheck = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await POSTRequest("/v1/otp/check/recover", {
@@ -44,7 +44,7 @@ export default function Page() {
     },
   });
 
-  const change_password = useMutation({
+  const changePassword = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await PATCHRequest("/v1/user/recover", {
@@ -69,19 +69,19 @@ export default function Page() {
     const id = setInterval(() => {
       setResend((prev) => ({ ...prev, time: prev.time - 1 }));
     }, 1000);
-    setResend((prev) => ({ ...prev, open: false, interval_id: id }));
+    setResend((prev) => ({ ...prev, open: false, intervalId: id }));
     await createOTP(decodeURIComponent(params.email), "RECOVER");
-    setResend((prev) => ({ ...prev, interval_id: id }));
+    setResend((prev) => ({ ...prev, intervalId: id }));
   }
 
   useEffect(() => {
     if (resend.time < 1) {
-      clearInterval(resend.interval_id);
+      clearInterval(resend.intervalId);
       setResend({ time: 30, open: true });
     }
   }, [resend.time]);
 
-  if (change_password.isSuccess)
+  if (changePassword.isSuccess)
     return (
       <section className="flex flex-col gap-20">
         <div className="grid place-items-center gap-8">
@@ -105,12 +105,12 @@ export default function Page() {
         <ArrowLeft className="h-4 w-auto" />
         <span>Go back</span>
       </Button>
-      {otp_check.isSuccess ? (
+      {otpCheck.isSuccess ? (
         <form
           className="grid gap-8 w-96"
           onSubmit={(e) => {
             e.preventDefault();
-            change_password.mutate();
+            changePassword.mutate();
           }}
         >
           <div className="grid gap-2 relative">
@@ -118,7 +118,7 @@ export default function Page() {
               <Label htmlFor="recover-new-password">New password</Label>
               <div className="relative">
                 <Input
-                  type={see_password[0] ? "text" : "password"}
+                  type={seePassword[0] ? "text" : "password"}
                   id="recover-new-password"
                   placeholder="New password"
                   value={password[0]}
@@ -135,7 +135,7 @@ export default function Page() {
                   className="aspect-square h-fit w-auto p-1 absolute top-1/2 right-2 -translate-y-1/2"
                   onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
                 >
-                  {see_password[0] ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
+                  {seePassword[0] ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
                 </Button>
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function Page() {
               <Label htmlFor="recover-confirm-password">Confirm password</Label>
               <div className="relative">
                 <Input
-                  type={see_password[1] ? "text" : "password"}
+                  type={seePassword[1] ? "text" : "password"}
                   id="recover-confirm-password"
                   placeholder="Confirm password"
                   value={password[1]}
@@ -163,7 +163,7 @@ export default function Page() {
                   className="aspect-square h-fit w-auto p-1 absolute top-1/2 right-2 -translate-y-1/2"
                   onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
                 >
-                  {see_password[1] ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
+                  {seePassword[1] ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
                 </Button>
               </div>
             </div>
@@ -187,7 +187,7 @@ export default function Page() {
           className="grid gap-8"
           onSubmit={(event) => {
             event.preventDefault();
-            otp_check.mutate();
+            otpCheck.mutate();
           }}
         >
           <div className="grid gap-16">
@@ -210,49 +210,49 @@ export default function Page() {
                     index={0}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded first:rounded-l",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                   <InputOTPSlot
                     index={1}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                   <InputOTPSlot
                     index={2}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                   <InputOTPSlot
                     index={3}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                   <InputOTPSlot
                     index={4}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                   <InputOTPSlot
                     index={5}
                     className={cn(
                       "aspect-square  md:w-11 h-auto text-base border rounded last:rounded-r",
-                      otp_check.isError && "border-destructive"
+                      otpCheck.isError && "border-destructive"
                     )}
                   />
                 </InputOTPGroup>
               </InputOTP>
-              {otp_check.isError && (
+              {otpCheck.isError && (
                 <span data-testid="recover-invalid-pin" className="text-xs text-destructive font-medium">
-                  {otp_check.error.message}
+                  {otpCheck.error.message}
                 </span>
               )}
             </div>

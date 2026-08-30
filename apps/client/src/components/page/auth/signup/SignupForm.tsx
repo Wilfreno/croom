@@ -1,25 +1,46 @@
-"use client";
-import React, { Suspense } from "react";
-import SignupEmailInput from "./SignupEmailInput";
-import SignupUsernameInput from "./SignupUsernameInput";
-import SignupDisplaynameInput from "./SignupDisplaynameInput";
-import SignupPasswordInput from "./SignupPasswordInput";
-import SignUpDialog from "./SignUpDialog";
-import SignupNavigateToLoginPage from "./SignupNavigateToLoginPage";
+'use client';
+import { SignUpFormData } from '@repo/types';
+import { AnimatePresence } from 'motion/react';
+import { Suspense, useState } from 'react';
+import SignUpMainForm from './SignUpMainForm';
+import SignupNavigateToLoginPage from './SignupNavigateToLoginPage';
+import SignUpOTPForm from './SignUpOTPForm';
 
 export default function SignUpForm() {
+  const [signupFormData, setSignUpFormData] = useState<SignUpFormData>({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    pin: '',
+  });
+  const [pageNumber, setPageNumber] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+
+  function navigateTo(page: number) {
+    setDirection(page > pageNumber ? 1 : -1);
+    setPageNumber(page);
+  }
+
   return (
-    <section className="grid gap-12">
-      <form data-testid="signup-form" className="grid gap-8" autoComplete="off">
-        <div className="grid gap-4">
-          <SignupEmailInput />
-          <SignupUsernameInput />
-          <SignupDisplaynameInput />
-          <SignupPasswordInput />
-        </div>
-        <SignUpDialog />
-      </form>
+    <section className="grid my-auto gap-8">
       <Suspense>
+        <AnimatePresence custom={direction} initial={false} mode="popLayout">
+          {pageNumber === 0 ? (
+            <SignUpMainForm
+              key="main"
+              formData={signupFormData}
+              setFormData={setSignUpFormData}
+              navigateTo={navigateTo}
+            />
+          ) : (
+            <SignUpOTPForm
+              key="otp"
+              formData={signupFormData}
+              setFormData={setSignUpFormData}
+              navigateTo={navigateTo}
+            />
+          )}
+        </AnimatePresence>
         <SignupNavigateToLoginPage />
       </Suspense>
     </section>

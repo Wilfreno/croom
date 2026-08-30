@@ -1,15 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
-export default function MockQueryClientProvider({ children, query_client }: { children: React.ReactNode; query_client: QueryClient }) {
-  query_client.setQueryData(["signup", "form"], {
+export default function MockQueryClientProvider({ children, queryClient }: { children: React.ReactNode; queryClient: QueryClient }) {
+  queryClient.setQueryData(["signup", "form"], {
     email: "",
     username: "",
     password: "",
-    display_name: "",
-    confirm_password: "",
+    displayName: "",
+    confirmPassword: "",
     pin: "",
   });
 
-  return <QueryClientProvider client={query_client}>{children}</QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

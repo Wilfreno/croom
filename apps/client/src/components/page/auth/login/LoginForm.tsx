@@ -12,7 +12,7 @@ export default function LoginForm() {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [view_password, setViewPassword] = useState(false);
+  const [viewPassword, setViewPassword] = useState(false);
 
   const { login } = useAuth();
 
@@ -45,7 +45,7 @@ export default function LoginForm() {
         <div className="relative">
           <Input
             placeholder="Password"
-            type={view_password ? "text" : "password"}
+            type={viewPassword ? "text" : "password"}
             value={credentials.password}
             onChange={(e) =>
               setCredentials((prev) => ({
@@ -63,7 +63,7 @@ export default function LoginForm() {
             onClick={() => setViewPassword((prev) => !prev)}
             type="button"
           >
-            {view_password ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
+            {viewPassword ? <Eye className="h-full w-full" /> : <EyeOff className="h-full w-full" />}
           </Button>
         </div>
         <LoginForgetPasswordButton />

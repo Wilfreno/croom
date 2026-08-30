@@ -11,7 +11,7 @@ import { FormEvent, useState } from "react";
 
 export default function Page() {
   const [email, setEmail] = useState("");
-  const [user_check, setUserCheck] = useState<{ checking: boolean; status?: "NOT_FOUND" | "INVALID" }>({
+  const [userCheck, setUserCheck] = useState<{ checking: boolean; status?: "NOT_FOUND" | "INVALID" }>({
     checking: false,
   });
 
@@ -65,29 +65,29 @@ export default function Page() {
               onChange={(e) => setEmail(e.currentTarget.value)}
               className={cn(
                 "w-96",
-                (user_check.status === "NOT_FOUND" || user_check.status === "INVALID") &&
+                (userCheck.status === "NOT_FOUND" || userCheck.status === "INVALID") &&
                   "border-destructive focus-visible:ring-destructive"
               )}
             />
-            {user_check.checking && (
+            {userCheck.checking && (
               <Loading
                 data-testid="recover-search-email-loading"
                 className="absolute aspect-square h-5 w-auto top-1/2 right-2 -translate-y-1/2"
               />
             )}
           </div>
-          {user_check.status === "INVALID" && (
+          {userCheck.status === "INVALID" && (
             <span data-testid="recover-email-invalid" className="text-xs text-destructive">
               Invalid email
             </span>
           )}
-          {user_check.status === "NOT_FOUND" && (
+          {userCheck.status === "NOT_FOUND" && (
             <span data-testid="recover-email-not-found" className="text-xs text-destructive">
               Cannot find email
             </span>
           )}
         </div>
-        <Button disabled={!email || user_check.checking} className="justify-self-center">
+        <Button disabled={!email || userCheck.checking} className="justify-self-center">
           Search
         </Button>
       </div>
