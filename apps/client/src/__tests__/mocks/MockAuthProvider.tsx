@@ -1,8 +1,7 @@
-import { AuthContext } from "@/components/providers/AuthProvider";
-import { AuthContextType } from "@repo/types";
-import React from "react";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import AuthProvider from "@/components/providers/AuthProvider";
+import AuthProvider, { AuthContext } from '@/components/providers/AuthProvider';
+import { AuthContextType } from '@repo/types';
+import React from 'react';
+import { mockCreateOTPMutation, mockSubmitSignUpMutation } from './mock-mutation';
 
 type props = {
   /**
@@ -12,9 +11,9 @@ type props = {
 
   /**
    *  A Partial data of {@link AuthContextType}
-   * @example 
+   * @example
    *   <MockAuthProvider
-        mock_data={{
+        mockData={{
           login: vi.fn(async () => {
             // your mock function statements here..
           }),
@@ -33,26 +32,21 @@ type props = {
  * @returns {@link AuthContext} with the mock values
  * @see {@link AuthProvider}
  */
-
 export default function MockAuthProvider({ children, mockData }: props) {
   return (
     <AuthContext.Provider
       value={{
         session: {
           user: mockData?.session?.user || null,
-          update: mockData?.session?.update
-            ? mockData?.session?.update
-            : async () => {},
+          update: mockData?.session?.update ?? (async () => {}),
         },
-        logout: mockData?.logout ? mockData?.logout : async () => {},
-        login: mockData?.login ? mockData?.login : async () => {},
+        logout: mockData?.logout ?? (async () => {}),
+        login: mockData?.login ?? (async () => {}),
         signup: {
-          submitForm: mockData?.signup?.submitForm
-            ? mockData?.signup?.submitForm
-            : async () => {},
-          createOTP: mockData?.signup?.createOTP
-            ? mockData?.signup?.createOTP
-            : async () => {},
+          submitSignUpFormMutation:
+            mockData?.signup?.submitSignUpFormMutation ?? mockSubmitSignUpMutation(),
+          createOTPMutation:
+            mockData?.signup?.createOTPMutation ?? mockCreateOTPMutation(),
         },
       }}
     >
@@ -60,3 +54,6 @@ export default function MockAuthProvider({ children, mockData }: props) {
     </AuthContext.Provider>
   );
 }
+
+// re-exported so a test can reach the real provider when it needs one
+export { AuthProvider };
