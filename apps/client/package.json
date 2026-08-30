@@ -25,6 +25,7 @@
     "@repo/types": "workspace:*",
     "@repo/utils": "workspace:*",
     "@repo/constants": "workspace:*",
+    "@repo/schemas": "workspace:*",
     "@tanstack/react-query": "^5.62.0",
     "@uploadthing/react": "^7.1.2",
     "@vercel/analytics": "^1.5.0",

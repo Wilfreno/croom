@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { User } from '../../../../../packages/schemas/dist/user.schema';
+import type { User } from '@repo/schemas';
 import croomLogo from '../../../public/croom-logo.svg';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
