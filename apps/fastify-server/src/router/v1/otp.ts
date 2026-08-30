@@ -87,9 +87,9 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
           );
 
           await transport.sendMail({
-            from: "chatup.dev.noreply@gmail.com",
+            from: "croom.dev.noreply@gmail.com",
             to: email,
-            subject: "welcome to Chat Up your verification code is " + random_string.toLocaleUpperCase(),
+            subject: "Welcome to Croom your verification code is " + random_string.toLocaleUpperCase(),
             html,
           });
 
@@ -107,7 +107,7 @@ export default function v1OTPRouter(fastify: FastifyInstance, _: FastifyPluginOp
           );
 
           await transport.sendMail({
-            from: "chatup.dev.noreply@gmail.com",
+            from: "croom.dev.noreply@gmail.com",
             to: email,
             subject:
               "An account recovery with this email is requested, here is the OTP to proceed teh request: " +

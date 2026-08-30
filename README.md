@@ -1,12 +1,12 @@
 
 <div align="center">
   
-[![ChatUp](https://github.com/Wilfreno/chatup/blob/main/client/public/croom-logo.png)](https://www.chat-up.xyz/)
+[![Croom](https://github.com/Wilfreno/croom/blob/main/apps/client/public/croom-logo.png)](https://www.chat-up.xyz/)
 </div>
 
 <div align="center">
 
-[![ChatUp](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=ChatUp)](https://www.chat-up.xyz/)
+[![Croom](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=Croom)](https://www.chat-up.xyz/)
 </div>
 
 <p align="center" >Connect and Chat with your friends and Communities</p>
@@ -50,16 +50,16 @@
 
 
 # Run the App Locally
-## Clone the github [repository](https://github.com/Wilfreno/chatup)
+## Clone the github [repository](https://github.com/Wilfreno/croom)
 
 ```bash 
-git clone https://github.com/Wilfreno/chatup.git
+git clone https://github.com/Wilfreno/croom.git
 ```
 ## Configure Client
 
 - Go to the project root directory
 ```bash
-cd ./chatup
+cd ./croom
 ```
 
 -  Go to the client directory
