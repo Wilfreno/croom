@@ -14,6 +14,12 @@ async function bootstrap() {
   );
   const configService = app.get(ConfigService);
   const port = configService.get('PORT');
+  const clientUrl = configService.get<string>('CLIENT_URL');
+
+  app.enableCors({
+    origin: clientUrl,
+    credentials: true,
+  });
 
   app.enableVersioning({
     type: VersioningType.URI,
