@@ -185,7 +185,7 @@ describe('server response wrapping', () => {
   it('wraps an HttpException', async () => {
     expect(await call('GET', '/t/missing')).toEqual({
       code: 404,
-      body: { status: 'NOT_FOUND', message: 'no such user', data: null },
+      body: { status: 'NOT FOUND', message: 'no such user', data: null },
     });
   });
 
@@ -200,7 +200,7 @@ describe('server response wrapping', () => {
     expect(await call('GET', '/t/boom')).toEqual({
       code: 500,
       body: {
-        status: 'INTERNAL_SERVER_ERROR',
+        status: 'INTERNAL SERVER ERROR',
         message: 'internal server error',
         data: null,
       },

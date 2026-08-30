@@ -1,20 +1,37 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { OTPType } from '@repo/enums';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OtpController } from './otp.controller';
 import { OtpService } from './otp.service';
 
 describe('OtpController', () => {
+  const otpService = { create: vi.fn().mockResolvedValue(undefined) };
   let controller: OtpController;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    vi.clearAllMocks();
+
+    const moduleRef = await Test.createTestingModule({
       controllers: [OtpController],
-      providers: [{ provide: OtpService, useValue: { create: jest.fn() } }],
+      providers: [{ provide: OtpService, useValue: otpService }],
     }).compile();
 
-    controller = module.get<OtpController>(OtpController);
+    controller = moduleRef.get(OtpController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('hands the body to the service untouched', async () => {
+    const body = { email: 'someone@example.com', type: OTPType.SIGNUP };
+
+    await controller.create(body);
+
+    expect(otpService.create).toHaveBeenCalledWith(body);
+  });
+
+  it('lets a service rejection through rather than swallowing it', async () => {
+    otpService.create.mockRejectedValue(new Error('locked out'));
+
+    await expect(
+      controller.create({ email: 'someone@example.com', type: OTPType.SIGNUP }),
+    ).rejects.toThrow('locked out');
   });
 });
