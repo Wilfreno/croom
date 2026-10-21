@@ -58,7 +58,7 @@ export default function SignupPasswordInput({ formData, setFormData }: SignUpFie
           <div className="relative">
             <Input
               required
-              disabled={formData.password.length < 8}
+              disabled={!formData.password.length && !formData.confirmPassword}
               type={seePassword[1] ? 'text' : 'password'}
               id="confirm-password"
               placeholder="Confirm Password"
