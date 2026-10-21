@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { render } from '@react-email/components';
+import { MAIL_TRANSPORT, OTP_EXPIRY_MINUTES } from '@repo/constants';
 import { OTPType } from '@repo/enums';
 import type { Transporter } from 'nodemailer';
 import type SMTPPool from 'nodemailer/lib/smtp-pool';
 import SignUpEmail from '../email-templates/SignUpEmail';
-import { MAIL_TRANSPORT } from '@repo/constants';
-import { OTP_EXPIRY_MINUTES } from "@repo/constants";
+import RecoverAccount from "../email-templates/RecoverAccount";
 
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -51,6 +51,25 @@ export class MailService implements OnModuleInit {
           return await this.transporter.sendMail({
             to: email,
             subject: `Welcome to Croom! your verification code is ${pin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+            html,
+          });
+        } catch (error) {
+          this.logger.error(error);
+          throw new InternalServerErrorException();
+        }
+      }
+      case OTPType.RECOVER: {
+        try {
+          const html = await render(
+            RecoverAccount({
+              username: email.substring(0, email.indexOf('@')),
+              code: pin,
+            }),
+          );
+
+          return await this.transporter.sendMail({
+            to: email,
+            subject: `Welcome to Croom! your account recovery code is ${pin}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
             html,
           });
         } catch (error) {

@@ -46,7 +46,6 @@ export class OtpService {
     await this.assertNotLockedOut({ email, type });
 
     const userExist = await this.userModel.getUserExistByEmail(email);
-
     switch (type) {
       case OTPType.SIGNUP: {
         if (userExist) throw new ConflictException('email already used');
@@ -56,9 +55,10 @@ export class OtpService {
         if (!userExist) throw new NotFoundException('account does not exist');
         break;
       }
-      default:
+      default: {
         this.logger.error('type must be value of OTPType');
         throw new BadRequestException();
+      }
     }
 
     const pin = await this.otpModel.create({ email, type });

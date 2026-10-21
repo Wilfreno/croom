@@ -60,7 +60,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             password,
           });
 
-          setSession(data.data);    
+          setSession(data.data);
 
           break;
         }
@@ -85,7 +85,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     },
 
     onError(error) {
-      if (error.response?.data.status === 'TOO MANY REQUESTS') toast.error(error.response?.data.message);
+      if (error.response?.status! < 500) toast.error(error.response?.data.message);
       else toast.error(SOMETHING_WENT_WRONG);
     },
   });

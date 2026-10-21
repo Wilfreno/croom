@@ -1,3 +1,4 @@
+import useEmailCheck from "@/components/hooks/queries/useEmailCheck";
 import useDebounce from '@/components/hooks/useDebounce';
 import Loading from '@/components/svg/Loading';
 import { Input } from '@/components/ui/input';
@@ -9,16 +10,8 @@ import { SignUpFieldProps } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 import { CircleCheck } from 'lucide-react';
 export default function SignupEmailInput({ formData, setFormData }: SignUpFieldProps) {
-  const debouncedEmailValue = useDebounce(formData.email, 1000);
   
-  const { data: emailCheck, isLoading } = useQuery<EmailStatus>({
-    enabled: Boolean(debouncedEmailValue),
-    queryKey: ['signup', 'form', 'email', 'check', debouncedEmailValue],
-    async queryFn() {
-      const { data } = await axiosInstance.get(`/user/check/${CheckUserDataType.EMAIL}/${debouncedEmailValue}`);
-      return data.data;
-    },
-  });
+  const { data: emailCheck, isLoading } = useEmailCheck(formData.email)
 
   return (
     <div className="grid gap-2">

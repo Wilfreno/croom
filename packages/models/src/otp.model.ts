@@ -14,9 +14,10 @@ export class OtpModel {
 
   async create({ email, type }: { email: string; type: OTPType }) {
     try {
-      const pin = await hash(randomInt(0, 1_000_000).toString().padStart(6, '0'), 14);
+      const pin = randomInt(0, 1_000_000).toString().padStart(6, '0');
+      const hashedPin = await hash(pin, 14);
 
-      await this.OTP.create([{ email, type, pin }]);
+      await this.OTP.create([{ email, type, pin: hashedPin }]);
 
       return pin;
     } catch (error) {
