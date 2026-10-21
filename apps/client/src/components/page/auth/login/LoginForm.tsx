@@ -33,7 +33,6 @@ export default function LoginForm() {
     >
       <Input
         required
-        className="pl-10"
         placeholder="Email"
         type="email"
         value={credentials.email}
