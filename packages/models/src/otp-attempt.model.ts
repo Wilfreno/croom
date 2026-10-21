@@ -13,7 +13,6 @@ export class OtpAttemptModel {
 
   constructor(@InjectModel(OtpAttempt.name) private OtpAttempt: Model<OtpAttempt>) {}
 
-  /** Seconds left on the restriction, or 0 when the email is free to request. */
   async getLockRemainder({ email, type }: Target): Promise<number> {
     try {
       const record = await this.OtpAttempt.findOne({ email, type }, { lockedUntil: 1 });
@@ -29,10 +28,7 @@ export class OtpAttemptModel {
     }
   }
 
-  /**
-   * Counts one wrong pin. Returns the seconds the email is now locked for, or 0
-   * while it is still under the cap.
-   */
+
   async registerFailure({ email, type }: Target): Promise<number> {
     try {
       const now = new Date();
@@ -63,7 +59,6 @@ export class OtpAttemptModel {
     }
   }
 
-  /** Drops the failure streak after a correct pin. Leaves the pins alone. */
   async clearStreak({ email, type }: Target): Promise<void> {
     try {
       await this.OtpAttempt.deleteOne({ email, type });

@@ -1,14 +1,15 @@
 import { OTPType } from '@repo/enums';
-import { AuthContextType, ServerResponse, SignUpFormData } from '@repo/types';
+import { AuthContextType, LoginVariables, ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { vi } from 'vitest';
 
 type Signup = AuthContextType['signup'];
 
-/** The two mutation shapes the auth context exposes, named for readability. */
+/** The mutation shapes the auth context exposes, named for readability. */
 export type CreateOTPMutation = Signup['createOTPMutation'];
 export type SubmitSignUpMutation = Signup['submitSignUpFormMutation'];
+export type LoginMutation = AuthContextType['loginMutation'];
 
 /**
  * A stand-in for the object `useMutation()` hands back. Only the fields the
@@ -48,3 +49,6 @@ export const mockSubmitSignUpMutation = (
   overrides: Partial<SubmitSignUpMutation> = {},
 ): SubmitSignUpMutation =>
   mockMutation<void, AxiosError<ServerResponse>, SignUpFormData>(overrides);
+
+export const mockLoginMutation = (overrides: Partial<LoginMutation> = {}): LoginMutation =>
+  mockMutation<void, AxiosError<ServerResponse>, LoginVariables>(overrides);

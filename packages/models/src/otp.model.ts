@@ -2,6 +2,8 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { OTPType } from '@repo/enums';
 import { OTP } from '@repo/schemas';
+import { compare, hash } from 'bcrypt';
+import { randomInt } from 'crypto';
 import { ClientSession, Model } from 'mongoose';
 
 @Injectable()
@@ -10,19 +12,26 @@ export class OtpModel {
 
   constructor(@InjectModel(OTP.name) private OTP: Model<OTP>) {}
 
-  async create({ email, type, pin }: { email: string; type: OTPType; pin: string }) {
+  async create({ email, type }: { email: string; type: OTPType }) {
     try {
+      const pin = await hash(randomInt(0, 1_000_000).toString().padStart(6, '0'), 14);
+
       await this.OTP.create([{ email, type, pin }]);
+
+      return pin;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
     }
   }
 
-  async exist(data: { email: string; pin: string; type: OTPType }) {
-    return Boolean((await this.OTP.exists(data)));
+  async compare({ pin, hashedPin }: { pin: string; hashedPin: string }) {
+    return await compare(pin, hashedPin);
   }
 
+  async exist(data: { email: string; pin: string; type: OTPType }) {
+    return Boolean(await this.OTP.exists(data));
+  }
 
   async getPins({ email, type }: { email: string; type: OTPType }): Promise<string[]> {
     try {
@@ -38,10 +47,7 @@ export class OtpModel {
   /** Drops the oldest pins for an email until only `keep` remain live. */
   async trim({ email, type }: { email: string; type: OTPType }, keep: number): Promise<void> {
     try {
-      const stale = await this.OTP.find({ email, type }, { _id: 1 })
-        .sort({ dateCreated: -1 })
-        .skip(keep)
-        .lean();
+      const stale = await this.OTP.find({ email, type }, { _id: 1 }).sort({ dateCreated: -1 }).skip(keep).lean();
 
       if (!stale.length) return;
 

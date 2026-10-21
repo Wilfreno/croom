@@ -11,12 +11,10 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { OTP_MAX_LIVE, SECONDS_IN_MINUTE } from '@repo/constants';
 import { OTPType } from '@repo/enums';
 import { OtpAttemptModel, OtpModel, UserModel } from '@repo/models';
-import { randomInt, timingSafeEqual } from 'crypto';
 import { ClientSession, Connection } from 'mongoose';
 import { MailService } from '../../common/mail/mail.service';
 import { CreateOtpDto } from './dto/create-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
-
 @Injectable()
 export class OtpService {
   private readonly logger = new Logger(OtpService.name);
@@ -63,22 +61,12 @@ export class OtpService {
         throw new BadRequestException();
     }
 
-    const pin = randomInt(0, 1_000_000).toString().padStart(6, '0');
-
-    await this.otpModel.create({ email, type, pin });
+    const pin = await this.otpModel.create({ email, type });
 
     await this.otpModel.trim({ email, type }, OTP_MAX_LIVE);
     await this.mailService.sendOtp(email, pin, type);
   }
 
-  /**
-   * Throws unless `pin` is one of the live codes for `email`. A wrong pin counts
-   * against the streak and, once the cap is reached, locks the email out of
-   * requesting a new one.
-   *
-   * Deliberately not part of any caller's transaction: an abort would roll the
-   * failure count back and hand the guesses straight back.
-   */
   async verify({ email, type, pin }: VerifyOtpDto): Promise<void> {
     await this.assertNotLockedOut({ email, type });
 
@@ -87,17 +75,14 @@ export class OtpService {
     if (!live.length)
       throw new BadRequestException('the code has expired, request a new one');
 
-    const given = Buffer.from(pin);
+    let matched = false;
 
-    const matched = live.reduce((hit, candidate) => {
-      const expected = Buffer.from(candidate);
-
-      return (
-        (given.length === expected.length &&
-          timingSafeEqual(given, expected)) ||
-        hit
-      );
-    }, false);
+    for (const hashedPin of live) {
+      if (await this.otpModel.compare({ pin, hashedPin })) {
+        matched = true;
+        break;
+      }
+    }
 
     if (!matched) {
       const lockedFor = await this.otpAttemptModel.registerFailure({
@@ -114,10 +99,6 @@ export class OtpService {
     await this.otpAttemptModel.clearStreak({ email, type });
   }
 
-  /**
-   * Retires the pin once the caller has committed to it. Takes a session so the
-   * code stays usable for a retry if the caller's transaction aborts.
-   */
   async consume(
     { email, type }: { email: string; type: OTPType },
     session?: ClientSession,

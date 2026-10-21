@@ -77,16 +77,19 @@ pnpm install
 ```
 
 ### Give the client environment variables 
-Create a **.env.local** file inside the client directory and paste the environment variables
+Create a **.env** file inside the client directory and paste the environment variables
 
-**./client/.env.local**
+**./apps/client/.env**
 
 ```env
-NEXT_PUBLIC_SERVER = http://localhost:8000
-ClIENT_URL = http://localhost:3000
+NEXT_PUBLIC_SERVER = "http://localhost:8000"
+NEXT_PUBLIC_SERVER_V1 = "http://localhost:8000/v1"
 
 UPLOADTHING_TOKEN = ""
 ```
+
+#### NEXT_PUBLIC_SERVER and NEXT_PUBLIC_SERVER_V1
+Both point at the same api and have to agree. `NEXT_PUBLIC_SERVER_V1` is the versioned root the axios instance is based at, so requests made through it give a path with no version of its own (`/auth/session`). `NEXT_PUBLIC_SERVER` is the bare origin, used for the whole-page navigations that cannot go through axios -- the google login handoff and logout.
 
 #### UPLOADTHING_TOKEN 
 The client is using [uploadthing](https://uploadthing.com/) as an images storage service.

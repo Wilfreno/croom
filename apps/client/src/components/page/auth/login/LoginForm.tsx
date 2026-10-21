@@ -1,20 +1,21 @@
-"use client";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { AtSign, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
-import LoginForgetPasswordButton from "./LoginForgetPasswordButton";
-
+'use client';
+import { useAuth } from '@/components/providers/AuthProvider';
+import Loading from '@/components/svg/Loading';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { AuthServiceOptions } from '@repo/enums';
+import { LoginCredentials } from '@repo/types';
+import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import LoginForgetPasswordButton from './LoginForgetPasswordButton';
 export default function LoginForm() {
-  const [credentials, setCredentials] = useState({
-    username: "",
-    password: "",
+  const [credentials, setCredentials] = useState<LoginCredentials>({
+    email: '',
+    password: '',
   });
-  const [loading, setLoading] = useState(false);
   const [viewPassword, setViewPassword] = useState(false);
 
-  const { login } = useAuth();
+  const { loginMutation } = useAuth();
 
   return (
     <form
@@ -22,30 +23,27 @@ export default function LoginForm() {
       className="space-y-5"
       onSubmit={async (e) => {
         e.preventDefault();
-        setLoading(true);
 
-        await login("LOCAL", {
-          username: credentials.username,
+        await loginMutation.mutateAsync({
+          authOption: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
+          email: credentials.email,
           password: credentials.password,
         });
-        setLoading(false);
       }}
     >
-      <div className="relative">
-        <AtSign className="h-4 w-auto absolute left-3 top-1/2 -translate-y-1/2" />
-
-        <Input
-          className="pl-10"
-          placeholder="Username"
-          value={credentials.username}
-          onChange={(e) => setCredentials((prev) => ({ ...prev, username: e.target.value }))}
-        />
-      </div>
+      <Input
+        required
+        className="pl-10"
+        placeholder="Email"
+        type="email"
+        value={credentials.email}
+        onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
+      />
       <div className=" grid gap-2">
         <div className="relative">
           <Input
             placeholder="Password"
-            type={viewPassword ? "text" : "password"}
+            type={viewPassword ? 'text' : 'password'}
             value={credentials.password}
             onChange={(e) =>
               setCredentials((prev) => ({
@@ -69,11 +67,11 @@ export default function LoginForm() {
         <LoginForgetPasswordButton />
       </div>
       <Button
-        disabled={!credentials.username || !credentials.password || loading}
+        disabled={!credentials.email || !credentials.password || loginMutation.isPending}
         className="w-full text-base"
         type="submit"
       >
-        Login
+        {loginMutation.isPending ? <Loading /> : 'Login'}
       </Button>
     </form>
   );

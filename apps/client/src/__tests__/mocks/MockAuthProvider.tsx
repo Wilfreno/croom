@@ -1,7 +1,7 @@
 import AuthProvider, { AuthContext } from '@/components/providers/AuthProvider';
 import { AuthContextType } from '@repo/types';
 import React from 'react';
-import { mockCreateOTPMutation, mockSubmitSignUpMutation } from './mock-mutation';
+import { mockCreateOTPMutation, mockLoginMutation, mockSubmitSignUpMutation } from './mock-mutation';
 
 type props = {
   /**
@@ -14,8 +14,10 @@ type props = {
    * @example
    *   <MockAuthProvider
         mockData={{
-          login: vi.fn(async () => {
-            // your mock function statements here..
+          loginMutation: mockLoginMutation({
+            mutateAsync: vi.fn(async () => {
+              // your mock function statements here..
+            }),
           }),
         }}
       >
@@ -41,7 +43,7 @@ export default function MockAuthProvider({ children, mockData }: props) {
           update: mockData?.session?.update ?? (async () => {}),
         },
         logout: mockData?.logout ?? (async () => {}),
-        login: mockData?.login ?? (async () => {}),
+        loginMutation: mockData?.loginMutation ?? mockLoginMutation(),
         signup: {
           submitSignUpFormMutation:
             mockData?.signup?.submitSignUpFormMutation ?? mockSubmitSignUpMutation(),

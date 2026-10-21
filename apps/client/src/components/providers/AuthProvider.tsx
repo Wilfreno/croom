@@ -1,9 +1,8 @@
 'use client';
 import { axiosInstance } from '@/lib/axios-instance';
-import { GETRequest, PATCHRequest } from '@/lib/server/requests';
 import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import { AuthServiceOptions, OTPType } from '@repo/enums';
-import { AuthContextType, ServerResponse, SignUpFormData } from '@repo/types';
+import { AuthContextType, AuthenticatedUser, LoginVariables, ServerResponse, SignUpFormData } from '@repo/types';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import Image from 'next/image';
@@ -11,7 +10,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import croomLogo from '../../../public/croom-logo.svg';
-import type { User } from '@repo/schemas';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -30,7 +28,7 @@ export function useAuth() {
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<User | null>(null);
+  const [session, setSession] = useState<AuthenticatedUser | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -39,65 +37,43 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   async function getSession() {
     try {
-      const { data, status } = await GETRequest<User>('/v1/auth/session');
+      const { data } = await axiosInstance.get<ServerResponse<AuthenticatedUser>>('/auth/session');
 
-      if (status !== 'OK') {
-        if (!pathname.startsWith('/login') && !pathname.startsWith('/sign-up') && !pathname.startsWith('/recover'))
-          router.replace('/login');
-        return;
-      }
-
-      setSession(data);
-    } catch (error) {
-      throw error;
+      setSession(data.data);
+    } catch {
+      setSession(null);
     }
   }
 
-  async function login(strategy: 'GOOGLE' | 'LOCAL', credentials: { username: string; password: string } | undefined) {
-    switch (strategy) {
-      case 'GOOGLE': {
-        try {
+  const loginMutation = useMutation<void, AxiosError<ServerResponse>, LoginVariables>({
+    async mutationFn(variables) {
+      switch (variables.authOption) {
+        case AuthServiceOptions.WITH_GOOGLE: {
           router.push(serverUrl + '/v1/auth/google/login');
-        } catch (error) {
-          throw error;
+          break;
         }
-      }
-      case 'LOCAL': {
-        try {
-          if (!credentials) throw new Error('LOCAL strategy requires username and password credentials');
+        case AuthServiceOptions.WITH_EMAIL_AND_PASSWORD: {
+          const { email, password } = variables;
 
-          const { username, password } = credentials;
-          if (!username) throw new Error('username is required on the credentials and cannot be empty');
-
-          if (!password) throw new Error('password is required on the credentials and cannot be empty');
-
-          const response = await fetch(serverUrl + '/v1/auth/local/login', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username: '@' + username, password }),
+          const { data } = await axiosInstance.post<ServerResponse<AuthenticatedUser>>('/auth/local/login', {
+            email,
+            password,
           });
 
-          if (!response.ok) {
-            const responseJson = await response.json();
-            toast.error(responseJson.message);
-            return;
-          }
-          await getSession();
-        } catch (error) {
-          throw error;
+          setSession(data.data);    
+
+          break;
         }
       }
-    }
-  }
+    },
+
+    onError(error) {
+      toast.error(error.response?.data.message ?? SOMETHING_WENT_WRONG);
+    },
+  });
 
   async function logout() {
-    try {
-      router.push(serverUrl + '/v1/auth/logout');
-    } catch (error) {
-    }
+    router.push(serverUrl + '/v1/auth/logout');
   }
 
   const createOTPMutation = useMutation<void, AxiosError<ServerResponse>, { email: string; type: OTPType }>({
@@ -128,18 +104,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     },
   });
 
-  async function update(updatedData: Partial<User>) {
-    try {
-      const { data, message, status } = await PATCHRequest<User>('/v1/auth/update', updatedData);
-
-      if (status !== 'OK') {
-        toast.error(message);
-        return;
-      }
-      setSession(data);
-    } catch (error) {
-      throw error;
-    }
+  /**
+   * Brings the local copy of the user in step with a change already saved
+   * elsewhere. There is no request to make: a session record holds only an id
+   * now, and the user document behind it is read fresh on every request, so
+   * there is nothing on the server that could be out of date.
+   */
+  async function update(updatedData: Partial<AuthenticatedUser>) {
+    setSession((previous) => (previous ? { ...previous, ...updatedData } : previous));
   }
 
   useEffect(() => {
@@ -160,7 +132,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       value={{
         session: { user: session, update },
         logout,
-        login,
+        loginMutation,
         signup: { createOTPMutation, submitSignUpFormMutation },
       }}
     >

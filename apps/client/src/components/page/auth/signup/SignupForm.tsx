@@ -1,7 +1,9 @@
 'use client';
+import { Separator } from '@/components/ui/separator';
 import { SignUpFormData } from '@repo/types';
 import { AnimatePresence } from 'motion/react';
 import { Suspense, useState } from 'react';
+import LoginWGoogle from '../login/LoginWGoogle';
 import SignUpMainForm from './SignUpMainForm';
 import SignupNavigateToLoginPage from './SignupNavigateToLoginPage';
 import SignUpOTPForm from './SignUpOTPForm';
@@ -41,6 +43,12 @@ export default function SignUpForm() {
             />
           )}
         </AnimatePresence>
+        <div className="flex justify-evenly items-center ">
+          <Separator className="w-1/3" />
+          <p> or</p>
+          <Separator className="w-1/3" />
+        </div>
+        <LoginWGoogle />
         <SignupNavigateToLoginPage />
       </Suspense>
     </section>

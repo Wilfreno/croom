@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { OTP_REQUEST_LIMIT, SECONDS_IN_MINUTE } from '@repo/constants';
 import { RateLimit } from '@repo/guards';
+import { Public } from '../auth/decorators/public.decorator';
 import { CreateOtpDto } from './dto/create-otp.dto';
 import { OtpService } from './otp.service';
 
@@ -8,6 +9,7 @@ import { OtpService } from './otp.service';
 export class OtpController {
   constructor(private readonly otpService: OtpService) {}
 
+  @Public()
   @Post()
   @RateLimit({
     limit: OTP_REQUEST_LIMIT,
