@@ -1,7 +1,7 @@
 import usePasswordStrengthChecker from '@/components/hooks/usePasswordStrengthChecker';
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
-export default function SignUpPasswordStrength({ password }: { password: string }) {
+export default function PasswordStrengthIndicator({ password }: { password: string }) {
   const { score, scorePerCriteriaSatisfied, getStrengthColor } = usePasswordStrengthChecker(password);
 
   const message = useMemo(() => {

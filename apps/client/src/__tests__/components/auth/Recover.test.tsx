@@ -1,7 +1,7 @@
 import mockData from "@/__tests__/mocks/mock-data";
 import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
 import Page from "@/app/(auth)/recover/page";
-import ChangePassPage from "@/app/(auth)/recover/[email]/page";
+import ChangePassPage from "@/components/page/auth/recover/ResetPasswordForm";
 import LoginForgetPasswordButton from "@/components/page/auth/login/LoginForgetPasswordButton";
 import { ServerResponse } from "@/lib/server/requests";
 import { render, screen } from "@testing-library/react";

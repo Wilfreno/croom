@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { SignUpFieldProps } from '@repo/types';
 import { Eye, EyeOff } from 'lucide-react';
 import { CSSProperties, useState } from 'react';
-import SignUpPasswordStrength from './SignUpPasswordStrength';
+import PasswordStrengthIndicator from '../PasswordStrengthIndicator';
 
 export default function SignupPasswordInput({ formData, setFormData }: SignUpFieldProps) {
   const [seePassword, setSeePassword] = useState([false, false]);
@@ -48,7 +48,7 @@ export default function SignupPasswordInput({ formData, setFormData }: SignUpFie
                 )}
               </Button>
             </div>
-            <SignUpPasswordStrength password={formData.password} />
+            <PasswordStrengthIndicator password={formData.password} />
           </div>
         </div>
       </div>

@@ -19,6 +19,10 @@ export class UserModel {
 
   constructor(@InjectModel(User.name) private User: Model<User>) {}
 
+  async hashPassword(password) {
+    return await hash(password, 14);
+  }
+
   async create({
     email,
     password,
@@ -36,7 +40,7 @@ export class UserModel {
       const userName = email.split('@')[0];
       let encryptedPassword: string;
 
-      if (password) encryptedPassword = await hash(password, 10);
+      if (password) encryptedPassword = await this.hashPassword(password);
 
       const [user] = await this.User.create([
         {
@@ -147,6 +151,15 @@ export class UserModel {
   async getUserExistByUsername(username: string) {
     try {
       return Boolean(await this.User.exists({ username }));
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async updateUser(email: string, data: Partial<User>) {
+    try {
+      return this.User.findOneAndUpdate({ email }, { $set: data });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

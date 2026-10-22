@@ -1,14 +1,9 @@
 import MockAuthProvider from '@/__tests__/mocks/MockAuthProvider';
-import MockQueryClientProvider, {
-  makeQueryClient,
-} from '@/__tests__/mocks/MockQueryClientProvider';
-import {
-  mockCreateOTPMutation,
-  mockSubmitSignUpMutation,
-} from '@/__tests__/mocks/mock-mutation';
+import MockQueryClientProvider, { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
+import { mockCreateOTPMutation, mockSubmitSignUpMutation } from '@/__tests__/mocks/mock-mutation';
+import PasswordStrengthIndicator from '@/components/page/auth/PasswordStrengthIndicator';
 import SignUpMainForm from '@/components/page/auth/signup/SignUpMainForm';
 import SignUpOTPForm from '@/components/page/auth/signup/SignUpOTPForm';
-import SignUpPasswordStrength from '@/components/page/auth/signup/SignUpPasswordStrength';
 import SignupEmailInput from '@/components/page/auth/signup/SignupEmailInput';
 import SignupPasswordInput from '@/components/page/auth/signup/SignupPasswordInput';
 import { EmailStatus, OTPType } from '@repo/enums';
@@ -100,8 +95,7 @@ function renderForm(
   return { navigateTo, queryClient };
 }
 
-const respondWith = (status: EmailStatus) =>
-  get.mockResolvedValue({ data: { data: status } });
+const respondWith = (status: EmailStatus) => get.mockResolvedValue({ data: { data: status } });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -114,9 +108,7 @@ describe('SignupEmailInput', () => {
   it('asks the server about the email that was typed', async () => {
     renderField(SignupEmailInput, { email: EMAIL });
 
-    await waitFor(() =>
-      expect(get).toHaveBeenCalledWith(`/user/check/email/${EMAIL}`),
-    );
+    await waitFor(() => expect(get).toHaveBeenCalledWith(`/user/check/email/${EMAIL}`));
   });
 
   it('does not ask anything while the field is empty', async () => {
@@ -129,27 +121,21 @@ describe('SignupEmailInput', () => {
     respondWith(EmailStatus.AVAILABLE);
     renderField(SignupEmailInput, { email: EMAIL });
 
-    expect(await screen.findByTestId('email-available')).toHaveTextContent(
-      'Email is available',
-    );
+    expect(await screen.findByTestId('email-available')).toHaveTextContent('Email is available');
   });
 
   it('says the email is already used', async () => {
     respondWith(EmailStatus.ALREADY_USED);
     renderField(SignupEmailInput, { email: EMAIL });
 
-    expect(await screen.findByTestId('email-already-used')).toHaveTextContent(
-      'Email already used',
-    );
+    expect(await screen.findByTestId('email-already-used')).toHaveTextContent('Email already used');
   });
 
   it('says the email is invalid', async () => {
     respondWith(EmailStatus.INVALID);
     renderField(SignupEmailInput, { email: 'not-an-email' });
 
-    expect(await screen.findByTestId('email-invalid')).toHaveTextContent(
-      'Invalid email address',
-    );
+    expect(await screen.findByTestId('email-invalid')).toHaveTextContent('Invalid email address');
   });
 
   it('shows only the verdict that applies', async () => {
@@ -175,14 +161,8 @@ describe('SignupPasswordInput', () => {
   it('hides both fields by default', () => {
     renderField(SignupPasswordInput, { password: 'sup3rsecret' });
 
-    expect(screen.getByPlaceholderText('Password')).toHaveAttribute(
-      'type',
-      'password',
-    );
-    expect(screen.getByPlaceholderText('Confirm Password')).toHaveAttribute(
-      'type',
-      'password',
-    );
+    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password');
+    expect(screen.getByPlaceholderText('Confirm Password')).toHaveAttribute('type', 'password');
   });
 
   it('reveals the password when its eye is clicked, and hides it again', async () => {
@@ -206,10 +186,7 @@ describe('SignupPasswordInput', () => {
     await userEvent.click(screen.getByTestId('see-password-1'));
 
     expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'text');
-    expect(screen.getByPlaceholderText('Confirm Password')).toHaveAttribute(
-      'type',
-      'password',
-    );
+    expect(screen.getByPlaceholderText('Confirm Password')).toHaveAttribute('type', 'password');
   });
 
   it('keeps confirmation locked until the password is long enough', async () => {
@@ -226,14 +203,9 @@ describe('SignupPasswordInput', () => {
   it('flags a confirmation that does not match', async () => {
     renderField(SignupPasswordInput, { password: 'sup3rsecret' });
 
-    await userEvent.type(
-      screen.getByPlaceholderText('Confirm Password'),
-      'something-else',
-    );
+    await userEvent.type(screen.getByPlaceholderText('Confirm Password'), 'something-else');
 
-    expect(screen.getByTestId('password-not-same')).toHaveTextContent(
-      'Password is not the same',
-    );
+    expect(screen.getByTestId('password-not-same')).toHaveTextContent('Password is not the same');
   });
 
   it('drops the warning once the two match', async () => {
@@ -256,7 +228,7 @@ describe('SignupPasswordInput', () => {
 
 describe('SignUpPasswordStrength', () => {
   const messageFor = (password: string) => {
-    render(<SignUpPasswordStrength password={password} />);
+    render(<PasswordStrengthIndicator password={password} />);
     return screen.getByTestId('short-password-message');
   };
 

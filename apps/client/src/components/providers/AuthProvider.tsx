@@ -88,6 +88,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       if (error.response?.status! < 500) toast.error(error.response?.data.message);
       else toast.error(SOMETHING_WENT_WRONG);
     },
+    onSuccess(_, { email }) {
+      toast.success(`An OTP has been sent to ${email}`);
+    },
   });
 
   const submitSignUpFormMutation = useMutation<void, AxiosError<ServerResponse>, SignUpFormData>({

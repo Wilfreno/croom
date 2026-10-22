@@ -13,11 +13,16 @@ import {
   OTPType,
 } from '@repo/enums';
 import { UserModel } from '@repo/models';
-import { isEmail } from '@repo/utils';
+import {
+  getPasswordStrengthScore,
+  isEmail,
+  passwordStrengthScorePerCriteriaSatisfied,
+} from '@repo/utils';
 import { Connection } from 'mongoose';
 import { OtpService } from '../otp/otp.service';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { RecoverAccountDto } from './dto/recover-account.dto';
 
 @Injectable()
 export class UserService {
@@ -50,6 +55,11 @@ export class UserService {
           throw new BadRequestException(
             'Password and Confirm password is not the same',
           );
+        if (
+          getPasswordStrengthScore(password) <
+          passwordStrengthScorePerCriteriaSatisfied(5)
+        )
+          throw new BadRequestException('password is weak');
 
         if (!pin) throw new BadRequestException('OTP is required');
 
@@ -112,4 +122,45 @@ export class UserService {
     }
   }
 
+  async recoverAccount({
+    email,
+    pin,
+    password,
+    confirmPassword,
+  }: RecoverAccountDto) {
+    const emailAvailability = await this.checkAvailability({
+      type: CheckUserDataType.EMAIL,
+      value: email,
+    });
+
+    // email being available indicates no user using the email; ergo, user does not exist
+    if (emailAvailability === EmailStatus.AVAILABLE)
+      throw new ConflictException('User does not exist');
+
+    await this.otpService.verify({ email, pin, type: OTPType.RECOVER });
+
+    if (password !== confirmPassword)
+      throw new BadRequestException(
+        'password and confirm password must have the same value',
+      );
+
+    if (
+      getPasswordStrengthScore(password) <
+      passwordStrengthScorePerCriteriaSatisfied(5)
+    )
+      throw new BadRequestException('password is weak');
+
+    const session = await this.connection.startSession();
+    try {
+      return await session.withTransaction(async () => {
+        await this.otpService.consume({ email, type: OTPType.SIGNUP }, session);
+
+        await this.userModel.updateUser(email, {
+          password: await this.userModel.hashPassword(password),
+        });
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
 }
