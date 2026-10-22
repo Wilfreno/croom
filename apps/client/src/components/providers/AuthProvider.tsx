@@ -102,7 +102,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       else toast.error(SOMETHING_WENT_WRONG);
     },
     onSuccess() {
-      toast.success('User successfuly created');
+      toast.success('User successfully created');
       router.push('/login');
     },
   });

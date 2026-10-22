@@ -8,13 +8,13 @@ import { OTPType } from '@repo/enums';
 import { Dispatch, SetStateAction } from 'react';
 
 export default function AccountRecoverForm({
-  setIndex,
   email,
   setEmail,
+  navigateTo,
 }: {
-  setIndex: Dispatch<SetStateAction<number>>;
   email: string;
   setEmail: Dispatch<SetStateAction<string>>;
+  navigateTo: (page: number) => void;
 }) {
   const {
     signup: { createOTPMutation },
@@ -27,7 +27,7 @@ export default function AccountRecoverForm({
       onSubmit={async (event) => {
         event.preventDefault();
         await createOTPMutation.mutateAsync({ email, type: OTPType.RECOVER });
-        setIndex(1);
+        navigateTo(1);
       }}
     >
       <Label htmlFor="recover-search-your-email">Search your email</Label>

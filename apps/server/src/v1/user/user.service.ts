@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -95,31 +94,25 @@ export class UserService {
   }
 
   async checkAvailability({ type, value }: CheckValueDTO) {
-    try {
-      switch (type) {
-        case CheckUserDataType.EMAIL: {
-          if (!isEmail(value)) return EmailStatus.INVALID;
+    switch (type) {
+      case CheckUserDataType.EMAIL: {
+        if (!isEmail(value)) return EmailStatus.INVALID;
 
-          if (await this.userModel.getUserExistByEmail(value))
-            return EmailStatus.ALREADY_USED;
-          break;
-        }
-        case CheckUserDataType.USER_NAME: {
-          if (await this.userModel.getUserExistByUsername(value))
-            return EmailStatus.ALREADY_USED;
-          break;
-        }
-        default: {
-          this.logger.error('type must be a value of CheckUserDataType enum');
-          throw new BadRequestException();
-        }
+        if (await this.userModel.getUserExistByEmail(value))
+          return EmailStatus.ALREADY_USED;
+        break;
       }
-
-      return EmailStatus.AVAILABLE;
-    } catch (error) {
-      this.logger.error(error);
-      throw new InternalServerErrorException();
+      case CheckUserDataType.USER_NAME: {
+        if (await this.userModel.getUserExistByUsername(value))
+          return EmailStatus.ALREADY_USED;
+        break;
+      }
+      default: {
+        this.logger.error('type must be a value of CheckUserDataType enum');
+        throw new BadRequestException();
+      }
     }
+    return EmailStatus.AVAILABLE;
   }
 
   async recoverAccount({
@@ -137,8 +130,6 @@ export class UserService {
     if (emailAvailability === EmailStatus.AVAILABLE)
       throw new ConflictException('User does not exist');
 
-    await this.otpService.verify({ email, pin, type: OTPType.RECOVER });
-
     if (password !== confirmPassword)
       throw new BadRequestException(
         'password and confirm password must have the same value',
@@ -149,6 +140,8 @@ export class UserService {
       passwordStrengthScorePerCriteriaSatisfied(5)
     )
       throw new BadRequestException('password is weak');
+
+    await this.otpService.verify({ email, pin, type: OTPType.RECOVER });
 
     const session = await this.connection.startSession();
     try {

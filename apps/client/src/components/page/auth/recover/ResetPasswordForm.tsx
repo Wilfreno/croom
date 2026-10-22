@@ -1,74 +1,70 @@
 'use client';
 import usePasswordStrengthChecker from '@/components/hooks/usePasswordStrengthChecker';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { axiosInstance } from '@/lib/axios-instance';
-import { PATCHRequest } from '@/lib/server/requests';
+import { SOMETHING_WENT_WRONG } from '@repo/constants';
+import { ServerResponse } from '@repo/types';
+import { passwordStrengthScorePerCriteriaSatisfied } from '@repo/utils';
 import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { Check, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { CSSProperties, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import PasswordStrengthIndicator from '../PasswordStrengthIndicator';
 import PasswordToolTip from '../PasswordToolTip';
 
-export default function ResetPasswordForm() {
+export default function ResetPasswordForm({ email }: { email: string }) {
   const [formData, setFormData] = useState({
     pin: '',
     password: '',
     confirmPassword: '',
   });
   const [seePassword, setSeePassword] = useState([false, false]);
-  const [resend, setResend] = useState<{
+  const [reRoute, setReRoute] = useState<{
     time: number;
-    open: boolean;
+    go: boolean;
     intervalId?: NodeJS.Timeout;
-  }>({ time: 30, open: true });
+  }>({ time: 5, go: false });
 
-  const params = useParams<{ email: string }>();
   const { getStrengthColor, score } = usePasswordStrengthChecker(formData.password);
 
-  const changePassword = useMutation({
+  const router = useRouter();
+  const changePassword = useMutation<void, AxiosError<ServerResponse>>({
     mutationFn: async () => {
-      try {
-        const {} = axiosInstance.patch('/v1/user');
-        const { status, message } = await PATCHRequest('/v1/user/recover', {
-          email: decodeURIComponent(params.email),
-          pin,
-          password,
-        });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      await axiosInstance.patch('/user/recover', {
+        email,
+        ...formData,
+      });
+    },
+    onError(error) {
+      if (error.response?.status! < 500) toast.error(error.response?.data.message);
+      else toast.error(SOMETHING_WENT_WRONG);
+    },
+    onSuccess() {
+      setReRoute((prev) => ({ ...prev, go: true }));
     },
   });
 
-  const {
-    signup: { createOTPMutation },
-  } = useAuth();
-
-  async function handleResend() {
-    const id = setInterval(() => {
-      setResend((prev) => ({ ...prev, time: prev.time - 1 }));
-    }, 1000);
-    setResend((prev) => ({ ...prev, open: false, intervalId: id }));
-    // await createOTP(decodeURIComponent(params.email), "RECOVER");
-    setResend((prev) => ({ ...prev, intervalId: id }));
-  }
-
   useEffect(() => {
-    if (resend.time < 1) {
-      clearInterval(resend.intervalId);
-      setResend({ time: 30, open: true });
-    }
-  }, [resend.time]);
+    if (!reRoute.go) return;
 
+    const id = setInterval(() => {
+      setReRoute((prev) => {
+        if (prev.time <= 1) {
+          router.push('/login');
+          return { time: 5, go: false };
+        }
+        return { ...prev, time: prev.time - 1 };
+      });
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [reRoute.go]);
+
+  console.log(reRoute.time);
   if (changePassword.isSuccess)
     return (
       <section className="flex flex-col gap-20">
@@ -76,9 +72,7 @@ export default function ResetPasswordForm() {
           <h1 className="text-2xl font-medium">Password Changed</h1>
           <Check className="h-20 w-auto text-green-500 stroke-2 bg-secondary rounded-full" />
         </div>
-        <Button size="lg" variant="link" className="text-xl">
-          <Link href="/login">Login</Link>
-        </Button>
+        redirecting to login page {reRoute.go ? `(${reRoute.time})` : ''}
       </section>
     );
 
@@ -105,7 +99,9 @@ export default function ResetPasswordForm() {
         <div className="grid gap-2">
           <div>
             <Label htmlFor="recover-new-password">New Password</Label>
-            <PasswordToolTip open={Boolean(formData.password) && score < scorePerCriteriaSatisfied(5)} />
+            <PasswordToolTip
+              open={Boolean(formData.password) && score < passwordStrengthScorePerCriteriaSatisfied(5)}
+            />
             <div className="relative">
               <Input
                 type={seePassword[0] ? 'text' : 'password'}
@@ -166,7 +162,9 @@ export default function ResetPasswordForm() {
 
       <Button
         disabled={
-          !formData.password || formData.password !== formData.confirmPassword || score < scorePerCriteriaSatisfied(5)
+          !formData.password ||
+          formData.password !== formData.confirmPassword ||
+          score < passwordStrengthScorePerCriteriaSatisfied(5)
         }
       >
         Change password

@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { CheckValueDTO } from './dto/check-value.dto';
 import { Public } from '../auth/decorators/public.decorator';
+import { CheckValueDTO } from './dto/check-value.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { RecoverAccountDto } from './dto/recover-account.dto';
 import { UserService } from './user.service';
-import { CreateUserDto } from "./dto/create-user.dto";
-import { RecoverAccountDto } from "./dto/recover-account.dto";
 
 @Controller({ path: 'user', version: '1' })
 export class UserController {
@@ -12,7 +12,7 @@ export class UserController {
   @Public()
   @Post()
   async createUser(@Body() data: CreateUserDto) {
-    return this.userService.createUser(data)
+    return this.userService.createUser(data);
   }
 
   @Public()
@@ -21,12 +21,9 @@ export class UserController {
     return this.userService.checkAvailability(param);
   }
 
-
   @Public()
-  @Patch("/recover")
-  async recoverAccount(
-    @Body() data: RecoverAccountDto
-  ){
-    return this.recoverAccount
+  @Patch('/recover')
+  async recoverAccount(@Body() data: RecoverAccountDto) {
+    return this.userService.recoverAccount(data);
   }
 }
