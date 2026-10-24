@@ -1,11 +1,11 @@
-import Aside from "@/components/page/main/aside/Aside";
-import React from "react";
+import SideBar from '@/components/page/main/SideBar/SideBar';
+import React from 'react';
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
     <main>
-      <Aside />
-      {children}
+      <SideBar />
+      {/* {children} */}
     </main>
   );
 }
