@@ -1,22 +1,22 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Work_Sans } from "next/font/google";
-import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/sonner";
-import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
-import AuthProvider from "@/components/providers/AuthProvider";
-import SocketIOProvider from "@/components/providers/SocketIOProvider";
-import { Analytics } from "@vercel/analytics/react";
+import AuthProvider from '@/components/providers/AuthProvider';
+import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
+import SocketIOProvider from '@/components/providers/SocketIOProvider';
+import { Toaster } from '@/components/ui/sonner';
+import { cn } from '@/lib/utils';
+import { Analytics } from '@vercel/analytics/react';
+import type { Metadata } from 'next';
+import { Work_Sans } from 'next/font/google';
+import './globals.css';
 
-const work_sans = Work_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
+const workSans = Work_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Chatup",
-  description: "Simple chat app where you and your friends can hangout",
+  title: 'Croom',
+  description: 'Simple chat app where you and your friends can hangout',
 };
 
 export default function RootLayout({
@@ -26,13 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn(work_sans.className, "w-full h-dvh")}>
+      <body className={cn(workSans.className, 'w-full h-dvh')}>
         <ReactQueryProvider>
           <AuthProvider>
             <SocketIOProvider>{children}</SocketIOProvider>
           </AuthProvider>
         </ReactQueryProvider>
-        <Toaster richColors expand={true} />
+        <Toaster richColors expand={true} position="top-center" />
         <Analytics />
       </body>
     </html>

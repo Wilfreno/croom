@@ -1,13 +1,30 @@
 {
   "scripts": {
-    "dev": "turbo dev"
+    "preinstall": "pnpm build:libs",
+    "dev": "turbo dev --filter='!react-email-starter'",
+    "build:libs": "turbo build --filter='./packages/*' --force",
+    "test": "turbo test",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "semantic-release": "^24.2.3",
     "turbo": "^2.9.14"
   },
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "bcrypt"
+    ],
+    "overrides": {
+      "fastify": "^5.12.1"
+    }
+  },
+  "lint-staged": {
+    "{apps/client,apps/server,apps/react-email,packages}/**/*.{js,jsx,ts,tsx,mjs,cjs}": "node scripts/check-console-log.mjs"
+  }
 }

@@ -1,173 +1,159 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import LoginForm from "@/components/page/auth/login/LoginForm";
-import userEvent from "@testing-library/user-event";
-import mock_data from "@/__tests__/mocks/mock-data";
-import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
-import { toast } from "sonner";
-import { AuthContextType } from "@/components/providers/AuthProvider";
-import LoginWGoogle from "@/components/page/auth/login/LoginWGoogle";
-import { useRouter } from "next/navigation";
-import Page from "@/app/(auth)/(form)/login/page";
-import NavigateToSignUpButton from "@/components/page/auth/login/NavigateToSignUpButton";
+import MockAuthProvider from '@/__tests__/mocks/MockAuthProvider';
+import { mockLoginMutation } from '@/__tests__/mocks/mock-mutation';
+import Page from '@/app/(auth)/(form)/login/page';
+import LoginForm from '@/components/page/auth/login/LoginForm';
+import LoginWGoogle from '@/components/page/auth/login/LoginWGoogle';
+import NavigateToSignUpButton from '@/components/page/auth/login/NavigateToSignUpButton';
+import { AuthServiceOptions } from '@repo/enums';
+import { AuthContextType } from '@repo/types';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// mocks the module sonner so toast.error()  can be accessed on the test environment
-vi.mock("sonner", () => ({
-  toast: {
-    error: vi.fn((message) => message),
-  },
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn((path) => path) }),
+  useSearchParams: () => ({ get: vi.fn((params) => params) }),
 }));
 
-// creates a mock module for next/navigation so push()  can be accessed on the test environment
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn((path) => path),
-  }),
-  useSearchParams: () => ({
-    get: vi.fn((params) => params),
-  }),
-}));
+const EMAIL = 'someone@example.com';
+const PASSWORD = 'sup3rsecret';
 
-describe("Logging in", () => {
-  it("should display headers", () => {
-    render(
-      <MockAuthProvider>
-        <Page />
-      </MockAuthProvider>
-    );
+function renderWithAuth(ui: React.ReactNode, auth?: Partial<AuthContextType>) {
+  render(<MockAuthProvider mockData={auth}>{ui}</MockAuthProvider>);
+}
 
-    expect(screen.getByTestId("login-page-h1")).toBeInTheDocument();
-    expect(screen.getByTestId("login-page-h2")).toBeInTheDocument();
+/** The three controls the login form is made of, by the labels a user sees. */
+function loginControls() {
+  return {
+    email: screen.getByPlaceholderText('Email'),
+    password: screen.getByPlaceholderText('Password'),
+    submit: screen.getByRole('button', { name: /login/i }),
+  };
+}
+
+describe('Logging in', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('displays the headers', () => {
+    renderWithAuth(<Page />);
+
+    expect(screen.getByTestId('login-page-h1')).toBeInTheDocument();
+    expect(screen.getByTestId('login-page-h2')).toBeInTheDocument();
   });
 
-  it("should display a link to signup page", () => {
+  it('displays a link to the signup page', () => {
     render(<NavigateToSignUpButton />);
 
-    expect(screen.getByRole("link", { name: "Sign Up" }));
+    expect(screen.getByRole('link', { name: 'Sign Up' })).toBeInTheDocument();
   });
 
-  describe("Login w/ credentials", () => {
-    it("should display a form, username input, password input, and a button", () => {
-      render(
-        <MockAuthProvider>
-          <LoginForm />
-        </MockAuthProvider>
-      );
+  describe('Login w/ credentials', () => {
+    it('displays a form, an email input, a password input and a button', () => {
+      renderWithAuth(<LoginForm />);
 
-      expect(screen.getByTestId("login-form")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Username")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Password")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /login/i })).toBeInTheDocument();
+      expect(screen.getByTestId('login-form')).toBeInTheDocument();
+
+      const { email, password, submit } = loginControls();
+      expect(email).toBeInTheDocument();
+      expect(password).toBeInTheDocument();
+      expect(submit).toBeInTheDocument();
     });
 
-    it("disables login button when username or password input is empty", async () => {
-      render(
-        <MockAuthProvider>
-          <LoginForm />
-        </MockAuthProvider>
-      );
+    // The account is identified by email now, not by the @username the earlier
+    // form asked for.
+    it('asks for an email rather than a username', () => {
+      renderWithAuth(<LoginForm />);
 
-      const login_button = screen.getByRole("button", { name: /login/i });
-      const username_input = screen.getByPlaceholderText(/username/i);
-      const password_input = screen.getByPlaceholderText(/password/i);
-
-      // button is disabled by default
-      expect(login_button).toBeDisabled();
-
-      // button is disabled when only the username input has a value
-      await userEvent.type(username_input, mock_data.user.username);
-      expect(login_button).toBeDisabled();
-
-      // button is disabled when only the password input has a value
-      await userEvent.type(password_input, mock_data.user.password!);
-      await userEvent.clear(username_input);
-      expect(login_button).toBeDisabled();
+      expect(screen.queryByPlaceholderText('Username')).not.toBeInTheDocument();
+      expect(loginControls().email).toHaveAttribute('type', 'email');
     });
 
-    it("renders succinct error message message that is displayed temporarily.", async () => {
-      render(
-        <MockAuthProvider
-          mock_data={{
-            login: vi.fn<AuthContextType["login"]>(async (_, credentials) => {
-              if (credentials?.username !== mock_data.user.username) {
-                toast.error("User does not exist");
-                return;
-              }
-              if (credentials.password !== mock_data.user.password) {
-                toast.error("Incorrect Password");
-                return;
-              }
-            }),
-          }}
-        >
-          <LoginForm />
-        </MockAuthProvider>
-      );
+    it('keeps the button disabled until both fields are filled', async () => {
+      renderWithAuth(<LoginForm />);
+      const { email, password, submit } = loginControls();
 
-      const login_button = screen.getByRole("button", { name: "Login" });
-      const username_input = screen.getByPlaceholderText(/username/i);
-      const password_input = screen.getByPlaceholderText(/password/i);
+      expect(submit).toBeDisabled();
 
-      // input a username that does not exist
-      await userEvent.type(username_input, "username");
-      await userEvent.type(password_input, mock_data.user.password!);
-      await userEvent.click(login_button);
-      expect(toast.error).toHaveBeenCalledWith("User does not exist");
+      await userEvent.type(email, EMAIL);
+      expect(submit).toBeDisabled();
 
-      //clear existing inputs
-      vi.clearAllMocks();
-      await userEvent.clear(username_input);
-      await userEvent.clear(password_input);
+      await userEvent.type(password, PASSWORD);
+      expect(submit).toBeEnabled();
 
-      // input an incorrect password
-      await userEvent.type(username_input, mock_data.user.username);
-      await userEvent.type(password_input, "incorrect-password");
-      await userEvent.click(login_button);
-      expect(toast.error).toHaveBeenCalledWith("Incorrect Password");
+      await userEvent.clear(email);
+      expect(submit).toBeDisabled();
+    });
 
-      //clear existing inputs
-      vi.clearAllMocks();
-      await userEvent.clear(username_input);
-      await userEvent.clear(password_input);
+    it('submits the credentials down the local path', async () => {
+      const mutateAsync = vi.fn().mockResolvedValue(undefined);
+      renderWithAuth(<LoginForm />, { loginMutation: mockLoginMutation({ mutateAsync }) });
 
-      //input a valid credentials
-      await userEvent.type(username_input, mock_data.user.username);
-      await userEvent.type(password_input, mock_data.user.password!);
-      await userEvent.click(login_button);
+      const { email, password, submit } = loginControls();
+      await userEvent.type(email, EMAIL);
+      await userEvent.type(password, PASSWORD);
+      await userEvent.click(submit);
 
-      expect(toast.error).not.toHaveBeenCalled();
+      expect(mutateAsync).toHaveBeenCalledWith({
+        authOption: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
+        email: EMAIL,
+        password: PASSWORD,
+      });
+    });
+
+    it('does not submit the password as part of the url or leave it readable', async () => {
+      renderWithAuth(<LoginForm />);
+      const { password } = loginControls();
+
+      await userEvent.type(password, PASSWORD);
+
+      expect(password).toHaveAttribute('type', 'password');
+    });
+
+    it('reveals and re-hides the password on request', async () => {
+      renderWithAuth(<LoginForm />);
+      const { password } = loginControls();
+      const reveal = screen.getByTestId('view-password-button');
+
+      await userEvent.click(reveal);
+      expect(password).toHaveAttribute('type', 'text');
+
+      await userEvent.click(reveal);
+      expect(password).toHaveAttribute('type', 'password');
+    });
+
+    it('shows a spinner and blocks a second submit while the request is in flight', async () => {
+      renderWithAuth(<LoginForm />, { loginMutation: mockLoginMutation({ isPending: true }) });
+
+      await userEvent.type(screen.getByPlaceholderText('Email'), EMAIL);
+      await userEvent.type(screen.getByPlaceholderText('Password'), PASSWORD);
+
+      // Queried by type rather than by name: the spinner has replaced the
+      // label, which is the point -- there is nothing left to match on.
+      const submit = screen.getByTestId('login-form').querySelector('button[type="submit"]');
+
+      expect(submit).toBeDisabled();
+      expect(submit).not.toHaveTextContent('Login');
+      expect(screen.queryByRole('button', { name: /login/i })).not.toBeInTheDocument();
     });
   });
 
-  describe("Login w/ GOOGLE", () => {
-    it("should display a button to login with google", () => {
-      render(
-        <MockAuthProvider>
-          <LoginWGoogle />
-        </MockAuthProvider>
-      );
+  describe('Login w/ GOOGLE', () => {
+    it('displays a button to log in with google', () => {
+      renderWithAuth(<LoginWGoogle />);
 
-      expect(screen.getByTestId("login-w-google")).toBeInTheDocument();
+      expect(screen.getByTestId('login-w-google')).toBeInTheDocument();
     });
 
-    it('redirects to GOOGLE OAuth when the user click the "Continue with Google" button', async () => {
-      const router = useRouter();
-      render(
-        <MockAuthProvider
-          mock_data={{
-            login: vi.fn(async () => {
-              router.push("/");
-            }),
-          }}
-        >
-          <LoginWGoogle />
-        </MockAuthProvider>
-      );
+    // The provider turns this into a whole-page navigation to the api, which is
+    // why the button carries no credentials of its own.
+    it('starts the google flow with no credentials attached', async () => {
+      const mutateAsync = vi.fn().mockResolvedValue(undefined);
+      renderWithAuth(<LoginWGoogle />, { loginMutation: mockLoginMutation({ mutateAsync }) });
 
-      const button = screen.getByRole("button", { name: /Continue with GOOGLE/i });
+      await userEvent.click(screen.getByTestId('login-w-google'));
 
-      await userEvent.click(button);
-      expect(router.push).toHaveBeenCalledWith("/");
+      expect(mutateAsync).toHaveBeenCalledWith({ authOption: AuthServiceOptions.WITH_GOOGLE });
     });
   });
 });

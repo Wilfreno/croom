@@ -1,7 +1,7 @@
-import mock_data from "@/__tests__/mocks/mock-data";
+import mockData from "@/__tests__/mocks/mock-data";
 import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
 import Page from "@/app/(auth)/recover/page";
-import ChangePassPage from "@/app/(auth)/recover/[email]/page";
+import ChangePassPage from "@/components/page/auth/recover/ResetPasswordForm";
 import LoginForgetPasswordButton from "@/components/page/auth/login/LoginForgetPasswordButton";
 import { ServerResponse } from "@/lib/server/requests";
 import { render, screen } from "@testing-library/react";
@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => ({
     get: vi.fn((params) => params),
   }),
-  useParams: vi.fn(() => ({ email: mock_data.user.email })),
+  useParams: vi.fn(() => ({ email: mockData.user.email })),
 }));
 
 vi.mock("@/lib/server/requests", () => ({
@@ -28,8 +28,8 @@ vi.mock("@/lib/server/requests", () => ({
       status: "NOT_FOUND",
     };
 
-    const path_array = (path as string).split("/");
-    if (path_array.pop() === mock_data.user.email)
+    const pathArray = (path as string).split("/");
+    if (pathArray.pop() === mockData.user.email)
       response = {
         data: null,
         message: "",
@@ -45,7 +45,7 @@ vi.mock("@/lib/server/requests", () => ({
       status: "NOT_FOUND",
     };
 
-    if (body.pin === mock_data.otp.pin)
+    if (body.pin === mockData.otp.pin)
       response = {
         data: null,
         message: "",
@@ -81,12 +81,10 @@ describe("Recover Account", () => {
     it("should display a disabled button while the input has no value", async () => {
       const button = screen.getByRole("button", { name: "Search" });
 
-      // disabled by default
       expect(button).toBeDisabled();
 
-      await userEvent.type(screen.getByPlaceholderText("Search your email"), mock_data.user.email);
+      await userEvent.type(screen.getByPlaceholderText("Search your email"), mockData.user.email);
 
-      // is enabled when the input has value
       expect(button).toBeEnabled();
     });
 
@@ -109,7 +107,7 @@ describe("Recover Account", () => {
     beforeEach(() => {
       document.elementFromPoint = vi.fn(() => null);
 
-      const query_client = new QueryClient({
+      const queryClient = new QueryClient({
         defaultOptions: {
           queries: {
             staleTime: 5 * 60 * 1000,
@@ -121,7 +119,7 @@ describe("Recover Account", () => {
       });
 
       render(
-        <MockQueryClientProvider query_client={query_client}>
+        <MockQueryClientProvider queryClient={queryClient}>
           <MockAuthProvider>
             <ChangePassPage />
           </MockAuthProvider>

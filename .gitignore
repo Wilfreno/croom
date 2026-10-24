@@ -1,3 +1,8 @@
 .turbo
 node_modules
 .vscode
+
+dist
+dist-cjs
+
+*.tsbuildinfo

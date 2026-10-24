@@ -1,15 +1,22 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
-export default function MockQueryClientProvider({ children, query_client }: { children: React.ReactNode; query_client: QueryClient }) {
-  query_client.setQueryData(["signup", "form"], {
-    email: "",
-    username: "",
-    password: "",
-    display_name: "",
-    confirm_password: "",
-    pin: "",
+export default function MockQueryClientProvider({
+  children,
+  queryClient,
+}: {
+  children: React.ReactNode;
+  queryClient: QueryClient;
+}) {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+/** A client that does not retry, so a rejected query settles inside one tick. */
+export function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
   });
-
-  return <QueryClientProvider client={query_client}>{children}</QueryClientProvider>;
 }

@@ -8,13 +8,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export default function SettingsChangeUserName() {
-  const [input_is_open, setInputIsOpen] = useState(false);
+  const [inputIsOpen, setInputIsOpen] = useState(false);
   const [username, setUsername] = useState("");
   const {
     session: { user, update },
   } = useAuth();
 
-  const change_username = useMutation({
+  const changeUsername = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await PATCHRequest("/v1/user/username", {
@@ -39,12 +39,12 @@ export default function SettingsChangeUserName() {
     <div>
       <span className="font-semibold">Username</span>
       <div>
-        {input_is_open ? (
+        {inputIsOpen ? (
           <form
             className="flex items-center gap-2 relative"
             onSubmit={(e) => {
               e.preventDefault();
-              change_username.mutate();
+              changeUsername.mutate();
             }}
           >
             <AtSign className="h-4 w-auto absolute top-1/2 left-4 -translate-y-1/2" />
@@ -58,7 +58,7 @@ export default function SettingsChangeUserName() {
             <Button
               type="button"
               variant="outline"
-              disabled={change_username.isPending}
+              disabled={changeUsername.isPending}
               onClick={() => {
                 setUsername(user!.username);
                 setInputIsOpen(false);
@@ -69,7 +69,7 @@ export default function SettingsChangeUserName() {
             <Button
               disabled={
                 !username ||
-                change_username.isPending ||
+                changeUsername.isPending ||
                 username === user?.username.slice(1)
               }
             >

@@ -11,16 +11,16 @@ import { toast } from "sonner";
 
 export default function SettingsChangePassword() {
   const [password, setPassword] = useState({ new: "", confirm: "" });
-  const [see_password, setSeePassword] = useState([false, false]);
+  const [seePassword, setSeePassword] = useState([false, false]);
   const [open, setOpen] = useState(false);
 
-  const div_ref = useRef<HTMLDivElement>(null);
+  const divRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) div_ref.current?.scrollIntoView();
+    if (open) divRef.current?.scrollIntoView();
   }, [open]);
 
-  const change_password = useMutation({
+  const changePassword = useMutation({
     mutationFn: async () => {
       try {
         const { status, message } = await PATCHRequest("/v1/user/password", {
@@ -52,7 +52,7 @@ export default function SettingsChangePassword() {
           {open ? "Cancel" : "Change"}
         </Button>
       </div>
-      <div ref={div_ref} className={cn(open ? "grid gap-2 relative" : "hidden")}>
+      <div ref={divRef} className={cn(open ? "grid gap-2 relative" : "hidden")}>
         <div className="space-y-1">
           <Label htmlFor="current-pass" className="font-medium">
             New Password
@@ -60,7 +60,7 @@ export default function SettingsChangePassword() {
           <div className="relative">
             <Input
               id="current-pass"
-              type={see_password[0] ? "text" : "password"}
+              type={seePassword[0] ? "text" : "password"}
               placeholder="New Password"
               value={password.new}
               onChange={(e) => setPassword((prev) => ({ ...prev, new: e.target.value }))}
@@ -70,7 +70,7 @@ export default function SettingsChangePassword() {
               className="aspect-square h-8 p-2 w-auto absolute right-2 top-1/2 -translate-y-1/2"
               onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
             >
-              {see_password[0] ? (
+              {seePassword[0] ? (
                 <Eye className="h-full w-auto" />
               ) : (
                 <EyeOff className="h-full w-auto" />
@@ -85,7 +85,7 @@ export default function SettingsChangePassword() {
           <div className="relative">
             <Input
               id="current-pass"
-              type={see_password[1] ? "text" : "password"}
+              type={seePassword[1] ? "text" : "password"}
               placeholder="Confirm Password"
               value={password.confirm}
               onChange={(e) =>
@@ -97,7 +97,7 @@ export default function SettingsChangePassword() {
               className="aspect-square h-8 p-2 w-auto absolute right-2 top-1/2 -translate-y-1/2"
               onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
             >
-              {see_password[1] ? (
+              {seePassword[1] ? (
                 <Eye className="h-full w-auto" />
               ) : (
                 <EyeOff className="h-full w-auto" />
@@ -115,10 +115,10 @@ export default function SettingsChangePassword() {
             !password.new ||
             !password.confirm ||
             password.new !== password.confirm ||
-            change_password.isPending
+            changePassword.isPending
           }
           className="justify-self-end"
-          onClick={() => change_password.mutate()}
+          onClick={() => changePassword.mutate()}
         >
           Confirm
         </Button>

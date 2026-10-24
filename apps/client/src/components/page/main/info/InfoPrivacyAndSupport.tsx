@@ -1,78 +1,59 @@
-import { useAuth } from "@/components/providers/AuthProvider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { getConvoOptions } from "@/lib/react-query/prefetch-query-options";
-import { DELETERequest, POSTRequest } from "@/lib/server/requests";
-import { Block, Conversation } from "@/lib/types/server-data-types";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  ChevronDown,
-  ChevronRight,
-  Flag,
-  LogOut,
-  ShieldMinus,
-  UserRound,
-  X,
-} from "lucide-react";
-import { useParams } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
+import { DELETERequest, POSTRequest } from '@/lib/server/requests';
+import { Block, Conversation } from '@repo/types';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ChevronDown, ChevronRight, Flag, LogOut, ShieldMinus, UserRound, X } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function InfoPrivacyAndSupport() {
   const [open, setOpen] = useState(false);
-  const [to_report_user, setToReportUser] = useState<{
+  const [toReportUser, setToReportUser] = useState<{
     id: string;
-    display_name: string;
+    displayName: string;
   }>();
-  const [report_reason, setReportSeason] = useState("");
+  const [reportReason, setReportSeason] = useState('');
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
 
-  const { data: query_response, refetch } = useQuery(getConvoOptions(params.id));
+  const { data: queryResponse, refetch } = useQuery(getConvoOptions(params.id));
 
   const report = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await POSTRequest("/v1/user/report", {
-          reported_user: to_report_user?.id,
-          reason: report_reason,
+        const { status, message } = await POSTRequest('/v1/user/report', {
+          reportedUser: toReportUser?.id,
+          reason: reportReason,
         });
 
-        if (status !== "CREATED") throw new Error(message);
+        if (status !== 'CREATED') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
     onSuccess: () => {
-      toast.success("User reported");
+      toast.success('User reported');
     },
   });
 
-  const leave_conversation = useMutation({
+  const leaveConversation = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await POSTRequest("/v1/conversation/leave", {
+        const { status, message } = await POSTRequest('/v1/conversation/leave', {
           conversation: params.id,
         });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
@@ -80,16 +61,15 @@ export default function InfoPrivacyAndSupport() {
     },
   });
 
-  const block_user = useMutation({
+  const blockUser = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await POSTRequest("/v1/block", {
-          blocked_user: (query_response?.data as Conversation).members.find(
-            (member) => member.id !== session.user?.id
-          )?.id,
+        const { status, message } = await POSTRequest('/v1/block', {
+          blockedUser: (queryResponse?.data as Conversation).members.find((member) => member.id !== session.user?.id)
+            ?.id,
         });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
@@ -97,18 +77,18 @@ export default function InfoPrivacyAndSupport() {
     },
     onSuccess: async () => {
       await refetch();
-      toast("user as been blocked");
+      toast('user as been blocked');
     },
   });
 
-  const unblock_user = useMutation({
+  const unblockUser = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await DELETERequest("/v1/block", {
-          id: (query_response?.data as Block).id,
+        const { status, message } = await DELETERequest('/v1/block', {
+          id: (queryResponse?.data as Block).id,
         });
 
-        if (status !== "OK") throw new Error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
@@ -116,35 +96,27 @@ export default function InfoPrivacyAndSupport() {
     },
     onSuccess: async () => {
       await refetch();
-      toast("user unblocked");
+      toast('user unblocked');
     },
   });
 
   return (
     <Collapsible
-      onOpenChange={(is_open) => {
-        setOpen(is_open);
-        if (
-          is_open &&
-          query_response?.status === "OK" &&
-          !(query_response?.data as Conversation).is_group_chat
-        ) {
-          const other_user = (query_response?.data as Conversation).members.find(
-            (member) => member.id !== session.user?.id
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (isOpen && queryResponse?.status === 'OK' && !(queryResponse?.data as Conversation).isGroupChat) {
+          const otherUser = (queryResponse?.data as Conversation).members.find(
+            (member) => member.id !== session.user?.id,
           );
 
-          setToReportUser({ id: other_user!.id, display_name: other_user!.display_name });
+          setToReportUser({ id: otherUser!.id, displayName: otherUser!.displayName });
         }
       }}
     >
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="w-full justify-between font-semibold">
           <span>Privacy & Support</span>
-          {open ? (
-            <ChevronDown className="h-4 w-auto" />
-          ) : (
-            <ChevronRight className="h-4 w-auto" />
-          )}
+          {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="grid gap-2 p-2">
@@ -161,7 +133,7 @@ export default function InfoPrivacyAndSupport() {
             <DialogHeader>
               <DialogTitle></DialogTitle>
             </DialogHeader>
-            {!!to_report_user ? (
+            {!!toReportUser ? (
               <>
                 <DialogHeader>
                   <DialogTitle></DialogTitle>
@@ -174,31 +146,23 @@ export default function InfoPrivacyAndSupport() {
                 <section className="rounded-md p-2 grid gap-4">
                   <div>
                     <span>Report: </span>
-                    <span className="font-medium">{to_report_user.display_name}</span>
+                    <span className="font-medium">{toReportUser.displayName}</span>
                   </div>
                   <Textarea
                     className="resize-none min-h-96"
                     placeholder="Reason"
                     rows={1}
-                    value={report_reason}
+                    value={reportReason}
                     onChange={(e) => setReportSeason(e.currentTarget.value)}
                   />
                   <div className="flex justify-between">
-                    <Button
-                      variant="secondary"
-                      className="place-self-end"
-                      onClick={() => setToReportUser(undefined)}
-                    >
+                    <Button variant="secondary" className="place-self-end" onClick={() => setToReportUser(undefined)}>
                       cancel
                     </Button>
-                    {(query_response?.data as Conversation).is_group_chat ? (
+                    {(queryResponse?.data as Conversation).isGroupChat ? (
                       <Button className="place-self-end">send</Button>
                     ) : (
-                      <DialogClose
-                        asChild
-                        disabled={!report_reason}
-                        onClick={() => report.mutate()}
-                      >
+                      <DialogClose asChild disabled={!reportReason} onClick={() => report.mutate()}>
                         <Button className="place-self-end">send</Button>
                       </DialogClose>
                     )}
@@ -212,7 +176,7 @@ export default function InfoPrivacyAndSupport() {
                 </DialogHeader>
                 <ScrollArea className="h-[40dvh] grid gap-2 mt-4">
                   <section>
-                    {(query_response?.data as Conversation).members
+                    {(queryResponse?.data as Conversation).members
                       .filter((member) => member.id !== session.user?.id)
                       .map((member) => (
                         <div key={member.id} className="flex items-center gap-2">
@@ -222,14 +186,14 @@ export default function InfoPrivacyAndSupport() {
                               <UserRound className="h-1/2 w-auto" />
                             </AvatarFallback>
                           </Avatar>
-                          <span>{member.display_name}</span>
+                          <span>{member.displayName}</span>
                           <Button
                             variant="destructive"
                             className="ml-auto"
                             onClick={() =>
                               setToReportUser({
                                 id: member.id,
-                                display_name: member.display_name,
+                                displayName: member.displayName,
                               })
                             }
                           >
@@ -247,23 +211,18 @@ export default function InfoPrivacyAndSupport() {
             )}
           </DialogContent>
         </Dialog>
-        {(query_response?.data as Conversation)?.is_group_chat ? (
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => leave_conversation.mutate()}
-          >
+        {(queryResponse?.data as Conversation)?.isGroupChat ? (
+          <Button variant="ghost" className="w-full justify-start" onClick={() => leaveConversation.mutate()}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full">
               <LogOut className="h-4 w-auto stroke-2" />
             </span>
             <span>Leave group chat</span>
           </Button>
-        ) : query_response?.status === "BLOCKED" &&
-          (query_response?.data as Block).blocker === session.user?.id ? (
+        ) : queryResponse?.status === 'BLOCKED' && (queryResponse?.data as Block).blocker === session.user?.id ? (
           <Button
             variant="secondary"
             className="w-full justify-start text-destructive"
-            onClick={() => unblock_user.mutate()}
+            onClick={() => unblockUser.mutate()}
           >
             <span className="aspect-square h-fit w-auto p-2 rounded-full ">
               <ShieldMinus className="h-4 w-auto" />
@@ -271,11 +230,7 @@ export default function InfoPrivacyAndSupport() {
             <span>Unblock User</span>
           </Button>
         ) : (
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => block_user.mutate()}
-          >
+          <Button variant="ghost" className="w-full justify-start" onClick={() => blockUser.mutate()}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
               <ShieldMinus className="h-4 w-auto" />
             </span>

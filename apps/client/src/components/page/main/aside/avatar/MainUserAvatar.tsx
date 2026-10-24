@@ -39,7 +39,7 @@ export default function MainUserAvatar() {
             </Avatar>
             <div className="grid text-start">
               <p className="font-medium max-w-64 truncate">
-                {session.user?.display_name}
+                {session.user?.displayName}
               </p>
               <p className="text-xs">{session.user?.username}</p>
             </div>

@@ -11,10 +11,10 @@ import HomeSideBarMobileHeader from "./HomeSideBarMobileHeader";
 
 export default function HomeSideBar() {
   const { data: open } = useQuery({ queryKey: ["home", "sidebar"], queryFn: () => true });
-  const { on_mobile: is_mobile } = useUserAgent();
+  const { onMobile: isMobile } = useUserAgent();
   const pathname = usePathname();
 
-  if (is_mobile && pathname !== "/") return null;
+  if (isMobile && pathname !== "/") return null;
   return (
     <SidebarContent
       className={cn(

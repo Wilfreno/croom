@@ -1,25 +1,17 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Message } from "@/lib/types/server-data-types";
-import { UserRound, X } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import React, { useMemo } from "react";
-import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Message } from '@repo/types';
+import { UserRound, X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useMemo } from 'react';
+import { toast } from 'sonner';
 
-export default function MessageToast({
-  message,
-  toast_id,
-}: {
-  message: Message;
-  toast_id: string | number;
-}) {
-  const display_name = useMemo(() => {
-    let name = message.conversation.nicknames.find(
-      (nickname) => nickname.user === message.sender.id
-    )?.value;
+export default function MessageToast({ message, toastId }: { message: Message; toastId: string | number }) {
+  const displayName = useMemo(() => {
+    let name = message.conversation.nicknames.find((nickname) => nickname.user === message.sender.id)?.value;
 
-    if (!name) name = message.sender.display_name;
+    if (!name) name = message.sender.displayName;
 
     return name;
   }, [message]);
@@ -36,12 +28,12 @@ export default function MessageToast({
         <Button
           variant="ghost"
           className="aspect-square h-fit w-auto p-1 absolute top-1 right-2"
-          onClick={() => toast.dismiss(toast_id)}
+          onClick={() => toast.dismiss(toastId)}
         >
           <X className="h-4 w-auto" />
         </Button>
         <Link
-          href={"/conversation/" + message.conversation.id}
+          href={'/conversation/' + message.conversation.id}
           target="_blank"
           className="hidden group-hover:inline-flex absolute bottom-4 right-8"
         >
@@ -51,10 +43,10 @@ export default function MessageToast({
         </Link>
         <div>
           <div className="grid items-start w-full  overflow-y-auto">
-            <p className="text-sm font-medium">{display_name}</p>
+            <p className="text-sm font-medium">{displayName}</p>
           </div>
           <span className="text-xs pl-1 text-start">
-            {message.photos.length > 1 ? " Sent some photos" : message.text}
+            {message.photos.length > 1 ? ' Sent some photos' : message.text}
           </span>
         </div>
       </div>

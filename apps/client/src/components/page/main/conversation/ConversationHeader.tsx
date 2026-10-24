@@ -11,32 +11,32 @@ import useUserAgent from "@/components/hooks/useUserAgent";
 
 export default function ConversationHeader() {
   const params = useParams<{ id: string }>();
-  const query_client = useQueryClient();
-  const { on_mobile } = useUserAgent();
+  const queryClient = useQueryClient();
+  const { onMobile } = useUserAgent();
   const router = useRouter();
 
-  const info_sidebar_is_open = query_client.getQueryData<boolean>([
+  const infoSidebarIsOpen = queryClient.getQueryData<boolean>([
     "sidebar",
     "info",
     "open",
-    on_mobile,
+    onMobile,
   ]);
-  const { data: query_response } = useQuery(getConvoOptions(params.id));
+  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
 
-  const { data: conversation_info } = useQuery<{
-    photo_url: string;
-    conversation_name: string;
+  const { data: conversationInfo } = useQuery<{
+    photoUrl: string;
+    conversationName: string;
     status: "OFFLINE" | "ONLINE" | null;
-    last_online: string;
+    lastOnline: string;
   }>({
-    queryKey: ["conversation", "info", query_response],
+    queryKey: ["conversation", "info", queryResponse],
   });
 
   return (
     <section
       className={cn(
         "w-full border-b flex items-center justify-between  relative gap-4  shadow-lg h-full",
-        on_mobile ? "p-2" : "p-3"
+        onMobile ? "p-2" : "p-3"
       )}
     >
       <div className="flex items-center gap-4">
@@ -49,16 +49,16 @@ export default function ConversationHeader() {
         </Button>
         <div className="flex items-center gap-4">
           <UserAvatar
-            src={conversation_info?.photo_url}
-            is_online={status === "ONLINE"}
+            src={conversationInfo?.photoUrl}
+            isOnline={status === "ONLINE"}
           />
           <div>
             <p className="font-medium truncate max-w-96">
-              {conversation_info?.conversation_name}
+              {conversationInfo?.conversationName}
             </p>
-            {!!conversation_info?.last_online && (
+            {!!conversationInfo?.lastOnline && (
               <p className="text-xs font-medium text-muted-foreground">
-                {conversation_info?.last_online}
+                {conversationInfo?.lastOnline}
               </p>
             )}
           </div>
@@ -67,13 +67,13 @@ export default function ConversationHeader() {
       <Button
         className="aspect-square h-fit w-auto rounded-full p-1"
         onClick={() =>
-          query_client.setQueryData<boolean>(
-            ["sidebar", "info", "open", on_mobile],
+          queryClient.setQueryData<boolean>(
+            ["sidebar", "info", "open", onMobile],
             (prev) => !prev
           )
         }
       >
-        <Ellipsis className={cn("w-auto", info_sidebar_is_open ? "h-2" : "h-4")} />
+        <Ellipsis className={cn("w-auto", infoSidebarIsOpen ? "h-2" : "h-4")} />
       </Button>
     </section>
   );

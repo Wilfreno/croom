@@ -1,22 +1,29 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 describe('AppController', () => {
-  let appController: AppController;
+  const appService = { getHello: vi.fn() };
+  let controller: AppController;
 
   beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    vi.clearAllMocks();
+
+    const moduleRef = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [{ provide: AppService, useValue: appService }],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    controller = moduleRef.get(AppController);
   });
 
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
-    });
+  // The route carries @ResponseMessage('hello world'), so the body a caller
+  // sees is the envelope the interceptor builds, not this return value.
+  // server-response.spec.ts covers that wrapping.
+  it('delegates to the service', () => {
+    controller.getHello();
+
+    expect(appService.getHello).toHaveBeenCalledTimes(1);
   });
 });

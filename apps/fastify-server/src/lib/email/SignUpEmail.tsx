@@ -12,7 +12,7 @@ export default function SignUpEmail({ username, code }: { username: string; code
             style={{ padding: "clamp(0.5rem,1rem,1.25rem)" }}
           >
             <Heading className="text-center">
-              <Text className=" text-5xl font-sans font-bold text-violet-700">Chat Up</Text>
+              <Text className=" text-5xl font-sans font-bold text-violet-700">Croom</Text>
               <Text className="font-medium text-slate-600   ">
                 Connect and Hangout with your friends and Communities
               </Text>
@@ -22,7 +22,7 @@ export default function SignUpEmail({ username, code }: { username: string; code
                 Hi <strong>{username}</strong>
               </Text>
               <Text>
-                Welcome to <strong>Chat Up !</strong> , Use the verification code below to proceed your sign up process:
+                Welcome to <strong>Croom !</strong> , Use the verification code below to proceed your sign up process:
               </Text>
             </Section>
             <Section className="my-[8dvh] text-center">
@@ -36,7 +36,7 @@ export default function SignUpEmail({ username, code }: { username: string; code
                 This email is was sent to you from{" "}
                 <Link href="https://www.chat-up.xyz/">{"(https://www.chat-up.xyz/login)"}</Link>. if you did not expect
                 an email from us reset your password, further secure your email address. If you don't remember using
-                your email on our site, email us on <strong>chatup.dev.service@gmail.com</strong> so we can delete your
+                your email on our site, email us on <strong>croom.dev.service@gmail.com</strong> so we can delete your
                 information in our system.
               </Text>
             </Section>

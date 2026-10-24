@@ -1,12 +1,12 @@
 
 <div align="center">
   
-[![ChatUp](https://github.com/Wilfreno/chatup/blob/main/client/public/croom-logo.png)](https://www.chat-up.xyz/)
+[![Croom](https://github.com/Wilfreno/croom/blob/main/apps/client/public/croom-logo.png)](https://www.chat-up.xyz/)
 </div>
 
 <div align="center">
 
-[![ChatUp](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=ChatUp)](https://www.chat-up.xyz/)
+[![Croom](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=Croom)](https://www.chat-up.xyz/)
 </div>
 
 <p align="center" >Connect and Chat with your friends and Communities</p>
@@ -50,16 +50,16 @@
 
 
 # Run the App Locally
-## Clone the github [repository](https://github.com/Wilfreno/chatup)
+## Clone the github [repository](https://github.com/Wilfreno/croom)
 
 ```bash 
-git clone https://github.com/Wilfreno/chatup.git
+git clone https://github.com/Wilfreno/croom.git
 ```
 ## Configure Client
 
 - Go to the project root directory
 ```bash
-cd ./chatup
+cd ./croom
 ```
 
 -  Go to the client directory
@@ -77,16 +77,19 @@ pnpm install
 ```
 
 ### Give the client environment variables 
-Create a **.env.local** file inside the client directory and paste the environment variables
+Create a **.env** file inside the client directory and paste the environment variables
 
-**./client/.env.local**
+**./apps/client/.env**
 
 ```env
-NEXT_PUBLIC_SERVER = http://localhost:8000
-ClIENT_URL = http://localhost:3000
+NEXT_PUBLIC_SERVER = "http://localhost:8000"
+NEXT_PUBLIC_SERVER_V1 = "http://localhost:8000/v1"
 
 UPLOADTHING_TOKEN = ""
 ```
+
+#### NEXT_PUBLIC_SERVER and NEXT_PUBLIC_SERVER_V1
+Both point at the same api and have to agree. `NEXT_PUBLIC_SERVER_V1` is the versioned root the axios instance is based at, so requests made through it give a path with no version of its own (`/auth/session`). `NEXT_PUBLIC_SERVER` is the bare origin, used for the whole-page navigations that cannot go through axios -- the google login handoff and logout.
 
 #### UPLOADTHING_TOKEN 
 The client is using [uploadthing](https://uploadthing.com/) as an images storage service.

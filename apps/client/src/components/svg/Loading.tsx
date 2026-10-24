@@ -1,12 +1,14 @@
-import { SVGProps } from "react";
+import { cn } from '@/lib/utils';
+import { SVGProps } from 'react';
 
 export default function Loading(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
-      xmlns="http://www.w3.org/2000/svg" // xmlns:xlink="http://www.w3.org/1999/xlink"
+      xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 100 100"
       preserveAspectRatio="xMidYMid"
+      className={cn('fill-white aspect-square h-10 w-auto', props.className)}
     >
       <g transform="rotate(0 50 50)">
         <rect
@@ -16,7 +18,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -36,7 +37,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -56,7 +56,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -76,7 +75,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -96,7 +94,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -116,7 +113,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -136,7 +132,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -156,7 +151,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -176,7 +170,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -196,7 +189,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -216,7 +208,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"
@@ -236,7 +227,6 @@ export default function Loading(props: SVGProps<SVGSVGElement>) {
           ry="6"
           width="6"
           height="12"
-          // fill="hsl(var(--primary))"
         >
           <animate
             attributeName="opacity"

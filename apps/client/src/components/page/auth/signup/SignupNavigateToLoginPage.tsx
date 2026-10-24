@@ -4,13 +4,13 @@ import { useSearchParams } from "next/navigation";
 
 export default function SignupNavigateToLoginPage() {
   const from = useSearchParams().get("from");
-  let search_params = "";
-  if (from) search_params += "?from=" + from;
+  let searchParams = "";
+  if (from) searchParams += "?from=" + from;
 
   return (
     <div>
       <span>Already have an account?</span>
-      <Link href={"/login" + search_params}>
+      <Link href={"/login" + searchParams}>
         <Button variant="link" className="text-primary">
           Login
         </Button>

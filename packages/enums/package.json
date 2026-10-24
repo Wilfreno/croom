@@ -3,7 +3,7 @@
   "main": "dist-cjs/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "tsc --watch --preserveWatchOutput & tsc -p tsconfig.cjs.json --watch --preserveWatchOutput & wait",
     "build": "tsc && tsc -p tsconfig.cjs.json"
   },
   "exports": {
