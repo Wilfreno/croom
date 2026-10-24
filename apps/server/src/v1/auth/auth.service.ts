@@ -9,16 +9,9 @@ import { AuthenticatedUser } from '@repo/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 import { LoginDto } from './dto/login.dto';
+import { GoogleProfile, SessionContext } from "src/types/auth.type";
 
-/** What is recorded about the browser a session was opened from. */
-export type SessionContext = { ip?: string; userAgent?: string };
 
-/** The fields a google profile contributes to an account. */
-export type GoogleProfile = {
-  googleId: string;
-  email: string;
-  emailVerified: boolean;
-};
 
 @Injectable()
 export class AuthService {
@@ -97,20 +90,16 @@ export class AuthService {
   async findOrCreateGoogleUser(
     profile: GoogleProfile,
   ): Promise<AuthenticatedUser> {
-    const existing = await this.userModel.getUserByGoogleIdOrEmail(profile);
+    const existing = await this.userModel.getUserByEmail(profile.email);
 
     if (existing) {
-      const linked = await this.userModel.linkGoogleAccount(
-        existing._id,
-        profile.googleId,
-      );
+      const linked = await this.userModel.linkGoogleAccount(existing._id);
 
       return this.toAuthenticatedUser(linked ?? existing);
     }
 
     const created = await this.userModel.create({
       email: profile.email,
-      googleId: profile.googleId,
       authService: AuthServiceOptions.WITH_GOOGLE,
     });
 

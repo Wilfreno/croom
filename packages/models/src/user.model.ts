@@ -20,14 +20,10 @@ export class UserModel {
   async create({
     email,
     password,
-    googleId,
-    emailVerified,
     authService,
   }: {
     email: string;
     password?: string;
-    googleId?: string;
-    emailVerified?: boolean;
     authService: AuthServiceOptions;
   }): Promise<UserDocument> {
     try {
@@ -40,8 +36,6 @@ export class UserModel {
         {
           email,
           password: encryptedPassword,
-          googleId,
-          emailVerified: Boolean(emailVerified),
           authService,
           userName,
           displayName: userName,
@@ -55,27 +49,21 @@ export class UserModel {
     }
   }
 
-  async getUserByGoogleIdOrEmail({
-    googleId,
-    email,
-  }: {
-    googleId: string;
-    email: string;
-  }): Promise<UserDocument | null> {
+  async getUserByEmail(email: string): Promise<UserDocument | null> {
     try {
-      return await this.User.findOne({ $or: [{ googleId }, { email }] });
+      return await this.User.findOne({ email });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
     }
   }
 
-  async linkGoogleAccount(id: Types.ObjectId, googleId: string): Promise<UserDocument | null> {
+  async linkGoogleAccount(id: Types.ObjectId): Promise<UserDocument | null> {
     try {
       return await this.User.findByIdAndUpdate(
         id,
         {
-          $set: { googleId, emailVerified: true, lastUpdated: new Date() },
+          $set: { lastUpdated: new Date() },
           $addToSet: { authService: AuthServiceOptions.WITH_GOOGLE },
         },
         { new: true },
