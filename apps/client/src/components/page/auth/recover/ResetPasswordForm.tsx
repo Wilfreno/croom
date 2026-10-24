@@ -1,5 +1,6 @@
 'use client';
 import usePasswordStrengthChecker from '@/components/hooks/usePasswordStrengthChecker';
+import Loading from '@/components/svg/Loading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,7 +65,6 @@ export default function ResetPasswordForm({ email }: { email: string }) {
     return () => clearInterval(id);
   }, [reRoute.go]);
 
-  console.log(reRoute.time);
   if (changePassword.isSuccess)
     return (
       <section className="flex flex-col gap-20">
@@ -72,7 +72,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
           <h1 className="text-2xl font-medium">Password Changed</h1>
           <Check className="h-20 w-auto text-green-500 stroke-2 bg-secondary rounded-full" />
         </div>
-        redirecting to login page {reRoute.go ? `(${reRoute.time})` : ''}
+        Redirecting to login page {reRoute.go ? `(${reRoute.time})` : ''}
       </section>
     );
 
@@ -164,10 +164,11 @@ export default function ResetPasswordForm({ email }: { email: string }) {
         disabled={
           !formData.password ||
           formData.password !== formData.confirmPassword ||
-          score < passwordStrengthScorePerCriteriaSatisfied(5)
+          score < passwordStrengthScorePerCriteriaSatisfied(5) ||
+          changePassword.isPending
         }
       >
-        Change password
+        {changePassword.isPending ? <Loading /> : 'Change password'}
       </Button>
     </form>
   );
