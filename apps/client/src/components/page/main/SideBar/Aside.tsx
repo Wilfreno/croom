@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { House } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import MainUserAvatar from './MainUserAvatar';
 
 export default function Aside() {
   const iconStyles = cn('h-6 w-auto');
@@ -35,7 +34,6 @@ export default function Aside() {
           </Tooltip>
         </TooltipProvider>
       </div>
-     
     </aside>
   );
 }

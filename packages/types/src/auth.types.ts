@@ -1,6 +1,10 @@
-import { User } from '@repo/schemas';
+import { Photo, User } from '@repo/schemas';
 
-export type AuthenticatedUser = Omit<User, 'password'> & { id: string };
+export interface AuthenticatedUser extends Omit<User, 'password' | 'photo'> {
+  id: string;
+  photo: Photo
+}
+
 export type LoginCredentials = {
   email: string;
   password: string;

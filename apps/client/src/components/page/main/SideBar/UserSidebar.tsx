@@ -14,12 +14,12 @@ import {
 import { LogOut, Settings, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function MainUserAvatar() {
+export default function UserSideBar() {
   const { session, logout } = useAuth();
   const router = useRouter();
 
   return (
-    <section className="h-fit w-[95%] shadow-sm border rounded-sm absolute bottom-5 right-2 bg-background p-2">
+    <section className="h-fit w-[95%] shadow-sm border rounded-sm absolute bottom-5 right-2 bg-background p-2 flex justify-between">
       <DropdownMenu>
         <DropdownMenuTrigger className="rounded-full">
           <Avatar className="border border-muted aspect-square h-full w-12">
@@ -54,19 +54,14 @@ export default function MainUserAvatar() {
                 <span>Settings</span>
               </Button>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start cursor-pointer"
-                onClick={async () => await logout()}
-              >
-                <LogOut className="h-4 w-auto" />
-                <span>Logout</span>
-              </Button>
-            </DropdownMenuItem>
+            <DropdownMenuItem asChild></DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      <Button variant="ghost" className="justify-start cursor-pointer" onClick={async () => await logout()}>
+        <LogOut className="h-4 w-auto" />
+        <span>Logout</span>
+      </Button>
     </section>
   );
 }
