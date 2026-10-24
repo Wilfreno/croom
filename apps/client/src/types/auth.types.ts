@@ -1,8 +1,9 @@
 import { AuthServiceOptions, OTPType } from '@repo/enums';
-import { AuthenticatedUser, ServerResponse, SignUpFormData } from '@repo/types';
+import {  ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
+import { User } from "./model.types";
 
 
 export type SignUpFieldProps = {
@@ -22,8 +23,8 @@ export type LoginVariables =
 
 export type AuthContextType = {
   session: {
-    user: AuthenticatedUser | null;
-    update: (data: Partial<AuthenticatedUser>) => Promise<void>;
+    user: User | null;
+    update: (data: Partial<User>) => Promise<void>;
   };
   logout: () => Promise<void>;
   loginMutation: UseMutationResult<void, AxiosError<ServerResponse>, LoginVariables, unknown>;
