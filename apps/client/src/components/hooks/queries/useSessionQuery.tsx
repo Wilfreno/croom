@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 
 
 export default function useSessionQuery() {
-  const { data: user,  } = useQuery({
+  const { data: user, isLoading } = useQuery({
     queryKey: ['user', 'session'],
     async queryFn() {
       try {
@@ -18,5 +18,5 @@ export default function useSessionQuery() {
     },
     placeholderData: null,
   });
-  return { user };
+  return { user, isLoading };
 }

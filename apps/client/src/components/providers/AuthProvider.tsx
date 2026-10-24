@@ -36,7 +36,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const queryClient = useQueryClient();
   const serverUrlv1 = process.env.NEXT_PUBLIC_SERVER_V1;
 
-  const { user } = useSessionQuery();
+  const { user, isLoading } = useSessionQuery();
 
   const loginMutation = useMutation<void, AxiosError<ServerResponse>, LoginVariables>({
     async mutationFn(variables) {
@@ -121,6 +121,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }
   }, [user, pathname]);
 
+  if (
+    (user && !(pathname.startsWith('/login') || pathname.startsWith('/sign-up') || pathname.startsWith('/recover'))) ||
+    (!user && (pathname.startsWith('/login') || pathname.startsWith('/sign-up') || pathname.startsWith('/recover')))
+  )
+    return (
+      <AuthContext.Provider
+        value={{
+          session: { user: user!, update },
+          logout,
+          loginMutation,
+          signup: { createOTPMutation, submitSignUpFormMutation },
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
+
   return (
     <AuthContext.Provider
       value={{
@@ -130,20 +147,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         signup: { createOTPMutation, submitSignUpFormMutation },
       }}
     >
-      {user ? (
-        children
-      ) : pathname.startsWith('/login') || pathname.startsWith('/sign-up') || pathname.startsWith('/recover') ? (
-        children
-      ) : (
-        <section className="fixed z-50 w-full h-full bg-background grid place-items-center ">
-          <div className="relative flex flex-col items-center justify-center gap-2">
-            <Image src={croomLogo} alt="logo" className="aspect-square h-40 w-auto" />
-            <span className="text-5xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
-              Croom
-            </span>
-          </div>
-        </section>
-      )}
+      <div className="fixed z-50 w-full h-full bg-background grid place-items-center ">
+        <div className="relative flex flex-col items-center justify-center gap-2">
+          <Image src={croomLogo} alt="logo" className="aspect-square h-40 w-auto" />
+          <span className="text-5xl font-semibold bg-gradient-to-r from-[#7f00ff] to-[#e100ff] bg-clip-text text-transparent animate-pulse">
+            Croom
+          </span>
+        </div>
+      </div>
     </AuthContext.Provider>
   );
 }
