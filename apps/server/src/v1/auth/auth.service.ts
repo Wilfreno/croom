@@ -1,8 +1,12 @@
+import { CookieSerializeOptions } from '@fastify/cookie';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@repo/constants';
 import { AuthServiceOptions } from '@repo/enums';
 import { SessionModel, UserModel } from '@repo/models';
 import type { UserDocument } from '@repo/schemas';
-import type { AuthenticatedUser } from '@repo/types';
+import { AuthenticatedUser } from '@repo/types';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 import { LoginDto } from './dto/login.dto';
 
@@ -18,16 +22,41 @@ export type GoogleProfile = {
 
 @Injectable()
 export class AuthService {
+  private readonly inProduction: boolean;
+
   constructor(
     private readonly userModel: UserModel,
     private readonly sessionModel: SessionModel,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.inProduction = configService.get<string>('NODE_ENV') === 'production';
+  }
 
-  /**
-   * Strips a user document down to what may leave the server. `_id` becomes
-   * `id` because that is the name the client reads, and the password hash goes
-   * whether or not the query happened to select it.
-   */
+  cookieOptions(maxAge?: number): CookieSerializeOptions {
+    return {
+      httpOnly: true,
+      secure: this.inProduction,
+      sameSite: this.inProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge,
+    };
+  }
+  async startSession(
+    user: AuthenticatedUser,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const token = await this.issueSession(user, {
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+    });
+
+    reply.setCookie(
+      SESSION_COOKIE,
+      token,
+      this.cookieOptions(SESSION_LIFETIME_SECONDS),
+    );
+  }
   private toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
     const { _id, __v, password, ...rest } = user.toObject();
 
@@ -45,11 +74,12 @@ export class AuthService {
   }: LoginDto): Promise<AuthenticatedUser | null> {
     const user = await this.userModel.getUserByEmailWithPassword(email);
 
-    const matched = await this.userModel.verifyPassword(
+    const matched = await this.userModel.verifyPassword({
       password,
-      user?.password,
-    );
-
+      hashed: user?.password,
+      configService: this.configService,
+    });
+    
     if (!user || !matched) return null;
 
     return this.toAuthenticatedUser(user);

@@ -67,9 +67,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         }
       }
     },
-
     onError(error) {
       toast.error(error.response?.data.message ?? SOMETHING_WENT_WRONG);
+    },
+    onSuccess() {
+      router.push('/');
     },
   });
 

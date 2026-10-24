@@ -1,10 +1,8 @@
 import { AuthServiceOptions, OTPType } from '@repo/enums';
-import {  ServerResponse, SignUpFormData } from '@repo/types';
+import { AuthenticatedUser, ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
-import { User } from "./model.types";
-
 
 export type SignUpFieldProps = {
   formData: SignUpFormData;
@@ -16,15 +14,14 @@ export type LoginCredentials = {
   password: string;
 };
 
-
 export type LoginVariables =
   | ({ authOption: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD } & LoginCredentials)
   | { authOption: AuthServiceOptions.WITH_GOOGLE };
 
 export type AuthContextType = {
   session: {
-    user: User | null;
-    update: (data: Partial<User>) => Promise<void>;
+    user: AuthenticatedUser | null;
+    update: (data: Partial<AuthenticatedUser>) => Promise<void>;
   };
   logout: () => Promise<void>;
   loginMutation: UseMutationResult<void, AxiosError<ServerResponse>, LoginVariables, unknown>;

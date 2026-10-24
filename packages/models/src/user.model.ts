@@ -1,17 +1,11 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { AuthServiceOptions } from '@repo/enums';
 import { User, UserDocument } from '@repo/schemas';
+import { requireEnv } from '@repo/utils';
 import { compare, hash } from 'bcrypt';
 import { Model, Types } from 'mongoose';
-
-/**
- * A real bcrypt hash of a value nobody knows, compared against when the email
- * turns out to have no account or no password. Skipping the comparison instead
- * would let a caller time the difference and learn which emails are registered,
- * which is exactly what the single shared failure message exists to hide.
- */
-const ABSENT_PASSWORD_HASH = '$2b$10$yfe6y90La5ZBNuaYGa1tRuWFH6Crz5gyuxaV/EdXO/Pu.h9L5/TF6';
 
 @Injectable()
 export class UserModel {
@@ -61,10 +55,6 @@ export class UserModel {
     }
   }
 
-  /**
-   * The account a returning google profile belongs to: the one already carrying
-   * the id, or failing that the one holding the address it verified.
-   */
   async getUserByGoogleIdOrEmail({
     googleId,
     email,
@@ -80,11 +70,6 @@ export class UserModel {
     }
   }
 
-  /**
-   * Adds google as a way into an account that already exists. `$addToSet`
-   * rather than `$push` so signing in again does not stack duplicates onto
-   * `authService`.
-   */
   async linkGoogleAccount(id: Types.ObjectId, googleId: string): Promise<UserDocument | null> {
     try {
       return await this.User.findByIdAndUpdate(
@@ -101,11 +86,6 @@ export class UserModel {
     }
   }
 
-  /**
-   * Reads a user by email with the password hash attached, which the schema
-   * otherwise withholds. Only the login path should call this -- everything else
-   * wants `getUserById`.
-   */
   async getUserByEmailWithPassword(email: string): Promise<UserDocument | null> {
     try {
       return await this.User.findOne({ email }).select('+password');
@@ -124,13 +104,17 @@ export class UserModel {
     }
   }
 
-  /**
-   * Whether `password` is the one behind `hashed`. A user with no password at
-   * all -- an account created through an oauth provider -- always fails, but
-   * takes the same time to do so.
-   */
-  async verifyPassword(password: string, hashed?: string): Promise<boolean> {
+  async verifyPassword({
+    password,
+    hashed,
+    configService,
+  }: {
+    password: string;
+    hashed?: string;
+    configService: ConfigService;
+  }): Promise<boolean> {
     try {
+      const ABSENT_PASSWORD_HASH = requireEnv(configService, 'ABSENT_PASSWORD_HASH').replace(/\/+$/, '');
       const matched = await compare(password, hashed ?? ABSENT_PASSWORD_HASH);
 
       return Boolean(hashed) && matched;
