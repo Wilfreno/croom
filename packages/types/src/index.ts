@@ -1,2 +1,2 @@
-export * from './back-end';
-export * from './front-end';
+export * from './auth.types';
+export * from './server-response.types';

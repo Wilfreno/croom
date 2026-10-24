@@ -1,8 +1,9 @@
 'use client';
 import { axiosInstance } from '@/lib/axios-instance';
+import { AuthContextType, LoginVariables } from '@/types/auth.types';
 import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import { AuthServiceOptions, OTPType } from '@repo/enums';
-import { AuthContextType, AuthenticatedUser, LoginVariables, ServerResponse, SignUpFormData } from '@repo/types';
+import { AuthenticatedUser, ServerResponse, SignUpFormData } from '@repo/types';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import Image from 'next/image';
@@ -28,7 +29,7 @@ export function useAuth() {
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthenticatedUser | null>(null);
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -39,9 +40,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     try {
       const { data } = await axiosInstance.get<ServerResponse<AuthenticatedUser>>('/auth/session');
 
-      setSession(data.data);
+      setUser(data.data);
     } catch {
-      setSession(null);
+      setUser(null);
     }
   }
 
@@ -55,12 +56,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         case AuthServiceOptions.WITH_EMAIL_AND_PASSWORD: {
           const { email, password } = variables;
 
-          const { data } = await axiosInstance.post<ServerResponse<AuthenticatedUser>>('/auth/local/login', {
+          const { data: response } = await axiosInstance.post<ServerResponse<AuthenticatedUser>>('/auth/local/login', {
             email,
             password,
           });
 
-          setSession(data.data);
+          setUser(response.data);
 
           break;
         }
@@ -114,7 +115,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
    * there is nothing on the server that could be out of date.
    */
   async function update(updatedData: Partial<AuthenticatedUser>) {
-    setSession((previous) => (previous ? { ...previous, ...updatedData } : previous));
+    setUser((previous) => (previous ? { ...previous, ...updatedData } : previous));
   }
 
   useEffect(() => {
@@ -122,24 +123,24 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
-    if (!session) {
+    if (!user) {
       if (!pathname.startsWith('/login') && !pathname.startsWith('/sign-up') && !pathname.startsWith('/recover'))
         router.push('/login');
     } else {
       if (pathname.startsWith('/login') || pathname.startsWith('/sign-up')) router.push('/');
     }
-  }, [session, pathname]);
+  }, [user, pathname]);
 
   return (
     <AuthContext.Provider
       value={{
-        session: { user: session, update },
+        session: { user, update },
         logout,
         loginMutation,
         signup: { createOTPMutation, submitSignUpFormMutation },
       }}
     >
-      {session ? (
+      {user ? (
         children
       ) : pathname.startsWith('/login') || pathname.startsWith('/sign-up') || pathname.startsWith('/recover') ? (
         children
