@@ -7,6 +7,6 @@ export interface User extends Omit<AuthenticatedUser, 'photo'> {
 
 export interface Conversation extends Omit<ConversationType, 'members' | 'photo'> {
   _id: string;
-  members: User;
+  members: User[];
   photo: Photo | null;
 }
