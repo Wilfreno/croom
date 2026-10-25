@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import SidebarContent from '../SidebarContent';
-import HomeActiveFriends from '../home/HomeActiveConversation';
+import HomeActiveConversations from '../home/HomeActiveConversation';
+import HomeConversations from '../home/HomeConversations';
 
 export default function ConversationSideBar() {
   const { data: open } = useQuery({ queryKey: ['home', 'sidebar'], queryFn: () => true });
@@ -19,8 +20,8 @@ export default function ConversationSideBar() {
       )}
     >
       {/* <HomeSideBarMobileHeader /> */}
-      <HomeActiveFriends />
-      {/* <HomeConversations /> */}
+      <HomeActiveConversations />
+      <HomeConversations />
     </SidebarContent>
   );
 }

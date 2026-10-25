@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/components/providers/AuthProvider';
 import { GETRequest } from '@/lib/server/requests';
-import { Conversation, Message } from '@repo/types';
+import { Conversation, Message } from '@/types/model.types';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import ConversationMessage from '../conversation/ConversationMessage';
@@ -26,7 +26,7 @@ export default function ComposeFoundMessages() {
     result: Message[];
   }>({
     enabled: !!foundConversation && foundConversation.length === 1,
-    queryKey: ['conversation', 'messages', foundConversation?.[0]?.id],
+    queryKey: ['conversation', 'messages', foundConversation?.[0]?._id],
     queryFn: async ({ pageParam }) => {
       try {
         const page = pageParam as number;
@@ -34,9 +34,7 @@ export default function ComposeFoundMessages() {
           data: result,
           status,
           message,
-        } = await GETRequest<Message[]>(
-          '/v1/conversation/' + foundConversation?.[0].id + '/messages?page=' + page,
-        );
+        } = await GETRequest<Message[]>('/v1/conversation/' + foundConversation?.[0]._id + '/messages?page=' + page);
 
         if (status !== 'OK') throw new Error(message);
 
@@ -62,13 +60,11 @@ export default function ComposeFoundMessages() {
           foundMessages.pages.map((page, pagesIndex) =>
             page.result.map((message, messageIndex) => (
               <ConversationMessage
-                key={message.id}
+                key={message._id}
                 message={message}
                 prevMessage={page.result[messageIndex - 1]}
                 nextMessage={page.result[messageIndex + 1]}
-                isLastMessage={
-                  pagesIndex === foundMessages.pages.length - 1 && messageIndex === page.result.length - 1
-                }
+                isLastMessage={pagesIndex === foundMessages.pages.length - 1 && messageIndex === page.result.length - 1}
               />
             )),
           )}

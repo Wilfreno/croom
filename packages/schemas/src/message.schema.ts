@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { MessageStatus } from '@repo/enums';
 import { HydratedDocument, Types } from 'mongoose';
 
-export type UserDocument = HydratedDocument<Message>;
+export type MessageDocument = HydratedDocument<Message>;
 
 @Schema({ collection: 'message' })
 export class Message {
@@ -23,6 +23,12 @@ export class Message {
 
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   seenBy!: Types.ObjectId[];
+
+  @Prop({ type: Date, required: false, default: Date.now })
+  dateCreated!: Date;
+
+  @Prop({ type: Date, required: false, default: Date.now })
+  lastUpdated!: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
