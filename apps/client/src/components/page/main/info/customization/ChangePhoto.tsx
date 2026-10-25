@@ -1,5 +1,5 @@
 'use client';
-import { UploadthingButton } from '@/components/page/UploadthingButton';
+import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -126,7 +126,7 @@ export default function ChangePhoto() {
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
-          <UploadthingButton
+          <UploadThingButton
             disabled={uploadingImage || !session}
             endpoint="singleImage"
             className="ut-button:h-fit ut-button:w-auto ut-button:p-2  ut-button:text-primary  ut-button:font-medium  ut-button:bg-background ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"

@@ -1,13 +1,16 @@
 'use client';
+import useComposeSelectedUser from '@/components/hooks/queries/useComposeSelectedUser';
+import useConversation from '@/components/hooks/queries/useConversation';
+import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { POSTRequest, ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Block, Conversation } from '@repo/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@/types/model.types';
+import { ConversationStatus } from '@repo/enums';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -15,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
-import { UploadthingButton } from '../../UploadthingButton';
+import { UploadThingButton } from '../../UploadthingButton';
 
 export default function ComposeMessageInput() {
   const [textInput, setTextInput] = useState('');
@@ -23,24 +26,16 @@ export default function ComposeMessageInput() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { session } = useAuth();
+  const {
+    session: { user },
+  } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: selectedUsers } = useQuery<string[][]>({
-    queryKey: ['compose', 'selected_users'],
-    placeholderData: [],
-  });
-  const { data: foundConversations, isError } = useQuery<Conversation[]>({
-    enabled: !!selectedUsers?.length && !!session.user,
-    queryKey: ['conversation', 'members', selectedUsers],
-    placeholderData: [],
-  });
+  const { data: selectedUsers } = useComposeSelectedUser();
 
-  const { data: conversation } = useQuery({
-    enabled: !!foundConversations && !!foundConversations.length,
-    ...getConvoOptions(foundConversations![0]?.id),
-  });
+  const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
+  const { data: conversation } = useConversation(foundConversations?.[0]?._id);
 
   const sendMessage = useMutation<
     void,
@@ -67,7 +62,7 @@ export default function ComposeMessageInput() {
     onSuccess: async (_, { conversationId }) => {
       await queryClient.refetchQueries({
         exact: true,
-        queryKey: ['conversation', 'messages', foundConversations?.[0]?.id],
+        queryKey: ['conversation', 'messages', foundConversations?.[0]?._id],
       });
       router.push('/conversation/' + conversationId);
     },
@@ -84,10 +79,10 @@ export default function ComposeMessageInput() {
     mutationFn: async (textMessage) => {
       try {
         const { data, status, message } = await POSTRequest<Conversation>('/v1/conversation', {
-          members: [session.user?.id, ...selectedUsers!.map((user) => user[0])],
+          members: [user?.id, ...selectedUsers!.map((user) => user[0])],
         });
         if (status !== 'CREATED') throw new Error(message);
-        return { conversationId: data.id, message: textMessage };
+        return { conversationId: data._id, message: textMessage };
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
@@ -144,8 +139,8 @@ export default function ComposeMessageInput() {
   }
 
   if (!selectedUsers || !selectedUsers.length) return null;
-  if (conversation && conversation.status === 'BLOCKED') {
-    if ((conversation.data as Block).blocker) {
+  if (conversation?.status === ConversationStatus.BLOCKED) {
+    if (conversation.blocker.toString() === user?.id.toString()) {
       return (
         <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
           <span>You have blocked this user, neither of you can reply on this conversation</span>
@@ -162,7 +157,7 @@ export default function ComposeMessageInput() {
 
   return (
     <div className="flex items-end p-2 bg-transparent">
-      <UploadthingButton
+      <UploadThingButton
         endpoint="multipleImage"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
@@ -186,7 +181,7 @@ export default function ComposeMessageInput() {
         <div className="w-full">
           {uploadingImage || !!photoInput.length ? (
             <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
-              <UploadthingButton
+              <UploadThingButton
                 endpoint="multipleImage"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
@@ -275,7 +270,7 @@ export default function ComposeMessageInput() {
               if (!foundConversations || !foundConversations.length || isError) {
                 createNewConversation.mutate('');
               } else {
-                sendMessage.mutate({ conversationId: foundConversations[0].id });
+                sendMessage.mutate({ conversationId: foundConversations[0]._id });
               }
             }}
           >
@@ -290,7 +285,7 @@ export default function ComposeMessageInput() {
                 createNewConversation.mutate('👍');
               } else {
                 sendMessage.mutate({
-                  conversationId: foundConversations[0].id,
+                  conversationId: foundConversations[0]._id,
                   message: '👍',
                 });
               }

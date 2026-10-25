@@ -1,6 +1,6 @@
 'use client';
 
-import { UploadthingButton } from '@/components/page/UploadthingButton';
+import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
@@ -126,7 +126,7 @@ export default function ConversationMessageInput() {
     );
   return (
     <div className="h-full flex items-end p-2 bg-transparent">
-      <UploadthingButton
+      <UploadThingButton
         endpoint="multipleImage"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
@@ -150,7 +150,7 @@ export default function ConversationMessageInput() {
         <div className="w-full">
           {uploadingImage || !!photoInput.length ? (
             <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
-              <UploadthingButton
+              <UploadThingButton
                 endpoint="multipleImage"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
@@ -200,7 +200,6 @@ export default function ConversationMessageInput() {
             <Textarea
               className={cn(
                 'resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
-
               )}
               ref={textareaRef}
               placeholder="Aa"

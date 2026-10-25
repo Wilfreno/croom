@@ -4,12 +4,12 @@ import { Conversation } from '@/types/model.types';
 import { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 
-export default function useSearchConversation(selectedUsers: string[][]) {
+export default function useSearchConversationsByMembers(selectedUsers: string[][] = []) {
   const {
     session: { user },
   } = useAuth();
 
-  const { data: foundConversation } = useQuery({
+  const { data: foundConversations, isError } = useQuery({
     enabled: Boolean(selectedUsers?.length) && Boolean(user),
     queryKey: ['conversation', 'members', selectedUsers],
     queryFn: async () => {
@@ -26,6 +26,7 @@ export default function useSearchConversation(selectedUsers: string[][]) {
     placeholderData: [],
   });
   return {
-    foundConversation,
+    foundConversations,
+    isError,
   };
 }

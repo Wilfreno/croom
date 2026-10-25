@@ -1,7 +1,7 @@
 'use client';
 import useComposeSelectedUser from '@/components/hooks/queries/useComposeSelectedUser';
 import userSearchUsers from '@/components/hooks/queries/userSearchUsers';
-import useSearchConversation from '@/components/hooks/queries/useSearchConversation';
+import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -33,7 +33,7 @@ export default function ComposeTo() {
   const { data: searchResult } = userSearchUsers(inputValue);
 
   const { data: selectedUsers } = useComposeSelectedUser();
-  const { foundConversation } = useSearchConversation(selectedUsers!);
+  const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
 
   useEffect(() => {
     function handleCLick(event: MouseEvent) {
@@ -59,7 +59,7 @@ export default function ComposeTo() {
       )}
     >
       <AnimatePresence>
-        {Boolean(foundConversation) && foundConversation?.some((conversation) => conversation.members.length > 2) && (
+        {Boolean(foundConversations) && foundConversations?.some((conversation) => conversation.members.length > 2) && (
           <motion.div
             key="found-group-chats"
             initial={{ y: -10, opacity: 0 }}
@@ -77,7 +77,7 @@ export default function ComposeTo() {
             ))}{' '}
             <span>are already a member of </span>
             <span className="text-primary h-fit w-fit font-medium">
-              {foundConversation.length} group chat&#40;s&#41;
+              {foundConversations.length} group chat&#40;s&#41;
             </span>{' '}
             <span>together.</span>{' '}
             <Button
@@ -93,7 +93,7 @@ export default function ComposeTo() {
             <div className={cn('absolute left-0 top-[105%] w-full', seeList ? 'grid' : 'hidden')}>
               <ScrollArea className="h-52">
                 <div className="bg-background gap-1 grid py-2 pr-2">
-                  {foundConversation.map((convo) => (
+                  {foundConversations.map((convo) => (
                     <Button
                       key={convo._id}
                       variant="ghost"
@@ -121,7 +121,7 @@ export default function ComposeTo() {
         </Button>
         <Label htmlFor="add-member">To: </Label>
       </div>
-      {!!selectedUsers && selectedUsers?.length > 5 && (
+      {Boolean(selectedUsers) && selectedUsers!.length > 5 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="aspect-square h-fit w-auto rounded-full p-2 mx-2">
@@ -155,7 +155,7 @@ export default function ComposeTo() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {Boolean(selectedUsers) && selectedUsers?.length && (
+      {Boolean(selectedUsers) && Boolean(selectedUsers?.length) && (
         <div className="flex items-center gap-2">
           {selectedUsers!.slice(-5).map((value, index) => (
             <div

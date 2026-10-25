@@ -10,7 +10,7 @@ import { Info, Trash, Upload, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
-import { UploadthingButton } from '../../UploadthingButton';
+import { UploadThingButton } from '../../UploadthingButton';
 
 export default function SettingsChangePhoto() {
   const [uploading, setUploading] = useState(false);
@@ -112,7 +112,7 @@ export default function SettingsChangePhoto() {
     <div className="grid gap-4">
       <div className="font-semibold w-full flex items-start justify-between pr-2">
         <span>Profile photo </span>
-        <UploadthingButton
+        <UploadThingButton
           disabled={uploading}
           endpoint="singleImage"
           className="ut-button:h-fit ut-button:w-fit ut-button:p-2 ut-button:gap-2 ut-uploading:ut-button:bg-primary/50 ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
