@@ -137,4 +137,35 @@ export class UserModel {
       throw new InternalServerErrorException();
     }
   }
+
+  async searchUser({ userId, searchText }: { userId: string; searchText: string }) {
+    const users = await this.User.find({
+      $and: [
+        {
+          $or: [
+            {
+              userName: {
+                $regex: '^' + searchText,
+                $options: 'i',
+              },
+            },
+            {
+              displayName: {
+                $regex: '^' + searchText,
+                $options: 'i',
+              },
+            },
+          ],
+        },
+        {
+          _id: { $ne: userId },
+        },
+      ],
+    })
+      .select('displayName userName photo status')
+      .populate({ path: 'photo', select: 'url' })
+      .lean();
+
+    return users.map(({ _id, ...user }) => ({ id: _id.toString(), ...user }));
+  }
 }

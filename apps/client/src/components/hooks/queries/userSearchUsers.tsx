@@ -11,7 +11,7 @@ export default function userSearchUsers(searchText: string) {
     enabled: Boolean(searchText),
     queryKey: ['search', 'user', debouncedValue],
     queryFn: async () => {
-      const { data: response } = await axiosInstance.get<ServerResponse<User[]>>(`/v1/user/search/${debouncedValue}`);
+      const { data: response } = await axiosInstance.get<ServerResponse<User[]>>(`/user/search/${debouncedValue}`);
 
       return response.data;
     },

@@ -1,5 +1,4 @@
 'use client';
-import useComposeSelectedUser from '@/components/hooks/queries/useComposeSelectedUser';
 import userSearchUsers from '@/components/hooks/queries/userSearchUsers';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,11 +13,17 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, UserRound, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import UserAvatar from '../UserAvatar';
 
-export default function ComposeTo() {
+export default function ComposeTo({
+  selectedUsers,
+  setSelectedUsers,
+}: {
+  selectedUsers: string[][];
+  setSelectedUsers: Dispatch<SetStateAction<string[][]>>;
+}) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [seeList, setSeeList] = useState(false);
@@ -32,7 +37,6 @@ export default function ComposeTo() {
 
   const { data: searchResult } = userSearchUsers(inputValue);
 
-  const { data: selectedUsers } = useComposeSelectedUser();
   const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
 
   useEffect(() => {
@@ -50,13 +54,10 @@ export default function ComposeTo() {
       document.removeEventListener('mousedown', handleCLick);
     };
   }, []);
-
+ 
   return (
     <section
-      className={cn(
-        'w-full border-b flex items-center p-3 relative gap-4 z-50',
-        !!selectedUsers?.length && 'shadow-lg',
-      )}
+      className={cn('w-full border-b flex items-center p-3 relative gap-4 z-50', !!selectedUsers?.length && 'shadow')}
     >
       <AnimatePresence>
         {Boolean(foundConversations) && foundConversations?.some((conversation) => conversation.members.length > 2) && (
@@ -167,9 +168,7 @@ export default function ComposeTo() {
                 variant="outline"
                 className="aspect-square h-fit w-auto p-1 rounded-full"
                 onClick={() =>
-                  queryClient.setQueryData<string[][]>(['compose', 'selected_users'], (prev) =>
-                    prev?.toSpliced(prev.length < 5 ? index : index + (prev.length - 5), 1),
-                  )
+                  setSelectedUsers((prev) => prev?.toSpliced(prev.length < 5 ? index : index + (prev.length - 5), 1))
                 }
               >
                 <X className="h-2 w-auto" />
@@ -207,10 +206,9 @@ export default function ComposeTo() {
                       toast('Already selected');
                       return;
                     }
-                    queryClient.setQueryData<string[][]>(['compose', 'selected_users'], (prev) => [
-                      ...prev!,
-                      [user.id, user.displayName],
-                    ]);
+                    setSelectedUsers((prev) =>
+                      prev ? [...prev!, [user.id, user.displayName]] : [[user.id, user.displayName]],
+                    );
                     setOpen(false);
                     setInputValue('');
                     inputRef.current?.focus();

@@ -1,5 +1,4 @@
 'use client';
-import useComposeSelectedUser from '@/components/hooks/queries/useComposeSelectedUser';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -20,7 +19,7 @@ import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 
-export default function ComposeMessageInput() {
+export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
   const [textInput, setTextInput] = useState('');
   const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -31,8 +30,6 @@ export default function ComposeMessageInput() {
   } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-
-  const { data: selectedUsers } = useComposeSelectedUser();
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
   const { data: conversation } = useConversation(foundConversations?.[0]?._id);

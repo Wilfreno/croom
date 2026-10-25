@@ -1,14 +1,12 @@
 'use client';
 
-import useComposeSelectedUser from '@/components/hooks/queries/useComposeSelectedUser';
 import useMessages from '@/components/hooks/queries/useMessages';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Button } from '@/components/ui/button';
 import ConversationMessage from '../conversation/ConversationMessage';
 
-export default function ComposeFoundMessages() {
-  const { data: selectedUsers } = useComposeSelectedUser();
-  const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
+export default function ComposeFoundMessages({ selectedUsers }: { selectedUsers: string[][] }) {
+  const { foundConversations } = useSearchConversationsByMembers(selectedUsers);
   const { foundMessages, isError } = useMessages(foundConversations!);
 
   return (
