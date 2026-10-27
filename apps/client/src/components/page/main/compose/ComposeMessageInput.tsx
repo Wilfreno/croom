@@ -5,7 +5,8 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { POSTRequest, ServerResponse } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
+import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
 import { Conversation } from '@/types/model.types';
 import { ConversationStatus } from '@repo/enums';
@@ -43,18 +44,11 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     }
   >({
     mutationFn: async ({ conversationId, message: textMessage }) => {
-      try {
-        const { status, message } = await POSTRequest('/v1/message', {
-          conversation: conversationId,
-          text: textMessage ? textMessage : textInput,
-          photos: photoInput,
-        });
-
-        if (status !== 'CREATED') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      await axiosInstance.post('/v1/message', {
+        conversation: conversationId,
+        text: textMessage ? textMessage : textInput,
+        photos: photoInput,
+      });
     },
     onSuccess: async (_, { conversationId }) => {
       await queryClient.refetchQueries({
@@ -74,16 +68,10 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     string
   >({
     mutationFn: async (textMessage) => {
-      try {
-        const { data, status, message } = await POSTRequest<Conversation>('/v1/conversation', {
-          members: [user?.id, ...selectedUsers!.map((user) => user[0])],
-        });
-        if (status !== 'CREATED') throw new Error(message);
-        return { conversationId: data._id, message: textMessage };
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      const { data: response } = await axiosInstance.post<ServerResponse<Conversation>>('/conversation', {
+        members: [user?.id, ...selectedUsers!.map((user) => user[0])],
+      });
+      return { conversationId: response.data._id, message: textMessage };
     },
     onSuccess: (data) => {
       sendMessage.mutate(data);
@@ -159,7 +147,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
           button() {
-            return <ImageIcon className="h-5 w-auto text-primary" />;
+            return <ImageIcon className="h-6 w-auto text-primary" />;
           },
         }}
         onClientUploadComplete={onClientUploadComplete}
@@ -226,8 +214,9 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
             )}
           >
             <Textarea
+              disabled={sendMessage.isPending}
               className={cn(
-                'resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
+                'resize-none h-auto max-h-[30dvh] min-h-2 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
               )}
               ref={textareaRef}
               placeholder="Aa"
@@ -238,14 +227,31 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
                 e.currentTarget.style.height = 'auto';
                 e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+
+                  if (!textInput.trim()) return;
+
+                  if (!foundConversations || !foundConversations.length || isError) {
+                    createNewConversation.mutate(textInput);
+                  } else {
+                    sendMessage.mutate({
+                      conversationId: foundConversations[0]._id,
+                    });
+                  }
+
+                  setTextInput('');
+                }
+              }}
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="my-1">
                 <Button variant="ghost" className="aspect-square h-fit w-auto p-0">
-                  <Smile className="h-6 w-auto text-background fill-primary" />
+                  <Smile className="h-7 w-auto text-background fill-primary" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="p-0">
+              <DropdownMenuContent className="p-0" align="end">
                 <EmojiPicker
                   className="border-none"
                   emojiStyle={EmojiStyle.NATIVE}
@@ -271,7 +277,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               }
             }}
           >
-            <SendHorizontal className="h-5 w-auto text-primary" />
+            <SendHorizontal className="h-6 w-auto text-primary" />
           </Button>
         ) : (
           <Button
@@ -288,7 +294,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               }
             }}
           >
-            <ThumbsUp className="h-4 w-auto text-primary" />
+            <ThumbsUp className="h-6 w-auto text-primary" />
           </Button>
         )}
       </form>

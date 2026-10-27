@@ -12,6 +12,8 @@ import { ServerResponseInterceptor } from "./common/interceptors/server-response
 import { ServerResponseFilter } from "./common/filters/server-response.filter";
 import { MailModule } from './common/mail/mail.module';
 import { OtpModule } from './v1/otp/otp.module';
+import { ConversationModule } from './v1/conversation/conversation.module';
+import { ConversationModule } from './v1/conversation/conversation.module';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { OtpModule } from './v1/otp/otp.module';
     MailModule,
     OtpModule,
     RateLimitModule,
+    ConversationModule,
   ],
   controllers: [AppController],
   providers: [

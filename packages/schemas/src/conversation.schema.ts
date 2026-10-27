@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ConversationStatus } from '@repo/enums';
 import { HydratedDocument, Types } from 'mongoose';
-import { NickNameSchema } from './nickname.schema';
+import { NickName, NickNameSchema } from './nickname.schema';
 
 export type ConversationDocument = HydratedDocument<Conversation>;
 
@@ -17,7 +17,7 @@ export class Conversation {
   admins!: Types.ObjectId[];
 
   @Prop({ type: [NickNameSchema], default: [] })
-  nicknames!: (typeof NickNameSchema)[];
+  nicknames!: NickName[];
 
   @Prop({ type: [Types.ObjectId], ref: 'Message', default: [] })
   messages!: Types.ObjectId[];

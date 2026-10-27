@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { AuthServiceOptions } from '@repo/enums';
 import { User, UserDocument } from '@repo/schemas';
+import { AuthenticatedUser } from '@repo/types';
 import { requireEnv } from '@repo/utils';
 import { compare, hash } from 'bcrypt';
-import { Model, Types } from 'mongoose';
-
+import { ClientSession, Model, Types } from 'mongoose';
 @Injectable()
 export class UserModel {
   private readonly logger = new Logger(UserModel.name);
@@ -17,32 +17,35 @@ export class UserModel {
     return await hash(password, 14);
   }
 
-  async create({
-    email,
-    password,
-    authService,
-  }: {
-    email: string;
-    password?: string;
-    authService: AuthServiceOptions;
-  }): Promise<UserDocument> {
+  async create(
+    {
+      email,
+      password,
+      authService,
+    }: {
+      email: string;
+      password?: string;
+      authService: AuthServiceOptions;
+    },
+    session: ClientSession,
+  ): Promise<UserDocument> {
     try {
       const userName = email.split('@')[0];
       let encryptedPassword: string;
 
       if (password) encryptedPassword = await this.hashPassword(password);
 
-      const [user] = await this.User.create([
-        {
-          email,
-          password: encryptedPassword,
-          authService,
-          userName,
-          displayName: userName,
-        },
-      ]);
+      const newUser = new this.User({
+        email,
+        password: encryptedPassword,
+        authService,
+        userName,
+        displayName: userName,
+      });
 
-      return user;
+      await newUser.save({ session });
+
+      return newUser;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -167,5 +170,47 @@ export class UserModel {
       .lean();
 
     return users.map(({ _id, ...user }) => ({ id: _id.toString(), ...user }));
+  }
+
+  async getUsersByIds(userIds: string[]) {
+    try {
+      return await this.User.aggregate<AuthenticatedUser>([
+        {
+          $match: {
+            _id: { $in: userIds },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            id: '$_id',
+            display_name: 1,
+            password: 0,
+          },
+        },
+      ]);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async addConversationToUser(
+    { conversationId, userIds }: { conversationId: Types.ObjectId; userIds: Types.ObjectId[] },
+    session: ClientSession,
+  ) {
+    try {
+      await this.User.updateMany(
+        { _id: userIds },
+        {
+          $set: { last_updated: new Date() },
+          $push: { conversations: conversationId },
+        },
+        { session },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
   }
 }

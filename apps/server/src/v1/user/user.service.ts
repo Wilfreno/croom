@@ -83,7 +83,7 @@ export class UserService {
               email,
               password,
               authService,
-            });
+            }, session);
 
             break;
           }
