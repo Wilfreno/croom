@@ -52,7 +52,7 @@ export class MessageService {
             conversation: new Types.ObjectId(conversationId),
             text,
             photos: newPhotoIds.map((photo) => photo._id),
-            sender: userId,
+            sender: new Types.ObjectId(userId),
           },
           session,
         );

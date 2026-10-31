@@ -10,7 +10,7 @@ export class Message {
   conversation!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  sender!: string;
+  sender!: Types.ObjectId;
 
   @Prop({ type: String, default: '' })
   text!: string;
