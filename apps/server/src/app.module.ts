@@ -13,6 +13,7 @@ import { ServerResponseFilter } from "./common/filters/server-response.filter";
 import { MailModule } from './common/mail/mail.module';
 import { OtpModule } from './v1/otp/otp.module';
 import { ConversationModule } from './v1/conversation/conversation.module';
+import { MessageModule } from './v1/message/message.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ConversationModule } from './v1/conversation/conversation.module';
     OtpModule,
     RateLimitModule,
     ConversationModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [

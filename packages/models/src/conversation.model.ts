@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/schemas';
 import { ClientSession, Model } from 'mongoose';
 
@@ -36,4 +37,40 @@ export class ConversationModel {
       await session.endSession();
     }
   }
+
+  async isConversationMember({ conversationId, userId }: { conversationId: string; userId: string }) {
+    try {
+      return Boolean(await this.Conversation.exists({ _id: conversationId, members: userId }));
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  /** True when the conversation is blocked and `userId` is not the one who blocked it. */
+  async isUserBlockedInConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
+    try {
+      return Boolean(
+        await this.Conversation.exists({
+          _id: conversationId,
+          status: ConversationStatus.BLOCKED,
+          blocker: { $ne: userId },
+        }),
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async findConversationById(conversationId: string) {
+    try {
+      return await this.Conversation.findOne({ _id: conversationId });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+ 
 }

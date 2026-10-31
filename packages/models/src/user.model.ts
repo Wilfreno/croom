@@ -134,7 +134,7 @@ export class UserModel {
 
   async updateUser(email: string, data: Partial<User>) {
     try {
-      return this.User.findOneAndUpdate({ email }, { $set: data });
+      return this.User.findOneAndUpdate({ email }, { $set: { ...data, lastUpdated: new Date() } });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

@@ -44,7 +44,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     }
   >({
     mutationFn: async ({ conversationId, message: textMessage }) => {
-      await axiosInstance.post('/v1/message', {
+      await axiosInstance.post('/message', {
         conversation: conversationId,
         text: textMessage ? textMessage : textInput,
         photos: photoInput,

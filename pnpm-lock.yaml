@@ -436,6 +436,9 @@ importers:
       '@repo/constants':
         specifier: workspace:*
         version: link:../constants
+      '@repo/models':
+        specifier: workspace:*
+        version: link:../models
       '@repo/types':
         specifier: workspace:*
         version: link:../types

@@ -19,9 +19,6 @@ export class Conversation {
   @Prop({ type: [NickNameSchema], default: [] })
   nicknames!: NickName[];
 
-  @Prop({ type: [Types.ObjectId], ref: 'Message', default: [] })
-  messages!: Types.ObjectId[];
-
   @Prop({ type: Types.ObjectId, ref: 'Photo', default: null })
   photo!: Types.ObjectId;
 
