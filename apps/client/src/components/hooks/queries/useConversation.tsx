@@ -4,7 +4,7 @@ import { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 
 export default function useConversation(id?: string) {
-  const { data } = useQuery({
+  const { data, isError, error, refetch } = useQuery({
     enabled: Boolean(id),
     queryKey: ['conversation', id],
     async queryFn() {
@@ -13,5 +13,5 @@ export default function useConversation(id?: string) {
       return response.data;
     },
   });
-  return { data };
+  return { data, isError, error , refetch};
 }

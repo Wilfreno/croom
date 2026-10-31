@@ -37,11 +37,11 @@ export default function ConversationMessage({
     let showTimeInterval = false;
     let timeIntervalText = '';
 
-    if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+    if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
       const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
       if (nextMessageDateSentInSeconds < minute) {
-        if (!!prevMessage && prevMessage.sender.id === message.sender.id) {
+        if (!!prevMessage && prevMessage.sender._id === message.sender._id) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
           const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
           if (prevMessageDateSentInSeconds < minute) {
@@ -57,8 +57,8 @@ export default function ConversationMessage({
       const prevMessageDateSent = new Date(prevMessage.dateCreated);
       const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
 
-      if (prevMessage.sender.id === message.sender.id && prevMessageDateSentInSeconds < minute) {
-        if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+      if (prevMessage.sender._id === message.sender._id && prevMessageDateSentInSeconds < minute) {
+        if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
           const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
           if (nextMessageDateSentInSeconds < minute) {
@@ -168,7 +168,7 @@ export default function ConversationMessage({
   const textStyle = useMemo(() => {
     let style = 'py-2 max-w-80 break-words';
 
-    const isSender = message.sender.id === session.user?.id;
+    const isSender = message.sender._id === session.user?.id;
     if (noText) style += ' h-fit text-4xl';
     else {
       style += ' rounded-lg px-4 text-sm shadow-sm border';
@@ -211,7 +211,7 @@ export default function ConversationMessage({
     else if (message.photos.length === 1) style += ' border shadow-sm';
     if (message.text)
       style +=
-        message.sender.id === session.user?.id
+        message.sender._id === session.user?.id
           ? ' rounded-l-lg rounded-tr-sm rounded-br'
           : ' rounded-r-lg rounded-tl-lg rounded-bl';
 
@@ -255,10 +255,10 @@ export default function ConversationMessage({
         ref={divRef}
         className={cn(
           'gap-2 w-full max-w-80 grid',
-          message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
+          message.sender._id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
         )}
       >
-        {message.sender.id !== session.user?.id && (
+        {message.sender._id !== session.user?.id && (
           <Avatar className={cn(quickMessagePlacement && quickMessagePlacement !== 'LAST' && 'opacity-0')}>
             <AvatarImage src={message.sender.photo?.url} />
             <AvatarFallback>

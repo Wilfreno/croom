@@ -8,7 +8,7 @@ export default function useMessages(foundConversation: Conversation[]) {
     pageParam: number;
     result: Message[];
   }>({
-    enabled: Boolean(foundConversation) && foundConversation!.length === 1,
+    enabled: Boolean(foundConversation) && Boolean(foundConversation![0]) && foundConversation!.length === 1,
     queryKey: ['conversation', 'messages', foundConversation?.[0]?._id],
     queryFn: async ({ pageParam }) => {
       const page = pageParam as number;

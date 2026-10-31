@@ -4,11 +4,10 @@ import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { POSTRequest, ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Message } from '@repo/types';
-import { InfiniteData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation, Message } from '@/types/model.types';
+import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -17,7 +16,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 
-export default function ConversationMessageInput() {
+export default function ConversationMessageInput({ conversation }: { conversation?: Conversation }) {
   const [textInput, setTextInput] = useState('');
   const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -25,8 +24,6 @@ export default function ConversationMessageInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-
-  const { data: conversation } = useQuery(getConvoOptions(params.id));
 
   const sendMessage = useMutation<Message, Error, string>({
     mutationFn: async (text) => {
