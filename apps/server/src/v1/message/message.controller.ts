@@ -5,7 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { MessageService } from './message.service';
 
-@Controller('message')
+@Controller({ path: 'message', version: '1' })
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 

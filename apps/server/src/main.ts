@@ -7,6 +7,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { SocketIoAdapter } from './common/adapters/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -24,6 +25,8 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'],
     credentials: true,
   });
+
+  app.useWebSocketAdapter(new SocketIoAdapter(app, clientUrl));
 
   app.enableVersioning({
     type: VersioningType.URI,
