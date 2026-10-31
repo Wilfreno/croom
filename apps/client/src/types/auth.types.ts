@@ -3,7 +3,7 @@ import { ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
-import { User } from './model.types';
+import { UserSession } from './model.types';
 
 export type SignUpFieldProps = {
   formData: SignUpFormData;
@@ -21,8 +21,8 @@ export type LoginVariables =
 
 export type AuthContextType = {
   session: {
-    user: User | null;
-    update: (data: Partial<User>) => Promise<void>;
+    user: UserSession | null;
+    update: (data: Partial<UserSession>) => Promise<void>;
   };
   logout: () => Promise<void>;
   loginMutation: UseMutationResult<void, AxiosError<ServerResponse>, LoginVariables, unknown>;
