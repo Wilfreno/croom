@@ -174,40 +174,8 @@ export class UserModel {
 
   async getUsersByIds(userIds: string[]) {
     try {
-      return await this.User.aggregate<AuthenticatedUser>([
-        {
-          $match: {
-            _id: { $in: userIds },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            id: '$_id',
-            display_name: 1,
-            password: 0,
-          },
-        },
-      ]);
-    } catch (error) {
-      this.logger.error(error);
-      throw new InternalServerErrorException();
-    }
-  }
-
-  async addConversationToUser(
-    { conversationId, userIds }: { conversationId: Types.ObjectId; userIds: Types.ObjectId[] },
-    session: ClientSession,
-  ) {
-    try {
-      await this.User.updateMany(
-        { _id: userIds },
-        {
-          $set: { last_updated: new Date() },
-          $push: { conversations: conversationId },
-        },
-        { session },
-      );
+      const users = await this.User.find({ _id: { $in: userIds } }).lean();
+      return users.map(({ _id, __v, ...user }): AuthenticatedUser => ({ id: _id.toString(), ...user }));
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

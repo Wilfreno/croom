@@ -7,7 +7,7 @@ export type ConversationDocument = HydratedDocument<Conversation>;
 
 @Schema({ collection: 'conversation' })
 export class Conversation {
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, default: '' })
   name!: string;
 
   @Prop({ type: [Types.ObjectId], ref: 'User', required: true })

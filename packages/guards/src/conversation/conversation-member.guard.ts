@@ -10,11 +10,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConversationModel } from '@repo/models';
-import {
-  ConversationIdSource,
-  getConversationGuardRequest,
-  getConversationId,
-} from './conversation-id.util';
+import { ConversationIdSource, getConversationGuardRequest, getConversationId } from './conversation-id.util';
 
 export const CONVERSATION_MEMBER_SOURCE_KEY = 'conversationMemberSource';
 
@@ -48,8 +44,6 @@ export class ConversationMemberGuard implements CanActivate {
 
     const isMember = await this.conversationModel.isConversationMember({ conversationId, userId });
 
-    // Same answer whether the conversation is missing or the user is not in
-    // it, so the endpoint can't be used to probe which conversation ids exist.
     if (!isMember) throw new ForbiddenException('you are not a member of this conversation');
 
     return true;

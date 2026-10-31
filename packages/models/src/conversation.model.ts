@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/schemas';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 
 @Injectable()
 export class ConversationModel {
@@ -14,7 +14,7 @@ export class ConversationModel {
     try {
       return Boolean(
         await this.Conversation.exists({
-          members: { $size: members.length, $all: members },
+          members: { $size: members.length, $all: members.map((member) => new Types.ObjectId(member)) },
         }),
       );
     } catch (error) {
@@ -33,14 +33,14 @@ export class ConversationModel {
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
-    } finally {
-      await session.endSession();
     }
   }
 
   async isConversationMember({ conversationId, userId }: { conversationId: string; userId: string }) {
     try {
-      return Boolean(await this.Conversation.exists({ _id: conversationId, members: userId }));
+      return Boolean(
+        await this.Conversation.exists({ _id: conversationId, members: { $in: [new Types.ObjectId(userId)] } }),
+      );
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -72,5 +72,17 @@ export class ConversationModel {
     }
   }
 
- 
+  async findConversationByMembers(members: string[]) {
+    try {
+      return await this.Conversation.find({
+        members: {
+          $size: members.length,
+          $all: members.map((member) => new Types.ObjectId(member)),
+        },
+      }).lean();
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
 }
