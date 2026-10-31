@@ -4,6 +4,7 @@ import Loading from '@/components/svg/Loading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isGroupChat } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import UserAvatar from '../UserAvatar';
@@ -30,17 +31,17 @@ export default function HomeActiveConversations() {
         ) : (
           <div className="flex items-center justify-start gap-2">
             {activeConversations?.map((conversation) => {
-              const isGroupChat = Boolean(conversation?.members?.length);
+              const isGroup = isGroupChat(conversation);
               return (
                 <Link key={conversation?._id} href={'/conversation/' + conversation._id}>
                   <div className="flex flex-col items-center gap-1 h-fit w-fit">
                     <UserAvatar
                       isOnline
-                      src={isGroupChat ? conversation.photo?.url : conversation.members[0].photo?.url}
+                      src={isGroup ? conversation.photo?.url : conversation.members[0].photo?.url}
                       className="bg-background"
                     />
                     <p className="text-xs font-medium w-14 truncate">
-                      {isGroupChat ? conversation.name : conversation.members[0].displayName}
+                      {isGroup ? conversation.name : conversation.members[0].displayName}
                     </p>
                   </div>
                 </Link>

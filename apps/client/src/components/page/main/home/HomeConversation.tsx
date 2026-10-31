@@ -1,6 +1,6 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { cn } from '@/lib/utils';
+import { cn, isGroupChat } from '@/lib/utils';
 import { Conversation } from '@/types/model.types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,7 +27,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
         isOnline: isOnline!,
       };
 
-    if (conversation.members.length > 2) {
+    if (isGroupChat(conversation)) {
       conversationName = conversation.name;
       photoUrl = conversation.photo?.url!;
     } else {
@@ -78,7 +78,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     let name = '';
     let text = '';
 
-    if (conversation.isGroupChat) {
+    if (isGroupChat(conversation)) {
       name =
         conversation.nicknames.find((nickname) => nickname.user === conversation.messages[0].sender.id)?.value || '';
 

@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, isGroupChat } from '@/lib/utils';
 import { UserStatus } from '@repo/enums';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, UserRound, X } from 'lucide-react';
@@ -60,7 +60,7 @@ export default function ComposeTo({
       className={cn('w-full border-b flex items-center p-3 relative gap-4 z-50', !!selectedUsers?.length && 'shadow')}
     >
       <AnimatePresence>
-        {Boolean(foundConversations) && foundConversations?.some((conversation) => conversation.members.length > 2) && (
+        {Boolean(foundConversations) && foundConversations?.some(isGroupChat) && (
           <motion.div
             key="found-group-chats"
             initial={{ y: -10, opacity: 0 }}
