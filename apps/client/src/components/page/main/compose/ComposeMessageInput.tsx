@@ -34,23 +34,15 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
   const { data: conversation } = useConversation(foundConversations?.[0]?._id);
-
-  const sendMessage = useMutation<
-    void,
-    Error,
-    {
-      conversationId?: string;
-      message?: string;
-    }
-  >({
-    mutationFn: async ({ conversationId, message: textMessage }) => {
+  const sendMessage = useMutation<void, Error, string>({
+    mutationFn: async (conversationId) => {
       await axiosInstance.post('/message', {
-        conversation: conversationId,
-        text: textMessage ? textMessage : textInput,
+        conversationId,
+        text: textInput,
         photos: photoInput,
       });
     },
-    onSuccess: async (_, { conversationId }) => {
+    onSuccess: async (_, conversationId) => {
       await queryClient.refetchQueries({
         exact: true,
         queryKey: ['conversation', 'messages', foundConversations?.[0]?._id],
@@ -59,22 +51,15 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     },
   });
 
-  const createNewConversation = useMutation<
-    {
-      conversationId?: string;
-      message?: string;
-    },
-    Error,
-    string
-  >({
-    mutationFn: async (textMessage) => {
+  const createNewConversation = useMutation<string>({
+    async mutationFn() {
       const { data: response } = await axiosInstance.post<ServerResponse<Conversation>>('/conversation', {
-        members: [user?.id, ...selectedUsers!.map((user) => user[0])],
+        members: selectedUsers!.map((user) => user[0]),
       });
-      return { conversationId: response.data._id, message: textMessage };
+      return response.data._id;
     },
-    onSuccess: (data) => {
-      sendMessage.mutate(data);
+    onSuccess(conversationId) {
+      sendMessage.mutate(conversationId);
     },
   });
 
@@ -234,11 +219,9 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
                   if (!textInput.trim()) return;
 
                   if (!foundConversations || !foundConversations.length || isError) {
-                    createNewConversation.mutate(textInput);
+                    createNewConversation.mutate();
                   } else {
-                    sendMessage.mutate({
-                      conversationId: foundConversations[0]._id,
-                    });
+                    sendMessage.mutate(foundConversations[0]._id);
                   }
 
                   setTextInput('');
@@ -271,9 +254,9 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => {
               if (!foundConversations || !foundConversations.length || isError) {
-                createNewConversation.mutate('');
+                createNewConversation.mutate();
               } else {
-                sendMessage.mutate({ conversationId: foundConversations[0]._id });
+                sendMessage.mutate(foundConversations[0]._id);
               }
             }}
           >
@@ -284,13 +267,11 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
             variant="ghost"
             className="aspect-square h-fit w-auto rounded-full p-2"
             onClick={() => {
+              setTextInput('👍');
               if (!foundConversations || !foundConversations.length || isError) {
-                createNewConversation.mutate('👍');
+                createNewConversation.mutate();
               } else {
-                sendMessage.mutate({
-                  conversationId: foundConversations[0]._id,
-                  message: '👍',
-                });
+                sendMessage.mutate(foundConversations[0]._id);
               }
             }}
           >

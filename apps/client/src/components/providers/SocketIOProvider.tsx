@@ -1,6 +1,5 @@
 'use client';
-import { Message } from '@repo/types';
-import { ClientToServer, ServerToCLient } from '@/types/socketio-types';
+import type { ClientToServerEvents, ServerToClientEvents } from '@repo/types';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -9,8 +8,9 @@ import { toast } from 'sonner';
 import useUserAgent from '../hooks/useUserAgent';
 import MessageToast from '../page/main/conversation/MessageToast';
 import { useAuth } from './AuthProvider';
+import { Message } from "@/types/model.types";
 
-const SocketIOContext = createContext<Socket<ServerToCLient, ClientToServer> | null>(null);
+const SocketIOContext = createContext<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 
 export function useSocketIO() {
   return useContext(SocketIOContext);
@@ -19,14 +19,16 @@ export function useSocketIO() {
 export default function SocketIOProvider({ children }: { children: React.ReactNode }) {
   const socketUrl = process.env.NEXT_PUBLIC_SERVER;
 
-  const [socket, setSocket] = useState<Socket<ServerToCLient, ClientToServer> | null>(null);
+  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const { session } = useAuth();
   const pathname = usePathname();
   const queryClient = useQueryClient();
   const { onMobile } = useUserAgent();
 
   function onMessage(message: Message) {
-    if (pathname.startsWith('/conversation/' + message.conversation.id)) {
+    const conversationId = message.conversation.toString();
+
+    if (pathname.startsWith('/conversation/' + conversationId)) {
       queryClient.setQueryData<
         | InfiniteData<
             {
@@ -36,7 +38,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
             unknown
           >
         | undefined
-      >(['conversation', 'messages', message.conversation.id], (prev) => {
+      >(['conversation', 'messages', conversationId], (prev) => {
         if (!prev) return;
 
         return {
@@ -62,10 +64,8 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   useEffect(() => {
     if (!session.user) return;
 
-    const socket: Socket<ServerToCLient, ClientToServer> = io(socketUrl + '/io', {
-      auth: {
-        userId: session.user.id,
-      },
+    const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(socketUrl + '/io', {
+      withCredentials: true,
     });
     setSocket(socket);
 
@@ -73,8 +73,9 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     socket.on('ERROR', onError);
 
     return () => {
-      socket.off('ERROR', onError);
-      socket.off('MESSAGE', onMessage);
+      socket?.off('ERROR', onError);
+      socket?.off('MESSAGE', onMessage);
+      socket?.disconnect();
     };
   }, [session.user, pathname, onMobile]);
 

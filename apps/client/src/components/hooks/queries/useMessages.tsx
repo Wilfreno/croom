@@ -13,7 +13,7 @@ export default function useMessages(foundConversation: Conversation[]) {
     queryFn: async ({ pageParam }) => {
       const page = pageParam as number;
       const { data: response } = await axiosInstance.get<ServerResponse<Message[]>>(
-        '/v1/conversation/' + foundConversation?.[0]._id + '/messages?page=' + page,
+        '/conversation/' + foundConversation?.[0]._id + '/messages?page=' + page,
       );
 
       return { pageParam: page, result: response.data };

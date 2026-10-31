@@ -15,7 +15,7 @@ export default function useSearchConversationsByMembers(selectedUsers: string[][
     queryFn: async () => {
       try {
         const { data: response } = await axiosInstance.get<ServerResponse<Conversation[]>>(
-          '/v1/conversation?members=' + selectedUsers.map((users) => users[0]).join(','),
+          '/conversation?members=' + selectedUsers.map((users) => users[0]).join(','),
         );
 
         return response.data;
