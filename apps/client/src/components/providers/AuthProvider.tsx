@@ -113,13 +113,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
+    if (isLoading) return;
     if (!user) {
       if (!pathname.startsWith('/login') && !pathname.startsWith('/sign-up') && !pathname.startsWith('/recover'))
         router.push('/login');
     } else {
       if (pathname.startsWith('/login') || pathname.startsWith('/sign-up')) router.push('/');
     }
-  }, [user, pathname]);
+  }, [user, isLoading, pathname]);
 
   if (
     (user && !(pathname.startsWith('/login') || pathname.startsWith('/sign-up') || pathname.startsWith('/recover'))) ||

@@ -16,7 +16,6 @@ export default function useSessionQuery() {
         return null;
       }
     },
-    placeholderData: null,
   });
   return { user, isLoading };
 }
