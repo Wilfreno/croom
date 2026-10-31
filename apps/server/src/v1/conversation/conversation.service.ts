@@ -4,9 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { ConversationModel, UserModel } from '@repo/models';
+import { ConversationModel, MessageModel, UserModel } from '@repo/models';
 import { Connection, Types } from 'mongoose';
+import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
+import { GetConversationMessageDto } from './dto/get-message.dto';
 
 @Injectable()
 export class ConversationService {
@@ -14,6 +16,7 @@ export class ConversationService {
     @InjectConnection() private readonly connection: Connection,
     private readonly conversationModel: ConversationModel,
     private readonly userModel: UserModel,
+    private readonly messageModel: MessageModel,
   ) {}
 
   async create({
@@ -28,19 +31,22 @@ export class ConversationService {
     const foundUsers = await this.userModel.getUsersByIds(members);
 
     if (foundUsers.length !== members.length) {
-      const missingMember = foundUsers.find(
-        (member) => !members.includes(member.id),
-      );
+      const foundIds = foundUsers.map((user) => user.id);
+      const missingMember = members.find((id) => !foundIds.includes(id));
       throw new NotFoundException(
-        `user with id:${missingMember?.id} does not exist`,
+        `user with id:${missingMember} does not exist`,
       );
     }
     const session = await this.connection.startSession();
+    let newConversation: Awaited<
+      ReturnType<ConversationModel['createConversation']>
+    >;
+
     try {
       await session.withTransaction(async () => {
         const memberIds = members.map((id) => new Types.ObjectId(id));
         const isGroupChat = members.length > 2;
-        const newConversation = await this.conversationModel.createConversation(
+        newConversation = await this.conversationModel.createConversation(
           {
             name: isGroupChat
               ? foundUsers.map((user) => user.displayName).join(', ')
@@ -54,14 +60,32 @@ export class ConversationService {
           },
           session,
         );
-
-        await this.userModel.addConversationToUser(
-          { conversationId: newConversation._id, userIds: memberIds },
-          session,
-        );
       });
     } finally {
       await session.endSession();
     }
+
+    return newConversation!;
+  }
+
+  async getConversationMessages({
+    conversationId,
+    page,
+  }: GetConversationMessageDto & PaginationPageDTO) {
+    const limit = 15;
+    const skip = (Number(page) - 1) * limit;
+
+    return await this.messageModel.getMessagesByConversationId({
+      conversationId,
+      limit,
+      skip,
+    });
+  }
+
+  async getConversationByMembersId(members: string[], userId: string) {
+    return await this.conversationModel.findConversationByMembers([
+      ...members,
+      userId,
+    ]);
   }
 }
