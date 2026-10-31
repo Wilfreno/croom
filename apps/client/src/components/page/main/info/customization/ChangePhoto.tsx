@@ -1,14 +1,14 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { PATCHRequest, ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@repo/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@/types/model.types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ImageIcon, UserRound } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -22,7 +22,8 @@ export default function ChangePhoto() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
+
   const queryClient = useQueryClient();
 
   const deletePhoto = useMutation({
@@ -63,24 +64,23 @@ export default function ChangePhoto() {
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => {
-        if (!prev) return;
+      const queryKeys = [
+        ['conversation', params.id],
+        [session.user?.id, 'conversations'],
+        [session.user?.id, 'active', 'conversations'],
+      ];
 
-        return { ...prev, photo: { ...prev.photo, url: newPhoto!.url } };
-      });
-      queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
-        if (!prev) return [];
+      if (!conversation?.photo) {
+        queryKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      } else {
+        const photo = { ...conversation.photo, url: newPhoto!.url };
+        const withNewPhoto = (convo: Conversation): Conversation =>
+          convo._id === params.id ? { ...convo, photo } : convo;
 
-        return prev.map((convo) =>
-          convo.id === params.id ? { ...convo, photo: { ...convo.photo, url: newPhoto!.url } } : convo,
-        );
-      });
-      queryClient.setQueryData<Conversation[]>([session.user?.id, 'active', 'conversations'], (prev) => {
-        if (!prev) return [];
-        return prev.map((convo) =>
-          convo.id === params.id ? { ...convo, photo: { ...convo.photo, url: newPhoto!.url } } : convo,
-        );
-      });
+        queryClient.setQueryData<Conversation>(queryKeys[0], (prev) => prev && withNewPhoto(prev));
+        queryClient.setQueryData<Conversation[]>(queryKeys[1], (prev) => prev?.map(withNewPhoto) ?? []);
+        queryClient.setQueryData<Conversation[]>(queryKeys[2], (prev) => prev?.map(withNewPhoto) ?? []);
+      }
       setNewPhoto(undefined);
       setOpen(false);
     },
@@ -121,7 +121,7 @@ export default function ChangePhoto() {
         </DialogHeader>
         <section className="grid justify-center my-10 gap-4">
           <Avatar className={cn('aspect-square h-auto w-48', uploadingImage && 'animate-pulse')}>
-            <AvatarImage src={newPhoto ? newPhoto.url : (queryResponse?.data as Conversation).photo?.url} />
+            <AvatarImage src={newPhoto ? newPhoto.url : conversation?.photo?.url} />
             <AvatarFallback>
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>

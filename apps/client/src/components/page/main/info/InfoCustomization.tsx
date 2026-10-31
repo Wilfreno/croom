@@ -1,9 +1,8 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
+import { isGroupChat } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
-import { Conversation } from '@repo/types';
-import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -14,7 +13,8 @@ export default function InfoCustomization() {
   const [isOpen, setIsOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
+
   return (
     <Collapsible onOpenChange={(isOpen) => setIsOpen(isOpen)}>
       <CollapsibleTrigger asChild>
@@ -24,7 +24,7 @@ export default function InfoCustomization() {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">
-        {(conversation?.data as Conversation).isGroupChat && (
+        {conversation && isGroupChat(conversation) && (
           <>
             <ChangePhoto />
             <ChangeName />

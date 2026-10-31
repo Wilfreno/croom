@@ -1,13 +1,13 @@
+import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@repo/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@/types/model.types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound, UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
@@ -17,13 +17,14 @@ export default function ManageAdmin() {
   const { session } = useAuth();
 
   const params = useParams<{ id: string }>();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation, isError, error } = useConversation(params.id);
+
   const queryClient = useQueryClient();
 
   const isAdmin = useMemo(() => {
-    if (!queryResponse || !session) return false;
-    return (queryResponse.data as Conversation).admins.some((user) => user.id === session.user?.id);
-  }, [session, queryResponse]);
+    if (!conversation || !session) return false;
+    return conversation.admins.some((user) => user.id === session.user?.id);
+  }, [session.user, conversation]);
 
   const manageAdmin = useMutation<void, Error, { admin: string; adminAction: 'ADD' | 'REMOVE' }>({
     mutationFn: async ({ admin, adminAction }) => {
@@ -80,11 +81,11 @@ export default function ManageAdmin() {
         </DialogClose>
         <ScrollArea className="h-[40dvh]">
           <div className="grid gap-2">
-            {(queryResponse?.data as Conversation).members.map((user) => (
+            {conversation?.members.map((user) => (
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
-                    <AvatarImage src={user.photo?.id} />
+                    <AvatarImage src={user.photo?._id} />
                     <AvatarFallback>
                       <UserRound className="h-1/2 w-auto" />
                     </AvatarFallback>
@@ -93,7 +94,7 @@ export default function ManageAdmin() {
                 </div>
                 {user.id === session.user?.id ? (
                   <p className="text-xs font-semibold text-muted-foreground mr-4">You</p>
-                ) : (queryResponse?.data as Conversation).admins.some((admin) => admin.id === user.id) ? (
+                ) : conversation.admins.some((admin) => admin.id === user.id) ? (
                   <Button
                     disabled={manageAdmin.isPending}
                     size="sm"

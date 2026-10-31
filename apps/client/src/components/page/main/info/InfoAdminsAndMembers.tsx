@@ -1,9 +1,8 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
-import { Conversation } from '@repo/types';
-import { useQuery } from '@tanstack/react-query';
+import { isGroupChat } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -14,9 +13,9 @@ export default function InfoAdminsAndMembers() {
   const [isOpen, setIsOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
 
-  if (!(queryResponse?.data as Conversation)?.isGroupChat) return null;
+  if (!conversation || !isGroupChat(conversation)) return null;
 
   return (
     <Collapsible onOpenChange={(isOpen) => setIsOpen(isOpen)}>
