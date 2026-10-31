@@ -1,13 +1,14 @@
 import { CookieSerializeOptions } from '@fastify/cookie';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectConnection } from '@nestjs/mongoose';
 import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@repo/constants';
 import { AuthServiceOptions } from '@repo/enums';
 import { SessionModel, UserModel } from '@repo/models';
 import type { UserDocument } from '@repo/schemas';
 import { AuthenticatedUser } from '@repo/types';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { Types } from 'mongoose';
+import { Connection, Types } from 'mongoose';
 import { LoginDto } from './dto/login.dto';
 import { GoogleProfile, SessionContext } from "src/types/auth.type";
 
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly userModel: UserModel,
     private readonly sessionModel: SessionModel,
     private readonly configService: ConfigService,
+    @InjectConnection() private readonly connection: Connection,
   ) {
     this.inProduction = configService.get<string>('NODE_ENV') === 'production';
   }
@@ -98,12 +100,20 @@ export class AuthService {
       return this.toAuthenticatedUser(linked ?? existing);
     }
 
-    const created = await this.userModel.create({
-      email: profile.email,
-      authService: AuthServiceOptions.WITH_GOOGLE,
-    });
+    const session = await this.connection.startSession();
 
-    return this.toAuthenticatedUser(created);
+    try {
+      return await session.withTransaction(async () => {
+        const created = await this.userModel.create({
+          email: profile.email,
+          authService: AuthServiceOptions.WITH_GOOGLE,
+        }, session);
+
+        return this.toAuthenticatedUser(created);
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 
   /**

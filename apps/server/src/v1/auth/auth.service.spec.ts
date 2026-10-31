@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { SessionModel, UserModel } from '@repo/models';
@@ -43,7 +44,13 @@ function build() {
     revoke: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { userModel, sessionModel };
+  const session = {
+    withTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+    endSession: vi.fn().mockResolvedValue(undefined),
+  };
+  const connection = { startSession: vi.fn().mockResolvedValue(session) };
+
+  return { userModel, sessionModel, session, connection };
 }
 
 type Mocks = ReturnType<typeof build>;
@@ -55,6 +62,7 @@ async function makeService(mocks: Mocks) {
       { provide: UserModel, useValue: mocks.userModel },
       { provide: SessionModel, useValue: mocks.sessionModel },
       { provide: ConfigService, useValue: { get: vi.fn() } },
+      { provide: getConnectionToken(), useValue: mocks.connection },
     ],
   }).compile();
 
@@ -195,7 +203,8 @@ describe('AuthService', () => {
       expect(mocks.userModel.create).toHaveBeenCalledWith({
         email: PROFILE.email,
         authService: AuthServiceOptions.WITH_GOOGLE,
-      });
+      }, mocks.session);
+      expect(mocks.session.endSession).toHaveBeenCalled();
     });
 
     it('stores no password for an account opened through google', async () => {
