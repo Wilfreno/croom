@@ -2,8 +2,9 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn } from '@/lib/utils';
-import { Message } from '@/types/model.types';
+import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
+import { SECONDS_IN_MINUTE } from '@repo/constants';
+import { Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import Image from 'next/image';
@@ -26,25 +27,18 @@ export default function ConversationMessage({
 
   const { showTimeInterval, timeIntervalText, quickMessagePlacement } = useMemo(() => {
     const dateSent = new Date(message.dateCreated);
-    const now = new Date();
-    const relativeDateInSeconds = Math.floor((now.getTime() - dateSent.getTime()) / 1000);
-
-    const minute = 60;
-    const hour = 60 * 60;
-    const day = 60 * 60 * 24;
-
     let quickMessagePlacement: 'FIRST' | 'MIDDLE' | 'LAST';
     let showTimeInterval = false;
     let timeIntervalText = '';
 
-    if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
+    if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
-      const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
-      if (nextMessageDateSentInSeconds < minute) {
-        if (!!prevMessage && prevMessage.sender._id === message.sender._id) {
+      const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
+      if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
+        if (!!prevMessage && prevMessage.sender.id === message.sender.id) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
-          const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
-          if (prevMessageDateSentInSeconds < minute) {
+          const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
+          if (prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
             quickMessagePlacement = 'MIDDLE';
           } else {
             quickMessagePlacement = 'FIRST';
@@ -53,15 +47,15 @@ export default function ConversationMessage({
       }
     }
 
-    if (!!prevMessage) {
-      const prevMessageDateSent = new Date(prevMessage.dateCreated);
-      const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
+    if (Boolean(prevMessage)) {
+      const prevMessageDateSent = new Date(prevMessage!.dateCreated);
+      const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
 
-      if (prevMessage.sender._id === message.sender._id && prevMessageDateSentInSeconds < minute) {
-        if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
+      if (prevMessage!.sender.id === message.sender.id && prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
+        if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
-          const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
-          if (nextMessageDateSentInSeconds < minute) {
+          const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
+          if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
             quickMessagePlacement = 'MIDDLE';
           } else {
             quickMessagePlacement = 'LAST';
@@ -70,83 +64,13 @@ export default function ConversationMessage({
           quickMessagePlacement = 'LAST';
         }
       }
-      if (prevMessageDateSentInSeconds > minute) {
+      if (prevMessageDateSentInSeconds > SECONDS_IN_MINUTE) {
         showTimeInterval = true;
-
-        if (relativeDateInSeconds > day * 7) {
-          timeIntervalText += new Intl.DateTimeFormat('en-US', {
-            month: 'long',
-          }).format(dateSent);
-
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              day: 'numeric',
-            }).format(dateSent);
-        }
-        if (relativeDateInSeconds > hour * 24) {
-          if (relativeDateInSeconds > hour * 24 * 2) {
-            timeIntervalText +=
-              ' ' +
-              new Intl.DateTimeFormat('en-US', {
-                weekday: 'long',
-              }).format(dateSent);
-
-            timeIntervalText +=
-              ' ' +
-              new Intl.DateTimeFormat('en-US', {
-                year: 'numeric',
-              }).format(dateSent);
-          } else {
-            timeIntervalText += ' Yesterday,';
-          }
-        }
-
-        timeIntervalText +=
-          ' ' +
-          new Intl.DateTimeFormat('en-US', {
-            minute: '2-digit',
-            hour: '2-digit',
-          }).format(dateSent);
+        timeIntervalText = getTimeIntervalText(message.dateCreated);
       }
     } else {
       showTimeInterval = true;
-
-      if (relativeDateInSeconds > day * 7) {
-        timeIntervalText += new Intl.DateTimeFormat('en-US', {
-          month: 'long',
-        }).format(dateSent);
-
-        timeIntervalText +=
-          ' ' +
-          new Intl.DateTimeFormat('en-US', {
-            day: 'numeric',
-          }).format(dateSent);
-      }
-      if (relativeDateInSeconds > hour * 24) {
-        if (relativeDateInSeconds > hour * 24 * 2) {
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              weekday: 'long',
-            }).format(dateSent);
-
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              year: 'numeric',
-            }).format(dateSent);
-        } else {
-          timeIntervalText += ' Yesterday,';
-        }
-      }
-
-      timeIntervalText +=
-        ' ' +
-        new Intl.DateTimeFormat('en-US', {
-          minute: '2-digit',
-          hour: '2-digit',
-        }).format(dateSent);
+      timeIntervalText = getTimeIntervalText(message.dateCreated);
     }
 
     return {
@@ -166,9 +90,9 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const textStyle = useMemo(() => {
-    let style = 'py-2 max-w-80 break-words';
+    let style = 'py-2 w-[40dvw] break-words whitespace-pre-wrap';
 
-    const isSender = message.sender._id === session.user?.id;
+    const isSender = message.sender.id === session.user?.id;
     if (noText) style += ' h-fit text-4xl';
     else {
       style += ' rounded-lg px-4 text-sm shadow-sm border';
@@ -178,7 +102,7 @@ export default function ConversationMessage({
     if (isSender) style += ' justify-self-end';
     else style += ' justify-self-start';
 
-    if (!!quickMessagePlacement) {
+    if (Boolean(quickMessagePlacement)) {
       style += isSender ? ' rounded-l-lg' : ' rounded-r-lg';
       switch (quickMessagePlacement) {
         case 'FIRST': {
@@ -211,7 +135,7 @@ export default function ConversationMessage({
     else if (message.photos.length === 1) style += ' border shadow-sm';
     if (message.text)
       style +=
-        message.sender._id === session.user?.id
+        message.sender.id === session.user?.id
           ? ' rounded-l-lg rounded-tr-sm rounded-br'
           : ' rounded-r-lg rounded-tl-lg rounded-bl';
 
@@ -221,8 +145,8 @@ export default function ConversationMessage({
 
   const seen = useMutation({
     async mutationFn() {
-      await axiosInstance.patch(`/message/${message._id}/seenBy`, {
-        conversationId: message.conversation, 
+      await axiosInstance.patch(`/message/${message.id}/seenBy`, {
+        conversationId: message.conversation,
         action: 'ADD',
       });
     },
@@ -243,19 +167,19 @@ export default function ConversationMessage({
   return (
     <span className="grid gap-3">
       {showTimeInterval && (
-        <div key={message._id + 'time_interval'} className="text-center text-xs text-muted-foreground font-medium">
+        <div key={message.id + 'time_interval'} className="text-center text-xs text-muted-foreground font-medium">
           {timeIntervalText}
         </div>
       )}
       <div
-        key={message._id}
+        key={message.id}
         ref={divRef}
         className={cn(
-          'gap-2 w-full max-w-80 grid',
-          message.sender._id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
+          'gap-2 w-full grid',
+          message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
         )}
       >
-        {message.sender._id !== session.user?.id && (
+        {message.sender.id !== session.user?.id && (
           <Avatar className={cn(quickMessagePlacement && quickMessagePlacement !== 'LAST' && 'opacity-0')}>
             <AvatarImage src={message.sender.photo?.url} />
             <AvatarFallback>
@@ -265,13 +189,13 @@ export default function ConversationMessage({
         )}
         <div className="grid">
           {!!message.text && (
-            <div className={textStyle}>
+            <div className={cn(textStyle)}>
               <span>{message.text}</span>
             </div>
           )}
           <div className={photoStyle}>
             {message.photos.map((photo) => (
-              <div key={photo._id} className="relative w-full h-full">
+              <div key={photo.id} className="relative w-full h-full">
                 <Image
                   src={photo.url}
                   height={photo.height}

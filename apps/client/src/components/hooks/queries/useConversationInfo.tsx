@@ -3,13 +3,14 @@ import { isGroupChat } from '@/lib/utils';
 import { Conversation } from '@/types/model.types';
 import { UserStatus } from '@repo/enums';
 import { useQuery } from '@tanstack/react-query';
+import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 
 export default function useConversationInfo(conversation?: Conversation) {
   const { session } = useAuth();
 
   const { data } = useQuery({
     enabled: Boolean(conversation) && Boolean(session.user),
-    queryKey: ['conversation', 'info', conversation?._id],
+    queryKey: ['conversation', 'info', conversation?.id],
     queryFn() {
       let lastOnline = '';
       let photoUrl: string;
@@ -20,13 +21,13 @@ export default function useConversationInfo(conversation?: Conversation) {
         photoUrl = conversation!.photo?.url || '';
         conversationName = conversation!.name;
       } else {
-        const otherUser = conversation!.members.find((member) => member._id !== session.user?.id);
+        const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
         if (!otherUser) return { photoUrl: '', conversationName: '', status: null, lastOnline };
 
         status = otherUser.status;
         photoUrl = otherUser.photo?.url || '';
 
-        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser._id)!.value;
+        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser.id)!.value;
         if (!conversationName) conversationName = otherUser.displayName;
 
         if (otherUser.status === UserStatus.OFFLINE) {
@@ -34,16 +35,13 @@ export default function useConversationInfo(conversation?: Conversation) {
           const now = new Date();
 
           const lastOnlineInSeconds = Math.floor((now.getTime() - lastOnlineDate.getTime()) / 1000);
-          const minutes = 60;
-          const hour = 60 * 60;
-          const day = 60 * 60 * 24;
 
-          if (lastOnlineInSeconds > day) {
-            lastOnline = Math.floor(lastOnlineInSeconds / day) + ' day(s) ago';
-          } else if (lastOnlineInSeconds > hour && lastOnlineInSeconds < day) {
-            lastOnline = Math.floor(lastOnlineInSeconds / hour) + ' hour(s) ago';
-          } else if (lastOnlineInSeconds > minutes && lastOnlineInSeconds < hour) {
-            lastOnline = Math.floor(lastOnlineInSeconds / minutes) + ' minute(s) ago';
+          if (lastOnlineInSeconds > SECONDS_IN_DAY) {
+            lastOnline = Math.floor(lastOnlineInSeconds / SECONDS_IN_DAY) + ' day(s) ago';
+          } else if (lastOnlineInSeconds > SECONDS_IN_HOUR && lastOnlineInSeconds < SECONDS_IN_DAY) {
+            lastOnline = Math.floor(lastOnlineInSeconds / SECONDS_IN_HOUR) + ' hour(s) ago';
+          } else if (lastOnlineInSeconds > SECONDS_IN_MINUTE && lastOnlineInSeconds < SECONDS_IN_HOUR) {
+            lastOnline = Math.floor(lastOnlineInSeconds / SECONDS_IN_MINUTE) + ' minute(s) ago';
           } else {
             lastOnline = lastOnlineInSeconds + ' second(s) ago';
           }

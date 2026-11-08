@@ -1,4 +1,5 @@
 'use client';
+import { UserStatus } from '@repo/enums';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { AtSign, Mail, Send, UserRound, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
+import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 
 export default function UserInfoDialog({ children, user }: { children: React.ReactNode; user: User }) {
   const queryClient = useQueryClient();
@@ -40,18 +42,14 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
   });
 
   const lastOnline = useMemo(() => {
-    if (!userInfo || userInfo.status === 'ONLINE') return '';
+    if (!userInfo || userInfo.status === UserStatus.ONLINE) return '';
     const lastOnline = new Date(userInfo.lastOnline);
     const now = new Date();
     const relativeDateInSeconds = Math.floor((now.getTime() - lastOnline.getTime()) / 1000);
 
-    const day = 60 * 60 * 24;
-    const hour = 60 * 60;
-    const minute = 60;
-
-    if (relativeDateInSeconds > day) return Math.floor(relativeDateInSeconds / day) + ' day(s)';
-    if (relativeDateInSeconds > hour) return Math.floor(relativeDateInSeconds / hour) + ' hour(s)';
-    if (relativeDateInSeconds > minute) return Math.floor(relativeDateInSeconds / minute) + ' minute(s)';
+    if (relativeDateInSeconds > SECONDS_IN_DAY) return Math.floor(relativeDateInSeconds / SECONDS_IN_DAY) + ' day(s)';
+    if (relativeDateInSeconds > SECONDS_IN_HOUR) return Math.floor(relativeDateInSeconds / SECONDS_IN_HOUR) + ' hour(s)';
+    if (relativeDateInSeconds > SECONDS_IN_MINUTE) return Math.floor(relativeDateInSeconds / SECONDS_IN_MINUTE) + ' minute(s)';
     return relativeDateInSeconds + ' seconds(s)';
   }, [userInfo]);
 
@@ -75,7 +73,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
           <div className="grid gap-5">
             <div className="grid">
               <span className="text-xl font-semibold ">{userInfo?.displayName}</span>
-              {userInfo?.status === 'ONLINE' ? (
+              {userInfo?.status === UserStatus.ONLINE ? (
                 <div className="relative font-semibold w-fit flex items-center gap-2 text-xs">
                   <span>Online</span>
                   <span className="h-2 w-2 bg-green-500 rounded-full"></span>

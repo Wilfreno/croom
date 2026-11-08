@@ -21,7 +21,7 @@ export default function ComposeFoundMessages({ selectedUsers }: { selectedUsers:
           foundMessages?.pages.map((page, pagesIndex) =>
             page.result.map((message, messageIndex) => (
               <ConversationMessage
-                key={message._id}
+                key={message.id}
                 message={message}
                 prevMessage={page.result[messageIndex - 1]}
                 nextMessage={page.result[messageIndex + 1]}

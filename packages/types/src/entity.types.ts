@@ -11,12 +11,12 @@ export interface UserSession extends Omit<AuthenticatedUser, 'photo'> {
 }
 
 export interface User extends Omit<UserType, 'photo'> {
-  _id: string;
+  id: string;
   photo: Photo | null;
 }
 
 export interface Conversation extends Omit<ConversationType, 'members' | 'photo' | 'nicknames' | 'blocker' | 'admins'> {
-  _id: string;
+  id: string;
   members: User[];
   photo: Photo | null;
   nicknames: {
@@ -25,14 +25,21 @@ export interface Conversation extends Omit<ConversationType, 'members' | 'photo'
   }[];
   blocker?: string;
   admins: User[];
+  messages: Message[]
 }
 
-export interface Message extends Omit<MessageType, 'sender' | 'photos'> {
-  _id: string;
+export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation'> {
+  id: string;
+  conversation: string;
   sender: User;
   photos: Photo[];
 }
 
+/** A message as emitted over the socket: its conversation carries only the id and nicknames. */
+export interface MessagePayload extends Omit<Message, 'conversation'> {
+  conversation: Pick<Conversation, 'id' | 'nicknames'>;
+}
+
 export interface Photo extends PhotoType {
-  _id: string;
+  id: string;
 }

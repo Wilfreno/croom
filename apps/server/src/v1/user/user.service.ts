@@ -10,8 +10,9 @@ import {
   CheckUserDataType,
   EmailStatus,
   OTPType,
+  UserStatus,
 } from '@repo/enums';
-import { UserModel } from '@repo/models';
+import { ConversationModel, UserModel } from '@repo/models';
 import { AuthenticatedUser } from '@repo/types';
 import {
   getPasswordStrengthScore,
@@ -30,6 +31,7 @@ export class UserService {
   constructor(
     @InjectConnection() private readonly connection: Connection,
     private readonly userModel: UserModel,
+    private readonly conversationModel: ConversationModel,
     private readonly otpService: OtpService,
   ) {}
 
@@ -79,11 +81,14 @@ export class UserService {
               session,
             );
 
-            await this.userModel.create({
-              email,
-              password,
-              authService,
-            }, session);
+            await this.userModel.create(
+              {
+                email,
+                password,
+                authService,
+              },
+              session,
+            );
 
             break;
           }
@@ -166,5 +171,31 @@ export class UserService {
     searchText: string;
   }) {
     return await this.userModel.searchUser({ userId: user.id, searchText });
+  }
+
+  async getUserConversations(userId: string) {
+    return await this.conversationModel.getConversationsByUserId(userId);
+  }
+
+  async getUserActiveConversation(userId: string){
+    return await this.conversationModel.getActiveConversationByUserId(userId);
+  }
+
+  /**
+   * Persists the user's presence and returns who should be told about it:
+   * everyone who shares at least one conversation with them.
+   */
+  async updateUserStatus(userId: string, status: UserStatus) {
+    const user = await this.userModel.setUserStatus(userId, status);
+    if (!user) return null;
+
+    const partnerIds =
+      await this.conversationModel.getConversationPartnerIds(userId);
+
+    return {
+      status: user.status,
+      lastOnline: new Date(user.lastOnline).toISOString(),
+      partnerIds,
+    };
   }
 }

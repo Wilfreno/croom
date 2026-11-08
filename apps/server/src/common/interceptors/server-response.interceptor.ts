@@ -14,6 +14,7 @@ import {
   toServerResponseStatus,
 } from '../constants/server-response.constant';
 import { isResponsePayload } from '../utils/server-response.util';
+import { serializeIds } from '../utils/serialize-ids.util';
 
 function isServerResponse(value: unknown): value is ServerResponse<unknown> {
   return (
@@ -37,6 +38,8 @@ function isServerResponse(value: unknown): value is ServerResponse<unknown> {
  * `message` and `status` are resolved in order: `respond()`, then the
  * `@ResponseMessage()` / `@ResponseStatus()` decorators, then the HTTP status
  * code and its default message.
+ *
+ * Every `_id` in `data` is renamed to a string `id` (see `serializeIds`).
  */
 @Injectable()
 export class ServerResponseInterceptor<T>
@@ -64,9 +67,12 @@ export class ServerResponseInterceptor<T>
         const envelope = isResponsePayload(payload) ? payload : undefined;
 
         if (!envelope && isServerResponse(payload))
-          return payload as ServerResponse<T>;
+          return {
+            ...payload,
+            data: serializeIds(payload.data),
+          } as ServerResponse<T>;
 
-        const data = (envelope ? envelope.data : payload) ?? null;
+        const data = serializeIds(envelope ? envelope.data : payload) ?? null;
 
         const responseStatus =
           envelope?.status ??

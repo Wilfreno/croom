@@ -75,7 +75,7 @@ export default function ChangePhoto() {
       } else {
         const photo = { ...conversation.photo, url: newPhoto!.url };
         const withNewPhoto = (convo: Conversation): Conversation =>
-          convo._id === params.id ? { ...convo, photo } : convo;
+          convo.id === params.id ? { ...convo, photo } : convo;
 
         queryClient.setQueryData<Conversation>(queryKeys[0], (prev) => prev && withNewPhoto(prev));
         queryClient.setQueryData<Conversation[]>(queryKeys[1], (prev) => prev?.map(withNewPhoto) ?? []);

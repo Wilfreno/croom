@@ -1,12 +1,9 @@
 import { ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { MessageStatus } from '@repo/enums';
-import { Message, Photo, User } from '@repo/schemas';
-import type { Message as MessageEntity, Photo as PhotoEntity } from '@repo/types';
+import { Message } from '@repo/schemas';
+import type { MessagePayload } from '@repo/types';
 import { ClientSession, HydratedDocument, Model, Types, UpdateQuery } from 'mongoose';
-
-type LeanPhoto = Photo & { _id: Types.ObjectId };
-type LeanUser = User & { _id: Types.ObjectId; __v?: number };
 
 @Injectable()
 export class MessageModel {
@@ -27,34 +24,75 @@ export class MessageModel {
     }
   }
 
-  private toPhotoEntity({ _id, ...photo }: LeanPhoto): PhotoEntity {
-    return { ...photo, _id: _id.toString() };
-  }
+  async findMessagePayloadById(messageId: Types.ObjectId | string): Promise<MessagePayload | null> {
+    // Swaps `_id` for a string `id` (and drops `__v`) on the current document.
+    const toEntity = [{ $set: { id: { $toString: '$_id' } } }, { $unset: ['_id', '__v'] }];
 
-  async findMessagePayloadById(messageId: Types.ObjectId | string): Promise<MessageEntity | null> {
     try {
-      const message = await this.Message.findById(messageId)
-        .populate<{
-          sender: LeanUser & { photo: LeanPhoto | null };
-          photos: LeanPhoto[];
-        }>([{ path: 'sender', populate: { path: 'photo' } }, { path: 'photos' }])
-        .lean();
-
-      if (!message) return null;
-
-      const { _id, sender, photos, ...rest } = message;
-      const { _id: senderId, __v, password, photo, ...senderRest } = sender;
-
-      return {
-        ...rest,
-        _id: _id.toString(),
-        sender: {
-          ...senderRest,
-          _id: senderId.toString(),
-          photo: photo ? this.toPhotoEntity(photo) : null,
+      const [message] = await this.Message.aggregate<MessagePayload>([
+        { $match: { _id: new Types.ObjectId(messageId) } },
+        { $limit: 1 },
+        {
+          $lookup: {
+            from: 'user',
+            localField: 'sender',
+            foreignField: '_id',
+            as: 'sender',
+            pipeline: [
+              // Aggregation ignores the schema's `select: false`, so drop the password here.
+              { $unset: 'password' },
+              {
+                $lookup: {
+                  from: 'photo',
+                  localField: 'photo',
+                  foreignField: '_id',
+                  as: 'photo',
+                  pipeline: toEntity,
+                },
+              },
+              { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+              ...toEntity,
+            ],
+          },
         },
-        photos: photos.map((p) => this.toPhotoEntity(p)),
-      };
+        { $set: { sender: { $first: '$sender' } } },
+        {
+          $lookup: {
+            from: 'photo',
+            localField: 'photos',
+            foreignField: '_id',
+            as: 'photos',
+            pipeline: toEntity,
+          },
+        },
+        {
+          $lookup: {
+            from: 'conversation',
+            localField: 'conversation',
+            foreignField: '_id',
+            as: 'conversation',
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  id: { $toString: '$_id' },
+                  nicknames: {
+                    $map: {
+                      input: '$nicknames',
+                      as: 'nickname',
+                      in: { user: { $toString: '$$nickname.user' }, value: '$$nickname.value' },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        { $set: { conversation: { $first: '$conversation' } } },
+        ...toEntity,
+      ]);
+
+      return message ?? null;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -73,7 +111,7 @@ export class MessageModel {
     try {
       return await this.Message.aggregate<Message>([
         { $match: { conversation: new Types.ObjectId(conversationId) } },
-        { $sort: { dateCreated: 1 } },
+        { $sort: { dateCreated: -1 } },
         { $skip: skip },
         { $limit: limit },
         {
@@ -107,6 +145,7 @@ export class MessageModel {
             pipeline: [{ $project: { url: 1, height: 1, width: 1 } }],
           },
         },
+        { $sort: { dateCreated: 1 } },
       ]);
     } catch (error) {
       this.logger.error(error);

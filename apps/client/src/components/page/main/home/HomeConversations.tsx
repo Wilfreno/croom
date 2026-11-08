@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Conversation } from '@/types/model.types';
 import { Search, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import HomeConversation from './HomeConversation';
+import { Conversation } from "@repo/types";
 
 export default function HomeConversations() {
   const [searchText, setSearchText] = useState('');
@@ -64,7 +64,7 @@ export default function HomeConversations() {
       <ScrollArea className="h-[65dvh]">
         <div className="grid gap-1">
           {conversationToDisplay?.map((conversation) => (
-            <HomeConversation key={conversation._id} conversation={conversation} />
+            <HomeConversation key={conversation.id} conversation={conversation} />
           ))}
         </div>
       </ScrollArea>

@@ -1,4 +1,5 @@
 'use client';
+import { UserStatus } from '@repo/enums';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useConversationInfo from '@/components/hooks/queries/useConversationInfo';
 import useUserAgent from '@/components/hooks/useUserAgent';
@@ -39,7 +40,7 @@ export default function InfoSidebar() {
       return session.user.id !== conversation.blocker;
     }
 
-    return !conversation.members.some((member) => member._id !== session.user?.id);
+    return !conversation.members.some((member) => member.id !== session.user?.id);
   }, [conversation, session.user]);
 
   return (
@@ -59,7 +60,7 @@ export default function InfoSidebar() {
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
-          {status === 'ONLINE' && (
+          {status === UserStatus.ONLINE && (
             <div className="bg-green-500 aspect-square h-8 border-2 border-background w-auto rounded-full absolute bottom-1 right-0"></div>
           )}
         </span>
