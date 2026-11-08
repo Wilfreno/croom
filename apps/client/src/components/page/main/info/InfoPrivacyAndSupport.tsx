@@ -112,7 +112,7 @@ export default function InfoPrivacyAndSupport() {
             <DialogHeader>
               <DialogTitle></DialogTitle>
             </DialogHeader>
-            {!!toReportUser ? (
+            {Boolean(toReportUser) ? (
               <>
                 <DialogHeader>
                   <DialogTitle></DialogTitle>
@@ -125,7 +125,7 @@ export default function InfoPrivacyAndSupport() {
                 <section className="rounded-md p-2 grid gap-4">
                   <div>
                     <span>Report: </span>
-                    <span className="font-medium">{toReportUser.displayName}</span>
+                    <span className="font-medium">{toReportUser?.displayName}</span>
                   </div>
                   <Textarea
                     className="resize-none min-h-96"

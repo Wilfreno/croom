@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { ConversationModel, MessageModel, UserModel } from '@repo/models';
+import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -18,6 +18,7 @@ export class ConversationService {
     private readonly conversationModel: ConversationModel,
     private readonly userModel: UserModel,
     private readonly messageModel: MessageModel,
+    private readonly photoModel: PhotoModel,
   ) {}
 
   async create({
@@ -93,6 +94,12 @@ export class ConversationService {
   async getConversationById(
     conversationId: GetConversationByIdDto['conversationId'],
   ) {
-    return await this.conversationModel.findConversationById(conversationId);
+    return await this.conversationModel.findConversationPayloadById(
+      conversationId,
+    );
+  }
+
+  async getConversationMedia(conversationId: string) {
+    return await this.photoModel.getPhotosByConversationId(conversationId);
   }
 }

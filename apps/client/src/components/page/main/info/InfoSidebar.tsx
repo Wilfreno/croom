@@ -2,13 +2,12 @@
 import { UserStatus } from '@repo/enums';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useConversationInfo from '@/components/hooks/queries/useConversationInfo';
-import useUserAgent from '@/components/hooks/useUserAgent';
+import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -25,10 +24,8 @@ const InfoAdminsAndMembers = dynamic(() => import('./InfoAdminsAndMembers'), {
 export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const queryClient = useQueryClient();
-  const { onMobile } = useUserAgent();
 
-  const isOpen = queryClient.getQueryData<Boolean>(['sidebar', 'info', 'open', onMobile]);
+  const { isOpen, setIsOpen } = useInfoSidebarOpen();
   const { data: conversation, isError, error } = useConversation(params.id);
 
   const { data: conversationInfo } = useConversationInfo(conversation!);
@@ -48,7 +45,7 @@ export default function InfoSidebar() {
       <Button
         variant="ghost"
         className="md:hidden absolute top-2 left-0"
-        onClick={() => queryClient.setQueryData<boolean>(['sidebar', 'info', 'open', onMobile], false)}
+        onClick={() => setIsOpen(false)}
       >
         <ArrowLeft className="h-6 w-auto" />
       </Button>

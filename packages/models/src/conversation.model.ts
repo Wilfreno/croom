@@ -72,6 +72,23 @@ export class ConversationModel {
     }
   }
 
+  /** A conversation with its members, admins and photo populated, as the client renders it. */
+  async findConversationPayloadById(conversationId: string) {
+    const userFields = 'email userName displayName photo status lastOnline';
+    const userPopulate = { path: 'photo', select: 'url' };
+
+    try {
+      return await this.Conversation.findOne({ _id: conversationId }).populate([
+        { path: 'members', select: userFields, populate: userPopulate },
+        { path: 'admins', select: userFields, populate: userPopulate },
+        { path: 'photo', select: 'url' },
+      ]);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   /** Ids of every user who shares at least one conversation with the given user. */
   async getConversationPartnerIds(userId: string) {
     try {

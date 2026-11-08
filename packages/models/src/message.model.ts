@@ -4,6 +4,7 @@ import { MessageStatus } from '@repo/enums';
 import { Message } from '@repo/schemas';
 import type { MessagePayload } from '@repo/types';
 import { ClientSession, HydratedDocument, Model, Types, UpdateQuery } from 'mongoose';
+import { toEntity } from './pipeline';
 
 @Injectable()
 export class MessageModel {
@@ -25,9 +26,6 @@ export class MessageModel {
   }
 
   async findMessagePayloadById(messageId: Types.ObjectId | string): Promise<MessagePayload | null> {
-    // Swaps `_id` for a string `id` (and drops `__v`) on the current document.
-    const toEntity = [{ $set: { id: { $toString: '$_id' } } }, { $unset: ['_id', '__v'] }];
-
     try {
       const [message] = await this.Message.aggregate<MessagePayload>([
         { $match: { _id: new Types.ObjectId(messageId) } },

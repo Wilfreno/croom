@@ -1,5 +1,5 @@
 import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
-import { IsBlocked, IsMember } from '@repo/guards';
+import { NotBlocked, IsMember } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -10,7 +10,7 @@ import { MessageService } from './message.service';
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
-  @IsBlocked({ body: 'conversationId' })
+  @NotBlocked({ body: 'conversationId' })
   @IsMember({ body: 'conversationId' })
   @Post()
   create(
@@ -25,7 +25,7 @@ export class MessageController {
     });
   }
 
-  @IsBlocked({ body: 'conversationId' })
+  @NotBlocked({ body: 'conversationId' })
   @IsMember({ body: 'conversationId' })
   @Patch('/:messageId/:fieldName')
   updateMessage(

@@ -28,7 +28,7 @@ const BLOCKED_HTTP_STATUS = 423;
  * A conversation that does not exist is not blocked, so this passes; pair it
  * with `@IsMember()` to reject those. Relies on the session guard having set
  * `request.user` first. The module using it must provide `ConversationModel`.
- * Apply it through `@IsBlocked()`, which tells it where the conversation id is.
+ * Apply it through `@NotBlocked()`, which tells it where the conversation id is.
  */
 @Injectable()
 export class ConversationBlockedGuard implements CanActivate {
@@ -67,10 +67,10 @@ export class ConversationBlockedGuard implements CanActivate {
  * conversation is blocked. The module using it must provide `ConversationModel`.
  *
  * @example
- * ＠IsBlocked({ body: 'conversationId' })
+ * ＠NotBlocked({ body: 'conversationId' })
  * ＠IsMember({ body: 'conversationId' })
  * ＠Post()
  * create(＠Body() createMessageDto: CreateMessageDto) {}
  */
-export const IsBlocked = (source: ConversationIdSource) =>
+export const NotBlocked = (source: ConversationIdSource) =>
   applyDecorators(SetMetadata(CONVERSATION_BLOCKED_SOURCE_KEY, source), UseGuards(ConversationBlockedGuard));

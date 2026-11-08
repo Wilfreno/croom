@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ConversationModel, MessageModel, UserModel } from '@repo/models';
+import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import {
   Conversation,
   ConversationSchema,
   Message,
   MessageSchema,
+  Photo,
+  PhotoSchema,
   User,
   UserSchema,
 } from '@repo/schemas';
@@ -18,9 +20,10 @@ import { ConversationController } from './conversation.controller';
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },
       { name: User.name, schema: UserSchema },
+      { name: Photo.name, schema: PhotoSchema },
     ]),
   ],
   controllers: [ConversationController],
-  providers: [ConversationService, ConversationModel, MessageModel, UserModel],
+  providers: [ConversationService, ConversationModel, MessageModel, PhotoModel, UserModel],
 })
 export class ConversationModule {}
