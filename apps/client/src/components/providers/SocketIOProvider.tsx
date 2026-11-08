@@ -1,5 +1,5 @@
 'use client';
-import type { ClientToServerEvents, ServerToClientEvents } from '@repo/types';
+import type { ClientToServerEvents, MessagePayload, ServerToClientEvents } from '@repo/types';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -25,8 +25,8 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   const queryClient = useQueryClient();
   const { onMobile } = useUserAgent();
 
-  function onMessage(message: Message) {
-    const conversationId = message.conversation.toString();
+  function onMessage(message: MessagePayload) {
+    const conversationId = message.conversation.id;
 
     if (pathname.startsWith('/conversation/' + conversationId)) {
       queryClient.setQueryData<

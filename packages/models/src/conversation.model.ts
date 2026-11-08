@@ -102,6 +102,28 @@ export class ConversationModel {
         { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
         {
           $lookup: {
+            from: 'user',
+            localField: 'members',
+            foreignField: '_id',
+            as: 'members',
+            pipeline: [
+              { $match: { _id: { $ne: new Types.ObjectId(userId) } } },
+              {
+                $lookup: {
+                  from: 'photo',
+                  localField: 'photo',
+                  foreignField: '_id',
+                  as: 'photo',
+                  pipeline: [{ $project: { url: 1 } }],
+                },
+              },
+              { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+              { $project: { status: 1, displayName: 1, photo: 1 } },
+            ],
+          },
+        },
+        {
+          $lookup: {
             from: 'message',
             localField: '_id',
             foreignField: 'conversation',

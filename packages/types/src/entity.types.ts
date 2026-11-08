@@ -34,6 +34,11 @@ export interface Message extends Omit<MessageType, 'sender' | 'photos'> {
   photos: Photo[];
 }
 
+/** A message as emitted over the socket: its conversation carries only the id and nicknames. */
+export interface MessagePayload extends Omit<Message, 'conversation'> {
+  conversation: Pick<Conversation, 'id' | 'nicknames'>;
+}
+
 export interface Photo extends PhotoType {
   id: string;
 }
