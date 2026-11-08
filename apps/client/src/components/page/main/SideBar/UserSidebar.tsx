@@ -19,49 +19,48 @@ export default function UserSideBar() {
   const router = useRouter();
 
   return (
-    <section className="h-fit w-[95%] shadow-sm border rounded-sm absolute bottom-5 right-2 bg-background p-2 flex justify-between">
-      <DropdownMenu>
-        <DropdownMenuTrigger className="rounded-full">
-          <Avatar className="border border-muted aspect-square h-full w-12">
-            <AvatarImage src={session.user?.photo?.url} />
-            <AvatarFallback className="bg-background">
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="end" sideOffset={14}>
-          <DropdownMenuGroup>
-            <div className="flex items-start gap-2 p-2 py-4 w-72">
-              <Avatar>
-                <AvatarImage src={session.user?.photo?.url} />
-                <AvatarFallback className="bg-background">
-                  <UserRound className="h-1/2 w-auto" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid text-start">
-                <p className="font-medium max-w-64 truncate">{session.user?.displayName}</p>
-                <p className="text-xs">{session.user?.userName}</p>
-              </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="rounded-full">
+        <Avatar className="border border-muted aspect-square h-full w-12">
+          <AvatarImage src={session.user?.photo?.url} />
+          <AvatarFallback className="bg-background">
+            <UserRound className="h-1/2 w-auto" />
+          </AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="end" sideOffset={14}>
+        <DropdownMenuGroup>
+          <div className="flex items-start gap-2 p-2 py-4 w-72">
+            <Avatar>
+              <AvatarImage src={session.user?.photo?.url} />
+              <AvatarFallback className="bg-background">
+                <UserRound className="h-1/2 w-auto" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid text-start">
+              <p className="font-medium max-w-64 truncate">{session.user?.displayName}</p>
+              <p className="text-xs">{session.user?.userName}</p>
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start cursor-pointer"
-                onClick={() => router.push('/settings')}
-              >
-                <Settings className="h-4 w-auto" />
-                <span>Settings</span>
-              </Button>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild></DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Button variant="ghost" className="justify-start cursor-pointer" onClick={async () => await logout()}>
-        <LogOut className="h-4 w-auto" />
-        <span>Logout</span>
-      </Button>
-    </section>
+          </div>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start cursor-pointer"
+              onClick={() => router.push('/settings')}
+            >
+              <Settings className="h-4 w-auto" />
+              <span>Settings</span>
+            </Button>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Button variant="ghost" className="justify-start cursor-pointer" onClick={async () => await logout()}>
+              <LogOut className="h-4 w-auto" />
+              <span>Logout</span>
+            </Button>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -27,25 +27,17 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     session: { user },
   } = useAuth();
 
-  const {
-    value: textInput,
-    setValue: setTextInput,
-    textareaProps,
-  } = useMessageTextarea({ onSubmit: submit });
+  const { value: textInput, setValue: setTextInput, textareaProps } = useMessageTextarea({ onSubmit: submit });
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
   const { data: conversation } = useConversation(foundConversations?.[0]?.id);
 
   const { sendMessage } = useComposeMessage({
-    text: textInput,
     photos: photoInput,
-    conversationId: foundConversations?.[0]?.id,
   });
 
   const { createNewConversation } = useCreateConversation({
-    text: textInput,
     photos: photoInput,
-    conversationId: foundConversations?.[0]?.id!,
     members: selectedUsers!.map((user) => user[0]),
   });
 
@@ -94,11 +86,11 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
     setUploadingImage(false);
   }
 
-  function submit() {
+  function submit(text: string = textInput) {
     if (!foundConversations || !foundConversations.length || isError) {
-      createNewConversation.mutate();
+      createNewConversation.mutate({ text });
     } else {
-      sendMessage.mutate();
+      sendMessage.mutate({ conversationId: foundConversations[0].id, text });
     }
     setTextInput('');
   }
@@ -219,29 +211,18 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
             </DropdownMenu>
           </div>
         </div>
-        {!!textInput || !!photoInput.length ? (
+        {Boolean(textInput) || Boolean(photoInput.length) ? (
           <Button
             variant="ghost"
             disabled={(!textInput && !photoInput.length) || sendMessage.isPending}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={submit}
+            onClick={() => submit()}
           >
             <SendHorizontal className="h-6 w-auto text-primary" />
           </Button>
         ) : (
-          <Button
-            variant="ghost"
-            className="aspect-square h-fit w-auto rounded-full p-2"
-            onClick={() => {
-              setTextInput('👍');
-              if (!foundConversations || !foundConversations.length || isError) {
-                createNewConversation.mutate();
-              } else {
-                sendMessage.mutate();
-              }
-            }}
-          >
+          <Button variant="ghost" className="aspect-square h-fit w-auto rounded-full p-2" onClick={() => submit('👍')}>
             <ThumbsUp className="h-6 w-auto text-primary" />
           </Button>
         )}

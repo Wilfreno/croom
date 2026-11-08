@@ -1,22 +1,15 @@
 import { axiosInstance } from '@/lib/axios-instance';
 import { Message, Photo, ServerResponse } from '@repo/types';
 import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
 
-export default function useComposeMessage({
-  text,
-  photos,
-  conversationId,
-}: {
-  text: string;
-  photos: Partial<Photo>[];
-  conversationId: string;
-}) {
+export default function useComposeMessage({ photos }: { photos: Partial<Photo>[] }) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const sendMessage = useMutation<Message>({
-    mutationFn: async () => {
+  const sendMessage = useMutation<Message, AxiosError, { conversationId: string; text: string }>({
+    mutationFn: async ({ conversationId, text }) => {
       const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
         conversationId,
         text,
@@ -25,7 +18,7 @@ export default function useComposeMessage({
 
       return response.data;
     },
-    onSuccess: async (newMessage) => {
+    onSuccess: async (newMessage, { conversationId }) => {
       queryClient.setQueryData<
         | InfiniteData<
             {
