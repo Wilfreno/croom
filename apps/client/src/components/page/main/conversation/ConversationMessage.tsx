@@ -1,7 +1,7 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PATCHRequest } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/model.types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -220,20 +220,17 @@ export default function ConversationMessage({
   }, [message]);
 
   const seen = useMutation({
-    mutationFn: async () => {
-      try {
-        const { status, message: responseMessage } = await PATCHRequest('/v1/message/' + message._id + '/seen_by', {
-          action: 'ADD',
-        });
-
-        if (status !== 'OK') throw new Error(responseMessage);
-        queryClient.invalidateQueries({
-          exact: true,
-          queryKey: [session.user?.id, 'conversations'],
-        });
-      } catch (error) {
-        throw error;
-      }
+    async mutationFn() {
+      await axiosInstance.patch(`/message/${message._id}/seenBy`, {
+        conversationId: message.conversation, 
+        action: 'ADD',
+      });
+    },
+    onSuccess() {
+      queryClient.invalidateQueries({
+        exact: true,
+        queryKey: [session.user?.id, 'conversations'],
+      });
     },
   });
 

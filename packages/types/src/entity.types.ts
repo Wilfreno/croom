@@ -4,7 +4,7 @@ import {
   Photo as PhotoType,
   User as UserType,
 } from '@repo/schemas';
-import { AuthenticatedUser } from '@repo/types';
+import { AuthenticatedUser } from './auth.types';
 
 export interface UserSession extends Omit<AuthenticatedUser, 'photo'> {
   photo: Photo | null;

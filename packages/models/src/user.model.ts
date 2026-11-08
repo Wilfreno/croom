@@ -66,7 +66,6 @@ export class UserModel {
       return await this.User.findByIdAndUpdate(
         id,
         {
-          $set: { lastUpdated: new Date() },
           $addToSet: { authService: AuthServiceOptions.WITH_GOOGLE },
         },
         { new: true },
@@ -134,7 +133,7 @@ export class UserModel {
 
   async updateUser(email: string, data: Partial<User>) {
     try {
-      return this.User.findOneAndUpdate({ email }, { $set: { ...data, lastUpdated: new Date() } });
+      return this.User.findOneAndUpdate({ email }, { $set: data });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

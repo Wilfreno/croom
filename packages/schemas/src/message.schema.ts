@@ -4,7 +4,10 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type MessageDocument = HydratedDocument<Message>;
 
-@Schema({ collection: 'message' })
+@Schema({
+  collection: 'message',
+  timestamps: { createdAt: 'dateCreated', updatedAt: 'lastUpdated' },
+})
 export class Message {
   @Prop({ type: Types.ObjectId, ref: 'Conversation', required: true })
   conversation!: Types.ObjectId;
@@ -24,10 +27,10 @@ export class Message {
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   seenBy!: Types.ObjectId[];
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date })
   lastUpdated!: Date;
 }
 

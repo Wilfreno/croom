@@ -5,7 +5,10 @@ import { NickName, NickNameSchema } from './nickname.schema';
 
 export type ConversationDocument = HydratedDocument<Conversation>;
 
-@Schema({ collection: 'conversation' })
+@Schema({
+  collection: 'conversation',
+  timestamps: { createdAt: 'dateCreated', updatedAt: 'lastUpdated' },
+})
 export class Conversation {
   @Prop({ type: String, default: '' })
   name!: string;
@@ -34,10 +37,10 @@ export class Conversation {
   })
   blocker: Types.ObjectId;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date })
   lastUpdated!: Date;
 }
 

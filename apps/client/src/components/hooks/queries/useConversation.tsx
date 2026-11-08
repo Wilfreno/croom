@@ -8,10 +8,10 @@ export default function useConversation(id?: string) {
     enabled: Boolean(id),
     queryKey: ['conversation', id],
     async queryFn() {
-      const { data: response } = await axiosInstance.get<ServerResponse<Conversation>>(`/v1/conversation/${id}`);
+      const { data: response } = await axiosInstance.get<ServerResponse<Conversation>>(`/conversation/${id}`);
 
       return response.data;
     },
   });
-  return { data, isError, error , refetch};
+  return { data, isError, error, refetch };
 }

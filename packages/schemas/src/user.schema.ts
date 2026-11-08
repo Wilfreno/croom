@@ -4,7 +4,10 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema({ collection: 'user' })
+@Schema({
+  collection: 'user',
+  timestamps: { createdAt: 'dateCreated', updatedAt: 'lastUpdated' },
+})
 export class User {
   @Prop({ type: String, required: true })
   displayName!: string;
@@ -34,10 +37,10 @@ export class User {
   @Prop({ type: Date, required: false, default: Date.now })
   lastOnline!: Date;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date })
   lastUpdated!: Date;
 }
 

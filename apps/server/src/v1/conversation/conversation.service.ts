@@ -8,6 +8,7 @@ import { ConversationModel, MessageModel, UserModel } from '@repo/models';
 import { Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
+import { GetConversationByIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
 
 @Injectable()
@@ -87,5 +88,11 @@ export class ConversationService {
       ...members,
       userId,
     ]);
+  }
+
+  async getConversationById(
+    conversationId: GetConversationByIdDto['conversationId'],
+  ) {
+    return await this.conversationModel.findConversationById(conversationId);
   }
 }

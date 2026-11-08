@@ -5,7 +5,7 @@ import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { GetConversationByMembersIdDto } from './dto/get-conversation';
+import { GetConversationByIdDto, GetConversationByMembersIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
 
 @Controller({ path: 'conversation', version: '1' })
@@ -45,5 +45,14 @@ export class ConversationController {
       members,
       user.id,
     );
+  }
+
+  @IsBlocked({param: "conversationId"})
+  @IsMember({param: "conversationId"})
+  @Get("/:conversationId")
+  getConversationById(
+    @Param() {conversationId}:GetConversationByIdDto
+  ){
+    return this.conversationService.getConversationById(conversationId)
   }
 }

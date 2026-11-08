@@ -1,20 +1,19 @@
 'use client';
+import useComposeMessage from '@/components/hooks/mutation/useComposeMessage.mutation';
+import useCreateConversation from '@/components/hooks/mutation/useCreateConversation.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { axiosInstance } from '@/lib/axios-instance';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
 import { ConversationStatus } from '@repo/enums';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
@@ -29,38 +28,21 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   const {
     session: { user },
   } = useAuth();
-  const router = useRouter();
-  const queryClient = useQueryClient();
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
   const { data: conversation } = useConversation(foundConversations?.[0]?._id);
-  const sendMessage = useMutation<void, Error, string>({
-    mutationFn: async (conversationId) => {
-      await axiosInstance.post('/message', {
-        conversationId,
-        text: textInput,
-        photos: photoInput,
-      });
-    },
-    onSuccess: async (_, conversationId) => {
-      await queryClient.refetchQueries({
-        exact: true,
-        queryKey: ['conversation', 'messages', foundConversations?.[0]?._id],
-      });
-      router.push('/conversation/' + conversationId);
-    },
+
+  const { sendMessage } = useComposeMessage({
+    text: textInput,
+    photos: photoInput,
+    conversationId: foundConversations?.[0]?._id,
   });
 
-  const createNewConversation = useMutation<string>({
-    async mutationFn() {
-      const { data: response } = await axiosInstance.post<ServerResponse<Conversation>>('/conversation', {
-        members: selectedUsers!.map((user) => user[0]),
-      });
-      return response.data._id;
-    },
-    onSuccess(conversationId) {
-      sendMessage.mutate(conversationId);
-    },
+  const { createNewConversation } = useCreateConversation({
+    text: textInput,
+    photos: photoInput,
+    conversationId: foundConversations?.[0]?._id!,
+    members: selectedUsers!.map((user) => user[0]),
   });
 
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
@@ -110,7 +92,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   if (!selectedUsers || !selectedUsers.length) return null;
   if (conversation?.status === ConversationStatus.BLOCKED) {
-    if (conversation.blocker.toString() === user?.id.toString()) {
+    if (conversation.blocker?.toString() === user?.id.toString()) {
       return (
         <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
           <span>You have blocked this user, neither of you can reply on this conversation</span>
@@ -221,7 +203,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
                   if (!foundConversations || !foundConversations.length || isError) {
                     createNewConversation.mutate();
                   } else {
-                    sendMessage.mutate(foundConversations[0]._id);
+                    sendMessage.mutate();
                   }
 
                   setTextInput('');
@@ -256,7 +238,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               if (!foundConversations || !foundConversations.length || isError) {
                 createNewConversation.mutate();
               } else {
-                sendMessage.mutate(foundConversations[0]._id);
+                sendMessage.mutate();
               }
             }}
           >
@@ -271,7 +253,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               if (!foundConversations || !foundConversations.length || isError) {
                 createNewConversation.mutate();
               } else {
-                sendMessage.mutate(foundConversations[0]._id);
+                sendMessage.mutate();
               }
             }}
           >

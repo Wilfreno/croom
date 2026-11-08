@@ -13,3 +13,8 @@ export class GetConversationByMembersIdDto {
   @IsMongoId({ each: true })
   members!: string[];
 }
+
+export class GetConversationByIdDto {
+  @IsMongoId()
+  conversationId!: string;
+}

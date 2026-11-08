@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -6,8 +7,11 @@ import {
 import { InjectConnection } from '@nestjs/mongoose';
 import { PhotoType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel } from '@repo/models';
-import { Connection, Types } from 'mongoose';
+import { Message } from '@repo/schemas';
+import { Connection, Types, UpdateQuery } from 'mongoose';
+import { respond } from 'src/common/utils/server-response.util';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { SeenByDto } from './dto/seenby.dto';
 import { MessageGateway } from './message.gateway';
 
 @Injectable()
@@ -61,7 +65,6 @@ export class MessageService {
       await session.endSession();
     }
 
-    // Read after the commit, so recipients get the sender and photos populated.
     const messagePayload = await this.messageModel.findMessagePayloadById(
       newMessage!._id,
     );
@@ -76,5 +79,35 @@ export class MessageService {
     this.messageGateway.emitToUsers(recipientIds, 'MESSAGE', messagePayload);
 
     return messagePayload;
+  }
+
+  async updateMessage({
+    fieldName,
+    messageId,
+    userId,
+  }: SeenByDto & { userId: string }) {
+    const foundMessage =
+      await this.messageModel.checkMessageAvailability(messageId);
+
+    let update: UpdateQuery<Message>;
+    switch (fieldName) {
+      case 'seenBy': {
+        if (foundMessage.seenBy.some((id) => id.toString() === userId))
+          return respond(null, { message: 'Already seen' });
+        update = {
+          $addToSet: {
+            seenBy: new Types.ObjectId(userId),
+          },
+        };
+        break;
+      }
+
+      default:
+        throw new BadRequestException(
+          'fieldName should be a key of Message schema',
+        );
+    }
+
+    await this.messageModel.updateMessage(messageId, update);
   }
 }

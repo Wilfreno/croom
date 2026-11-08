@@ -1,6 +1,6 @@
 import useMessages from '@/components/hooks/queries/useMessages';
-import { Conversation } from '@/types/model.types';
 import ConversationMessage from './ConversationMessage';
+import { Conversation } from "@repo/types";
 
 export default function ConversationMessages({ conversation }: { conversation?: Conversation }) {
   const { foundMessages } = useMessages([conversation!]);

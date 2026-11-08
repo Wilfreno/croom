@@ -4,9 +4,10 @@ import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { POSTRequest, ServerResponse } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
+import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation, Message } from '@/types/model.types';
+import { Conversation, Message } from "@repo/types";
 import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
@@ -26,21 +27,14 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   const queryClient = useQueryClient();
 
   const sendMessage = useMutation<Message, Error, string>({
-    mutationFn: async (text) => {
-      try {
-        const { data, status, message } = await POSTRequest<Message>('/v1/message', {
-          conversation: params.id,
-          text: text ? text : textInput,
-          photos: photoInput,
-        });
+    async mutationFn(text) {
+      const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
+        conversationId: params.id,
+        text: text ? text : textInput,
+        photos: photoInput,
+      });
 
-        if (status !== 'CREATED') throw new Error(message);
-
-        return data;
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      return response.data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData<
@@ -206,6 +200,12 @@ export default function ConversationMessageInput({ conversation }: { conversatio
                 setTextInput(e.currentTarget.value);
                 e.currentTarget.style.height = 'auto';
                 e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage.mutate('');
+                }
               }}
             />
             <DropdownMenu>

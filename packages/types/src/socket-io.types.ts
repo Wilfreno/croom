@@ -1,8 +1,8 @@
-import { MessagePayload } from './payload.types';
+import { Message } from "./entity.types";
 
 export interface ServerToClientEvents {
   ERROR: (error: string) => void;
-  MESSAGE: (message: MessagePayload) => void;
+  MESSAGE: (message: Message) => void;
 }
 
 export interface ClientToServerEvents {}

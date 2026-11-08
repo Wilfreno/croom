@@ -4,7 +4,10 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type PhotoDocument = HydratedDocument<Photo>;
 
-@Schema({ collection: 'photo' })
+@Schema({
+  collection: 'photo',
+  timestamps: { createdAt: 'dateCreated', updatedAt: 'lastUpdated' },
+})
 export class Photo {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   owner!: Types.ObjectId;
@@ -24,10 +27,10 @@ export class Photo {
   @Prop({ type: Number, default: null })
   height!: number;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 
-  @Prop({ type: Date, required: false, default: Date.now })
+  @Prop({ type: Date })
   lastUpdated!: Date;
 }
 

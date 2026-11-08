@@ -1,8 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Patch, Post } from '@nestjs/common';
 import { IsBlocked, IsMember } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { SeenByDto } from './dto/seenby.dto';
 import { MessageService } from './message.service';
 
 @Controller({ path: 'message', version: '1' })
@@ -21,6 +22,20 @@ export class MessageController {
       photos,
       conversationId,
       userId: user.id,
+    });
+  }
+
+  @IsBlocked({ body: 'conversationId' })
+  @IsMember({ body: 'conversationId' })
+  @Patch('/:messageId/:fieldName')
+  updateMessage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { messageId, fieldName }: SeenByDto,
+  ) {
+    return this.messageService.updateMessage({
+      userId: user.id,
+      fieldName,
+      messageId,
     });
   }
 }
