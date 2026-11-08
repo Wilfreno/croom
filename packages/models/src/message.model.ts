@@ -111,7 +111,7 @@ export class MessageModel {
     try {
       return await this.Message.aggregate<Message>([
         { $match: { conversation: new Types.ObjectId(conversationId) } },
-        { $sort: { dateCreated: 1 } },
+        { $sort: { dateCreated: -1 } },
         { $skip: skip },
         { $limit: limit },
         {
@@ -145,6 +145,7 @@ export class MessageModel {
             pipeline: [{ $project: { url: 1, height: 1, width: 1 } }],
           },
         },
+        { $sort: { dateCreated: 1 } },
       ]);
     } catch (error) {
       this.logger.error(error);

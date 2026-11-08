@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { axiosInstance } from '@/lib/axios-instance';
 import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
-import { Message } from "@repo/types";
+import { Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import Image from 'next/image';
@@ -90,7 +90,7 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const textStyle = useMemo(() => {
-    let style = 'py-2 max-w-80 break-words';
+    let style = 'py-2 w-[40dvw] break-words whitespace-pre-wrap';
 
     const isSender = message.sender.id === session.user?.id;
     if (noText) style += ' h-fit text-4xl';
@@ -102,7 +102,7 @@ export default function ConversationMessage({
     if (isSender) style += ' justify-self-end';
     else style += ' justify-self-start';
 
-    if (!!quickMessagePlacement) {
+    if (Boolean(quickMessagePlacement)) {
       style += isSender ? ' rounded-l-lg' : ' rounded-r-lg';
       switch (quickMessagePlacement) {
         case 'FIRST': {
@@ -175,7 +175,7 @@ export default function ConversationMessage({
         key={message.id}
         ref={divRef}
         className={cn(
-          'gap-2 w-full max-w-80 grid',
+          'gap-2 w-full grid',
           message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
         )}
       >
@@ -189,7 +189,7 @@ export default function ConversationMessage({
         )}
         <div className="grid">
           {!!message.text && (
-            <div className={textStyle}>
+            <div className={cn(textStyle)}>
               <span>{message.text}</span>
             </div>
           )}

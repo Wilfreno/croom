@@ -31,7 +31,7 @@ export function getTimeIntervalText(dateCreated: Date) {
   return time;
 }
 
+/** Whole seconds between two dates, regardless of which one is earlier. */
 export function getSecondsInterval(firstDate: Date, secondDate: Date) {
-  if (firstDate < secondDate) throw new Error('first date must be greater than second date');
-  return Math.floor((firstDate.getTime() - secondDate.getTime()) / 1000);
+  return Math.floor(Math.abs(firstDate.getTime() - secondDate.getTime()) / 1000);
 }

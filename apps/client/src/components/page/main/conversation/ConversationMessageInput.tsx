@@ -1,6 +1,7 @@
 'use client';
 
 import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation';
+import useMessageTextarea from '@/components/hooks/useMessageTextarea';
 import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -13,16 +14,22 @@ import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
 import { useParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 
 export default function ConversationMessageInput({ conversation }: { conversation?: Conversation }) {
-  const [textInput, setTextInput] = useState('');
+  const {
+    value: textInput,
+    setValue: setTextInput,
+    textareaProps,
+  } = useMessageTextarea({
+    onSubmit: () => send(''),
+    canSubmit: (value) => !!value.trim() || !!photoInput.length,
+  });
   const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
@@ -77,7 +84,6 @@ export default function ConversationMessageInput({ conversation }: { conversatio
     setUploadingImage(false);
     setPhotoInput([]);
     setTextInput('');
-    textareaRef.current!.style.height = 'auto';
   }
 
   if (conversation && conversation.status === 'BLOCKED')
@@ -163,21 +169,8 @@ export default function ConversationMessageInput({ conversation }: { conversatio
               className={cn(
                 'resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
               )}
-              ref={textareaRef}
               placeholder="Aa"
-              rows={1}
-              value={textInput}
-              onChange={(e) => {
-                setTextInput(e.currentTarget.value);
-                e.currentTarget.style.height = 'auto';
-                e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  send('');
-                }
-              }}
+              {...textareaProps}
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="my-1">

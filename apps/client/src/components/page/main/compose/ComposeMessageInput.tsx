@@ -3,6 +3,7 @@ import useComposeMessage from '@/components/hooks/mutation/useComposeMessage.mut
 import useCreateConversation from '@/components/hooks/mutation/useCreateConversation.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
+import useMessageTextarea from '@/components/hooks/useMessageTextarea';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,20 +15,23 @@ import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 
 export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
-  const [textInput, setTextInput] = useState('');
   const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const {
     session: { user },
   } = useAuth();
+
+  const {
+    value: textInput,
+    setValue: setTextInput,
+    textareaProps,
+  } = useMessageTextarea({ onSubmit: submit });
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
   const { data: conversation } = useConversation(foundConversations?.[0]?.id);
@@ -88,6 +92,15 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
       }
     }
     setUploadingImage(false);
+  }
+
+  function submit() {
+    if (!foundConversations || !foundConversations.length || isError) {
+      createNewConversation.mutate();
+    } else {
+      sendMessage.mutate();
+    }
+    setTextInput('');
   }
 
   if (!selectedUsers || !selectedUsers.length) return null;
@@ -185,30 +198,8 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               className={cn(
                 'resize-none h-auto max-h-[30dvh] min-h-2 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
               )}
-              ref={textareaRef}
               placeholder="Aa"
-              rows={1}
-              value={textInput}
-              onChange={(e) => {
-                setTextInput(e.currentTarget.value);
-                e.currentTarget.style.height = 'auto';
-                e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-
-                  if (!textInput.trim()) return;
-
-                  if (!foundConversations || !foundConversations.length || isError) {
-                    createNewConversation.mutate();
-                  } else {
-                    sendMessage.mutate();
-                  }
-
-                  setTextInput('');
-                }
-              }}
+              {...textareaProps}
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="my-1">
@@ -234,13 +225,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
             disabled={(!textInput && !photoInput.length) || sendMessage.isPending}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={() => {
-              if (!foundConversations || !foundConversations.length || isError) {
-                createNewConversation.mutate();
-              } else {
-                sendMessage.mutate();
-              }
-            }}
+            onClick={submit}
           >
             <SendHorizontal className="h-6 w-auto text-primary" />
           </Button>
