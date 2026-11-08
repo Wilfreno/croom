@@ -1,14 +1,14 @@
 'use client';
 
+import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation';
 import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { axiosInstance } from '@/lib/axios-instance';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation, Message } from "@repo/types";
-import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@repo/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -26,44 +26,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
-  const sendMessage = useMutation<Message, Error, string>({
-    async mutationFn(text) {
-      const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
-        conversationId: params.id,
-        text: text ? text : textInput,
-        photos: photoInput,
-      });
-
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData<
-        | InfiniteData<
-            {
-              pageParam: number;
-              result: Message[];
-            },
-            unknown
-          >
-        | undefined
-      >(['conversation', 'messages', params.id], (prev) => {
-        if (!prev) return;
-
-        return {
-          ...prev,
-          pages: prev.pages.map(({ pageParam, result }, index) => ({
-            pageParam,
-            result: index === prev.pages.length - 1 ? [...result, data] : result,
-          })),
-        };
-      });
-      setUploadingImage(false);
-      setPhotoInput([]);
-      setTextInput('');
-      textareaRef.current!.style.height = 'auto';
-    },
-  });
-
+  const { sendMessage } = useSendMessage(textInput);
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
     mutationFn: async ({ key }) => {
       try {
@@ -107,6 +70,14 @@ export default function ConversationMessageInput({ conversation }: { conversatio
       }
     }
     setUploadingImage(false);
+  }
+
+  async function send(text: string) {
+    await sendMessage.mutateAsync({ conversationId: params.id, photoInput, text });
+    setUploadingImage(false);
+    setPhotoInput([]);
+    setTextInput('');
+    textareaRef.current!.style.height = 'auto';
   }
 
   if (conversation && conversation.status === 'BLOCKED')
@@ -204,7 +175,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  sendMessage.mutate('');
+                  send('');
                 }
               }}
             />
@@ -232,7 +203,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
             disabled={(!textInput && !photoInput.length) || sendMessage.isPending || uploadingImage}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
-            onClick={() => sendMessage.mutate('')}
+            onClick={() => send('')}
           >
             <SendHorizontal className="h-5 w-auto text-primary" />
           </Button>
@@ -241,7 +212,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
             variant="ghost"
             className="aspect-square h-fit w-auto rounded-full p-2"
             onClick={() => {
-              sendMessage.mutate('👍');
+              send('👍');
             }}
           >
             <ThumbsUp className="h-5 w-auto text-primary" />

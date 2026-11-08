@@ -28,8 +28,9 @@ export interface Conversation extends Omit<ConversationType, 'members' | 'photo'
   messages: Message[]
 }
 
-export interface Message extends Omit<MessageType, 'sender' | 'photos'> {
+export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation'> {
   id: string;
+  conversation: string;
   sender: User;
   photos: Photo[];
 }

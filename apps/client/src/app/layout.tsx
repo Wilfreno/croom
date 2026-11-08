@@ -31,8 +31,8 @@ export default function RootLayout({
           <AuthProvider>
             <SocketIOProvider>{children}</SocketIOProvider>
           </AuthProvider>
+          <Toaster richColors expand={true} position="top-center" />
         </ReactQueryProvider>
-        <Toaster richColors expand={true} position="top-center" />
         <Analytics />
       </body>
     </html>

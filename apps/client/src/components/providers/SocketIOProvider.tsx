@@ -1,5 +1,5 @@
 'use client';
-import type { ClientToServerEvents, MessagePayload, ServerToClientEvents } from '@repo/types';
+import type { ClientToServerEvents, Message, MessagePayload, ServerToClientEvents } from '@repo/types';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import useUserAgent from '../hooks/useUserAgent';
 import MessageToast from '../page/main/conversation/MessageToast';
 import { useAuth } from './AuthProvider';
-import { Message } from "@/types/model.types";
 
 const SocketIOContext = createContext<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 
@@ -29,6 +28,8 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     const conversationId = message.conversation.id;
 
     if (pathname.startsWith('/conversation/' + conversationId)) {
+      const newMessage: Message = { ...message, conversation: conversationId };
+
       queryClient.setQueryData<
         | InfiniteData<
             {
@@ -45,7 +46,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
           ...prev,
           pages: prev.pages.map(({ pageParam, result }, index) => ({
             pageParam,
-            result: index === prev.pages.length - 1 ? [...result, message] : result,
+            result: index === prev.pages.length - 1 ? [...result, newMessage] : result,
           })),
         };
       });
