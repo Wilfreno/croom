@@ -10,6 +10,7 @@ import { AtSign, Mail, Send, UserRound, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
+import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 
 export default function UserInfoDialog({ children, user }: { children: React.ReactNode; user: User }) {
   const queryClient = useQueryClient();
@@ -45,13 +46,9 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
     const now = new Date();
     const relativeDateInSeconds = Math.floor((now.getTime() - lastOnline.getTime()) / 1000);
 
-    const day = 60 * 60 * 24;
-    const hour = 60 * 60;
-    const minute = 60;
-
-    if (relativeDateInSeconds > day) return Math.floor(relativeDateInSeconds / day) + ' day(s)';
-    if (relativeDateInSeconds > hour) return Math.floor(relativeDateInSeconds / hour) + ' hour(s)';
-    if (relativeDateInSeconds > minute) return Math.floor(relativeDateInSeconds / minute) + ' minute(s)';
+    if (relativeDateInSeconds > SECONDS_IN_DAY) return Math.floor(relativeDateInSeconds / SECONDS_IN_DAY) + ' day(s)';
+    if (relativeDateInSeconds > SECONDS_IN_HOUR) return Math.floor(relativeDateInSeconds / SECONDS_IN_HOUR) + ' hour(s)';
+    if (relativeDateInSeconds > SECONDS_IN_MINUTE) return Math.floor(relativeDateInSeconds / SECONDS_IN_MINUTE) + ' minute(s)';
     return relativeDateInSeconds + ' seconds(s)';
   }, [userInfo]);
 

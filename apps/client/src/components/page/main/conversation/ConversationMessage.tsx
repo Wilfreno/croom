@@ -2,8 +2,9 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn } from '@/lib/utils';
-import { Message } from '@/types/model.types';
+import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
+import { SECONDS_IN_MINUTE } from '@repo/constants';
+import { Message } from "@repo/types";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import Image from 'next/image';
@@ -26,25 +27,18 @@ export default function ConversationMessage({
 
   const { showTimeInterval, timeIntervalText, quickMessagePlacement } = useMemo(() => {
     const dateSent = new Date(message.dateCreated);
-    const now = new Date();
-    const relativeDateInSeconds = Math.floor((now.getTime() - dateSent.getTime()) / 1000);
-
-    const minute = 60;
-    const hour = 60 * 60;
-    const day = 60 * 60 * 24;
-
     let quickMessagePlacement: 'FIRST' | 'MIDDLE' | 'LAST';
     let showTimeInterval = false;
     let timeIntervalText = '';
 
     if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
-      const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
-      if (nextMessageDateSentInSeconds < minute) {
+      const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
+      if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
         if (!!prevMessage && prevMessage.sender.id === message.sender.id) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
-          const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
-          if (prevMessageDateSentInSeconds < minute) {
+          const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
+          if (prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
             quickMessagePlacement = 'MIDDLE';
           } else {
             quickMessagePlacement = 'FIRST';
@@ -53,15 +47,15 @@ export default function ConversationMessage({
       }
     }
 
-    if (!!prevMessage) {
-      const prevMessageDateSent = new Date(prevMessage.dateCreated);
-      const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
+    if (Boolean(prevMessage)) {
+      const prevMessageDateSent = new Date(prevMessage!.dateCreated);
+      const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
 
-      if (prevMessage.sender.id === message.sender.id && prevMessageDateSentInSeconds < minute) {
+      if (prevMessage!.sender.id === message.sender.id && prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
         if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
-          const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
-          if (nextMessageDateSentInSeconds < minute) {
+          const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
+          if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
             quickMessagePlacement = 'MIDDLE';
           } else {
             quickMessagePlacement = 'LAST';
@@ -70,83 +64,13 @@ export default function ConversationMessage({
           quickMessagePlacement = 'LAST';
         }
       }
-      if (prevMessageDateSentInSeconds > minute) {
+      if (prevMessageDateSentInSeconds > SECONDS_IN_MINUTE) {
         showTimeInterval = true;
-
-        if (relativeDateInSeconds > day * 7) {
-          timeIntervalText += new Intl.DateTimeFormat('en-US', {
-            month: 'long',
-          }).format(dateSent);
-
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              day: 'numeric',
-            }).format(dateSent);
-        }
-        if (relativeDateInSeconds > hour * 24) {
-          if (relativeDateInSeconds > hour * 24 * 2) {
-            timeIntervalText +=
-              ' ' +
-              new Intl.DateTimeFormat('en-US', {
-                weekday: 'long',
-              }).format(dateSent);
-
-            timeIntervalText +=
-              ' ' +
-              new Intl.DateTimeFormat('en-US', {
-                year: 'numeric',
-              }).format(dateSent);
-          } else {
-            timeIntervalText += ' Yesterday,';
-          }
-        }
-
-        timeIntervalText +=
-          ' ' +
-          new Intl.DateTimeFormat('en-US', {
-            minute: '2-digit',
-            hour: '2-digit',
-          }).format(dateSent);
+        timeIntervalText = getTimeIntervalText(message.dateCreated);
       }
     } else {
       showTimeInterval = true;
-
-      if (relativeDateInSeconds > day * 7) {
-        timeIntervalText += new Intl.DateTimeFormat('en-US', {
-          month: 'long',
-        }).format(dateSent);
-
-        timeIntervalText +=
-          ' ' +
-          new Intl.DateTimeFormat('en-US', {
-            day: 'numeric',
-          }).format(dateSent);
-      }
-      if (relativeDateInSeconds > hour * 24) {
-        if (relativeDateInSeconds > hour * 24 * 2) {
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              weekday: 'long',
-            }).format(dateSent);
-
-          timeIntervalText +=
-            ' ' +
-            new Intl.DateTimeFormat('en-US', {
-              year: 'numeric',
-            }).format(dateSent);
-        } else {
-          timeIntervalText += ' Yesterday,';
-        }
-      }
-
-      timeIntervalText +=
-        ' ' +
-        new Intl.DateTimeFormat('en-US', {
-          minute: '2-digit',
-          hour: '2-digit',
-        }).format(dateSent);
+      timeIntervalText = getTimeIntervalText(message.dateCreated);
     }
 
     return {
@@ -222,7 +146,7 @@ export default function ConversationMessage({
   const seen = useMutation({
     async mutationFn() {
       await axiosInstance.patch(`/message/${message.id}/seenBy`, {
-        conversationId: message.conversation, 
+        conversationId: message.conversation,
         action: 'ADD',
       });
     },

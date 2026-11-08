@@ -1,6 +1,6 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { cn, isGroupChat } from '@/lib/utils';
+import { cn, getTimeIntervalText, isGroupChat } from '@/lib/utils';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
@@ -34,7 +34,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     } else {
       const otherUser = conversation.members[0];
 
-      photoUrl = otherUser?.photo!.url;
+      photoUrl = otherUser?.photo?.url!;
 
       conversationName = conversation.nicknames.find((nickname) => nickname.user === otherUser?.id)?.value || '';
 
@@ -48,23 +48,8 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     }
     isOnline = conversation.members.some((user) => user.status === UserStatus.ONLINE);
 
-    const dateSent = new Date(conversation.messages[0].dateCreated);
-    const now = new Date();
-    const relativeDateInSeconds = Math.floor((now.getTime() - dateSent.getTime()) / 1000);
-
-    const day = 60 * 60 * 24;
-
-    if (relativeDateInSeconds < day) {
-      timeIntervalText +=
-        ' ' +
-        new Intl.DateTimeFormat('en-US', {
-          minute: '2-digit',
-          hour: '2-digit',
-        }).format(dateSent);
-    } else {
-      timeIntervalText += Math.floor(relativeDateInSeconds / day) + ' d';
-    }
-
+    timeIntervalText = getTimeIntervalText(conversation.messages[0].dateCreated);
+   
     return {
       conversationName,
       photoUrl,
