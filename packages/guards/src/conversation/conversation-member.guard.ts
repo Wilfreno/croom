@@ -11,6 +11,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ConversationModel } from '@repo/models';
 import { ConversationIdSource, getConversationGuardRequest, getConversationId } from './conversation-id.util';
+import { isFirstMessageRequest } from './conversation-first-message.guard';
 
 export const CONVERSATION_MEMBER_SOURCE_KEY = 'conversationMemberSource';
 
@@ -30,14 +31,15 @@ export class ConversationMemberGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const conversationId = getConversationId(
-      context,
-      this.reflector.getAllAndOverride<ConversationIdSource | undefined>(CONVERSATION_MEMBER_SOURCE_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]),
-      ConversationMemberGuard.name,
-    );
+    const source = this.reflector.getAllAndOverride<ConversationIdSource | undefined>(CONVERSATION_MEMBER_SOURCE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // First message of a not-yet-created conversation: see `@IsFirstMessage()`.
+    if (isFirstMessageRequest(context, this.reflector, source)) return true;
+
+    const conversationId = getConversationId(context, source, ConversationMemberGuard.name);
     const userId = getConversationGuardRequest(context).user?.id;
 
     if (!userId) throw new UnauthorizedException('you are not logged in');

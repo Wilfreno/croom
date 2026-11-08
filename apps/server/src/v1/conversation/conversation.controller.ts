@@ -1,10 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { IsMember, NotBlocked } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ConversationService } from './conversation.service';
-import { CreateConversationDto } from './dto/create-conversation.dto';
 import {
   GetConversationByIdDto,
   GetConversationByMembersIdDto,
@@ -15,17 +14,6 @@ import { GetConversationMessageDto } from './dto/get-message.dto';
 @Controller({ path: 'conversation', version: '1' })
 export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
-
-  @Post()
-  create(
-    @CurrentUser() { id }: AuthenticatedUser,
-    @Body() { members }: CreateConversationDto,
-  ) {
-    return this.conversationService.create({
-      userId: id,
-      members: [...members, id],
-    });
-  }
 
   @NotBlocked({ param: 'conversationId' })
   @IsMember({ param: 'conversationId' })

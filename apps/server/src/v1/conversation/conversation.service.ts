@@ -3,9 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
-import { Connection, Types } from 'mongoose';
+import { ClientSession, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { GetConversationByIdDto } from './dto/get-conversation';
@@ -14,17 +13,20 @@ import { GetConversationMessageDto } from './dto/get-message.dto';
 @Injectable()
 export class ConversationService {
   constructor(
-    @InjectConnection() private readonly connection: Connection,
     private readonly conversationModel: ConversationModel,
     private readonly userModel: UserModel,
     private readonly messageModel: MessageModel,
     private readonly photoModel: PhotoModel,
   ) {}
 
-  async create({
-    members,
-    userId,
-  }: CreateConversationDto & { userId: string }) {
+  /**
+   * Creates a conversation inside the caller's transaction. Used to create
+   * the conversation together with its first message.
+   */
+  async create(
+    { members, userId }: CreateConversationDto & { userId: string },
+    session: ClientSession,
+  ) {
     if (members.length === 2) {
       if (await this.conversationModel.checkConversationExistByMembers(members))
         throw new ConflictException('conversation already exist');
@@ -39,35 +41,24 @@ export class ConversationService {
         `user with id:${missingMember} does not exist`,
       );
     }
-    const session = await this.connection.startSession();
-    let newConversation: Awaited<
-      ReturnType<ConversationModel['createConversation']>
-    >;
 
-    try {
-      await session.withTransaction(async () => {
-        const memberIds = members.map((id) => new Types.ObjectId(id));
-        const isGroupChat = members.length > 2;
-        newConversation = await this.conversationModel.createConversation(
-          {
-            name: isGroupChat
-              ? foundUsers.map((user) => user.displayName).join(', ')
-              : '',
-            members: memberIds,
-            admins: isGroupChat ? [new Types.ObjectId(userId)] : memberIds,
-            nicknames: members.map((member) => ({
-              user: new Types.ObjectId(member),
-              value: '',
-            })),
-          },
-          session,
-        );
-      });
-    } finally {
-      await session.endSession();
-    }
+    const memberIds = members.map((id) => new Types.ObjectId(id));
+    const isGroupChat = members.length > 2;
 
-    return newConversation!;
+    return await this.conversationModel.createConversation(
+      {
+        name: isGroupChat
+          ? foundUsers.map((user) => user.displayName).join(', ')
+          : '',
+        members: memberIds,
+        admins: isGroupChat ? [new Types.ObjectId(userId)] : memberIds,
+        nicknames: members.map((member) => ({
+          user: new Types.ObjectId(member),
+          value: '',
+        })),
+      },
+      session,
+    );
   }
 
   async getConversationMessages({

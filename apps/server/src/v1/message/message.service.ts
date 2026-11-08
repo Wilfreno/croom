@@ -12,6 +12,7 @@ import { Connection, Types, UpdateQuery } from 'mongoose';
 import { respond } from 'src/common/utils/server-response.util';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { SeenByDto } from './dto/seenby.dto';
+import { ConversationService } from '../conversation/conversation.service';
 import { MessageGateway } from './message.gateway';
 
 @Injectable()
@@ -22,25 +23,40 @@ export class MessageService {
     private readonly messageModel: MessageModel,
     private readonly photoModel: PhotoModel,
     private readonly messageGateway: MessageGateway,
+    private readonly conversationService: ConversationService,
   ) {}
 
   async create({
     text,
     photos,
     conversationId,
+    members,
     userId,
   }: CreateMessageDto & { userId: string }) {
-    const foundConversation =
-      await this.conversationModel.findConversationById(conversationId);
+    const foundConversation = conversationId
+      ? await this.conversationModel.findConversationById(conversationId)
+      : null;
 
-    if (!foundConversation)
+    if (conversationId && !foundConversation)
       throw new NotFoundException('Conversation does not exist');
 
     const session = await this.connection.startSession();
     let newMessage: Awaited<ReturnType<MessageModel['createMessage']>>;
+    let conversationMemberIds: string[];
 
     try {
       await session.withTransaction(async () => {
+        const conversation =
+          foundConversation ??
+          (await this.conversationService.create(
+            { members: [...members!, userId], userId },
+            session,
+          ));
+
+        conversationMemberIds = conversation.members.map((member) =>
+          member.toString(),
+        );
+
         const newPhotoIds = await this.photoModel.createMany(
           photos.map((photo) => ({
             owner: new Types.ObjectId(userId),
@@ -54,7 +70,7 @@ export class MessageService {
         );
         newMessage = await this.messageModel.createMessage(
           {
-            conversation: new Types.ObjectId(conversationId),
+            conversation: conversation._id,
             text,
             photos: newPhotoIds.map((photo) => photo._id),
             sender: new Types.ObjectId(userId),
@@ -73,9 +89,9 @@ export class MessageService {
     if (!messagePayload)
       throw new InternalServerErrorException('Message was not saved');
 
-    const recipientIds = foundConversation.members
-      .map((member) => member.toString())
-      .filter((memberId) => memberId !== userId);
+    const recipientIds = conversationMemberIds!.filter(
+      (memberId) => memberId !== userId,
+    );
 
     this.messageGateway.emitToUsers(recipientIds, 'MESSAGE', messagePayload);
 

@@ -25,5 +25,6 @@ import { ConversationController } from './conversation.controller';
   ],
   controllers: [ConversationController],
   providers: [ConversationService, ConversationModel, MessageModel, PhotoModel, UserModel],
+  exports: [ConversationService],
 })
 export class ConversationModule {}
