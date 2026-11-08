@@ -52,12 +52,12 @@ export default function ChangeName() {
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
         if (!prev) return [];
 
-        return prev.map((convo) => (convo._id === params.id ? { ...convo, name: value } : convo));
+        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
       });
 
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'active', 'conversations'], (prev) => {
         if (!prev) return [];
-        return prev.map((convo) => (convo._id === params.id ? { ...convo, name: value } : convo));
+        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
       });
       setOpen(false);
       toast.success('name changed');

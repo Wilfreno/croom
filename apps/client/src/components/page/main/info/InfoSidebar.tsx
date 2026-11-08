@@ -39,7 +39,7 @@ export default function InfoSidebar() {
       return session.user.id !== conversation.blocker;
     }
 
-    return !conversation.members.some((member) => member._id !== session.user?.id);
+    return !conversation.members.some((member) => member.id !== session.user?.id);
   }, [conversation, session.user]);
 
   return (

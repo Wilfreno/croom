@@ -1,11 +1,12 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { cn, isGroupChat } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import UserAvatar from '../UserAvatar';
+import { Conversation } from "@repo/types";
+import { UserStatus } from "@repo/enums";
 
 export default function HomeConversation({ conversation }: { conversation: Conversation }) {
   const { session } = useAuth();
@@ -45,7 +46,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     } else {
       seen = conversation.messages[0]?.seenBy.some((user) => user.id === session.user?.id);
     }
-    isOnline = conversation.members.some((user) => user.status === 'ONLINE');
+    isOnline = conversation.members.some((user) => user.status === UserStatus.ONLINE);
 
     const dateSent = new Date(conversation.messages[0].dateCreated);
     const now = new Date();

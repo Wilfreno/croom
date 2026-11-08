@@ -53,7 +53,7 @@ export default function AddNickname() {
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
         if (!prev) return;
         return prev.map((conversation) =>
-          conversation._id === params.id
+          conversation.id === params.id
             ? {
                 ...conversation,
                 nicknames: conversation.nicknames.map((nickname) =>

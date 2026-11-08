@@ -30,18 +30,18 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   } = useAuth();
 
   const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
-  const { data: conversation } = useConversation(foundConversations?.[0]?._id);
+  const { data: conversation } = useConversation(foundConversations?.[0]?.id);
 
   const { sendMessage } = useComposeMessage({
     text: textInput,
     photos: photoInput,
-    conversationId: foundConversations?.[0]?._id,
+    conversationId: foundConversations?.[0]?.id,
   });
 
   const { createNewConversation } = useCreateConversation({
     text: textInput,
     photos: photoInput,
-    conversationId: foundConversations?.[0]?._id!,
+    conversationId: foundConversations?.[0]?.id!,
     members: selectedUsers!.map((user) => user[0]),
   });
 

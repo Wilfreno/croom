@@ -96,10 +96,10 @@ export default function ComposeTo({
                 <div className="bg-background gap-1 grid py-2 pr-2">
                   {foundConversations.map((convo) => (
                     <Button
-                      key={convo._id}
+                      key={convo.id}
                       variant="ghost"
                       className="h-fit w-full p-2 justify-start rounded-sm"
-                      onClick={() => router.push('/conversation/' + convo._id)}
+                      onClick={() => router.push('/conversation/' + convo.id)}
                     >
                       <Avatar>
                         <AvatarImage src={convo.photo?.url} />

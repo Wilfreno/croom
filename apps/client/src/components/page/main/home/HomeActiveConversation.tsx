@@ -33,7 +33,7 @@ export default function HomeActiveConversations() {
             {activeConversations?.map((conversation) => {
               const isGroup = isGroupChat(conversation);
               return (
-                <Link key={conversation?._id} href={'/conversation/' + conversation._id}>
+                <Link key={conversation?.id} href={'/conversation/' + conversation.id}>
                   <div className="flex flex-col items-center gap-1 h-fit w-fit">
                     <UserAvatar
                       isOnline

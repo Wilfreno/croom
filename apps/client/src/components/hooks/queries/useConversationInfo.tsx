@@ -9,7 +9,7 @@ export default function useConversationInfo(conversation?: Conversation) {
 
   const { data } = useQuery({
     enabled: Boolean(conversation) && Boolean(session.user),
-    queryKey: ['conversation', 'info', conversation?._id],
+    queryKey: ['conversation', 'info', conversation?.id],
     queryFn() {
       let lastOnline = '';
       let photoUrl: string;
@@ -20,13 +20,13 @@ export default function useConversationInfo(conversation?: Conversation) {
         photoUrl = conversation!.photo?.url || '';
         conversationName = conversation!.name;
       } else {
-        const otherUser = conversation!.members.find((member) => member._id !== session.user?.id);
+        const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
         if (!otherUser) return { photoUrl: '', conversationName: '', status: null, lastOnline };
 
         status = otherUser.status;
         photoUrl = otherUser.photo?.url || '';
 
-        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser._id)!.value;
+        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser.id)!.value;
         if (!conversationName) conversationName = otherUser.displayName;
 
         if (otherUser.status === UserStatus.OFFLINE) {

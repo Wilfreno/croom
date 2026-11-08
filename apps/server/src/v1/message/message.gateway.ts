@@ -12,6 +12,7 @@ import type {
   SocketData,
 } from '@repo/types';
 import { Server, Socket } from 'socket.io';
+import { serializeIds } from '../../common/utils/serialize-ids.util';
 import { AuthService } from '../auth/auth.service';
 
 type TypedServer = Server<
@@ -72,6 +73,11 @@ export class MessageGateway implements OnGatewayConnection {
     ...payload: Parameters<ServerToClientEvents[Event]>
   ) {
     if (!userIds.length) return;
-    this.server.to(userIds).emit(event, ...payload);
+    this.server
+      .to(userIds)
+      .emit(
+        event,
+        ...(serializeIds(payload) as Parameters<ServerToClientEvents[Event]>),
+      );
   }
 }

@@ -28,7 +28,7 @@ export class MessageModel {
   }
 
   private toPhotoEntity({ _id, ...photo }: LeanPhoto): PhotoEntity {
-    return { ...photo, _id: _id.toString() };
+    return { ...photo, id: _id.toString() };
   }
 
   async findMessagePayloadById(messageId: Types.ObjectId | string): Promise<MessageEntity | null> {
@@ -47,10 +47,10 @@ export class MessageModel {
 
       return {
         ...rest,
-        _id: _id.toString(),
+        id: _id.toString(),
         sender: {
           ...senderRest,
-          _id: senderId.toString(),
+          id: senderId.toString(),
           photo: photo ? this.toPhotoEntity(photo) : null,
         },
         photos: photos.map((p) => this.toPhotoEntity(p)),

@@ -9,11 +9,11 @@ export default function useMessages(foundConversation: Conversation[]) {
     result: Message[];
   }>({
     enabled: Boolean(foundConversation) && Boolean(foundConversation![0]) && foundConversation!.length === 1,
-    queryKey: ['conversation', 'messages', foundConversation?.[0]?._id],
+    queryKey: ['conversation', 'messages', foundConversation?.[0]?.id],
     queryFn: async ({ pageParam }) => {
       const page = pageParam as number;
       const { data: response } = await axiosInstance.get<ServerResponse<Message[]>>(
-        '/conversation/' + foundConversation?.[0]._id + '/messages?page=' + page,
+        '/conversation/' + foundConversation?.[0].id + '/messages?page=' + page,
       );
 
       return { pageParam: page, result: response.data };
