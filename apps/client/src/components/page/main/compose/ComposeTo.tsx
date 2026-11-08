@@ -1,31 +1,33 @@
 'use client';
-import useDebounce from '@/components/hooks/useDebounce';
-import { useAuth } from '@/components/providers/AuthProvider';
+import userSearchUsers from '@/components/hooks/queries/userSearchUsers';
+import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GETRequest } from '@/lib/server/requests';
-import { cn } from '@/lib/utils';
-import { Conversation, User } from '@repo/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { cn, isGroupChat } from '@/lib/utils';
+import { UserStatus } from '@repo/enums';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, UserRound, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import UserAvatar from '../UserAvatar';
 
-export default function ComposeTo() {
+export default function ComposeTo({
+  selectedUsers,
+  setSelectedUsers,
+}: {
+  selectedUsers: string[][];
+  setSelectedUsers: Dispatch<SetStateAction<string[][]>>;
+}) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [seeList, setSeeList] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[][]>([]);
 
-  const debouncedValue = useDebounce(inputValue);
-  const { session } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -33,44 +35,9 @@ export default function ComposeTo() {
   const convoDropdownDivRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: result } = useQuery({
-    queryKey: ['search', 'user', debouncedValue],
-    queryFn: async () => {
-      try {
-        if (!debouncedValue) return [];
-        const { data, status, message } = await GETRequest<User[]>('/v1/user/search?value=' + debouncedValue);
+  const { data: searchResult } = userSearchUsers(inputValue);
 
-        if (status !== 'OK') {
-          toast.error(message);
-          throw new Error(message);
-        }
-
-        return data;
-      } catch (error) {
-        throw error;
-      }
-    },
-    placeholderData: [],
-  });
-
-  const { data: foundConversation } = useQuery({
-    enabled: !!selectedUsers?.length && !!session.user,
-    queryKey: ['conversation', 'members', selectedUsers],
-    queryFn: async () => {
-      try {
-        const { data, message, status } = await GETRequest<Conversation[]>(
-          '/v1/conversation?members=' + selectedUsers.map((users) => users[0]).join(','),
-        );
-
-        if (status !== 'OK') throw new Error(message);
-
-        return data;
-      } catch (error) {
-        throw error;
-      }
-    },
-    placeholderData: [],
-  });
+  const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
 
   useEffect(() => {
     function handleCLick(event: MouseEvent) {
@@ -87,81 +54,67 @@ export default function ComposeTo() {
       document.removeEventListener('mousedown', handleCLick);
     };
   }, []);
-
-  useEffect(() => {
-    const cachedSelectedUsers = queryClient.getQueryData<string[][]>(['compose', 'selected_users']);
-
-    if (!!cachedSelectedUsers?.length) setSelectedUsers(cachedSelectedUsers);
-  }, []);
-  useEffect(() => {
-    queryClient.setQueryData(['compose', 'selected_users'], selectedUsers);
-  }, [selectedUsers]);
-
+ 
   return (
     <section
-      className={cn(
-        'w-full border-b flex items-center p-3 relative gap-4 z-50',
-        !!selectedUsers?.length && 'shadow-lg',
-      )}
+      className={cn('w-full border-b flex items-center p-3 relative gap-4 z-50', !!selectedUsers?.length && 'shadow')}
     >
       <AnimatePresence>
-        {!!foundConversation &&
-          foundConversation.length > 1 &&
-          foundConversation?.some((convo) => convo.isGroupChat) && (
-            <motion.div
-              key="found-group-chats"
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              className="absolute top-full left-0 w-full bg-background border shadow-md py-3 px-5 rounded-b text-sm z-40"
+        {Boolean(foundConversations) && foundConversations?.some(isGroupChat) && (
+          <motion.div
+            key="found-group-chats"
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -10, opacity: 0 }}
+            className="absolute top-full left-0 w-full bg-background border shadow-md py-3 px-5 rounded-b text-sm z-40"
+          >
+            <strong>You</strong> ,
+            {selectedUsers?.map(([id, name], index) => (
+              <span key={id}>
+                {index === selectedUsers.length - 1 && 'and '}
+                <strong>{name}</strong>
+                {index !== selectedUsers.length - 1 && ', '}
+              </span>
+            ))}{' '}
+            <span>are already a member of </span>
+            <span className="text-primary h-fit w-fit font-medium">
+              {foundConversations.length} group chat&#40;s&#41;
+            </span>{' '}
+            <span>together.</span>{' '}
+            <Button
+              variant="ghost"
+              className="h-fit w-fit p-1 text-primary underline"
+              onClick={() => {
+                setOpen(false);
+                setSeeList((prev) => !prev);
+              }}
             >
-              <strong>You</strong> ,
-              {selectedUsers?.map(([id, name], index) => (
-                <span key={id}>
-                  {index === selectedUsers.length - 1 && 'and '}
-                  <strong>{name}</strong>
-                  {index !== selectedUsers.length - 1 && ', '}
-                </span>
-              ))}{' '}
-              <span>are already a member of </span>
-              <span className="text-primary h-fit w-fit font-medium">
-                {foundConversation.length} group chat&#40;s&#41;
-              </span>{' '}
-              <span>together.</span>{' '}
-              <Button
-                variant="ghost"
-                className="h-fit w-fit p-1 text-primary underline"
-                onClick={() => {
-                  setOpen(false);
-                  setSeeList((prev) => !prev);
-                }}
-              >
-                see list
-              </Button>
-              <div className={cn('absolute left-0 top-[105%] w-full', seeList ? 'grid' : 'hidden')}>
-                <ScrollArea className="h-52">
-                  <div className="bg-background gap-1 grid py-2 pr-2">
-                    {foundConversation.map((convo) => (
-                      <Button
-                        key={convo.id}
-                        variant="ghost"
-                        className="h-fit w-full p-2 justify-start rounded-sm"
-                        onClick={() => router.push('/conversation/' + convo.id)}
-                      >
-                        <Avatar>
-                          <AvatarImage src={convo.photo?.url} />
-                          <AvatarFallback>
-                            <UserRound className="h-1/2 w-auto" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-semibold truncate max-w-[40vw]">{convo.name}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </motion.div>
-          )}
+              see list
+            </Button>
+            <div className={cn('absolute left-0 top-[105%] w-full', seeList ? 'grid' : 'hidden')}>
+              <ScrollArea className="h-52">
+                <div className="bg-background gap-1 grid py-2 pr-2">
+                  {foundConversations.map((convo) => (
+                    <Button
+                      key={convo._id}
+                      variant="ghost"
+                      className="h-fit w-full p-2 justify-start rounded-sm"
+                      onClick={() => router.push('/conversation/' + convo._id)}
+                    >
+                      <Avatar>
+                        <AvatarImage src={convo.photo?.url} />
+                        <AvatarFallback>
+                          <UserRound className="h-1/2 w-auto" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold truncate max-w-[40vw]">{convo.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
       <div className="flex items-center gap-4">
         <Button variant="ghost" className="aspect-square h-fit w-auto p-1 md:hidden" onClick={() => router.push('/')}>
@@ -169,7 +122,7 @@ export default function ComposeTo() {
         </Button>
         <Label htmlFor="add-member">To: </Label>
       </div>
-      {!!selectedUsers && selectedUsers?.length > 5 && (
+      {Boolean(selectedUsers) && selectedUsers!.length > 5 && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="aspect-square h-fit w-auto rounded-full p-2 mx-2">
@@ -188,7 +141,11 @@ export default function ComposeTo() {
                     <Button
                       variant="outline"
                       className="aspect-square h-fit w-auto p-0 rounded-full"
-                      onClick={() => setSelectedUsers((prev) => prev.toSpliced(index, 1))}
+                      onClick={() =>
+                        queryClient.setQueryData<string[][]>(['compose', 'selected_users'], (prev) =>
+                          prev?.toSpliced(index, 1),
+                        )
+                      }
                     >
                       <X className="h-2" />
                     </Button>
@@ -199,7 +156,7 @@ export default function ComposeTo() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {!!selectedUsers && !!selectedUsers.length && (
+      {Boolean(selectedUsers) && Boolean(selectedUsers?.length) && (
         <div className="flex items-center gap-2">
           {selectedUsers!.slice(-5).map((value, index) => (
             <div
@@ -211,7 +168,7 @@ export default function ComposeTo() {
                 variant="outline"
                 className="aspect-square h-fit w-auto p-1 rounded-full"
                 onClick={() =>
-                  setSelectedUsers((prev) => prev.toSpliced(prev.length < 5 ? index : index + (prev.length - 5), 1))
+                  setSelectedUsers((prev) => prev?.toSpliced(prev.length < 5 ? index : index + (prev.length - 5), 1))
                 }
               >
                 <X className="h-2 w-auto" />
@@ -239,7 +196,7 @@ export default function ComposeTo() {
         >
           <ScrollArea className="h-full">
             <div className="py-2">
-              {result!.map((user) => (
+              {searchResult?.map((user) => (
                 <Button
                   key={user.id}
                   variant="ghost"
@@ -249,16 +206,18 @@ export default function ComposeTo() {
                       toast('Already selected');
                       return;
                     }
-                    setSelectedUsers((prev) => [...prev, [user.id, user.displayName]]);
+                    setSelectedUsers((prev) =>
+                      prev ? [...prev!, [user.id, user.displayName]] : [[user.id, user.displayName]],
+                    );
                     setOpen(false);
                     setInputValue('');
                     inputRef.current?.focus();
                   }}
                 >
-                  <UserAvatar src={user.photo?.url} isOnline={user.status === 'ONLINE'} />
+                  <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
                   <div>
                     <p className="font-semibold">{user.displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user.username}</p>
+                    <p className="text-xs text-muted-foreground">{user.userName}</p>
                   </div>
                 </Button>
               ))}

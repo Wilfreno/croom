@@ -51,23 +51,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     if (!email?.value)
       throw new UnauthorizedException('google returned no email address');
 
-    /**
-     * An unverified address is refused rather than matched. `findOrCreateGoogleUser`
-     * links a profile onto an existing account by email, so accepting one google
-     * had not checked would let anybody who can put an address on a google
-     * account walk into the croom account holding it.
-     *
-     * Compared as a string because the field arrives as a boolean or as
-     * `"true"` depending on the provider, and read strictly: anything that is
-     * not an explicit yes counts as a no.
-     */
     if (String(email.verified) !== 'true')
       throw new UnauthorizedException('google has not verified that address');
 
-    return this.authService.findOrCreateGoogleUser({
-      googleId: profile.id,
-      email: email.value,
-      emailVerified: true,
-    });
+    return this.authService.findOrCreateGoogleUser({ email: email.value });
   }
 }

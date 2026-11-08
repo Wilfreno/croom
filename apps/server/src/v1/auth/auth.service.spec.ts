@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { SessionModel, UserModel } from '@repo/models';
@@ -8,11 +10,7 @@ import { AuthService } from './auth.service';
 
 const USER_ID = new Types.ObjectId();
 const CREDENTIALS = { email: 'ada@example.com', password: 'sup3rsecret' };
-const PROFILE = {
-  googleId: 'google-123',
-  email: CREDENTIALS.email,
-  emailVerified: true,
-};
+const PROFILE = { email: CREDENTIALS.email };
 
 /** A stand-in for what mongoose hands back, `toObject` and all. */
 function userDocument(overrides: Record<string, unknown> = {}) {
@@ -35,7 +33,7 @@ function build() {
   const userModel = {
     getUserByEmailWithPassword: vi.fn().mockResolvedValue(userDocument()),
     getUserById: vi.fn().mockResolvedValue(userDocument()),
-    getUserByGoogleIdOrEmail: vi.fn().mockResolvedValue(userDocument()),
+    getUserByEmail: vi.fn().mockResolvedValue(userDocument()),
     linkGoogleAccount: vi.fn().mockResolvedValue(userDocument()),
     create: vi.fn().mockResolvedValue(userDocument()),
     verifyPassword: vi.fn().mockResolvedValue(true),
@@ -46,7 +44,13 @@ function build() {
     revoke: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { userModel, sessionModel };
+  const session = {
+    withTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+    endSession: vi.fn().mockResolvedValue(undefined),
+  };
+  const connection = { startSession: vi.fn().mockResolvedValue(session) };
+
+  return { userModel, sessionModel, session, connection };
 }
 
 type Mocks = ReturnType<typeof build>;
@@ -57,6 +61,8 @@ async function makeService(mocks: Mocks) {
       AuthService,
       { provide: UserModel, useValue: mocks.userModel },
       { provide: SessionModel, useValue: mocks.sessionModel },
+      { provide: ConfigService, useValue: { get: vi.fn() } },
+      { provide: getConnectionToken(), useValue: mocks.connection },
     ],
   }).compile();
 
@@ -190,20 +196,20 @@ describe('AuthService', () => {
   describe('findOrCreateGoogleUser', () => {
     it('opens an account the first time an address arrives', async () => {
       const mocks = build();
-      mocks.userModel.getUserByGoogleIdOrEmail.mockResolvedValue(null);
+      mocks.userModel.getUserByEmail.mockResolvedValue(null);
 
       await (await makeService(mocks)).findOrCreateGoogleUser(PROFILE);
 
       expect(mocks.userModel.create).toHaveBeenCalledWith({
         email: PROFILE.email,
-        googleId: PROFILE.googleId,
         authService: AuthServiceOptions.WITH_GOOGLE,
-      });
+      }, mocks.session);
+      expect(mocks.session.endSession).toHaveBeenCalled();
     });
 
     it('stores no password for an account opened through google', async () => {
       const mocks = build();
-      mocks.userModel.getUserByGoogleIdOrEmail.mockResolvedValue(null);
+      mocks.userModel.getUserByEmail.mockResolvedValue(null);
 
       await (await makeService(mocks)).findOrCreateGoogleUser(PROFILE);
 
@@ -220,10 +226,7 @@ describe('AuthService', () => {
       await (await makeService(mocks)).findOrCreateGoogleUser(PROFILE);
 
       expect(mocks.userModel.create).not.toHaveBeenCalled();
-      expect(mocks.userModel.linkGoogleAccount).toHaveBeenCalledWith(
-        USER_ID,
-        PROFILE.googleId,
-      );
+      expect(mocks.userModel.linkGoogleAccount).toHaveBeenCalledWith(USER_ID);
     });
 
     it('returns the linked user rather than the copy read before linking', async () => {

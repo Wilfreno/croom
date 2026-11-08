@@ -1,33 +1,57 @@
+import { CookieSerializeOptions } from '@fastify/cookie';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectConnection } from '@nestjs/mongoose';
+import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@repo/constants';
 import { AuthServiceOptions } from '@repo/enums';
 import { SessionModel, UserModel } from '@repo/models';
 import type { UserDocument } from '@repo/schemas';
-import type { AuthenticatedUser } from '@repo/types';
-import { Types } from 'mongoose';
+import { AuthenticatedUser } from '@repo/types';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { Connection, Types } from 'mongoose';
 import { LoginDto } from './dto/login.dto';
+import { GoogleProfile, SessionContext } from "src/types/auth.type";
 
-/** What is recorded about the browser a session was opened from. */
-export type SessionContext = { ip?: string; userAgent?: string };
 
-/** The fields a google profile contributes to an account. */
-export type GoogleProfile = {
-  googleId: string;
-  email: string;
-  emailVerified: boolean;
-};
 
 @Injectable()
 export class AuthService {
+  private readonly inProduction: boolean;
+
   constructor(
     private readonly userModel: UserModel,
     private readonly sessionModel: SessionModel,
-  ) {}
+    private readonly configService: ConfigService,
+    @InjectConnection() private readonly connection: Connection,
+  ) {
+    this.inProduction = configService.get<string>('NODE_ENV') === 'production';
+  }
 
-  /**
-   * Strips a user document down to what may leave the server. `_id` becomes
-   * `id` because that is the name the client reads, and the password hash goes
-   * whether or not the query happened to select it.
-   */
+  cookieOptions(maxAge?: number): CookieSerializeOptions {
+    return {
+      httpOnly: true,
+      secure: this.inProduction,
+      sameSite: this.inProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge,
+    };
+  }
+  async startSession(
+    user: AuthenticatedUser,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const token = await this.issueSession(user, {
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+    });
+
+    reply.setCookie(
+      SESSION_COOKIE,
+      token,
+      this.cookieOptions(SESSION_LIFETIME_SECONDS),
+    );
+  }
   private toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
     const { _id, __v, password, ...rest } = user.toObject();
 
@@ -45,11 +69,12 @@ export class AuthService {
   }: LoginDto): Promise<AuthenticatedUser | null> {
     const user = await this.userModel.getUserByEmailWithPassword(email);
 
-    const matched = await this.userModel.verifyPassword(
+    const matched = await this.userModel.verifyPassword({
       password,
-      user?.password,
-    );
-
+      hashed: user?.password,
+      configService: this.configService,
+    });
+    
     if (!user || !matched) return null;
 
     return this.toAuthenticatedUser(user);
@@ -67,24 +92,28 @@ export class AuthService {
   async findOrCreateGoogleUser(
     profile: GoogleProfile,
   ): Promise<AuthenticatedUser> {
-    const existing = await this.userModel.getUserByGoogleIdOrEmail(profile);
+    const existing = await this.userModel.getUserByEmail(profile.email);
 
     if (existing) {
-      const linked = await this.userModel.linkGoogleAccount(
-        existing._id,
-        profile.googleId,
-      );
+      const linked = await this.userModel.linkGoogleAccount(existing._id);
 
       return this.toAuthenticatedUser(linked ?? existing);
     }
 
-    const created = await this.userModel.create({
-      email: profile.email,
-      googleId: profile.googleId,
-      authService: AuthServiceOptions.WITH_GOOGLE,
-    });
+    const session = await this.connection.startSession();
 
-    return this.toAuthenticatedUser(created);
+    try {
+      return await session.withTransaction(async () => {
+        const created = await this.userModel.create({
+          email: profile.email,
+          authService: AuthServiceOptions.WITH_GOOGLE,
+        }, session);
+
+        return this.toAuthenticatedUser(created);
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 
   /**

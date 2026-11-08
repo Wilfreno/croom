@@ -1,13 +1,13 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@repo/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@/types/model.types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Pen, PenLine, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
@@ -19,16 +19,17 @@ export default function ChangeName() {
 
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
+
   const queryClient = useQueryClient();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = useMemo(() => {
-    if (!session || !queryResponse) return false;
+    if (!session || !conversation) return false;
 
-    return (queryResponse.data as Conversation).admins.some((user) => user.id === session.user?.id);
-  }, [session, queryResponse]);
+    return conversation.admins.some((user) => user.id === session.user?.id);
+  }, [session, conversation]);
 
   const changeName = useMutation({
     mutationFn: async () => {
@@ -51,12 +52,12 @@ export default function ChangeName() {
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
         if (!prev) return [];
 
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
+        return prev.map((convo) => (convo._id === params.id ? { ...convo, name: value } : convo));
       });
 
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'active', 'conversations'], (prev) => {
         if (!prev) return [];
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
+        return prev.map((convo) => (convo._id === params.id ? { ...convo, name: value } : convo));
       });
       setOpen(false);
       toast.success('name changed');
@@ -64,7 +65,7 @@ export default function ChangeName() {
   });
 
   return (
-    <Dialog onOpenChange={() => setValue((queryResponse?.data as Conversation).name)}>
+    <Dialog onOpenChange={() => setValue(conversation!.name)}>
       <DialogTrigger asChild>
         <Button variant="ghost" disabled={!isAdmin} className="w-full justify-start">
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary">
@@ -138,11 +139,11 @@ export default function ChangeName() {
               className="w-full justify-between"
               type="button"
               onClick={() => {
-                setValue((queryResponse?.data as Conversation).name);
+                setValue(conversation!.name);
                 setOpen(true);
               }}
             >
-              <span>{(queryResponse?.data as Conversation).name}</span>
+              <span>{conversation!.name}</span>
               <span className="aspect-square h-fit w-auto p-2 bg-background shadow-sm border rounded-full text-primary">
                 <Pen className="h-4 w-auto" />
               </span>

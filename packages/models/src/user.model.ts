@@ -1,18 +1,12 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { AuthServiceOptions } from '@repo/enums';
 import { User, UserDocument } from '@repo/schemas';
+import { AuthenticatedUser } from '@repo/types';
+import { requireEnv } from '@repo/utils';
 import { compare, hash } from 'bcrypt';
-import { Model, Types } from 'mongoose';
-
-/**
- * A real bcrypt hash of a value nobody knows, compared against when the email
- * turns out to have no account or no password. Skipping the comparison instead
- * would let a caller time the difference and learn which emails are registered,
- * which is exactly what the single shared failure message exists to hide.
- */
-const ABSENT_PASSWORD_HASH = '$2b$10$yfe6y90La5ZBNuaYGa1tRuWFH6Crz5gyuxaV/EdXO/Pu.h9L5/TF6';
-
+import { ClientSession, Model, Types } from 'mongoose';
 @Injectable()
 export class UserModel {
   private readonly logger = new Logger(UserModel.name);
@@ -23,74 +17,55 @@ export class UserModel {
     return await hash(password, 14);
   }
 
-  async create({
-    email,
-    password,
-    googleId,
-    emailVerified,
-    authService,
-  }: {
-    email: string;
-    password?: string;
-    googleId?: string;
-    emailVerified?: boolean;
-    authService: AuthServiceOptions;
-  }): Promise<UserDocument> {
+  async create(
+    {
+      email,
+      password,
+      authService,
+    }: {
+      email: string;
+      password?: string;
+      authService: AuthServiceOptions;
+    },
+    session: ClientSession,
+  ): Promise<UserDocument> {
     try {
       const userName = email.split('@')[0];
       let encryptedPassword: string;
 
       if (password) encryptedPassword = await this.hashPassword(password);
 
-      const [user] = await this.User.create([
-        {
-          email,
-          password: encryptedPassword,
-          googleId,
-          emailVerified: Boolean(emailVerified),
-          authService,
-          userName,
-          displayName: userName,
-        },
-      ]);
+      const newUser = new this.User({
+        email,
+        password: encryptedPassword,
+        authService,
+        userName,
+        displayName: userName,
+      });
 
-      return user;
+      await newUser.save({ session });
+
+      return newUser;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
     }
   }
 
-  /**
-   * The account a returning google profile belongs to: the one already carrying
-   * the id, or failing that the one holding the address it verified.
-   */
-  async getUserByGoogleIdOrEmail({
-    googleId,
-    email,
-  }: {
-    googleId: string;
-    email: string;
-  }): Promise<UserDocument | null> {
+  async getUserByEmail(email: string): Promise<UserDocument | null> {
     try {
-      return await this.User.findOne({ $or: [{ googleId }, { email }] });
+      return await this.User.findOne({ email });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
     }
   }
 
-  /**
-   * Adds google as a way into an account that already exists. `$addToSet`
-   * rather than `$push` so signing in again does not stack duplicates onto
-   * `authService`.
-   */
-  async linkGoogleAccount(id: Types.ObjectId, googleId: string): Promise<UserDocument | null> {
+  async linkGoogleAccount(id: Types.ObjectId): Promise<UserDocument | null> {
     try {
       return await this.User.findByIdAndUpdate(
         id,
         {
-          $set: { googleId, emailVerified: true, lastUpdated: new Date() },
           $addToSet: { authService: AuthServiceOptions.WITH_GOOGLE },
         },
         { new: true },
@@ -101,11 +76,6 @@ export class UserModel {
     }
   }
 
-  /**
-   * Reads a user by email with the password hash attached, which the schema
-   * otherwise withholds. Only the login path should call this -- everything else
-   * wants `getUserById`.
-   */
   async getUserByEmailWithPassword(email: string): Promise<UserDocument | null> {
     try {
       return await this.User.findOne({ email }).select('+password');
@@ -124,13 +94,17 @@ export class UserModel {
     }
   }
 
-  /**
-   * Whether `password` is the one behind `hashed`. A user with no password at
-   * all -- an account created through an oauth provider -- always fails, but
-   * takes the same time to do so.
-   */
-  async verifyPassword(password: string, hashed?: string): Promise<boolean> {
+  async verifyPassword({
+    password,
+    hashed,
+    configService,
+  }: {
+    password: string;
+    hashed?: string;
+    configService: ConfigService;
+  }): Promise<boolean> {
     try {
+      const ABSENT_PASSWORD_HASH = requireEnv(configService, 'ABSENT_PASSWORD_HASH').replace(/\/+$/, '');
       const matched = await compare(password, hashed ?? ABSENT_PASSWORD_HASH);
 
       return Boolean(hashed) && matched;
@@ -160,6 +134,47 @@ export class UserModel {
   async updateUser(email: string, data: Partial<User>) {
     try {
       return this.User.findOneAndUpdate({ email }, { $set: data });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async searchUser({ userId, searchText }: { userId: string; searchText: string }) {
+    const users = await this.User.find({
+      $and: [
+        {
+          $or: [
+            {
+              userName: {
+                $regex: '^' + searchText,
+                $options: 'i',
+              },
+            },
+            {
+              displayName: {
+                $regex: '^' + searchText,
+                $options: 'i',
+              },
+            },
+          ],
+        },
+        {
+          _id: { $ne: userId },
+        },
+      ],
+    })
+      .select('displayName userName photo status')
+      .populate({ path: 'photo', select: 'url' })
+      .lean();
+
+    return users.map(({ _id, ...user }) => ({ id: _id.toString(), ...user }));
+  }
+
+  async getUsersByIds(userIds: string[]) {
+    try {
+      const users = await this.User.find({ _id: { $in: userIds } }).lean();
+      return users.map(({ _id, __v, ...user }): AuthenticatedUser => ({ id: _id.toString(), ...user }));
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

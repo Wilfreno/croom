@@ -27,7 +27,9 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-fastify": "^11.1.21",
+    "@nestjs/platform-socket.io": "^11",
     "@nestjs/throttler": "^6.4.0",
+    "@nestjs/websockets": "^11",
     "@react-email/components": "^1.0.12",
     "@repo/constants": "workspace:*",
     "@repo/enums": "workspace:*",
@@ -47,7 +49,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

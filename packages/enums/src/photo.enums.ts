@@ -1,0 +1,5 @@
+export enum PhotoType {
+  PROFILE = 'PROFILE',
+  MESSAGE = 'MESSAGE',
+  CONVERSATION = 'CONVERSATION',
+}

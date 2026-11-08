@@ -1,3 +1,4 @@
+import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -5,10 +6,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
-import { DELETERequest, POSTRequest } from '@/lib/server/requests';
-import { Block, Conversation } from '@repo/types';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { axiosInstance } from '@/lib/axios-instance';
+import { isGroupChat } from '@/lib/utils';
+import { SOMETHING_WENT_WRONG } from '@repo/constants';
+import { ConversationStatus } from "@repo/enums";
+import { useMutation } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, Flag, LogOut, ShieldMinus, UserRound, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -25,78 +27,57 @@ export default function InfoPrivacyAndSupport() {
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
 
-  const { data: queryResponse, refetch } = useQuery(getConvoOptions(params.id));
+  const { data: conversation, refetch } = useConversation(params.id);
 
   const report = useMutation({
-    mutationFn: async () => {
-      try {
-        const { status, message } = await POSTRequest('/v1/user/report', {
-          reportedUser: toReportUser?.id,
-          reason: reportReason,
-        });
-
-        if (status !== 'CREATED') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+    async mutationFn() {
+      await axiosInstance.post('/v1/user/report', {
+        reportedUser: toReportUser?.id,
+        reason: reportReason,
+      });
     },
-    onSuccess: () => {
+    onSuccess() {
       toast.success('User reported');
+    },
+    onError() {
+      toast.error(SOMETHING_WENT_WRONG);
     },
   });
 
   const leaveConversation = useMutation({
     mutationFn: async () => {
-      try {
-        const { status, message } = await POSTRequest('/v1/conversation/leave', {
-          conversation: params.id,
-        });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      await axiosInstance.post(`/conversation/${params.id}/leave`);
+    },
+    onError() {
+      toast.error(SOMETHING_WENT_WRONG);
     },
   });
 
   const blockUser = useMutation({
     mutationFn: async () => {
-      try {
-        const { status, message } = await POSTRequest('/v1/block', {
-          blockedUser: (queryResponse?.data as Conversation).members.find((member) => member.id !== session.user?.id)
-            ?.id,
-        });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      await axiosInstance.post('/v1/block', {
+        user: conversation?.members.find((member) => member.id !== session.user?.id)?.id,
+      });
     },
-    onSuccess: async () => {
+    async onSuccess() {
       await refetch();
       toast('user as been blocked');
+    },
+    onError() {
+      toast.error(SOMETHING_WENT_WRONG);
     },
   });
 
   const unblockUser = useMutation({
     mutationFn: async () => {
-      try {
-        const { status, message } = await DELETERequest('/v1/block', {
-          id: (queryResponse?.data as Block).id,
-        });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      await axiosInstance.delete('/v1/block');
     },
     onSuccess: async () => {
       await refetch();
       toast('user unblocked');
+    },
+    onError() {
+      toast.error(SOMETHING_WENT_WRONG);
     },
   });
 
@@ -104,10 +85,8 @@ export default function InfoPrivacyAndSupport() {
     <Collapsible
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (isOpen && queryResponse?.status === 'OK' && !(queryResponse?.data as Conversation).isGroupChat) {
-          const otherUser = (queryResponse?.data as Conversation).members.find(
-            (member) => member.id !== session.user?.id,
-          );
+        if (isOpen && conversation && !isGroupChat(conversation)) {
+          const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
 
           setToReportUser({ id: otherUser!.id, displayName: otherUser!.displayName });
         }
@@ -159,7 +138,7 @@ export default function InfoPrivacyAndSupport() {
                     <Button variant="secondary" className="place-self-end" onClick={() => setToReportUser(undefined)}>
                       cancel
                     </Button>
-                    {(queryResponse?.data as Conversation).isGroupChat ? (
+                    {isGroupChat(conversation!) ? (
                       <Button className="place-self-end">send</Button>
                     ) : (
                       <DialogClose asChild disabled={!reportReason} onClick={() => report.mutate()}>
@@ -176,7 +155,7 @@ export default function InfoPrivacyAndSupport() {
                 </DialogHeader>
                 <ScrollArea className="h-[40dvh] grid gap-2 mt-4">
                   <section>
-                    {(queryResponse?.data as Conversation).members
+                    {conversation?.members
                       .filter((member) => member.id !== session.user?.id)
                       .map((member) => (
                         <div key={member.id} className="flex items-center gap-2">
@@ -211,14 +190,14 @@ export default function InfoPrivacyAndSupport() {
             )}
           </DialogContent>
         </Dialog>
-        {(queryResponse?.data as Conversation)?.isGroupChat ? (
+        {Boolean(conversation) && isGroupChat(conversation!) ? (
           <Button variant="ghost" className="w-full justify-start" onClick={() => leaveConversation.mutate()}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full">
               <LogOut className="h-4 w-auto stroke-2" />
             </span>
             <span>Leave group chat</span>
           </Button>
-        ) : queryResponse?.status === 'BLOCKED' && (queryResponse?.data as Block).blocker === session.user?.id ? (
+        ) : conversation?.status === ConversationStatus.BLOCKED && conversation?.blocker === session.user?.id ? (
           <Button
             variant="secondary"
             className="w-full justify-start text-destructive"

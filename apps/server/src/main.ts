@@ -7,6 +7,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { SocketIoAdapter } from './common/adapters/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -25,11 +26,13 @@ async function bootstrap() {
     credentials: true,
   });
 
+  app.useWebSocketAdapter(new SocketIoAdapter(app, clientUrl));
+
   app.enableVersioning({
     type: VersioningType.URI,
   });
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   await app.listen(port);
 }
 bootstrap();

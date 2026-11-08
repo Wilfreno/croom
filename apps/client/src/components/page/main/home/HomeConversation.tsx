@@ -1,13 +1,13 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { cn } from '@/lib/utils';
-import { Conversation } from '@repo/types';
+import { cn, isGroupChat } from '@/lib/utils';
+import { Conversation } from '@/types/model.types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import UserAvatar from '../UserAvatar';
 
-export default function HomeConversation({ convo }: { convo: Conversation }) {
+export default function HomeConversation({ conversation }: { conversation: Conversation }) {
   const { session } = useAuth();
   const pathname = usePathname();
 
@@ -27,27 +27,27 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
         isOnline: isOnline!,
       };
 
-    if (convo.isGroupChat) {
-      conversationName = convo.name;
-      photoUrl = convo.photo?.url;
+    if (isGroupChat(conversation)) {
+      conversationName = conversation.name;
+      photoUrl = conversation.photo?.url!;
     } else {
-      const otherUser = convo.members[0];
+      const otherUser = conversation.members[0];
 
       photoUrl = otherUser?.photo!.url;
 
-      conversationName = convo.nicknames.find((nickname) => nickname.user === otherUser?.id)?.value || '';
+      conversationName = conversation.nicknames.find((nickname) => nickname.user === otherUser?.id)?.value || '';
 
       if (!conversationName) conversationName = otherUser?.displayName;
     }
 
-    if (session.user?.id === convo.messages[0].sender.id) {
+    if (session.user?.id === conversation.messages[0].sender.id) {
       seen = true;
     } else {
-      seen = convo.messages[0]?.seenBy.some((user) => user.id === session.user?.id);
+      seen = conversation.messages[0]?.seenBy.some((user) => user.id === session.user?.id);
     }
-    isOnline = convo.members.some((user) => user.status === 'ONLINE');
+    isOnline = conversation.members.some((user) => user.status === 'ONLINE');
 
-    const dateSent = new Date(convo.messages[0].dateCreated);
+    const dateSent = new Date(conversation.messages[0].dateCreated);
     const now = new Date();
     const relativeDateInSeconds = Math.floor((now.getTime() - dateSent.getTime()) / 1000);
 
@@ -71,41 +71,42 @@ export default function HomeConversation({ convo }: { convo: Conversation }) {
       timeIntervalText,
       isOnline,
     };
-  }, [session, convo]);
+  }, [session, conversation]);
 
   const textMessage = useMemo(() => {
-    if (!convo || !session.user) return;
+    if (!conversation || !session.user) return;
     let name = '';
     let text = '';
 
-    if (convo.isGroupChat) {
-      name = convo.nicknames.find((nickname) => nickname.user === convo.messages[0].sender.id)?.value || '';
+    if (isGroupChat(conversation)) {
+      name =
+        conversation.nicknames.find((nickname) => nickname.user === conversation.messages[0].sender.id)?.value || '';
 
-      if (!name) name = convo.messages[0].sender.displayName;
-    } else if (convo.messages[0].sender.id === session.user.id) name += 'you';
+      if (!name) name = conversation.messages[0].sender.displayName;
+    } else if (conversation.messages[0].sender.id === session.user.id) name += 'you';
 
     text += name;
 
-    if (!!convo.messages[0].photos.length) {
-      if (convo.messages[0].photos.length > 1) text += ' sent some photos';
+    if (!!conversation.messages[0].photos.length) {
+      if (conversation.messages[0].photos.length > 1) text += ' sent some photos';
       else text += ' sent a photo';
     } else {
-      if (convo.messages[0].sender.id === session.user.id) {
+      if (conversation.messages[0].sender.id === session.user.id) {
         text += ': ';
       }
-      text += convo.messages[0].text;
+      text += conversation.messages[0].text;
     }
     return text;
-  }, [convo, session.user]);
+  }, [conversation, session.user]);
 
   return (
     <Link
-      key={convo.id}
+      key={conversation.id}
       className={cn(
         'flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer',
-        pathname.startsWith('/conversation/' + convo.id) && 'bg-muted',
+        pathname.startsWith('/conversation/' + conversation.id) && 'bg-muted',
       )}
-      href={'/conversation/' + convo.id}
+      href={'/conversation/' + conversation.id}
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
       <UserAvatar src={photoUrl} isOnline={isOnline} />

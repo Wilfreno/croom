@@ -1,10 +1,13 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { OTP_REQUEST_LIMIT, SECONDS_IN_MINUTE } from '@repo/constants';
 import { RateLimit } from '@repo/guards';
+import type { AuthenticatedUser } from '@repo/types';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RecoverAccountDto } from './dto/recover-account.dto';
+import { SearchUserDto } from './dto/search-user.dto';
 import { UserService } from './user.service';
 
 @Controller({ path: 'user', version: '1' })
@@ -21,6 +24,14 @@ export class UserController {
   @Get('/check/:type/:value')
   async checkAvailability(@Param() param: CheckValueDTO) {
     return this.userService.checkAvailability(param);
+  }
+
+  @Get('/search/:searchText')
+  async searchUsers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { searchText }: SearchUserDto,
+  ) {
+    return this.userService.searchUser({ user, searchText });
   }
 
   @Public()

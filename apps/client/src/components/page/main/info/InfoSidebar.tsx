@@ -1,13 +1,13 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
+import useConversationInfo from '@/components/hooks/queries/useConversationInfo';
 import useUserAgent from '@/components/hooks/useUserAgent';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { cn } from '@/lib/utils';
-import { Block, Conversation } from '@repo/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -27,29 +27,20 @@ export default function InfoSidebar() {
   const queryClient = useQueryClient();
   const { onMobile } = useUserAgent();
 
-  const { data: isOpen } = useQuery({
-    queryKey: ['sidebar', 'info', 'open', onMobile],
-  });
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const isOpen = queryClient.getQueryData<Boolean>(['sidebar', 'info', 'open', onMobile]);
+  const { data: conversation, isError, error } = useConversation(params.id);
 
-  const { data: conversationInfo } = useQuery<{
-    photoUrl: string;
-    conversationName: string;
-    status: 'OFFLINE' | 'ONLINE' | null;
-    lastOnline: string;
-  }>({
-    queryKey: ['conversation', 'info', queryResponse],
-  });
+  const { data: conversationInfo } = useConversationInfo(conversation!);
 
   const hide = useMemo(() => {
-    if (!queryResponse || !session.user) return true;
+    if (!conversation || !session.user) return true;
 
-    if (queryResponse.status === 'BLOCKED') {
-      return session.user.id !== (queryResponse?.data as Block).blocker;
+    if (conversation.status === 'BLOCKED') {
+      return session.user.id !== conversation.blocker;
     }
 
-    return !(queryResponse?.data as Conversation).members.find((member) => member.id !== session.user?.id);
-  }, [queryResponse, session.user]);
+    return !conversation.members.some((member) => member._id !== session.user?.id);
+  }, [conversation, session.user]);
 
   return (
     <SidebarContent className={cn(!isOpen && 'hidden', 'relative')}>

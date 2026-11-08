@@ -1,14 +1,14 @@
 'use client';
 
-import { UploadthingButton } from '@/components/page/UploadthingButton';
+import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
-import { POSTRequest, ServerResponse } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
+import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Message } from '@repo/types';
-import { InfiniteData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation, Message } from "@repo/types";
+import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -17,7 +17,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 
-export default function ConversationMessageInput() {
+export default function ConversationMessageInput({ conversation }: { conversation?: Conversation }) {
   const [textInput, setTextInput] = useState('');
   const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -26,24 +26,15 @@ export default function ConversationMessageInput() {
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
-  const { data: conversation } = useQuery(getConvoOptions(params.id));
-
   const sendMessage = useMutation<Message, Error, string>({
-    mutationFn: async (text) => {
-      try {
-        const { data, status, message } = await POSTRequest<Message>('/v1/message', {
-          conversation: params.id,
-          text: text ? text : textInput,
-          photos: photoInput,
-        });
+    async mutationFn(text) {
+      const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
+        conversationId: params.id,
+        text: text ? text : textInput,
+        photos: photoInput,
+      });
 
-        if (status !== 'CREATED') throw new Error(message);
-
-        return data;
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+      return response.data;
     },
     onSuccess: (data) => {
       queryClient.setQueryData<
@@ -126,7 +117,7 @@ export default function ConversationMessageInput() {
     );
   return (
     <div className="h-full flex items-end p-2 bg-transparent">
-      <UploadthingButton
+      <UploadThingButton
         endpoint="multipleImage"
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
@@ -150,7 +141,7 @@ export default function ConversationMessageInput() {
         <div className="w-full">
           {uploadingImage || !!photoInput.length ? (
             <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
-              <UploadthingButton
+              <UploadThingButton
                 endpoint="multipleImage"
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
@@ -200,7 +191,6 @@ export default function ConversationMessageInput() {
             <Textarea
               className={cn(
                 'resize-none h-auto max-h-[30dvh] min-h-4 shadow-none  overflow-y-auto  focus-visible:ring-0 border-none placeholder:font-medium scrollbar scrollbar-thumb-gray-300  scrollbar-track-background',
-
               )}
               ref={textareaRef}
               placeholder="Aa"
@@ -210,6 +200,12 @@ export default function ConversationMessageInput() {
                 setTextInput(e.currentTarget.value);
                 e.currentTarget.style.height = 'auto';
                 e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage.mutate('');
+                }
               }}
             />
             <DropdownMenu>

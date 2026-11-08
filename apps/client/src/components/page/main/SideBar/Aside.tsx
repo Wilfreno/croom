@@ -1,0 +1,39 @@
+'use client';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { House } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+
+export default function Aside() {
+  const iconStyles = cn('h-6 w-auto');
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+
+  return (
+    <aside className="w-fit h-dvh flex-col items-center px-2 py-4 hidden md:flex bg-background shadow-md border-r">
+      <div className="flex flex-col items-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="aspect-square h-fit w-auto p-2 rounded-lg"
+                onClick={() => {
+                  if (pathname === '/') {
+                    queryClient.setQueryData<boolean>(['home', 'sidebar'], (prev) => !prev);
+                  } else router.push('/');
+                }}
+              >
+                <House className={iconStyles} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Home</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </aside>
+  );
+}

@@ -55,15 +55,13 @@ describe('GoogleStrategy', () => {
     ).resolves.toBe(USER);
   });
 
-  it('passes the google id and address through for linking', async () => {
+  it('passes the address through for linking', async () => {
     const { strategy, authService } = build();
 
     await validate(strategy, profile([{ value: USER.email, verified: true }]));
 
     expect(authService.findOrCreateGoogleUser).toHaveBeenCalledWith({
-      googleId: 'google-123',
       email: USER.email,
-      emailVerified: true,
     });
   });
 

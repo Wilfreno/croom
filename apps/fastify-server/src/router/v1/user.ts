@@ -85,7 +85,7 @@ export default function v1UserRouter(fastify: FastifyInstance, _: FastifyPluginO
               },
             ],
           },
-          {
+          {c
             _id: { $ne: user.id },
           },
         ],

@@ -1,15 +1,16 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { PATCHRequest } from '@/lib/server/requests';
-import { Conversation } from '@repo/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Conversation } from '@/types/model.types';
+import { UserStatus } from '@repo/enums';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CaseSensitive, Check, PenLine, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import UserAvatar from '../../UserAvatar';
 
@@ -23,14 +24,9 @@ export default function AddNickname() {
 
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
+
   const queryClient = useQueryClient();
-
-  const conversation = useMemo(() => {
-    if (!queryResponse || queryResponse.status === 'BLOCKED') return undefined;
-
-    return queryResponse.data as Conversation;
-  }, [queryResponse]);
 
   const setNicknameMutation = useMutation({
     mutationFn: async () => {
@@ -57,7 +53,7 @@ export default function AddNickname() {
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
         if (!prev) return;
         return prev.map((conversation) =>
-          conversation.id === params.id
+          conversation._id === params.id
             ? {
                 ...conversation,
                 nicknames: conversation.nicknames.map((nickname) =>
@@ -126,7 +122,7 @@ export default function AddNickname() {
                     isOnline={
                       id === session.user?.id
                         ? false
-                        : conversation?.members.find((member) => member.id === id)?.status === 'ONLINE'
+                        : conversation?.members.find((member) => member.id === id)?.status === UserStatus.ONLINE
                     }
                   />
                   <div className="grid w-full gap-1">
@@ -181,7 +177,7 @@ export default function AddNickname() {
                     isOnline={
                       id === session.user?.id
                         ? false
-                        : conversation?.members.find((member) => member.id === id)?.status === 'ONLINE'
+                        : conversation?.members.find((member) => member.id === id)?.status === UserStatus.ONLINE
                     }
                   />
                   <div className="grid text-start">

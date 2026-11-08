@@ -1,42 +1,25 @@
 'use client';
-import { useAuth } from '@/components/providers/AuthProvider';
+import useConversations from '@/components/hooks/queries/useConversations';
+import useSearchConversations from '@/components/hooks/queries/useSearchConversations';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { GETRequest } from '@/lib/server/requests';
-import { Conversation } from '@repo/types';
-import { useQuery } from '@tanstack/react-query';
-import { SquarePen } from 'lucide-react';
+import { Conversation } from '@/types/model.types';
+import { Search, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import HomeConversation from './HomeConversation';
-import SearchConversation from './SearchConversation';
 
 export default function HomeConversations() {
+  const [searchText, setSearchText] = useState('');
   const router = useRouter();
-  const { session } = useAuth();
 
-  const { data: conversations } = useQuery({
-    enabled: !!session,
-    queryKey: [session.user?.id, 'conversations'],
-    queryFn: async () => {
-      try {
-        const { data, status, message } = await GETRequest<Conversation[]>('/v1/user/conversations');
+  const { conversations } = useConversations();
+  const { data: conversationSearch } = useSearchConversations(searchText);
 
-        if (status !== 'OK') throw new Error(message);
-        return data;
-      } catch (error) {
-        throw error;
-      }
-    },
-    placeholderData: [],
-  });
-
-  const { data: conversationSearch } = useQuery<Conversation[]>({
-    queryKey: ['conversation', 'search'],
-  });
-
-  const toDisplayConversation = useMemo(() => {
+  const conversationToDisplay = useMemo(() => {
     let toDisplay: Conversation[] = [];
 
     if (conversationSearch) toDisplay = conversationSearch;
@@ -44,9 +27,10 @@ export default function HomeConversations() {
 
     return toDisplay;
   }, [conversations, conversationSearch]);
+
   return (
     <section className="h-full grid gap-2">
-      <div className="flex items-center justify-between w-full mb-2">
+      <div className="flex items-center justify-between w-full mb-2 px-4">
         <p className="font-bold hidden md:block">Conversations</p>
         <TooltipProvider>
           <Tooltip>
@@ -64,11 +48,23 @@ export default function HomeConversations() {
           </Tooltip>
         </TooltipProvider>
       </div>
-      <SearchConversation />
+      <div className="relative flex items-center px-2">
+        <Label htmlFor="search" className="absolute top-1/2 left-4 -translate-y-1/2">
+          <Search className="h-5" />
+        </Label>
+        <Input
+          autoComplete="off"
+          placeholder="Search"
+          id="search"
+          className="pl-8"
+          value={searchText}
+          onChange={(e) => setSearchText(e.currentTarget.value)}
+        />
+      </div>
       <ScrollArea className="h-[65dvh]">
         <div className="grid gap-1">
-          {toDisplayConversation.map((convo) => (
-            <HomeConversation key={convo.id} convo={convo} />
+          {conversationToDisplay?.map((conversation) => (
+            <HomeConversation key={conversation._id} conversation={conversation} />
           ))}
         </div>
       </ScrollArea>

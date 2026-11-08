@@ -1,10 +1,9 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
-import { Conversation } from '@repo/types';
-import { useQuery } from '@tanstack/react-query';
+import { UserStatus } from '@repo/enums';
 import { ChevronDown, ChevronRight, UsersRound } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -16,7 +15,7 @@ export default function Members() {
   const [open, setOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const { data: conversation } = useQuery(getConvoOptions(params.id));
+  const { data: conversation } = useConversation(params.id);
 
   return (
     <Collapsible>
@@ -35,10 +34,10 @@ export default function Members() {
         <ManageMember />
         <ScrollArea className="h-[30dvh] ">
           <div className="grid gap-2">
-            {(conversation?.data as Conversation).members.map((user) => (
+            {conversation?.members.map((user) => (
               <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
-                  <UserAvatar isOnline={user.status === 'ONLINE'} src={user.photo?.url} />
+                  <UserAvatar isOnline={user.status === UserStatus.ONLINE} src={user.photo?.url} />
                   <p className="text-sm font-medium">{user.displayName}</p>
                 </Button>
               </UserInfoDialog>

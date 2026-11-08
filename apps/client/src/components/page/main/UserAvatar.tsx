@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { UserRound } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { UserRound } from 'lucide-react';
 
 export default function UserAvatar({
   src,
@@ -15,9 +15,9 @@ export default function UserAvatar({
 }) {
   return (
     <div className="relative h-fit w-fit">
-      <Avatar className={cn("aspect-square", className)}>
+      <Avatar className={cn('aspect-square', className)}>
         <AvatarImage src={src} />
-        <AvatarFallback>
+        <AvatarFallback className="bg-background">
           <UserRound className="h-1/2 w-auto" />
         </AvatarFallback>
       </Avatar>

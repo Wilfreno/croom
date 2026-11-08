@@ -1,14 +1,15 @@
 'use client';
+import useConversation from '@/components/hooks/queries/useConversation';
 import useDebounce from '@/components/hooks/useDebounce';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getConvoOptions } from '@/lib/react-query/prefetch-query-options';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation, User } from '@repo/types';
+import { Conversation, User } from '@/types/model.types';
+import { UserStatus } from '@repo/enums';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -26,7 +27,7 @@ export default function ManageMember() {
   const divRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const { data: queryResponse } = useQuery(getConvoOptions(params.id));
+  const { data: conversation, isError, error } = useConversation(params.id);
 
   const { data: result } = useQuery({
     queryKey: ['search', 'user', debouncedValue],
@@ -90,10 +91,10 @@ export default function ManageMember() {
   });
 
   const isAdmin = useMemo(() => {
-    if (!session || !queryResponse?.data) return false;
+    if (!session || !conversation) return false;
 
-    return (queryResponse?.data as Conversation).admins.some((user) => user.id === session.user?.id);
-  }, [session, queryResponse]);
+    return conversation.admins.some((user) => user.id === session.user?.id);
+  }, [session, conversation]);
 
   useEffect(() => {
     function handleCLick(event: MouseEvent) {
@@ -158,13 +159,13 @@ export default function ManageMember() {
                     {result?.map((user, index) => (
                       <div key={user.id} className="flex items-center justify-between">
                         <div className="flex items-start gap-2">
-                          <UserAvatar src={user.photo?.url} isOnline={user.status === 'ONLINE'} />
+                          <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
                           <div>
                             <p className="font-semibold">{user.displayName}</p>
-                            <p className="text-xs text-muted-foreground">{user.username}</p>
+                            <p className="text-xs text-muted-foreground">{user.userName}</p>
                           </div>
                         </div>
-                        {(queryResponse?.data as Conversation).members.some((member) => member.id === user.id) ? (
+                        {(conversation as Conversation).members.some((member) => member.id === user.id) ? (
                           <Button
                             disabled={members.isPending && members.variables.id === user.id}
                             variant="destructive"
@@ -173,7 +174,7 @@ export default function ManageMember() {
                                 action: 'REMOVE',
                                 id: user.id,
                                 index,
-                                username: user.username,
+                                username: user.userName,
                               })
                             }
                           >
@@ -188,7 +189,7 @@ export default function ManageMember() {
                                 action: 'ADD',
                                 id: user.id,
                                 index,
-                                username: user.username,
+                                username: user.userName,
                               })
                             }
                           >
@@ -206,13 +207,13 @@ export default function ManageMember() {
             <span className="text-lg font-semibold">Members</span>
             <ScrollArea className="h-[30dvh]">
               <div className="grid gap-2 p-2">
-                {(queryResponse?.data as Conversation).members.map((user, index) => (
+                {(conversation as Conversation).members.map((user, index) => (
                   <div key={user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <UserAvatar src={user.photo?.url} isOnline={user.status === 'ONLINE'} />
+                      <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
                       <div>
                         <p className="font-semibold">{user.displayName}</p>
-                        <p className="text-xs text-muted-foreground">{user.username}</p>
+                        <p className="text-xs text-muted-foreground">{user.userName}</p>
                       </div>
                     </div>
                     {user.id === session.user?.id ? (
@@ -226,7 +227,7 @@ export default function ManageMember() {
                             action: 'REMOVE',
                             id: user.id,
                             index,
-                            username: user.username,
+                            username: user.userName,
                           })
                         }
                       >

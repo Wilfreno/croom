@@ -12,6 +12,7 @@ import {
   OTPType,
 } from '@repo/enums';
 import { UserModel } from '@repo/models';
+import { AuthenticatedUser } from '@repo/types';
 import {
   getPasswordStrengthScore,
   isEmail,
@@ -82,7 +83,7 @@ export class UserService {
               email,
               password,
               authService,
-            });
+            }, session);
 
             break;
           }
@@ -155,5 +156,15 @@ export class UserService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async searchUser({
+    user,
+    searchText,
+  }: {
+    user: AuthenticatedUser;
+    searchText: string;
+  }) {
+    return await this.userModel.searchUser({ userId: user.id, searchText });
   }
 }

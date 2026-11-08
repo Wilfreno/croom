@@ -1,9 +1,9 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { PATCHRequest } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
 import { cn } from '@/lib/utils';
-import { Message } from '@repo/types';
+import { Message } from '@/types/model.types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import Image from 'next/image';
@@ -37,17 +37,13 @@ export default function ConversationMessage({
     let showTimeInterval = false;
     let timeIntervalText = '';
 
-    if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+    if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
-      const nextMessageDateSentInSeconds = Math.floor(
-        (nextMessageDateSent.getTime() - dateSent.getTime()) / 1000,
-      );
+      const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
       if (nextMessageDateSentInSeconds < minute) {
-        if (!!prevMessage && prevMessage.sender.id === message.sender.id) {
+        if (!!prevMessage && prevMessage.sender._id === message.sender._id) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
-          const prevMessageDateSentInSeconds = Math.floor(
-            (dateSent.getTime() - prevMessageDateSent.getTime()) / 1000,
-          );
+          const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
           if (prevMessageDateSentInSeconds < minute) {
             quickMessagePlacement = 'MIDDLE';
           } else {
@@ -59,16 +55,12 @@ export default function ConversationMessage({
 
     if (!!prevMessage) {
       const prevMessageDateSent = new Date(prevMessage.dateCreated);
-      const prevMessageDateSentInSeconds = Math.floor(
-        (dateSent.getTime() - prevMessageDateSent.getTime()) / 1000,
-      );
+      const prevMessageDateSentInSeconds = Math.floor((dateSent.getTime() - prevMessageDateSent.getTime()) / 1000);
 
-      if (prevMessage.sender.id === message.sender.id && prevMessageDateSentInSeconds < minute) {
-        if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+      if (prevMessage.sender._id === message.sender._id && prevMessageDateSentInSeconds < minute) {
+        if (!!nextMessage && nextMessage.sender._id === message.sender._id) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
-          const nextMessageDateSentInSeconds = Math.floor(
-            (nextMessageDateSent.getTime() - dateSent.getTime()) / 1000,
-          );
+          const nextMessageDateSentInSeconds = Math.floor((nextMessageDateSent.getTime() - dateSent.getTime()) / 1000);
           if (nextMessageDateSentInSeconds < minute) {
             quickMessagePlacement = 'MIDDLE';
           } else {
@@ -176,7 +168,7 @@ export default function ConversationMessage({
   const textStyle = useMemo(() => {
     let style = 'py-2 max-w-80 break-words';
 
-    const isSender = message.sender.id === session.user?.id;
+    const isSender = message.sender._id === session.user?.id;
     if (noText) style += ' h-fit text-4xl';
     else {
       style += ' rounded-lg px-4 text-sm shadow-sm border';
@@ -219,7 +211,7 @@ export default function ConversationMessage({
     else if (message.photos.length === 1) style += ' border shadow-sm';
     if (message.text)
       style +=
-        message.sender.id === session.user?.id
+        message.sender._id === session.user?.id
           ? ' rounded-l-lg rounded-tr-sm rounded-br'
           : ' rounded-r-lg rounded-tl-lg rounded-bl';
 
@@ -228,20 +220,17 @@ export default function ConversationMessage({
   }, [message]);
 
   const seen = useMutation({
-    mutationFn: async () => {
-      try {
-        const { status, message: responseMessage } = await PATCHRequest('/v1/message/' + message.id + '/seen_by', {
-          action: 'ADD',
-        });
-
-        if (status !== 'OK') throw new Error(responseMessage);
-        queryClient.invalidateQueries({
-          exact: true,
-          queryKey: [session.user?.id, 'conversations'],
-        });
-      } catch (error) {
-        throw error;
-      }
+    async mutationFn() {
+      await axiosInstance.patch(`/message/${message._id}/seenBy`, {
+        conversationId: message.conversation, 
+        action: 'ADD',
+      });
+    },
+    onSuccess() {
+      queryClient.invalidateQueries({
+        exact: true,
+        queryKey: [session.user?.id, 'conversations'],
+      });
     },
   });
 
@@ -254,19 +243,19 @@ export default function ConversationMessage({
   return (
     <span className="grid gap-3">
       {showTimeInterval && (
-        <div key={message.id + 'time_interval'} className="text-center text-xs text-muted-foreground font-medium">
+        <div key={message._id + 'time_interval'} className="text-center text-xs text-muted-foreground font-medium">
           {timeIntervalText}
         </div>
       )}
       <div
-        key={message.id}
+        key={message._id}
         ref={divRef}
         className={cn(
           'gap-2 w-full max-w-80 grid',
-          message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
+          message.sender._id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
         )}
       >
-        {message.sender.id !== session.user?.id && (
+        {message.sender._id !== session.user?.id && (
           <Avatar className={cn(quickMessagePlacement && quickMessagePlacement !== 'LAST' && 'opacity-0')}>
             <AvatarImage src={message.sender.photo?.url} />
             <AvatarFallback>
@@ -282,7 +271,7 @@ export default function ConversationMessage({
           )}
           <div className={photoStyle}>
             {message.photos.map((photo) => (
-              <div key={photo.id} className="relative w-full h-full">
+              <div key={photo._id} className="relative w-full h-full">
                 <Image
                   src={photo.url}
                   height={photo.height}
