@@ -85,4 +85,52 @@ export class ConversationModel {
       throw new InternalServerErrorException();
     }
   }
+
+  async getConversationsByUserId(userId: string) {
+    try {
+      return await this.Conversation.aggregate([
+        { $match: { members: new Types.ObjectId(userId) } },
+        {
+          $lookup: {
+            from: 'photo',
+            localField: 'photo',
+            foreignField: '_id',
+            as: 'photo',
+            pipeline: [{ $project: { url: 1 } }],
+          },
+        },
+        { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+        {
+          $lookup: {
+            from: 'message',
+            localField: '_id',
+            foreignField: 'conversation',
+            as: 'messages',
+            pipeline: [
+              { $sort: { dateCreated: -1 } },
+              { $limit: 1 },
+              {
+                $lookup: {
+                  from: 'user',
+                  localField: 'sender',
+                  foreignField: '_id',
+                  as: 'sender',
+                  pipeline: [{ $project: { displayName: 1 } }],
+                },
+              },
+              {
+                $set: {
+                  sender: { $ifNull: [{ $first: '$sender' }, null] },
+                  seenBy: { $map: { input: '$seenBy', as: 'id', in: { _id: '$$id' } } },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
 }

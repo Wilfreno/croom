@@ -34,6 +34,11 @@ export class UserController {
     return this.userService.searchUser({ user, searchText });
   }
 
+  @Get('/conversations')
+  getUserConversations(@CurrentUser() user: AuthenticatedUser) {
+    return this.userService.getUserConversations(user.id);
+  }
+
   @Public()
   @Patch('/recover')
   @RateLimit({

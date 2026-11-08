@@ -1,7 +1,7 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { axiosInstance } from '@/lib/axios-instance';
-import { Conversation } from '@/types/model.types';
 import { SOMETHING_WENT_WRONG } from '@repo/constants';
+import { Conversation, ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
@@ -15,8 +15,8 @@ export default function useConversations() {
     enabled: Boolean(user),
     queryKey: [user?.id, 'conversations'],
     queryFn: async () => {
-      const { data: response } = await axiosInstance.get('/user/conversations');
-      return response;
+      const { data: response } = await axiosInstance.get<ServerResponse<Conversation>>('/user/conversations');
+      return response.data;
     },
     placeholderData: [],
   });
