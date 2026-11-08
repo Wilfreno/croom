@@ -17,7 +17,7 @@ export default function ConversationSideBar() {
     <SidebarContent
       className={cn(
         open
-          ? 'grid grid-rows-[auto_auto_1fr] gap-4 pt-4 md:grid-rows-[auto_1fr] md:gap-4 md:py-5 w-[20dvw]'
+          ? 'grid grid-rows-[auto_auto_1fr] gap-4 pt-4 md:grid-rows-[auto_1fr] md:gap-10 md:py-5 w-[20dvw]'
           : 'hidden',
       )}
     >
