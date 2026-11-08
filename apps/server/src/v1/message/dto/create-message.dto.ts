@@ -3,6 +3,7 @@ import {
   IsArray,
   IsInt,
   IsMongoId,
+  IsNotEmpty,
   IsPositive,
   IsString,
   IsUrl,
@@ -10,6 +11,10 @@ import {
 } from 'class-validator';
 
 export class MessagePhotoDto {
+  @IsString()
+  @IsNotEmpty()
+  key!: string;
+
   @IsUrl()
   url!: string;
 

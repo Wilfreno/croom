@@ -45,6 +45,7 @@ export class MessageService {
           photos.map((photo) => ({
             owner: new Types.ObjectId(userId),
             type: PhotoType.MESSAGE,
+            key: photo.key,
             url: photo.url,
             width: photo.width,
             height: photo.height,
