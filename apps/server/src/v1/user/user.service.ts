@@ -10,6 +10,7 @@ import {
   CheckUserDataType,
   EmailStatus,
   OTPType,
+  UserStatus,
 } from '@repo/enums';
 import { ConversationModel, UserModel } from '@repo/models';
 import { AuthenticatedUser } from '@repo/types';
@@ -174,5 +175,27 @@ export class UserService {
 
   async getUserConversations(userId: string) {
     return await this.conversationModel.getConversationsByUserId(userId);
+  }
+
+  async getUserActiveConversation(userId: string){
+    return await this.conversationModel.getActiveConversationByUserId(userId);
+  }
+
+  /**
+   * Persists the user's presence and returns who should be told about it:
+   * everyone who shares at least one conversation with them.
+   */
+  async updateUserStatus(userId: string, status: UserStatus) {
+    const user = await this.userModel.setUserStatus(userId, status);
+    if (!user) return null;
+
+    const partnerIds =
+      await this.conversationModel.getConversationPartnerIds(userId);
+
+    return {
+      status: user.status,
+      lastOnline: new Date(user.lastOnline).toISOString(),
+      partnerIds,
+    };
   }
 }

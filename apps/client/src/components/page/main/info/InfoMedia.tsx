@@ -1,4 +1,5 @@
 'use client';
+import { UserStatus } from '@repo/enums';
 
 import useUserAgent from '@/components/hooks/useUserAgent';
 import { Button } from '@/components/ui/button';
@@ -117,7 +118,7 @@ export default function InfoMedia() {
                             <div className={cn(onMobile ? 'hidden' : 'flex items-center gap-2')}>
                               <UserAvatar
                                 src={messages[selectedPhoto.messageIndex].sender.photo?.url}
-                                isOnline={messages[selectedPhoto.messageIndex].sender.status === 'ONLINE'}
+                                isOnline={messages[selectedPhoto.messageIndex].sender.status === UserStatus.ONLINE}
                               />
                               <div className="">
                                 <p className="text-lg font-medium">

@@ -17,10 +17,12 @@ import { MessageService } from './message.service';
 import { MessageController } from './message.controller';
 import { MessageGateway } from './message.gateway';
 import { AuthModule } from '../auth/auth.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     AuthModule,
+    UserModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },

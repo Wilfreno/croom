@@ -4,6 +4,7 @@ import Loading from '@/components/svg/Loading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { isGroupChat } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -14,7 +15,7 @@ export default function HomeActiveConversations() {
   return (
     <section className="grid gap-4">
       <p className="font-bold hidden md:block indent-4">Active Conversations</p>
-      <div className="bg-muted w-full py-2">
+      <div className="bg-muted w-full py-2 min-h-14 grid">
         {isLoading || isRefetching ? (
           <div className="flex flex-col items-center gap-1 h-fit w-fit px-2">
             <Skeleton className="h-10 w-10 rounded-full" />
@@ -28,23 +29,30 @@ export default function HomeActiveConversations() {
               {isRefetching && <Loading className="fill-primary h-5" />}
             </Button>
           </div>
-        ) : (
-          <div className="flex items-center justify-start gap-2">
+        ) : Boolean(activeConversations?.length) ? (
+          <div className="flex items-center justify-start gap-2 px-1">
             {activeConversations?.map((conversation) => {
               const isGroup = isGroupChat(conversation);
               return (
-                <Link key={conversation?.id} href={'/conversation/' + conversation.id}>
-                  <div className="flex flex-col items-center gap-1 h-fit w-fit">
-                    <UserAvatar
-                      isOnline
-                      src={isGroup ? conversation.photo?.url : conversation.members[0].photo?.url}
-                      className="bg-background"
-                    />
-                    <p className="text-xs font-medium w-14 truncate">
-                      {isGroup ? conversation.name : conversation.members[0].displayName}
-                    </p>
-                  </div>
-                </Link>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Link key={conversation?.id} href={'/conversation/' + conversation.id}>
+                        <div className="flex flex-col items-center gap-1 h-fit w-fit">
+                          <UserAvatar
+                            isOnline
+                            src={isGroup ? conversation.photo?.url : conversation.members[0].photo?.url}
+                            className="bg-background"
+                          />
+                          <p className="text-xs font-medium w-14 truncate">
+                            {isGroup ? conversation.name : conversation.members[0].displayName}
+                          </p>
+                        </div>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>{isGroup ? conversation.name : conversation.members[0].displayName}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               );
             })}
             {activeConversations && activeConversations?.length > 6 && (
@@ -60,6 +68,8 @@ export default function HomeActiveConversations() {
               </Link>
             )}
           </div>
+        ) : (
+          <p className="text-center text-xs text-muted-foreground font-medium my-auto">No active friends</p>
         )}
       </div>
     </section>

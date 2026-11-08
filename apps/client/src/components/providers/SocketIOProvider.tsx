@@ -1,5 +1,11 @@
 'use client';
-import type { ClientToServerEvents, Message, MessagePayload, ServerToClientEvents } from '@repo/types';
+import type {
+  ClientToServerEvents,
+  Message,
+  MessagePayload,
+  ServerToClientEvents,
+  UserStatusPayload,
+} from '@repo/types';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -58,6 +64,13 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
       });
     }
   }
+  function onUserStatus(_payload: UserStatusPayload) {
+    // Member statuses live inside the conversation queries; refetch them so avatars and "last online" update.
+    queryClient.invalidateQueries({
+      predicate: ({ queryKey }) =>
+        queryKey.includes('conversations') || (queryKey[0] === 'conversation' && queryKey[1] !== 'messages'),
+    });
+  }
   function onError(error: string) {
     toast(error);
   }
@@ -71,9 +84,11 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     setSocket(socket);
 
     socket.on('MESSAGE', onMessage);
+    socket.on('USER_STATUS', onUserStatus);
     socket.on('ERROR', onError);
 
     return () => {
+      socket?.off('USER_STATUS', onUserStatus);
       socket?.off('ERROR', onError);
       socket?.off('MESSAGE', onMessage);
       socket?.disconnect();

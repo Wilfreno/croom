@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { AuthServiceOptions } from '@repo/enums';
+import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { User, UserDocument } from '@repo/schemas';
 import { AuthenticatedUser } from '@repo/types';
 import { requireEnv } from '@repo/utils';
@@ -88,6 +88,21 @@ export class UserModel {
   async getUserById(id: Types.ObjectId | string): Promise<UserDocument | null> {
     try {
       return await this.User.findById(id);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  /** Sets a user's presence; going offline also stamps `lastOnline`. */
+  async setUserStatus(userId: string, status: UserStatus) {
+    try {
+      const update: Partial<User> =
+        status === UserStatus.OFFLINE ? { status, lastOnline: new Date() } : { status };
+
+      return await this.User.findByIdAndUpdate(userId, { $set: update }, { new: true })
+        .select('status lastOnline')
+        .lean();
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

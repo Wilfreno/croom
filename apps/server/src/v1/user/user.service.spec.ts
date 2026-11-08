@@ -5,8 +5,9 @@ import {
   CheckUserDataType,
   EmailStatus,
   OTPType,
+  UserStatus,
 } from '@repo/enums';
-import { UserModel } from '@repo/models';
+import { ConversationModel, UserModel } from '@repo/models';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OtpService } from '../otp/otp.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,13 +35,17 @@ function build() {
     getUserExistByEmail: vi.fn().mockResolvedValue(false),
     getUserExistByUsername: vi.fn().mockResolvedValue(false),
     create: vi.fn().mockResolvedValue(undefined),
+    setUserStatus: vi.fn().mockResolvedValue(null),
+  };
+  const conversationModel = {
+    getConversationPartnerIds: vi.fn().mockResolvedValue([]),
   };
   const otpService = {
     verify: vi.fn().mockResolvedValue(undefined),
     consume: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { session, connection, userModel, otpService };
+  return { session, connection, userModel, conversationModel, otpService };
 }
 
 type Mocks = ReturnType<typeof build>;
@@ -51,6 +56,7 @@ async function makeService(mocks: Mocks) {
       UserService,
       { provide: getConnectionToken(), useValue: mocks.connection },
       { provide: UserModel, useValue: mocks.userModel },
+      { provide: ConversationModel, useValue: mocks.conversationModel },
       { provide: OtpService, useValue: mocks.otpService },
     ],
   }).compile();
@@ -208,6 +214,46 @@ describe('UserService', () => {
       await expect(
         check('NOT_A_FIELD' as CheckUserDataType, 'whatever'),
       ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('updateUserStatus', () => {
+    const USER_ID = 'user-1';
+    const LAST_ONLINE = new Date('2026-11-08T05:00:00.000Z');
+
+    it('saves the status and returns it with the conversation partners to notify', async () => {
+      mocks.userModel.setUserStatus.mockResolvedValue({
+        status: UserStatus.OFFLINE,
+        lastOnline: LAST_ONLINE,
+      });
+      mocks.conversationModel.getConversationPartnerIds.mockResolvedValue([
+        'user-2',
+        'user-3',
+      ]);
+
+      await expect(
+        service.updateUserStatus(USER_ID, UserStatus.OFFLINE),
+      ).resolves.toEqual({
+        status: UserStatus.OFFLINE,
+        lastOnline: LAST_ONLINE.toISOString(),
+        partnerIds: ['user-2', 'user-3'],
+      });
+      expect(mocks.userModel.setUserStatus).toHaveBeenCalledWith(
+        USER_ID,
+        UserStatus.OFFLINE,
+      );
+      expect(
+        mocks.conversationModel.getConversationPartnerIds,
+      ).toHaveBeenCalledWith(USER_ID);
+    });
+
+    it('returns null without looking up partners when the user does not exist', async () => {
+      await expect(
+        service.updateUserStatus(USER_ID, UserStatus.ONLINE),
+      ).resolves.toBeNull();
+      expect(
+        mocks.conversationModel.getConversationPartnerIds,
+      ).not.toHaveBeenCalled();
     });
   });
 });
