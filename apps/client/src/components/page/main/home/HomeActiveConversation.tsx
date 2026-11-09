@@ -34,10 +34,10 @@ export default function HomeActiveConversations() {
             {activeConversations?.map((conversation) => {
               const isGroup = isGroupChat(conversation)
               return (
-                <TooltipProvider>
+                <TooltipProvider key={conversation.id}>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Link key={conversation?.id} href={'/conversation/' + conversation.id}>
+                    <TooltipTrigger asChild>
+                      <Link href={'/conversation/' + conversation.id}>
                         <div className="flex flex-col items-center gap-1 h-fit w-fit">
                           <UserAvatar
                             isOnline
