@@ -32,7 +32,7 @@ export default function HomeActiveConversations() {
         ) : Boolean(activeConversations?.length) ? (
           <div className="flex items-center justify-start gap-2 px-1">
             {activeConversations?.map((conversation) => {
-              const isGroup = isGroupChat(conversation);
+              const isGroup = isGroupChat(conversation)
               return (
                 <TooltipProvider>
                   <Tooltip>

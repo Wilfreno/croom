@@ -8,12 +8,13 @@ export default function useComposeMessage({ photos }: { photos: Partial<Photo>[]
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const sendMessage = useMutation<Message, AxiosError, { conversationId: string; text: string }>({
-    mutationFn: async ({ conversationId, text }) => {
+  const sendMessage = useMutation<Message, AxiosError, { conversationId: string; text: string; members: string[] }>({
+    mutationFn: async ({ conversationId, text, members }) => {
       const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
         conversationId,
         text,
         photos,
+        members,
       });
 
       return response.data;
@@ -39,7 +40,7 @@ export default function useComposeMessage({ photos }: { photos: Partial<Photo>[]
           })),
         };
       });
-      router.push('/conversation/' + conversationId);
+      router.push(`/conversation/${conversationId ? conversationId : newMessage.conversation.id}`);
     },
   });
   return {

@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function isGroupChat(conversation: Conversation) {
-  return conversation.members.length > 2;
+  return conversation.members.length > 1;
 }
 
 export function getTimeIntervalText(dateCreated: Date) {
@@ -18,7 +18,9 @@ export function getTimeIntervalText(dateCreated: Date) {
   const time = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(dateSent);
 
   if (relativeDateInSeconds > SECONDS_IN_YEAR)
-    return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(dateSent) + ' ' + time;
+    return (
+      new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(dateSent) + ' ' + time
+    );
 
   if (relativeDateInSeconds > SECONDS_IN_WEEK)
     return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' }).format(dateSent) + ' ' + time;

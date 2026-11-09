@@ -30,7 +30,7 @@ export interface Conversation extends Omit<ConversationType, 'members' | 'photo'
 
 export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation'> {
   id: string;
-  conversation: string;
+  conversation: Conversation;
   sender: User;
   photos: Photo[];
 }

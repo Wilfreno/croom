@@ -106,7 +106,7 @@ export default function ConversationMessage({
       style += isSender ? ' rounded-l-lg' : ' rounded-r-lg';
       switch (quickMessagePlacement) {
         case 'FIRST': {
-          style += isSender ? 'rounded-tr-lg rounded-br' : ' rounded-tl-lg rounded-bl';
+          style += isSender ? ' rounded-tr-lg rounded-br' : ' rounded-tl-lg rounded-bl';
           break;
         }
         case 'MIDDLE': {
@@ -128,10 +128,10 @@ export default function ConversationMessage({
   }, [noText, session.user, quickMessagePlacement, message]);
 
   const photoStyle = useMemo(() => {
-    let style = 'h-fit w-1/3 rounded-sm overflow-hidden grid ml-auto';
+    let style = 'h-fit w-[25dvw] max-w-full rounded-sm overflow-hidden grid ml-auto';
 
     if (!!message.photos.length) style += ' mt-px';
-    if (message.photos.length > 1) style += ' bg-primary p-1';
+    if (message.photos.length > 1) style += ' bg-muted rounded-lg';
     else if (message.photos.length === 1) style += ' border shadow-sm';
     if (message.text)
       style +=
@@ -139,9 +139,16 @@ export default function ConversationMessage({
           ? ' rounded-l-lg rounded-tr-sm rounded-br'
           : ' rounded-r-lg rounded-tl-lg rounded-bl';
 
-    style += ' grid-cols-' + Math.min(message.photos.length, 3);
+    const gridCols = ['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][getPhotoColumns(message.photos.length) - 1];
+    if (gridCols) style += ' ' + gridCols;
     return style;
   }, [message]);
+
+  const photoCornerStyles = useMemo(() => {
+    const photoCount = message.photos.length;
+    if (photoCount < 2) return [];
+    return message.photos.map((_, index) => getPhotoCornerStyle(index, photoCount));
+  }, [message.photos.length]);
 
   const seen = useMutation({
     async mutationFn() {
@@ -194,13 +201,13 @@ export default function ConversationMessage({
             </div>
           )}
           <div className={photoStyle}>
-            {message.photos.map((photo) => (
-              <div key={photo.id} className="relative w-full h-full">
+            {message.photos.map((photo, index) => (
+              <div key={photo.id} className={cn('relative w-full h-full overflow-hidden', photoCornerStyles[index])}>
                 <Image
                   src={photo.url}
                   height={photo.height}
                   width={photo.width}
-                  className="object-cover w-full h-auto"
+                  className={cn('object-cover w-full', message.photos.length > 1 ? 'aspect-square h-full' : 'h-auto')}
                   alt=""
                 />
               </div>
@@ -210,4 +217,26 @@ export default function ConversationMessage({
       </div>
     </span>
   );
+}
+
+// 4 photos → 2x2; otherwise up to 3 per row (e.g. 7 → 3 + 3 + 1)
+function getPhotoColumns(photoCount: number) {
+  return photoCount === 4 ? 2 : Math.min(photoCount, 3);
+}
+
+// Round only the corners that sit on the outer edge of the photo group.
+function getPhotoCornerStyle(index: number, photoCount: number) {
+  const columns = getPhotoColumns(photoCount);
+  const lastRowStart = Math.floor((photoCount - 1) / columns) * columns;
+  const lastRowIsFull = photoCount - lastRowStart === columns;
+  const corners: string[] = [];
+
+  if (index === 0) corners.push('rounded-tl-md');
+  if (index === columns - 1) corners.push('rounded-tr-md');
+  if (index === lastRowStart) corners.push('rounded-bl-md');
+  if (index === photoCount - 1) corners.push('rounded-br-md');
+  // When the last row is short, the end of the row above also has an exposed bottom-right corner.
+  if (!lastRowIsFull && index === lastRowStart - 1) corners.push('rounded-br-md');
+
+  return corners.join(' ');
 }

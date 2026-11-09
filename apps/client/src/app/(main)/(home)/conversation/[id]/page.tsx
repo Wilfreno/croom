@@ -21,7 +21,7 @@ export default function Page() {
 
   if (onMobile && isOpen) return null;
   return (
-    <MainContent className="grid grid-rows-[auto_1fr_auto]">
+    <MainContent className="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
       <ConversationHeader conversationInfo={conversationInfo!} />
       <ConversationMessages conversation={conversation} />
       <ConversationMessageInput conversation={conversation} />

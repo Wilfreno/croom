@@ -11,7 +11,7 @@ export default function Page() {
   const { data: sidebarOpen } = useQuery<boolean>({ queryKey: ['home', 'sidebar'], queryFn: () => true });
 
   return (
-    <section className="h-full grow hidden md:grid place-items-center">
+    <section className="grow hidden md:grid place-items-center">
       <div className="flex flex-col items-center text-muted-foreground gap-2">
         <Snail className="h-32 w-auto stroke-1 " />
         <div className="flex items-center">

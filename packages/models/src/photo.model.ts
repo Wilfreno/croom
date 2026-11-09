@@ -16,7 +16,7 @@ export class PhotoModel {
 
   async createMany(photos: Partial<Photo>[], session: ClientSession) {
     try {
-      const newPhotos = await this.Photo.create(photos, { session });
+      const newPhotos = await this.Photo.create(photos, { session, ordered: true });
 
       return newPhotos.map((photo) => photo.toJSON());
     } catch (error) {

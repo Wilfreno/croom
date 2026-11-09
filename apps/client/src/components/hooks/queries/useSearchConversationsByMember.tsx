@@ -1,7 +1,6 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { axiosInstance } from '@/lib/axios-instance';
-import { Conversation } from '@/types/model.types';
-import { ServerResponse } from '@repo/types';
+import { Conversation, ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 
 export default function useSearchConversationsByMembers(selectedUsers: string[][] = []) {
