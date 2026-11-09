@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Conversation } from '@repo/types';
 import { Search, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import HomeConversation from './HomeConversation';
-import { Conversation } from "@repo/types";
 
 export default function HomeConversations() {
   const [searchText, setSearchText] = useState('');
@@ -29,8 +29,8 @@ export default function HomeConversations() {
   }, [conversations, conversationSearch]);
 
   return (
-    <section className="h-full grid gap-2">
-      <div className="flex items-center justify-between w-full mb-2 px-4">
+    <section className="h-full flex flex-col gap-4">
+      <div className="flex items-center justify-between w-full px-4">
         <p className="font-bold hidden md:block">Conversations</p>
         <TooltipProvider>
           <Tooltip>
@@ -61,7 +61,7 @@ export default function HomeConversations() {
           onChange={(e) => setSearchText(e.currentTarget.value)}
         />
       </div>
-      <ScrollArea className="h-[65dvh]">
+      <ScrollArea className="h-[60dvh]">
         <div className="grid gap-1">
           {conversationToDisplay?.map((conversation) => (
             <HomeConversation key={conversation.id} conversation={conversation} />

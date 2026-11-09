@@ -1,29 +1,21 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { IsBlocked, IsMember } from '@repo/guards';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { IsMember, NotBlocked } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ConversationService } from './conversation.service';
-import { CreateConversationDto } from './dto/create-conversation.dto';
-import { GetConversationByIdDto, GetConversationByMembersIdDto } from './dto/get-conversation';
+import {
+  GetConversationByIdDto,
+  GetConversationByMembersIdDto,
+} from './dto/get-conversation';
+import { GetConversationMediaDto } from './dto/get-media.dto';
 import { GetConversationMessageDto } from './dto/get-message.dto';
 
 @Controller({ path: 'conversation', version: '1' })
 export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
 
-  @Post()
-  create(
-    @CurrentUser() { id }: AuthenticatedUser,
-    @Body() { members }: CreateConversationDto,
-  ) {
-    return this.conversationService.create({
-      userId: id,
-      members: [...members, id],
-    });
-  }
-
-  @IsBlocked({ param: 'conversationId' })
+  @NotBlocked({ param: 'conversationId' })
   @IsMember({ param: 'conversationId' })
   @Get('/:conversationId/messages')
   getConversationMessages(
@@ -47,12 +39,17 @@ export class ConversationController {
     );
   }
 
-  @IsBlocked({param: "conversationId"})
-  @IsMember({param: "conversationId"})
-  @Get("/:conversationId")
-  getConversationById(
-    @Param() {conversationId}:GetConversationByIdDto
-  ){
-    return this.conversationService.getConversationById(conversationId)
+  @NotBlocked({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Get('/:conversationId')
+  getConversationById(@Param() { conversationId }: GetConversationByIdDto) {
+    return this.conversationService.getConversationById(conversationId);
+  }
+
+  @NotBlocked({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Get('/:conversationId/media')
+  getConversationMedia(@Param() { conversationId }: GetConversationMediaDto) {
+    return this.conversationService.getConversationMedia(conversationId);
   }
 }

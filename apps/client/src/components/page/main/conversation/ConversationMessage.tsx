@@ -90,7 +90,7 @@ export default function ConversationMessage({
   }, [message.text]);
 
   const textStyle = useMemo(() => {
-    let style = 'py-2 w-[40dvw] break-words whitespace-pre-wrap';
+    let style = 'py-2 max-w-[40dvw] break-words whitespace-pre-wrap';
 
     const isSender = message.sender.id === session.user?.id;
     if (noText) style += ' h-fit text-4xl';
@@ -128,7 +128,7 @@ export default function ConversationMessage({
   }, [noText, session.user, quickMessagePlacement, message]);
 
   const photoStyle = useMemo(() => {
-    let style = 'h-fit w-full rounded-sm overflow-hidden grid';
+    let style = 'h-fit w-1/3 rounded-sm overflow-hidden grid ml-auto';
 
     if (!!message.photos.length) style += ' mt-px';
     if (message.photos.length > 1) style += ' bg-primary p-1';
@@ -188,7 +188,7 @@ export default function ConversationMessage({
           </Avatar>
         )}
         <div className="grid">
-          {!!message.text && (
+          {Boolean(message.text) && (
             <div className={cn(textStyle)}>
               <span>{message.text}</span>
             </div>

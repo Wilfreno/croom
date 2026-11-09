@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { House } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import UserSideBar from './UserSidebar';
 
 export default function Aside() {
   const iconStyles = cn('h-6 w-auto');
@@ -14,26 +15,25 @@ export default function Aside() {
   const queryClient = useQueryClient();
 
   return (
-    <aside className="w-fit h-dvh flex-col items-center px-2 py-4 hidden md:flex bg-background shadow-md border-r">
-      <div className="flex flex-col items-center">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                className="aspect-square h-fit w-auto p-2 rounded-lg"
-                onClick={() => {
-                  if (pathname === '/') {
-                    queryClient.setQueryData<boolean>(['home', 'sidebar'], (prev) => !prev);
-                  } else router.push('/');
-                }}
-              >
-                <House className={iconStyles} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Home</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+    <aside className="w-fit h-dvh flex-col items-center justify-between px-2 py-4 hidden md:flex bg-background shadow-md border-r">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              className="aspect-square h-fit w-auto p-2 rounded-lg"
+              onClick={() => {
+                if (pathname === '/') {
+                  queryClient.setQueryData<boolean>(['home', 'sidebar'], (prev) => !prev);
+                } else router.push('/');
+              }}
+            >
+              <House className={iconStyles} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Home</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <UserSideBar />
     </aside>
   );
 }

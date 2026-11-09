@@ -1,22 +1,17 @@
 'use client';
 import { UserStatus } from '@repo/enums';
 
-import useUserAgent from '@/components/hooks/useUserAgent';
+import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ConversationInfo } from '@/types/common.types';
-import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ellipsis } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import UserAvatar from '../UserAvatar';
 
 export default function ConversationHeader({ conversationInfo }: { conversationInfo: ConversationInfo }) {
-  const params = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
-  const { onMobile } = useUserAgent();
+  const { onMobile, setIsOpen } = useInfoSidebarOpen();
   const router = useRouter();
-
-  const infoSidebarIsOpen = queryClient.getQueryData<boolean>(['sidebar', 'info', 'open', onMobile]);
 
   return (
     <section
@@ -40,10 +35,11 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
         </div>
       </div>
       <Button
-        className="aspect-square h-fit w-auto rounded-full p-1"
-        onClick={() => queryClient.setQueryData<boolean>(['sidebar', 'info', 'open', onMobile], (prev) => !prev)}
+        variant="ghost"
+        className="aspect-square h-fit w-auto rounded-full p-1 text-primary"
+        onClick={() => setIsOpen((prev) => !prev)}
       >
-        <Ellipsis className={cn('w-auto', infoSidebarIsOpen ? 'h-2' : 'h-4')} />
+        <Ellipsis />
       </Button>
     </section>
   );

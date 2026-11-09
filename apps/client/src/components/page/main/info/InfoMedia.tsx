@@ -71,7 +71,7 @@ export default function InfoMedia() {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="p-2">
-        {!!messages?.length && (
+        {Boolean(messages?.length) && (
           <ScrollArea className="h-64">
             <div className="grid grid-cols-4 gap-px">
               {messages?.map((message, messageIndex) =>
@@ -93,9 +93,30 @@ export default function InfoMedia() {
                         />
                       </div>
                     </DialogTrigger>
-                    <DialogContent className={cn('bg-transparent h-[99dvh] p-0', onMobile && 'px-1')}>
-                      <DialogHeader className="hidden">
+                    <DialogContent className={cn('bg-transparent h-[99dvh] p-0  max-w-[100dvw]', onMobile && 'px-1')}>
+                      <DialogHeader className="border-b border-muted-foreground">
                         <DialogTitle></DialogTitle>
+                        {Boolean(selectedPhoto) && (
+                          <div
+                            className={cn(
+                              'py-2 text-accent flex w-full',
+                              onMobile ? 'justify-end px-5' : 'items-end justify-between px-24',
+                            )}
+                          >
+                            <div className={cn(onMobile ? 'hidden' : 'flex items-center gap-2')}>
+                              <UserAvatar
+                                src={messages[selectedPhoto!.messageIndex].sender.photo?.url}
+                                isOnline={messages[selectedPhoto!.messageIndex].sender.status === UserStatus.ONLINE}
+                              />
+                              <div className="">
+                                <p className="text-lg font-medium">
+                                  {messages[selectedPhoto!.messageIndex].sender.displayName}
+                                </p>
+                                <p className="text-xs">{messages[selectedPhoto!.messageIndex].sender.userName}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </DialogHeader>
                       <DialogClose asChild className={cn('absolute top-4  group', onMobile ? 'left-4' : 'right-8')}>
                         <Button variant="ghost" className="aspect-square h-fit w-auto rounded-full p-1">
@@ -108,36 +129,10 @@ export default function InfoMedia() {
                           onMobile ? 'place-items-center' : 'place-items-center gap-8 p-8',
                         )}
                       >
-                        {!!selectedPhoto && (
-                          <div
-                            className={cn(
-                              'py-2 text-accent flex w-full',
-                              onMobile ? 'justify-end px-5' : 'items-end justify-between px-24',
-                            )}
-                          >
-                            <div className={cn(onMobile ? 'hidden' : 'flex items-center gap-2')}>
-                              <UserAvatar
-                                src={messages[selectedPhoto.messageIndex].sender.photo?.url}
-                                isOnline={messages[selectedPhoto.messageIndex].sender.status === UserStatus.ONLINE}
-                              />
-                              <div className="">
-                                <p className="text-lg font-medium">
-                                  {messages[selectedPhoto.messageIndex].sender.displayName}
-                                </p>
-                                <p className="text-xs">{messages[selectedPhoto.messageIndex].sender.username}</p>
-                              </div>
-                            </div>
-
-                            <Button variant="ghost" className="aspect-square h-fit w-auto p-2" onClick={downloadImage}>
-                              <Download className="h-6 w-auto" />
-                            </Button>
-                          </div>
-                        )}
-
                         <div
                           className={cn(
-                            'relative',
-                            onMobile ? 'grid grid-rows-[auto_1fr] ' : 'flex items-center gap-8 ',
+                            'relative w-full',
+                            onMobile ? 'grid grid-rows-[auto_1fr] ' : 'flex items-center justify-between',
                           )}
                         >
                           {!onMobile && (
@@ -166,21 +161,14 @@ export default function InfoMedia() {
                               <ChevronLeft className="h-4 w-auto" />
                             </Button>
                           )}
-                          {!!selectedPhoto && (
-                            <div
-                              className={cn(
-                                'aspect-video relative',
-                                onMobile ? 'self-center w-full h-auto' : ' h-[80dvh] w-auto',
-                              )}
-                            >
+                          {Boolean(selectedPhoto) && (
+                            <div>
                               <Image
-                                src={messages[selectedPhoto.messageIndex].photos[selectedPhoto.photoIndex].url}
-                                alt={messages[selectedPhoto.messageIndex].photos[selectedPhoto.photoIndex].id}
-                                width={messages[selectedPhoto.messageIndex].photos[selectedPhoto.photoIndex].width}
-                                height={
-                                  messages[selectedPhoto.messageIndex].photos[selectedPhoto.photoIndex].height
-                                }
-                                className="object-contain"
+                                src={messages[selectedPhoto!.messageIndex].photos[selectedPhoto!.photoIndex].url}
+                                alt={messages[selectedPhoto!.messageIndex].photos[selectedPhoto!.photoIndex].id}
+                                width={messages[selectedPhoto!.messageIndex].photos[selectedPhoto!.photoIndex].width}
+                                height={messages[selectedPhoto!.messageIndex].photos[selectedPhoto!.photoIndex].height}
+                                className="object-contain max-h-[80dvh]"
                                 priority
                               />
                             </div>
@@ -210,6 +198,14 @@ export default function InfoMedia() {
                             </Button>
                           )}
                         </div>
+
+                        <Button
+                          variant="outline"
+                          className="aspect-square h-fit w-auto p-2 absolute bottom-10 right-10"
+                          onClick={downloadImage}
+                        >
+                          <Download className="h-6 w-auto" />
+                        </Button>
                       </div>
                     </DialogContent>
                   </Dialog>

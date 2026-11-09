@@ -1,9 +1,9 @@
 import { useAuth } from '@/components/providers/AuthProvider';
-import { isGroupChat } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
-import { UserStatus } from '@repo/enums';
-import { useQuery } from '@tanstack/react-query';
+import { getSecondsInterval, isGroupChat } from '@/lib/utils';
 import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
+import { UserStatus } from '@repo/enums';
+import { Conversation } from '@repo/types';
+import { useQuery } from '@tanstack/react-query';
 
 export default function useConversationInfo(conversation?: Conversation) {
   const { session } = useAuth();
@@ -31,11 +31,7 @@ export default function useConversationInfo(conversation?: Conversation) {
         if (!conversationName) conversationName = otherUser.displayName;
 
         if (otherUser.status === UserStatus.OFFLINE) {
-          const lastOnlineDate = new Date(otherUser.lastOnline);
-          const now = new Date();
-
-          const lastOnlineInSeconds = Math.floor((now.getTime() - lastOnlineDate.getTime()) / 1000);
-
+          const lastOnlineInSeconds = getSecondsInterval(new Date(), new Date(otherUser.lastOnline));
           if (lastOnlineInSeconds > SECONDS_IN_DAY) {
             lastOnline = Math.floor(lastOnlineInSeconds / SECONDS_IN_DAY) + ' day(s) ago';
           } else if (lastOnlineInSeconds > SECONDS_IN_HOUR && lastOnlineInSeconds < SECONDS_IN_DAY) {

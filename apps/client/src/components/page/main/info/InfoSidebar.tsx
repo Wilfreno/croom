@@ -1,14 +1,13 @@
 'use client';
-import { UserStatus } from '@repo/enums';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useConversationInfo from '@/components/hooks/queries/useConversationInfo';
-import useUserAgent from '@/components/hooks/useUserAgent';
+import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { UserStatus } from '@repo/enums';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -25,10 +24,8 @@ const InfoAdminsAndMembers = dynamic(() => import('./InfoAdminsAndMembers'), {
 export default function InfoSidebar() {
   const params = useParams<{ id: string }>();
   const { session } = useAuth();
-  const queryClient = useQueryClient();
-  const { onMobile } = useUserAgent();
 
-  const isOpen = queryClient.getQueryData<Boolean>(['sidebar', 'info', 'open', onMobile]);
+  const { isOpen, setIsOpen } = useInfoSidebarOpen();
   const { data: conversation, isError, error } = useConversation(params.id);
 
   const { data: conversationInfo } = useConversationInfo(conversation!);
@@ -45,11 +42,7 @@ export default function InfoSidebar() {
 
   return (
     <SidebarContent className={cn(!isOpen && 'hidden', 'relative')}>
-      <Button
-        variant="ghost"
-        className="md:hidden absolute top-2 left-0"
-        onClick={() => queryClient.setQueryData<boolean>(['sidebar', 'info', 'open', onMobile], false)}
-      >
+      <Button variant="ghost" className="md:hidden absolute top-2 left-0" onClick={() => setIsOpen(false)}>
         <ArrowLeft className="h-6 w-auto" />
       </Button>
       <div className="flex flex-col items-center gap-4 my-10">
@@ -60,13 +53,13 @@ export default function InfoSidebar() {
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
-          {status === UserStatus.ONLINE && (
+          {conversationInfo?.status === UserStatus.ONLINE && (
             <div className="bg-green-500 aspect-square h-8 border-2 border-background w-auto rounded-full absolute bottom-1 right-0"></div>
           )}
         </span>
         <div className="text-center">
           <p className="font-medium text-lg truncate max-w-72">{conversationInfo?.conversationName}</p>
-          {!!conversationInfo?.lastOnline && (
+          {Boolean(conversationInfo?.lastOnline) && (
             <p className="text-xs font-medium text-muted-foreground">Online {conversationInfo?.lastOnline}</p>
           )}
         </div>

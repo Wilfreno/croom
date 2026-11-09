@@ -15,6 +15,7 @@ import {
   getConversationGuardRequest,
   getConversationId,
 } from './conversation-id.util';
+import { isFirstMessageRequest } from './conversation-first-message.guard';
 
 export const CONVERSATION_BLOCKED_SOURCE_KEY = 'conversationBlockedSource';
 
@@ -28,7 +29,7 @@ const BLOCKED_HTTP_STATUS = 423;
  * A conversation that does not exist is not blocked, so this passes; pair it
  * with `@IsMember()` to reject those. Relies on the session guard having set
  * `request.user` first. The module using it must provide `ConversationModel`.
- * Apply it through `@IsBlocked()`, which tells it where the conversation id is.
+ * Apply it through `@NotBlocked()`, which tells it where the conversation id is.
  */
 @Injectable()
 export class ConversationBlockedGuard implements CanActivate {
@@ -38,14 +39,15 @@ export class ConversationBlockedGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const conversationId = getConversationId(
-      context,
-      this.reflector.getAllAndOverride<ConversationIdSource | undefined>(CONVERSATION_BLOCKED_SOURCE_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]),
-      ConversationBlockedGuard.name,
-    );
+    const source = this.reflector.getAllAndOverride<ConversationIdSource | undefined>(CONVERSATION_BLOCKED_SOURCE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // First message of a not-yet-created conversation: see `@IsFirstMessage()`.
+    if (isFirstMessageRequest(context, this.reflector, source)) return true;
+
+    const conversationId = getConversationId(context, source, ConversationBlockedGuard.name);
     const userId = getConversationGuardRequest(context).user?.id;
 
     if (!userId) throw new UnauthorizedException('you are not logged in');
@@ -67,10 +69,10 @@ export class ConversationBlockedGuard implements CanActivate {
  * conversation is blocked. The module using it must provide `ConversationModel`.
  *
  * @example
- * ＠IsBlocked({ body: 'conversationId' })
+ * ＠NotBlocked({ body: 'conversationId' })
  * ＠IsMember({ body: 'conversationId' })
  * ＠Post()
  * create(＠Body() createMessageDto: CreateMessageDto) {}
  */
-export const IsBlocked = (source: ConversationIdSource) =>
+export const NotBlocked = (source: ConversationIdSource) =>
   applyDecorators(SetMetadata(CONVERSATION_BLOCKED_SOURCE_KEY, source), UseGuards(ConversationBlockedGuard));

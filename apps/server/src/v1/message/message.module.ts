@@ -11,6 +11,7 @@ import {
 } from '@repo/schemas';
 import {
   ConversationBlockedGuard,
+  ConversationFirstMessageGuard,
   ConversationMemberGuard,
 } from '@repo/guards';
 import { MessageService } from './message.service';
@@ -18,11 +19,13 @@ import { MessageController } from './message.controller';
 import { MessageGateway } from './message.gateway';
 import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
+import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
   imports: [
     AuthModule,
     UserModule,
+    ConversationModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },
@@ -38,6 +41,7 @@ import { UserModule } from '../user/user.module';
     PhotoModel,
     ConversationMemberGuard,
     ConversationBlockedGuard,
+    ConversationFirstMessageGuard,
   ],
 })
 export class MessageModule {}
