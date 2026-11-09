@@ -2,6 +2,7 @@
 import { UserStatus } from '@repo/enums';
 
 import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
+import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,12 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
   const { onMobile, setIsOpen } = useInfoSidebarOpen();
   const router = useRouter();
   const params = useParams<{ id: string }>();
+  const socket = useSocketIO();
+
+  function startCall() {
+    socket?.emit('CALL', { conversationId: params.id });
+    router.push(`/call/${params.id}`);
+  }
   return (
     <section
       className={cn(
@@ -43,7 +50,7 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
                 variant="ghost"
                 className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
                 aria-label="Start video call"
-                onClick={() => router.push(`/call/${params.id}`)}
+                onClick={startCall}
               >
                 <Video className="fill-primary" />
               </Button>
