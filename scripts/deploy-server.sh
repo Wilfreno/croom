@@ -15,8 +15,14 @@ echo "==> Checking out $SHA"
 git fetch --prune origin
 git checkout --force "$SHA"
 
-echo "==> Installing dependencies (also builds the shared packages)"
+echo "==> Installing dependencies"
 pnpm install --frozen-lockfile
+
+# The root preinstall hook also builds these, but pnpm skips it when the
+# lockfile hasn't changed, which would leave the server compiling against
+# stale package builds.
+echo "==> Building the shared packages"
+pnpm build:libs
 
 echo "==> Building the server"
 pnpm --filter nest-server build
