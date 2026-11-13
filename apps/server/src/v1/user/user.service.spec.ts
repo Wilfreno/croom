@@ -18,8 +18,9 @@ const EMAIL = 'someone@example.com';
 const signup = (over: Partial<CreateUserDto> = {}): CreateUserDto =>
   ({
     email: EMAIL,
-    password: 'sup3rsecret',
-    confirmPassword: 'sup3rsecret',
+    // Strong enough for the strength check: length, upper, lower, number, symbol.
+    password: 'Sup3r-secret!',
+    confirmPassword: 'Sup3r-secret!',
     pin: '123456',
     authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
     ...over,
@@ -102,6 +103,14 @@ describe('UserService', () => {
       expect(mocks.userModel.create).not.toHaveBeenCalled();
     });
 
+    it('rejects a weak password before checking the pin', async () => {
+      await expect(
+        service.createUser(signup({ password: 'sup3rsecret', confirmPassword: 'sup3rsecret' })),
+      ).rejects.toMatchObject({ status: 400, message: 'password is weak' });
+
+      expect(mocks.otpService.verify).not.toHaveBeenCalled();
+    });
+
     it('rejects a password that does not match its confirmation', async () => {
       await expect(
         service.createUser(signup({ confirmPassword: 'something-else' })),
@@ -144,11 +153,14 @@ describe('UserService', () => {
         { email: EMAIL, type: OTPType.SIGNUP },
         mocks.session,
       );
-      expect(mocks.userModel.create).toHaveBeenCalledWith({
-        email: EMAIL,
-        password: 'sup3rsecret',
-        authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
-      });
+      expect(mocks.userModel.create).toHaveBeenCalledWith(
+        {
+          email: EMAIL,
+          password: 'Sup3r-secret!',
+          authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
+        },
+        mocks.session,
+      );
     });
 
     it('ends the session once the work is done', async () => {

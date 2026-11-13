@@ -53,3 +53,9 @@ export const mockSubmitSignUpMutation = (
 
 export const mockLoginMutation = (overrides: Partial<LoginMutation> = {}): LoginMutation =>
   mockMutation<void, AxiosError<ServerResponse>, LoginVariables>(overrides);
+
+/** A `createOTPMutation.mutate` that succeeds at once, running the caller's `onSuccess`. */
+export const succeedingCreateOTPMutate = () =>
+  vi.fn<CreateOTPMutation['mutate']>((variables, options) =>
+    options?.onSuccess?.(undefined, variables, undefined, {} as never),
+  );

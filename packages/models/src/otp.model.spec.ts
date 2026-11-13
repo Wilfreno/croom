@@ -1,9 +1,20 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { OTPType } from '@repo/enums';
 import { OTP } from '@repo/schemas';
+import { hash } from 'bcrypt';
+import { randomInt } from 'crypto';
 import { Model } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OtpModel } from './otp.model';
+
+vi.mock('bcrypt', () => ({
+  hash: vi.fn(async (value: string) => `hashed:${value}`),
+  compare: vi.fn(async (value: string, hashed: string) => hashed === `hashed:${value}`),
+}));
+vi.mock('crypto', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('crypto')>()),
+  randomInt: vi.fn(() => 42),
+}));
 
 const target = { email: 'someone@example.com', type: OTPType.SIGNUP };
 
@@ -34,12 +45,14 @@ describe('OtpModel', () => {
   beforeEach(() => vi.clearAllMocks());
 
   describe('create', () => {
-    it('stores the pin for the target', async () => {
+    it('stores only a hash of a fresh six-digit pin and returns the pin itself', async () => {
       const { collection, model } = build();
 
-      await model.create({ ...target, pin: '123456' });
+      await expect(model.create(target)).resolves.toBe('000042');
 
-      expect(collection.create).toHaveBeenCalledWith([{ ...target, pin: '123456' }]);
+      expect(randomInt).toHaveBeenCalledWith(0, 1_000_000);
+      expect(hash).toHaveBeenCalledWith('000042', 14);
+      expect(collection.create).toHaveBeenCalledWith([{ ...target, pin: 'hashed:000042' }]);
     });
 
     it('turns a driver failure into a 500', async () => {
@@ -47,7 +60,7 @@ describe('OtpModel', () => {
       collection.create.mockRejectedValue(new Error('connection lost'));
 
       await expect(
-        model.create({ ...target, pin: '123456' }),
+        model.create(target),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });

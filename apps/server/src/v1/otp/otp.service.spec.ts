@@ -3,15 +3,9 @@ import { Test } from '@nestjs/testing';
 import { OTP_MAX_LIVE } from '@repo/constants';
 import { OTPType } from '@repo/enums';
 import { OtpAttemptModel, OtpModel, UserModel } from '@repo/models';
-import { randomInt } from 'crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MailService } from '../../common/mail/mail.service';
 import { OtpService } from './otp.service';
-
-vi.mock('crypto', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('crypto')>();
-  return { ...actual, randomInt: vi.fn(actual.randomInt) };
-});
 
 const EMAIL = 'someone@example.com';
 const target = { email: EMAIL, type: OTPType.SIGNUP };
@@ -19,7 +13,10 @@ const target = { email: EMAIL, type: OTPType.SIGNUP };
 function build() {
   const userModel = { getUserExistByEmail: vi.fn().mockResolvedValue(false) };
   const otpModel = {
-    create: vi.fn().mockResolvedValue(undefined),
+    // The model draws and hashes the pin, answering with the plain one to mail.
+    create: vi.fn().mockResolvedValue('042137'),
+    // Stored pins are hashes; a fake one here is `hashed:<pin>`.
+    compare: vi.fn(async ({ pin, hashedPin }: { pin: string; hashedPin: string }) => hashedPin === `hashed:${pin}`),
     trim: vi.fn().mockResolvedValue(undefined),
     getPins: vi.fn().mockResolvedValue([]),
     deleteOtpByEmail: vi.fn().mockResolvedValue(undefined),
@@ -115,25 +112,9 @@ describe('OtpService', () => {
     it('stores a pin, trims the live set and mails the same pin through', async () => {
       await service.create(target);
 
-      expect(mocks.otpModel.create).toHaveBeenCalledTimes(1);
-      const stored = mocks.otpModel.create.mock.calls[0][0];
-      expect(stored).toMatchObject({ email: EMAIL, type: OTPType.SIGNUP });
-      expect(stored.pin).toMatch(/^\d{6}$/);
-
+      expect(mocks.otpModel.create).toHaveBeenCalledExactlyOnceWith(target);
       expect(mocks.otpModel.trim).toHaveBeenCalledWith(target, OTP_MAX_LIVE);
-      expect(mocks.mailService.sendOtp).toHaveBeenCalledWith(
-        EMAIL,
-        stored.pin,
-        OTPType.SIGNUP,
-      );
-    });
-
-    it('zero-pads a small draw to six digits', async () => {
-      vi.mocked(randomInt).mockReturnValueOnce(42 as never);
-
-      await service.create(target);
-
-      expect(mocks.otpModel.create.mock.calls[0][0].pin).toBe('000042');
+      expect(mocks.mailService.sendOtp).toHaveBeenCalledWith(EMAIL, '042137', OTPType.SIGNUP);
     });
 
     it('trims only after the new pin is stored, so a resend cannot drop it', async () => {
@@ -168,7 +149,7 @@ describe('OtpService', () => {
     });
 
     it('accepts the live pin and clears the failure streak', async () => {
-      mocks.otpModel.getPins.mockResolvedValue(['123456']);
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:123456']);
 
       await expect(verify('123456')).resolves.toBeUndefined();
 
@@ -177,14 +158,14 @@ describe('OtpService', () => {
     });
 
     it('accepts an earlier pin that is still live after a resend', async () => {
-      mocks.otpModel.getPins.mockResolvedValue(['111111', '222222', '333333']);
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:111111', 'hashed:222222', 'hashed:333333']);
 
       await expect(verify('111111')).resolves.toBeUndefined();
       expect(mocks.otpAttemptModel.clearStreak).toHaveBeenCalled();
     });
 
     it('counts a wrong pin against the streak without dropping the live pins', async () => {
-      mocks.otpModel.getPins.mockResolvedValue(['123456']);
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:123456']);
       mocks.otpAttemptModel.registerFailure.mockResolvedValue(0);
 
       await expect(verify('999999')).rejects.toMatchObject({
@@ -198,7 +179,7 @@ describe('OtpService', () => {
     });
 
     it('burns the live pins once a wrong guess trips the lockout', async () => {
-      mocks.otpModel.getPins.mockResolvedValue(['123456']);
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:123456']);
       mocks.otpAttemptModel.registerFailure.mockResolvedValue(3600);
 
       await expect(verify('999999')).rejects.toMatchObject({
@@ -209,10 +190,8 @@ describe('OtpService', () => {
       expect(mocks.otpModel.deleteOtpByEmail).toHaveBeenCalledWith(target);
     });
 
-    it('rejects a pin of the wrong length instead of throwing on the compare', async () => {
-      // timingSafeEqual raises when the buffers differ in length, so a short
-      // pin has to be turned away by the guard rather than reaching it
-      mocks.otpModel.getPins.mockResolvedValue(['123456']);
+    it('rejects a pin of the wrong length', async () => {
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:123456']);
 
       await expect(verify('12345')).rejects.toMatchObject({
         status: 400,
@@ -221,9 +200,10 @@ describe('OtpService', () => {
     });
 
     it('checks every live pin even after an early mismatch', async () => {
-      mocks.otpModel.getPins.mockResolvedValue(['111111', '222222']);
+      mocks.otpModel.getPins.mockResolvedValue(['hashed:111111', 'hashed:222222']);
 
       await expect(verify('222222')).resolves.toBeUndefined();
+      expect(mocks.otpModel.compare).toHaveBeenCalledTimes(2);
     });
   });
 

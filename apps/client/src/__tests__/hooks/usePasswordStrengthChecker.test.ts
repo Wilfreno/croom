@@ -1,4 +1,5 @@
 import usePasswordStrengthChecker from '@/components/hooks/usePasswordStrengthChecker';
+import { passwordStrengthScorePerCriteriaSatisfied as scorePerCriteriaSatisfied } from '@repo/utils';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -41,24 +42,13 @@ describe('usePasswordStrengthChecker', () => {
     expect(scoreOf('aaaaaaaA1_')).toBe(scoreOf('aaaaaaaA1!'));
   });
 
-  describe('scorePerCriteriaSatisfied', () => {
-    it('spreads the six criteria evenly across a hundred', () => {
-      const { result } = renderHook(() => usePasswordStrengthChecker('aaaaaaaa'));
-
-      expect(result.current.scorePerCriteriaSatisfied(1)).toBe(16);
-      expect(result.current.scorePerCriteriaSatisfied(3)).toBe(50);
-      expect(result.current.scorePerCriteriaSatisfied(6)).toBe(100);
-    });
-
-    it('lines up with the score a password of that many criteria earns', () => {
-      const { result } = renderHook(() => usePasswordStrengthChecker('aaaaaaaa'));
-      const { scorePerCriteriaSatisfied } = result.current;
-
-      // lower + eight characters = two criteria
-      expect(scoreOf('aaaaaaaa')).toBe(scorePerCriteriaSatisfied(2));
-      // lower + upper + number + eight characters = four
-      expect(scoreOf('aaaaaaA1')).toBe(scorePerCriteriaSatisfied(4));
-    });
+  // The per-criterion scale itself is covered in @repo/utils; this pins the
+  // hook's score to the same scale the server's strength check uses.
+  it('scores on the same per-criterion scale as the server', () => {
+    // lower + eight characters = two criteria
+    expect(scoreOf('aaaaaaaa')).toBe(scorePerCriteriaSatisfied(2));
+    // lower + upper + number + eight characters = four
+    expect(scoreOf('aaaaaaA1')).toBe(scorePerCriteriaSatisfied(4));
   });
 
   describe('getStrengthColor', () => {

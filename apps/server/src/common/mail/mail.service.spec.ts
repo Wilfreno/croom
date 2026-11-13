@@ -73,11 +73,21 @@ describe('MailService', () => {
       ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
 
+    it('mails a recovery code with its own subject', async () => {
+      const { transporter, service } = build();
+
+      await service.sendOtp('ada@example.com', '654321', OTPType.RECOVER);
+
+      expect(sent(transporter).to).toBe('ada@example.com');
+      expect(sent(transporter).subject).toContain('account recovery code is 654321');
+      expect(sent(transporter).html).toContain('654321');
+    });
+
     it('rejects a type it has no template for', async () => {
       const { transporter, service } = build();
 
       await expect(
-        service.sendOtp('someone@example.com', '123456', OTPType.RECOVER),
+        service.sendOtp('someone@example.com', '123456', 'SOMETHING_ELSE' as OTPType),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(transporter.sendMail).not.toHaveBeenCalled();

@@ -1,163 +1,226 @@
-import mockData from "@/__tests__/mocks/mock-data";
-import MockAuthProvider from "@/__tests__/mocks/MockAuthProvider";
-import Page from "@/app/(auth)/recover/page";
-import ChangePassPage from "@/components/page/auth/recover/ResetPasswordForm";
-import LoginForgetPasswordButton from "@/components/page/auth/login/LoginForgetPasswordButton";
-import { ServerResponse } from "@/lib/server/requests";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultShouldDehydrateQuery, QueryClient } from "@tanstack/react-query";
-import MockQueryClientProvider from "@/__tests__/mocks/MockQueryClientProvider";
+import MockAuthProvider from '@/__tests__/mocks/MockAuthProvider';
+import { mockCreateOTPMutation, succeedingCreateOTPMutate } from '@/__tests__/mocks/mock-mutation';
+import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
+import Page from '@/app/(auth)/recover/page';
+import LoginForgetPasswordButton from '@/components/page/auth/login/LoginForgetPasswordButton';
+import ResetPasswordForm from '@/components/page/auth/recover/ResetPasswordForm';
+import { axiosInstance } from '@/lib/axios-instance';
+import { SOMETHING_WENT_WRONG } from '@repo/constants';
+import { OTPType } from '@repo/enums';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { act, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AxiosError, AxiosResponse } from 'axios';
+import { toast } from 'sonner';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: vi.fn((path) => path),
-  }),
-  useSearchParams: () => ({
-    get: vi.fn((params) => params),
-  }),
-  useParams: vi.fn(() => ({ email: mockData.user.email })),
+const push = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+  useSearchParams: () => new URLSearchParams(),
 }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn() } }));
 
-vi.mock("@/lib/server/requests", () => ({
-  GETRequest: vi.fn(async (path) => {
-    let response: ServerResponse = {
-      data: null,
-      message: "",
-      status: "NOT_FOUND",
-    };
+const EMAIL = 'ada@example.com';
+const STRONG = 'Str0ng!Passw0rd';
 
-    const pathArray = (path as string).split("/");
-    if (pathArray.pop() === mockData.user.email)
-      response = {
-        data: null,
-        message: "",
-        status: "OK",
-      };
+function axiosError(status: number, message: string) {
+  return new AxiosError(message, String(status), undefined, undefined, {
+    status,
+    data: { message },
+  } as AxiosResponse);
+}
 
-    return response;
-  }),
-  POSTRequest: vi.fn(async (path, body) => {
-    let response: ServerResponse = {
-      data: null,
-      message: "",
-      status: "NOT_FOUND",
-    };
+beforeEach(() => vi.clearAllMocks());
 
-    if (body.pin === mockData.otp.pin)
-      response = {
-        data: null,
-        message: "",
-        status: "OK",
-      };
-
-    return response;
-  }),
-}));
-
-describe("Recover Account", () => {
-  it("should display a link element", () => {
+describe('LoginForgetPasswordButton', () => {
+  it('links to account recovery', () => {
     render(<LoginForgetPasswordButton />);
-    expect(screen.getByRole("link", { name: "forgot your password?" }));
-  });
 
-  describe("Find account", () => {
-    beforeEach(() => {
-      render(
-        <MockAuthProvider>
+    expect(screen.getByRole('link', { name: 'forgot your password?' })).toBeInTheDocument();
+  });
+});
+
+describe('Recover page', () => {
+  function renderPage(mutate = vi.fn()) {
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <MockAuthProvider mockData={{ signup: { createOTPMutation: mockCreateOTPMutation({ mutate }) } as never }}>
           <Page />
         </MockAuthProvider>
-      );
-    });
+      </QueryClientProvider>,
+    );
+    return { mutate };
+  }
 
-    it("should display a form, a label, an input, and a button", () => {
-      expect(screen.getByTestId("recover-page-form")).toBeInTheDocument();
-      expect(screen.getByText("Search your email")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Search your email")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
-    });
+  it('asks for the email, with search disabled until one is typed', async () => {
+    renderPage();
+    const search = screen.getByRole('button', { name: 'Search' });
 
-    it("should display a disabled button while the input has no value", async () => {
-      const button = screen.getByRole("button", { name: "Search" });
+    expect(screen.getByLabelText('Search your email')).toBeInTheDocument();
+    expect(search).toBeDisabled();
 
-      expect(button).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Search your email'), EMAIL);
 
-      await userEvent.type(screen.getByPlaceholderText("Search your email"), mockData.user.email);
+    expect(search).toBeEnabled();
+  });
 
-      expect(button).toBeEnabled();
-    });
+  it('requests a recovery code and moves on to the reset form once it is sent', async () => {
+    const { mutate } = renderPage(succeedingCreateOTPMutate());
 
-    it("should display a message if the email is invalid", async () => {
-      await userEvent.type(screen.getByPlaceholderText("Search your email"), "email");
-      await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    await userEvent.type(screen.getByLabelText('Search your email'), EMAIL);
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-      expect(await screen.findByTestId("recover-email-invalid")).toBeInTheDocument();
-    });
+    expect(mutate).toHaveBeenCalledWith({ email: EMAIL, type: OTPType.RECOVER }, expect.anything());
+    expect(await screen.findByLabelText('Recovery OTP')).toBeInTheDocument();
+  });
 
-    it("should display a message if the email is not found", async () => {
-      await userEvent.type(screen.getByPlaceholderText("Search your email"), "test@test.com");
-      await userEvent.click(screen.getByRole("button", { name: "Search" }));
+  it('stays on the email step when the code could not be sent', async () => {
+    renderPage(vi.fn());
 
-      expect(await screen.findByTestId("recover-email-not-found")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Search your email'), 'nobody@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    expect(screen.getByLabelText('Search your email')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Recovery OTP')).not.toBeInTheDocument();
+  });
+
+  it('goes home from the email step', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+
+    expect(push).toHaveBeenCalledWith('/');
+  });
+
+  it('goes back to the email step from the reset form, keeping the email', async () => {
+    renderPage(succeedingCreateOTPMutate());
+    await userEvent.type(screen.getByLabelText('Search your email'), EMAIL);
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await screen.findByLabelText('Recovery OTP');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Go Back' }));
+
+    expect(await screen.findByLabelText('Search your email')).toHaveValue(EMAIL);
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResetPasswordForm', () => {
+  afterEach(() => vi.useRealTimers());
+
+  function renderForm() {
+    render(
+      <QueryClientProvider client={makeQueryClient()}>
+        <ResetPasswordForm email={EMAIL} />
+      </QueryClientProvider>,
+    );
+  }
+
+  async function fill({ pin = '123456', password = STRONG, confirmPassword = STRONG } = {}) {
+    if (pin) await userEvent.type(screen.getByLabelText('Recovery OTP'), pin);
+    if (password) await userEvent.type(screen.getByLabelText('New Password'), password);
+    if (confirmPassword) await userEvent.type(screen.getByLabelText('Confirm password'), confirmPassword);
+  }
+
+  const submit = () => screen.getByRole('button', { name: 'Change password' });
+
+  it('labels each field so it can be found by its label', () => {
+    renderForm();
+
+    expect(screen.getByLabelText('Recovery OTP')).toHaveAttribute('id', 'recover-otp');
+    expect(screen.getByLabelText('New Password')).toHaveAttribute('id', 'recover-new-password');
+    expect(screen.getByLabelText('Confirm password')).toHaveAttribute('id', 'recover-confirm-password');
+  });
+
+  it('keeps the confirmation disabled until a new password is typed', async () => {
+    renderForm();
+
+    expect(screen.getByLabelText('Confirm password')).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText('New Password'), 'a');
+
+    expect(screen.getByLabelText('Confirm password')).toBeEnabled();
+  });
+
+  it('flags a confirmation that does not match and will not submit', async () => {
+    renderForm();
+
+    await fill({ confirmPassword: `${STRONG}x` });
+
+    expect(screen.getByTestId('password-not-same')).toHaveTextContent('Password is not the same');
+    expect(submit()).toBeDisabled();
+  });
+
+  it('will not submit a weak password', async () => {
+    renderForm();
+
+    await fill({ password: 'aaaaaaaa', confirmPassword: 'aaaaaaaa' });
+
+    expect(submit()).toBeDisabled();
+  });
+
+  it('shows and hides the new password', async () => {
+    renderForm();
+    const input = screen.getByLabelText('New Password');
+    const [toggle] = screen.getAllByRole('button').filter((button) => button.getAttribute('tabindex') === '-1');
+
+    expect(input).toHaveAttribute('type', 'password');
+    await userEvent.click(toggle);
+    expect(input).toHaveAttribute('type', 'text');
+  });
+
+  it('sends the email, code and new password to the recover endpoint', async () => {
+    vi.mocked(axiosInstance.patch).mockResolvedValue({});
+    renderForm();
+
+    await fill();
+    await userEvent.click(submit());
+
+    expect(axiosInstance.patch).toHaveBeenCalledWith('/user/recover', {
+      email: EMAIL,
+      pin: '123456',
+      password: STRONG,
+      confirmPassword: STRONG,
     });
   });
 
-  describe("Change password", () => {
-    beforeEach(() => {
-      document.elementFromPoint = vi.fn(() => null);
+  it('confirms the change, then counts down to the login page', async () => {
+    // Real time still passes for userEvent; the countdown is stepped by hand.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(axiosInstance.patch).mockResolvedValue({});
+    renderForm();
+    await fill();
+    await userEvent.click(submit());
+    expect(await screen.findByText('Password Changed')).toBeInTheDocument();
 
-      const queryClient = new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 5 * 60 * 1000,
-          },
-          dehydrate: {
-            shouldDehydrateQuery: (query) => defaultShouldDehydrateQuery(query) || query.state.status === "pending",
-          },
-        },
-      });
+    await act(async () => vi.advanceTimersByTime(1000));
+    expect(screen.getByText(/Redirecting to login page \(4\)/)).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
 
-      render(
-        <MockQueryClientProvider queryClient={queryClient}>
-          <MockAuthProvider>
-            <ChangePassPage />
-          </MockAuthProvider>
-        </MockQueryClientProvider>
-      );
-    });
+    await act(async () => vi.advanceTimersByTime(4000));
+    expect(push).toHaveBeenCalledWith('/login');
+  });
 
-    it("should have a back button", () => {
-      expect(screen.getByTestId("recover-back-button"));
-    });
+  it("shows the server's reason for a rejected code", async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(axiosError(400, 'Invalid OTP'));
+    renderForm();
 
-    describe("OTP confirmation", () => {
-      it("should have a form, an otp input, resend button", () => {
-        expect(screen.getByTestId("recover-otp-form")).toBeInTheDocument();
-        expect(screen.getByTestId("recover-otp-input")).toBeInTheDocument();
-        expect(screen.getByTestId("recover-otp-resend")).toBeInTheDocument();
-        expect(screen.getByTestId("recover-otp-confirm")).toBeInTheDocument();
-      });
+    await fill({ pin: '000000' });
+    await userEvent.click(submit());
 
-      it("should have a disabled button when the value of the otp input is less than 6 characters", async () => {
-        let pin = " ";
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Invalid OTP'));
+    expect(screen.queryByText('Password Changed')).not.toBeInTheDocument();
+  });
 
-        for (pin = "A"; pin.length < 6; pin += "A") {
-          await userEvent.type(screen.getByTestId("recover-otp-input"), pin);
-          expect(screen.getByTestId("recover-otp-confirm")).toBeDisabled();
-          await userEvent.clear(screen.getByTestId("recover-otp-input"));
-        }
+  it('shows a generic message for a server failure', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(axiosError(500, 'stack trace'));
+    renderForm();
 
-        await userEvent.type(screen.getByTestId("recover-otp-input"), pin);
-        expect(screen.getByTestId("recover-otp-confirm")).toBeEnabled();
-      });
+    await fill();
+    await userEvent.click(submit());
 
-      it("should display an error if the pin is invalid", async () => {
-        await userEvent.type(screen.getByTestId("recover-otp-input"), "123abc");
-        await userEvent.click(screen.getByTestId("recover-otp-confirm"));
-
-        expect(screen.getByTestId("recover-invalid-pin")).toBeInTheDocument();
-      });
-    });
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
   });
 });

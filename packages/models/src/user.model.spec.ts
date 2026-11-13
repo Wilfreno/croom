@@ -1,8 +1,9 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { AuthServiceOptions } from '@repo/enums';
 import { User } from '@repo/schemas';
+import { ConfigService } from '@nestjs/config';
 import { compare, hash } from 'bcrypt';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserModel } from './user.model';
 
@@ -11,27 +12,38 @@ vi.mock('bcrypt', () => ({
   compare: vi.fn(async (value: string, hashed: string) => hashed === `hashed:${value}`),
 }));
 
+const ABSENT_PASSWORD_HASH = '$2b$14$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234';
+const configService = { get: vi.fn(() => ABSENT_PASSWORD_HASH) } as unknown as ConfigService;
+const session = {} as ClientSession;
+
 function build() {
   const created = { _id: 'abc', email: 'someone@example.com' };
+  const save = vi.fn().mockResolvedValue(undefined);
+  const docs: Record<string, unknown>[] = [];
 
-  const collection = {
-    // `create` is handed an array and answers with one, which the model
-    // destructures to return the document it just wrote.
-    create: vi.fn().mockResolvedValue([created]),
-    exists: vi.fn().mockResolvedValue(null),
-    findOne: vi.fn().mockReturnValue({ select: vi.fn().mockResolvedValue(null) }),
-    findById: vi.fn().mockResolvedValue(null),
-    findByIdAndUpdate: vi.fn().mockResolvedValue(created),
-  };
+  // `create` builds a document with `new User(...)` and saves it inside the session.
+  const collection = Object.assign(
+    vi.fn(function (this: Record<string, unknown>, doc: Record<string, unknown>) {
+      Object.assign(this, created, doc, { save });
+      docs.push(this);
+    }),
+    {
+      exists: vi.fn().mockResolvedValue(null),
+      findOne: vi.fn().mockReturnValue({ select: vi.fn().mockResolvedValue(null) }),
+      findById: vi.fn().mockResolvedValue(null),
+      findByIdAndUpdate: vi.fn().mockResolvedValue(created),
+    },
+  );
 
   return {
     collection,
+    save,
+    docs,
     model: new UserModel(collection as unknown as Model<User>),
   };
 }
 
-const created = (collection: { create: ReturnType<typeof vi.fn> }) =>
-  collection.create.mock.calls[0][0][0];
+const created = (collection: ReturnType<typeof build>['collection']) => collection.mock.calls[0][0];
 
 describe('UserModel', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -44,7 +56,7 @@ describe('UserModel', () => {
         email: 'ada.lovelace@example.com',
         password: 'sup3rsecret',
         authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
-      });
+      }, session);
 
       expect(created(collection)).toMatchObject({
         email: 'ada.lovelace@example.com',
@@ -60,9 +72,9 @@ describe('UserModel', () => {
         email: 'someone@example.com',
         password: 'sup3rsecret',
         authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD,
-      });
+      }, session);
 
-      expect(hash).toHaveBeenCalledWith('sup3rsecret', 10);
+      expect(hash).toHaveBeenCalledWith('sup3rsecret', 14);
       expect(created(collection).password).toBe('hashed:sup3rsecret');
       expect(created(collection).password).not.toBe('sup3rsecret');
     });
@@ -73,7 +85,7 @@ describe('UserModel', () => {
       await model.create({
         email: 'someone@example.com',
         authService: AuthServiceOptions.WITH_GOOGLE,
-      });
+      }, session);
 
       expect(hash).not.toHaveBeenCalled();
       expect(created(collection).password).toBeUndefined();
@@ -85,20 +97,28 @@ describe('UserModel', () => {
       await model.create({
         email: 'someone@example.com',
         authService: AuthServiceOptions.WITH_GOOGLE,
-      });
+      }, session);
 
       expect(created(collection).authService).toBe(AuthServiceOptions.WITH_GOOGLE);
     });
 
+    it("saves the new account inside the caller's transaction", async () => {
+      const { save, model } = build();
+
+      await model.create({ email: 'someone@example.com', authService: AuthServiceOptions.WITH_GOOGLE }, session);
+
+      expect(save).toHaveBeenCalledWith({ session });
+    });
+
     it('turns a driver failure into a 500', async () => {
-      const { collection, model } = build();
-      collection.create.mockRejectedValue(new Error('duplicate key'));
+      const { save, model } = build();
+      save.mockRejectedValue(new Error('duplicate key'));
 
       await expect(
         model.create({
           email: 'someone@example.com',
           authService: AuthServiceOptions.WITH_GOOGLE,
-        }),
+        }, session),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
@@ -233,19 +253,19 @@ describe('UserModel', () => {
     it('accepts the password behind the hash', async () => {
       const { model } = build();
 
-      await expect(model.verifyPassword('sup3rsecret', 'hashed:sup3rsecret')).resolves.toBe(true);
+      await expect(model.verifyPassword({ password: 'sup3rsecret', hashed: 'hashed:sup3rsecret', configService })).resolves.toBe(true);
     });
 
     it('rejects any other password', async () => {
       const { model } = build();
 
-      await expect(model.verifyPassword('guess', 'hashed:sup3rsecret')).resolves.toBe(false);
+      await expect(model.verifyPassword({ password: 'guess', hashed: 'hashed:sup3rsecret', configService })).resolves.toBe(false);
     });
 
     it('rejects an account that has no password at all', async () => {
       const { model } = build();
 
-      await expect(model.verifyPassword('anything', undefined)).resolves.toBe(false);
+      await expect(model.verifyPassword({ password: 'anything', configService })).resolves.toBe(false);
     });
 
     // The point of the fallback hash: an unknown email has to cost the same as
@@ -253,10 +273,10 @@ describe('UserModel', () => {
     it('still runs a comparison when there is no password to compare against', async () => {
       const { model } = build();
 
-      await model.verifyPassword('anything', undefined);
+      await model.verifyPassword({ password: 'anything', configService });
 
       expect(compare).toHaveBeenCalledTimes(1);
-      expect(vi.mocked(compare).mock.calls[0][1]).toMatch(/^\$2b\$/);
+      expect(vi.mocked(compare).mock.calls[0][1]).toBe(ABSENT_PASSWORD_HASH);
     });
   });
 
@@ -268,7 +288,7 @@ describe('UserModel', () => {
         model.create({
           email: 'someone@example.com',
           authService: AuthServiceOptions.WITH_GOOGLE,
-        }),
+        }, session),
       ).resolves.toMatchObject({ _id: 'abc' });
     });
 

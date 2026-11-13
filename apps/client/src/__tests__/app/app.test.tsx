@@ -1,5 +1,5 @@
 import MockAuthProvider from '@/__tests__/mocks/MockAuthProvider';
-import { mockCreateOTPMutation } from '@/__tests__/mocks/mock-mutation';
+import { mockCreateOTPMutation, succeedingCreateOTPMutate } from '@/__tests__/mocks/mock-mutation';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import FormLayout from '@/app/(auth)/(form)/layout';
 import SignUpPage from '@/app/(auth)/(form)/sign-up/page';
@@ -244,9 +244,9 @@ describe('auth layouts and pages', () => {
 
 describe('recover page', () => {
   it('sends a recovery code, then asks for the new password', async () => {
-    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    const mutate = succeedingCreateOTPMutate();
     render(
-      <MockAuthProvider mockData={{ signup: { createOTPMutation: mockCreateOTPMutation({ mutateAsync }) } as never }}>
+      <MockAuthProvider mockData={{ signup: { createOTPMutation: mockCreateOTPMutation({ mutate }) } as never }}>
         <RecoverPage />
       </MockAuthProvider>,
     );
@@ -254,7 +254,7 @@ describe('recover page', () => {
     await userEvent.type(screen.getByLabelText('Search your email'), 'me@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Search' }));
 
-    expect(mutateAsync).toHaveBeenCalledWith({ email: 'me@example.com', type: OTPType.RECOVER });
+    expect(mutate).toHaveBeenCalledWith({ email: 'me@example.com', type: OTPType.RECOVER }, expect.anything());
     expect(await screen.findByText('reset password for me@example.com')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Go Back' }));
