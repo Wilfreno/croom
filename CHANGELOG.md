@@ -1,3 +1,48 @@
+## [1.1.0](https://github.com/Wilfreno/croom/compare/v1.0.16...v1.1.0) (2026-11-13)
+
+### Features
+
+* **call:** add call screen with camera tile and camera controls ([3fe2ae6](https://github.com/Wilfreno/croom/commit/3fe2ae6d04456dc6af9c5a751bfbbdc786d5a2b6))
+* **call:** add mediasoup SFU call signaling on the server ([1da6601](https://github.com/Wilfreno/croom/commit/1da660133a08b319d9f383c16cfe0ad0a1bc139f))
+* **call:** connect the call screen to the SFU with remote participants ([4e4eef1](https://github.com/Wilfreno/croom/commit/4e4eef1dd734fdad0da389d75cf217a82674e440))
+* **call:** ring conversation members with an incoming-call toast ([1916a4b](https://github.com/Wilfreno/croom/commit/1916a4b613ce33fded1ffc48649da1760ff04bed))
+* **client:** rework signup into a multi-step OTP form ([f633301](https://github.com/Wilfreno/croom/commit/f6333010102fb997efd5ec9abb6543787390a517))
+* **client:** serve the app under a configurable base path ([4b4ec7b](https://github.com/Wilfreno/croom/commit/4b4ec7bdad8b7069c7ebce60a2d7a391a54fb473))
+* **conversation:** enable media viewer ([97def3c](https://github.com/Wilfreno/croom/commit/97def3c68dcccfe545f3d7036b31f9ace048480d))
+* **enums:** give enums string values and add signup enums ([9bb7f21](https://github.com/Wilfreno/croom/commit/9bb7f21653cd4c1f70f3862516e8dc5663094a3d))
+* **guards:** add rate limit package ([24b55f1](https://github.com/Wilfreno/croom/commit/24b55f1138b839e8d226f44c36558e12660c7f70))
+* **message:** create conversation atomically with first message ([10b0ac7](https://github.com/Wilfreno/croom/commit/10b0ac72c1b5d54cd336007d0b3a94c67153a807))
+* **message:** enable real time messaging ([d20fa15](https://github.com/Wilfreno/croom/commit/d20fa1549a20ae5607dc2f64333345cca126dae3))
+* **message:** send conversation id and nicknames with socket message payloads ([9981bc1](https://github.com/Wilfreno/croom/commit/9981bc10115cc14dc26d004d6b875742630c1bae))
+* **models:** add injectable mongoose model providers ([ec4a0f5](https://github.com/Wilfreno/croom/commit/ec4a0f59cba99f44a0d8c8fa1a1366ea3eefe64b))
+* **packages:** add shared constants and utils packages ([80bd5f2](https://github.com/Wilfreno/croom/commit/80bd5f2a6c4cef40d40151cbbe659d47e93283ce))
+* **react-email:** add email template preview app ([b0b9c64](https://github.com/Wilfreno/croom/commit/b0b9c64130b863adb342de3d95ae5292c0aee3ea))
+* **schemas:** add OTP schemas and camelCase the user fields ([b7365c3](https://github.com/Wilfreno/croom/commit/b7365c31a44c90f12d0a1dbb66c7779f81fa8ba7))
+* **server:** add mail module ([b08b07d](https://github.com/Wilfreno/croom/commit/b08b07d7891dfca07d5372300551920dbb6c8ac1))
+* **server:** add OTP module ([e138b14](https://github.com/Wilfreno/croom/commit/e138b149d70c5aa91462c63f706455d80e53d8cb))
+* **server:** add unified server response layer ([8bd1ba5](https://github.com/Wilfreno/croom/commit/8bd1ba59f1b853cb2a7657cc897f4cfdac46f2dd))
+* **server:** implement user creation and availability checks ([b515eae](https://github.com/Wilfreno/croom/commit/b515eae1be9dd5975dd15d14eae484aa15c7e00c))
+* **sidebar:** enable sidebar and serve user conversations from the nest server ([edf39f3](https://github.com/Wilfreno/croom/commit/edf39f350c4654f07869c1741f0eaab3a17d070c))
+* **toast:** enable message toast ([68d9568](https://github.com/Wilfreno/croom/commit/68d9568f5aa5c23239193fa442d573668061bc5b))
+* **types:** add auth context and response payload types ([10093dc](https://github.com/Wilfreno/croom/commit/10093dc58dcaafc33619e5dfea3995d455b2665d))
+* **types:** split package into front-end and back-end entry points ([5f8a7ef](https://github.com/Wilfreno/croom/commit/5f8a7ef017ed4f77f00681a73d355b67a1f71349))
+
+### Bug Fixes
+
+* **auth:** wait for the session to load before redirecting ([cdcb018](https://github.com/Wilfreno/croom/commit/cdcb018e04ef5318efe627f5b5a0ef1ef5f9455a))
+* **client:** fix bugs found while writing tests ([55429a6](https://github.com/Wilfreno/croom/commit/55429a62a812a556d38bbc406ac23daefe1baab0))
+* **client:** import User from @repo/schemas ([6fda6d4](https://github.com/Wilfreno/croom/commit/6fda6d4c77ccbefccc4d569c9ed8ff181a487ce6))
+* **client:** label the recovery OTP field and handle a failed code request ([611b2d4](https://github.com/Wilfreno/croom/commit/611b2d42ee9b262686c4575b3d31653e8709b893))
+* **client:** make the production build pass ([fba763d](https://github.com/Wilfreno/croom/commit/fba763d16b08c36b28594b03abef8afc0e6f2287))
+* **compose:** display user search result ([5c455ea](https://github.com/Wilfreno/croom/commit/5c455ea7f3af966463581684a576ddb530f4f0ee))
+* **compose:** user compose search input ([9a317fb](https://github.com/Wilfreno/croom/commit/9a317fb987ee77393536d15c3763771980d8f748))
+* **conversation:** active conversation section ([a8c486d](https://github.com/Wilfreno/croom/commit/a8c486d7b3d43cc5a0a16447b4fdb2da653a0215))
+* **home:** add missing key to active conversation list ([de75239](https://github.com/Wilfreno/croom/commit/de752392689296cb2d19444f3a30ab60d153b9fc))
+* **message:** store message sender as ObjectId ([3d77dfc](https://github.com/Wilfreno/croom/commit/3d77dfcdae145ba061d2295d02ee9ce33197d0ef))
+* **models:** inject schemas correctly and cast ids to ObjectId ([b10c371](https://github.com/Wilfreno/croom/commit/b10c371da20eae06ec0c732aeebe2166c0c736e8))
+* **server:** match CORS against the client's origin, not its full URL ([3440e6c](https://github.com/Wilfreno/croom/commit/3440e6c08d65d4c82bc62e00b8113154ff605f8e))
+* **utils:** count characters between Z and a as symbols ([1abbe36](https://github.com/Wilfreno/croom/commit/1abbe36d897e6cfc6134488fba8f3c81fa344ec5))
+
 ## [1.0.16](https://github.com/Wilfreno/chatup/compare/v1.0.15...v1.0.16) (2025-03-26)
 
 
