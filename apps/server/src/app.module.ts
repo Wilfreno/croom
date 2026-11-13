@@ -8,12 +8,13 @@ import { AppService } from './app.service';
 import { SessionGuard } from './v1/auth/session.guard';
 import { AuthModule } from './v1/auth/auth.module';
 import { UserModule } from './v1/user/user.module';
-import { ServerResponseInterceptor } from "./common/interceptors/server-response.interceptor";
-import { ServerResponseFilter } from "./common/filters/server-response.filter";
+import { ServerResponseInterceptor } from './common/interceptors/server-response.interceptor';
+import { ServerResponseFilter } from './common/filters/server-response.filter';
 import { MailModule } from './common/mail/mail.module';
 import { OtpModule } from './v1/otp/otp.module';
 import { ConversationModule } from './v1/conversation/conversation.module';
 import { MessageModule } from './v1/message/message.module';
+import { CallModule } from './v1/call/call.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { MessageModule } from './v1/message/message.module';
     RateLimitModule,
     ConversationModule,
     MessageModule,
+    CallModule,
   ],
   controllers: [AppController],
   providers: [

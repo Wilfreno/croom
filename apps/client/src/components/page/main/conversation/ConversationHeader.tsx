@@ -2,17 +2,25 @@
 import { UserStatus } from '@repo/enums';
 
 import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
+import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ConversationInfo } from '@/types/common.types';
-import { ArrowLeft, Ellipsis } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ArrowLeft, Ellipsis, Video } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import UserAvatar from '../UserAvatar';
 
 export default function ConversationHeader({ conversationInfo }: { conversationInfo: ConversationInfo }) {
   const { onMobile, setIsOpen } = useInfoSidebarOpen();
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const socket = useSocketIO();
 
+  function startCall() {
+    socket?.emit('CALL', { conversationId: params.id });
+    router.push(`/call/${params.id}`);
+  }
   return (
     <section
       className={cn(
@@ -34,13 +42,29 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
           </div>
         </div>
       </div>
-      <Button
-        variant="ghost"
-        className="aspect-square h-fit w-auto rounded-full p-1 text-primary"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
-        <Ellipsis />
-      </Button>
+      <div className="flex items-center gap-4">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
+                aria-label="Start video call"
+                onClick={startCall}
+              >
+                <Video className="fill-primary" />
+              </Button>
+            </TooltipTrigger>
+          </Tooltip>
+        </TooltipProvider>
+        <Button
+          variant="ghost"
+          className="aspect-square h-fit w-auto rounded-full p-1 text-primary"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          <Ellipsis />
+        </Button>
+      </div>
     </section>
   );
 }

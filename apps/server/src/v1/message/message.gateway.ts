@@ -8,28 +8,14 @@ import {
 } from '@nestjs/websockets';
 import { SESSION_COOKIE } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
+import type { ServerToClientEvents } from '@repo/types';
 import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  SocketData,
-} from '@repo/types';
-import { Server, Socket } from 'socket.io';
+  TypedServer,
+  TypedSocket,
+} from '../../common/types/socket-io.types';
 import { serializeIds } from '../../common/utils/serialize-ids.util';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
-
-type TypedServer = Server<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  Record<string, never>,
-  SocketData
->;
-type TypedSocket = Socket<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  Record<string, never>,
-  SocketData
->;
 
 /**
  * Real-time delivery for messages on the `/io` namespace.

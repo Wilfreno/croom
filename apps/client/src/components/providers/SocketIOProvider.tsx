@@ -1,17 +1,20 @@
 'use client';
+import { CALL_RING_DURATION_MS } from '@repo/constants';
 import type {
   ClientToServerEvents,
+  IncomingCallPayload,
   Message,
   MessagePayload,
   ServerToClientEvents,
   UserStatusPayload,
 } from '@repo/types';
 import { InfiniteData, useQueryClient } from '@tanstack/react-query';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import useUserAgent from '../hooks/useUserAgent';
+import IncomingCallToast from '../page/call/IncomingCallToast';
 import MessageToast from '../page/main/conversation/MessageToast';
 import { useAuth } from './AuthProvider';
 
@@ -27,6 +30,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const { session } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { onMobile } = useUserAgent();
 
@@ -71,6 +75,19 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         queryKey.includes('conversations') || (queryKey[0] === 'conversation' && queryKey[1] !== 'messages'),
     });
   }
+  function onIncomingCall(call: IncomingCallPayload) {
+    toast.custom(
+      (toastId) => (
+        <IncomingCallToast call={call} toastId={toastId} onAccept={() => router.push(`/call/${call.conversationId}`)} />
+      ),
+      {
+        id: `incoming-call-${call.conversationId}`, // a repeated ring from the same call replaces the toast
+        duration: CALL_RING_DURATION_MS,
+        className: 'w-full',
+        position: onMobile ? 'top-center' : 'bottom-right',
+      },
+    );
+  }
   function onError(error: string) {
     toast(error);
   }
@@ -86,10 +103,12 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     socket.on('MESSAGE', onMessage);
     socket.on('USER_STATUS', onUserStatus);
     socket.on('ERROR', onError);
+    socket.on('INCOMING_CALL', onIncomingCall);
 
     return () => {
       socket?.off('USER_STATUS', onUserStatus);
       socket?.off('ERROR', onError);
+      socket?.off('INCOMING_CALL', onIncomingCall);
       socket?.off('MESSAGE', onMessage);
       socket?.disconnect();
     };

@@ -32,12 +32,12 @@ export default function HomeActiveConversations() {
         ) : Boolean(activeConversations?.length) ? (
           <div className="flex items-center justify-start gap-2 px-1">
             {activeConversations?.map((conversation) => {
-              const isGroup = isGroupChat(conversation);
+              const isGroup = isGroupChat(conversation)
               return (
-                <TooltipProvider>
+                <TooltipProvider key={conversation.id}>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Link key={conversation?.id} href={'/conversation/' + conversation.id}>
+                    <TooltipTrigger asChild>
+                      <Link href={'/conversation/' + conversation.id}>
                         <div className="flex flex-col items-center gap-1 h-fit w-fit">
                           <UserAvatar
                             isOnline

@@ -2,7 +2,9 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { ConversationStatus, UserStatus } from '@repo/enums';
 import { Conversation } from '@repo/schemas';
+import type { CallMember } from '@repo/types';
 import { ClientSession, Model, Types } from 'mongoose';
+import { toEntity } from './pipeline';
 
 @Injectable()
 export class ConversationModel {
@@ -66,6 +68,43 @@ export class ConversationModel {
   async findConversationById(conversationId: string) {
     try {
       return await this.Conversation.findOne({ _id: conversationId });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getCallMembersByConversationId(conversationId: string): Promise<CallMember[] | null> {
+    try {
+      const [conversation] = await this.Conversation.aggregate<{ members: CallMember[] }>([
+        { $match: { _id: new Types.ObjectId(conversationId) } },
+        {
+          $lookup: {
+            from: 'user',
+            localField: 'members',
+            foreignField: '_id',
+            as: 'members',
+            pipeline: [
+              { $project: { displayName: 1, photo: 1 } },
+              {
+                $lookup: {
+                  from: 'photo',
+                  localField: 'photo',
+                  foreignField: '_id',
+                  as: 'photo',
+                  pipeline: [{ $project: { url: 1 } }],
+                },
+              },
+              { $set: { photoUrl: { $ifNull: [{ $first: '$photo.url' }, null] } } },
+              { $unset: 'photo' },
+              ...toEntity,
+            ],
+          },
+        },
+        { $project: { _id: 0, members: 1 } },
+      ]);
+
+      return conversation?.members ?? null;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

@@ -1,6 +1,5 @@
 'use client';
 import useComposeMessage from '@/components/hooks/mutation/useComposeMessage.mutation';
-import useCreateConversation from '@/components/hooks/mutation/useCreateConversation.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import useMessageTextarea from '@/components/hooks/useMessageTextarea';
@@ -29,16 +28,12 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { value: textInput, setValue: setTextInput, textareaProps } = useMessageTextarea({ onSubmit: submit });
 
-  const { foundConversations, isError } = useSearchConversationsByMembers(selectedUsers!);
+  const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
+
   const { data: conversation } = useConversation(foundConversations?.[0]?.id);
 
   const { sendMessage } = useComposeMessage({
     photos: photoInput,
-  });
-
-  const { createNewConversation } = useCreateConversation({
-    photos: photoInput,
-    members: selectedUsers!.map((user) => user[0]),
   });
 
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
@@ -87,11 +82,12 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   }
 
   function submit(text: string = textInput) {
-    if (!foundConversations || !foundConversations.length || isError) {
-      createNewConversation.mutate({ text });
-    } else {
-      sendMessage.mutate({ conversationId: foundConversations[0].id, text });
-    }
+    sendMessage.mutate({
+      conversationId: foundConversations?.[0]?.id!,
+      text,
+      members: selectedUsers!.map((user) => user[0]),
+    });
+
     setTextInput('');
   }
 

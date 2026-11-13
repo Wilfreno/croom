@@ -18,7 +18,8 @@
   "packageManager": "pnpm@10.0.0",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "bcrypt"
+      "bcrypt",
+      "mediasoup"
     ],
     "overrides": {
       "fastify": "^5.12.1"

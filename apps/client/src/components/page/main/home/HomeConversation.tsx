@@ -1,12 +1,12 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { cn, getTimeIntervalText, isGroupChat } from '@/lib/utils';
+import { UserStatus } from '@repo/enums';
+import { Conversation } from '@repo/types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import UserAvatar from '../UserAvatar';
-import { Conversation } from "@repo/types";
-import { UserStatus } from "@repo/enums";
 
 export default function HomeConversation({ conversation }: { conversation: Conversation }) {
   const { session } = useAuth();
@@ -27,7 +27,6 @@ export default function HomeConversation({ conversation }: { conversation: Conve
         timeIntervalText,
         isOnline: isOnline!,
       };
-
     if (isGroupChat(conversation)) {
       conversationName = conversation.name;
       photoUrl = conversation.photo?.url!;
@@ -49,7 +48,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     isOnline = conversation.members.some((user) => user.status === UserStatus.ONLINE);
 
     timeIntervalText = getTimeIntervalText(conversation.messages[0].dateCreated);
-   
+
     return {
       conversationName,
       photoUrl,

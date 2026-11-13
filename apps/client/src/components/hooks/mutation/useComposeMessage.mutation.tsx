@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { Message, Photo, ServerResponse } from '@repo/types';
+import { Message, MessagePayload, Photo, ServerResponse } from '@repo/types';
 import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { useRouter } from 'next/navigation';
@@ -8,17 +8,20 @@ export default function useComposeMessage({ photos }: { photos: Partial<Photo>[]
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const sendMessage = useMutation<Message, AxiosError, { conversationId: string; text: string }>({
-    mutationFn: async ({ conversationId, text }) => {
-      const { data: response } = await axiosInstance.post<ServerResponse<Message>>('/message', {
+  const sendMessage = useMutation<MessagePayload, AxiosError, { conversationId: string; text: string; members: string[] }>({
+    mutationFn: async ({ conversationId, text, members }) => {
+      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>('/message', {
         conversationId,
         text,
         photos,
+        members,
       });
 
       return response.data;
     },
-    onSuccess: async (newMessage, { conversationId }) => {
+    onSuccess: async (messagePayload, { conversationId }) => {
+      // Cached messages store only the conversation's id.
+      const newMessage: Message = { ...messagePayload, conversation: messagePayload.conversation.id };
       queryClient.setQueryData<
         | InfiniteData<
             {
@@ -39,7 +42,7 @@ export default function useComposeMessage({ photos }: { photos: Partial<Photo>[]
           })),
         };
       });
-      router.push('/conversation/' + conversationId);
+      router.push(`/conversation/${conversationId ? conversationId : messagePayload.conversation.id}`);
     },
   });
   return {
