@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/Wilfreno/croom/compare/v1.2.1...v1.2.2) (2026-11-13)
+
+### Bug Fixes
+
+* **ci:** build the shared packages explicitly on deploy ([f6c2402](https://github.com/Wilfreno/croom/commit/f6c24026acc688b96ec832cdc587cd87e58fa277))
+
 ## [1.2.1](https://github.com/Wilfreno/croom/compare/v1.2.0...v1.2.1) (2026-11-13)
 
 ### Bug Fixes
