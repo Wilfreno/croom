@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DELETERequest, GETRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Block } from '@repo/types';
+import { Block } from '@/types/block.types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -78,7 +78,7 @@ export default function SettingsBlockedUsers() {
                   <UserRound className="h-1/2 w-auto" />
                 </AvatarFallback>
               </Avatar>
-              <span>{blockedUser.username}</span>
+              <span>{blockedUser.userName}</span>
               <Button
                 variant="outline"
                 className="ml-auto text-destructive"

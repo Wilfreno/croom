@@ -2,7 +2,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import Loading from '@/components/svg/Loading';
 import { Button } from '@/components/ui/button';
 import { EmailStatus, OTPType } from '@repo/enums';
-import { SignUpFieldProps } from '@repo/types';
+import { SignUpFieldProps } from '@/types/auth.types';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, usePresenceData } from 'motion/react';
 import { forwardRef } from 'react';

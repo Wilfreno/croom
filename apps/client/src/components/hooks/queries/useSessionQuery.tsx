@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { UserSession } from '@/types/model.types';
+import { UserSession } from '@repo/types';
 import { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 

@@ -1,5 +1,5 @@
 'use client';
-import userSearchUsers from '@/components/hooks/queries/userSearchUsers';
+import useSearchUsers from '@/components/hooks/queries/useSearchUsers';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ export default function ComposeTo({
   const convoDropdownDivRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: searchResult } = userSearchUsers(inputValue);
+  const { data: searchResult } = useSearchUsers(inputValue);
 
   const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
 

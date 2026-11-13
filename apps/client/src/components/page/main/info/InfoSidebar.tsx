@@ -26,7 +26,7 @@ export default function InfoSidebar() {
   const { session } = useAuth();
 
   const { isOpen, setIsOpen } = useInfoSidebarOpen();
-  const { data: conversation, isError, error } = useConversation(params.id);
+  const { data: conversation } = useConversation(params.id);
 
   const { data: conversationInfo } = useConversationInfo(conversation!);
 

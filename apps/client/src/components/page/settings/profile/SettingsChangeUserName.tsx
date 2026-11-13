@@ -25,7 +25,7 @@ export default function SettingsChangeUserName() {
           toast.error(message);
           return;
         }
-        await update({ username: "@" + username });
+        await update({ userName: "@" + username });
       } catch (error) {
         throw error;
       }
@@ -60,7 +60,7 @@ export default function SettingsChangeUserName() {
               variant="outline"
               disabled={changeUsername.isPending}
               onClick={() => {
-                setUsername(user!.username);
+                setUsername(user!.userName);
                 setInputIsOpen(false);
               }}
             >
@@ -70,7 +70,7 @@ export default function SettingsChangeUserName() {
               disabled={
                 !username ||
                 changeUsername.isPending ||
-                username === user?.username.slice(1)
+                username === user?.userName.slice(1)
               }
             >
               confirm
@@ -80,7 +80,7 @@ export default function SettingsChangeUserName() {
           <div className="flex items-center gap-2">
             <p className="border rounded-sm p-2 w-full bg-secondary text-sm flex items-center gap-1">
               <AtSign className="h-4 w-auto" />
-              <span>{user?.username.slice(1)}</span>
+              <span>{user?.userName.slice(1)}</span>
             </p>
             <Button
               type="button"
@@ -88,7 +88,7 @@ export default function SettingsChangeUserName() {
               variant="outline"
               className=""
               onClick={() => {
-                setUsername(user!.username.slice(1));
+                setUsername(user!.userName.slice(1));
                 setInputIsOpen(true);
               }}
             >

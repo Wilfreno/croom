@@ -5,7 +5,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { cn } from '@/lib/utils';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { OTPType } from '@repo/enums';
-import { SignUpFieldProps } from '@repo/types';
+import { SignUpFieldProps } from '@/types/auth.types';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { MoveLeft } from 'lucide-react';
 import { motion, usePresenceData } from 'motion/react';
@@ -31,7 +31,7 @@ const SignUpOTPForm = forwardRef<
     try {
       setResend({ time: SECONDS_IN_MINUTE, open: false });
       await createOTPMutation.mutateAsync({ email: formData.email, type: OTPType.SIGNUP });
-    } catch (error) {
+    } catch {
       setResend({ time: SECONDS_IN_MINUTE, open: true });
     }
   }

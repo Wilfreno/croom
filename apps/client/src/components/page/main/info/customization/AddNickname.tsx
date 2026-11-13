@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { PATCHRequest } from '@/lib/server/requests';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { UserStatus } from '@repo/enums';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CaseSensitive, Check, PenLine, X } from 'lucide-react';

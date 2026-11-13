@@ -29,11 +29,11 @@ export default function HomeConversation({ conversation }: { conversation: Conve
       };
     if (isGroupChat(conversation)) {
       conversationName = conversation.name;
-      photoUrl = conversation.photo?.url!;
+      photoUrl = conversation.photo?.url as string;
     } else {
       const otherUser = conversation.members[0];
 
-      photoUrl = otherUser?.photo?.url!;
+      photoUrl = otherUser?.photo?.url as string;
 
       conversationName = conversation.nicknames.find((nickname) => nickname.user === otherUser?.id)?.value || '';
 

@@ -8,7 +8,7 @@ export async function DELETE(request: Request) {
     await uploadThingApi.deleteFiles(key);
 
     return NextResponse.json({ status: "OK", message: "photo deleted" });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ status: "INTERVAL_SERVER_ERROR", message: "Oops! something went wrong" });
   }
 }

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation, User } from '@/types/model.types';
+import { Conversation, User } from '@repo/types';
 import { UserStatus } from '@repo/enums';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, UserRoundPlus, X } from 'lucide-react';
@@ -27,7 +27,7 @@ export default function ManageMember() {
   const divRef = useRef<HTMLDivElement>(null);
 
   const queryClient = useQueryClient();
-  const { data: conversation, isError, error } = useConversation(params.id);
+  const { data: conversation } = useConversation(params.id);
 
   const { data: result } = useQuery({
     queryKey: ['search', 'user', debouncedValue],

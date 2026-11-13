@@ -1,5 +1,6 @@
 import { OTPType } from '@repo/enums';
-import { AuthContextType, LoginVariables, ServerResponse, SignUpFormData } from '@repo/types';
+import { AuthContextType, LoginVariables } from '@/types/auth.types';
+import { ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { vi } from 'vitest';

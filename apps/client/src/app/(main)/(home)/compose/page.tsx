@@ -5,7 +5,7 @@ import ComposeTo from '@/components/page/main/compose/ComposeTo';
 import MainContent from '@/components/page/main/MainContent';
 import { useState } from 'react';
 
-export default function page() {
+export default function Page() {
   const [selectedUsers, setSelectedUsers] = useState<string[][]>([]);
 
   return (

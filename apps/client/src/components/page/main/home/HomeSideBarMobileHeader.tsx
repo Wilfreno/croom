@@ -43,7 +43,7 @@ export default function HomeSideBarMobileHeader() {
                   {session.user?.displayName}
                 </span>
                 <span className="text-xs text-muted-foreground truncate max-w-60">
-                  {session.user?.username}
+                  {session.user?.userName}
                 </span>
               </div>
             </div>

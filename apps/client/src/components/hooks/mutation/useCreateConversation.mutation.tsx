@@ -17,7 +17,7 @@ export default function useCreateConversation({ photos, members }: { photos: Par
       return response.data;
     },
     onSuccess(conversation, { text }) {
-      sendMessage.mutate({ conversationId: conversation.id, text });
+      sendMessage.mutate({ conversationId: conversation.id, text, members });
     },
   });
   return { createNewConversation };

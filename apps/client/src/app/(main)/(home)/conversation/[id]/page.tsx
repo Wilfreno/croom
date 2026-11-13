@@ -6,12 +6,10 @@ import ConversationHeader from '@/components/page/main/conversation/Conversation
 import ConversationMessageInput from '@/components/page/main/conversation/ConversationMessageInput';
 import ConversationMessages from '@/components/page/main/conversation/ConversationMessages';
 import MainContent from '@/components/page/main/MainContent';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { useParams } from 'next/navigation';
 
 export default function Page() {
   const { isOpen, onMobile } = useInfoSidebarOpen();
-  const { session } = useAuth();
   const params = useParams<{ id: string }>();
   const { data: conversation, isError, error } = useConversation(params.id);
 

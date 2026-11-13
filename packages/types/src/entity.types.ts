@@ -25,7 +25,8 @@ export interface Conversation extends Omit<ConversationType, 'members' | 'photo'
   }[];
   blocker?: string;
   admins: User[];
-  messages: Message[]
+  /** Latest-message preview; the list pipeline serializes `seenBy` as `{ id }` objects. */
+  messages: (Omit<Message, 'seenBy'> & { seenBy: { id: string }[] })[];
 }
 
 export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation'> {

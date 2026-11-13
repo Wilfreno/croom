@@ -41,7 +41,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
       });
     },
     onError(error) {
-      if (error.response?.status! < 500) toast.error(error.response?.data.message);
+      if ((error.response?.status ?? 500) < 500) toast.error(error.response?.data.message);
       else toast.error(SOMETHING_WENT_WRONG);
     },
     onSuccess() {

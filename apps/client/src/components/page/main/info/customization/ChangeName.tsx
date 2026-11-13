@@ -6,7 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { Input } from '@/components/ui/input';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Pen, PenLine, X } from 'lucide-react';
 import { useParams } from 'next/navigation';

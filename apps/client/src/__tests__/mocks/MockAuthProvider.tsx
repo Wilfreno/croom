@@ -1,5 +1,5 @@
 import AuthProvider, { AuthContext } from '@/components/providers/AuthProvider';
-import { AuthContextType } from '@repo/types';
+import { AuthContextType } from '@/types/auth.types';
 import React from 'react';
 import { mockCreateOTPMutation, mockLoginMutation, mockSubmitSignUpMutation } from './mock-mutation';
 

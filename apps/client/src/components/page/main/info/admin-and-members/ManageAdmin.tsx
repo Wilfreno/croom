@@ -6,7 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound, UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -17,7 +17,7 @@ export default function ManageAdmin() {
   const { session } = useAuth();
 
   const params = useParams<{ id: string }>();
-  const { data: conversation, isError, error } = useConversation(params.id);
+  const { data: conversation } = useConversation(params.id);
 
   const queryClient = useQueryClient();
 

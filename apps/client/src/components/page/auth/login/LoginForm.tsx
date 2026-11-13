@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { AuthServiceOptions } from '@repo/enums';
 import { LoginCredentials } from '@repo/types';
 import { Eye, EyeOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import LoginForgetPasswordButton from './LoginForgetPasswordButton';
 export default function LoginForm() {
   const [credentials, setCredentials] = useState<LoginCredentials>({

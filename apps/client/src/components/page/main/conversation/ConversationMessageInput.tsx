@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
 import { Conversation } from '@repo/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { Image as ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -31,7 +31,6 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const params = useParams<{ id: string }>();
-  const queryClient = useQueryClient();
 
   const { sendMessage } = useSendMessage(textInput);
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({

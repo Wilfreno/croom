@@ -14,7 +14,7 @@ export default function PasswordToolTip({ open }: { open: boolean }) {
             <li>Must be at least 8 characters</li>
             <li>Has uppercase letters</li>
             <li>Has numbers</li>
-            <li>Has symbols e.g. !@#$%^&amp;*()_+-=[]{}|;:',.&lt;&gt;/?`~"\</li>
+            <li>Has symbols e.g. !@#$%^&amp;*()_+-=[]{}|;:&apos;,.&lt;&gt;/?`~&quot;\</li>
           </ul>
         </TooltipContent>
       </Tooltip>

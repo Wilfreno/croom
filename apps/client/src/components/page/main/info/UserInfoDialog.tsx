@@ -89,7 +89,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <AtSign className="h-4 w-auto" />
-                <span>{userInfo?.username.slice(1)}</span>
+                <span>{userInfo?.userName.slice(1)}</span>
               </div>
             </div>
 

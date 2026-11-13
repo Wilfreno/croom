@@ -3,7 +3,7 @@ import { ServerResponse, SignUpFormData } from '@repo/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Dispatch, SetStateAction } from 'react';
-import { UserSession } from './model.types';
+import { UserSession } from '@repo/types';
 
 export type SignUpFieldProps = {
   formData: SignUpFormData;
