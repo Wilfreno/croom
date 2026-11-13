@@ -1,4 +1,5 @@
 import fastifyCookie from '@fastify/cookie';
+import { SERVER_LISTEN_HOST } from '@repo/constants';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -38,6 +39,6 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  await app.listen(port);
+  await app.listen(port, SERVER_LISTEN_HOST);
 }
 bootstrap();
