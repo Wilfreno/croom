@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/Wilfreno/croom/compare/v1.1.1...v1.1.2) (2026-11-13)
+
+### Bug Fixes
+
+* **client:** redirect the bare root to the base path ([b20478d](https://github.com/Wilfreno/croom/commit/b20478d43f42e14b3a653c17e86326fdcd9a36a1))
+
 ## [1.1.1](https://github.com/Wilfreno/croom/compare/v1.1.0...v1.1.1) (2026-11-13)
 
 ### Bug Fixes
