@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/Wilfreno/croom/compare/v1.2.0...v1.2.1) (2026-11-13)
+
+### Bug Fixes
+
+* **server:** listen on 127.0.0.1 so socket.io gets every request ([66fd9f2](https://github.com/Wilfreno/croom/commit/66fd9f2d56276c5acfd0b5b70b16e4d6cc2edecc))
+
 ## [1.2.0](https://github.com/Wilfreno/croom/compare/v1.1.2...v1.2.0) (2026-11-13)
 
 ### Features
