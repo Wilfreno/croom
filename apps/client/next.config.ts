@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Set NEXT_PUBLIC_BASE_PATH=/croom at build time to serve the app under
+  // /croom; unset, it serves from the root as in development.
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   typescript: {
     // Production builds skip the vitest suite; `check-types` still covers it.
     tsconfigPath: "./tsconfig.build.json",

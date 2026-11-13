@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { ServerResponse } from '@/lib/server/requests';
-import { cn } from '@/lib/utils';
+import { cn, withBasePath } from '@/lib/utils';
 import { ConversationStatus } from '@repo/enums';
 import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -39,7 +39,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
     mutationFn: async ({ key }) => {
       try {
-        const response = await fetch('/api/photo', {
+        const response = await fetch(withBasePath('/api/photo'), {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

@@ -74,3 +74,12 @@ export function getMediaErrorMessage(error: unknown) {
 export function peopleLabel(count: number) {
   return `${count} ${count === 1 ? 'person' : 'people'}`;
 }
+
+/**
+ * Prefixes a root-relative path with the app's base path (NEXT_PUBLIC_BASE_PATH,
+ * e.g. "/croom"). Next applies basePath to <Link>, router and static imports,
+ * but not to fetch() or URLs handed to third-party libraries.
+ */
+export function withBasePath(path: string) {
+  return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}${path}`;
+}
