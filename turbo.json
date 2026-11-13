@@ -8,6 +8,9 @@
       "dependsOn": [
         "^build"
       ],
+      "env": [
+        "UPLOADTHING_TOKEN"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
