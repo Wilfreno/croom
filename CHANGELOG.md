@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Wilfreno/croom/compare/v1.1.0...v1.1.1) (2026-11-13)
+
+### Bug Fixes
+
+* **client:** patch Next.js and declare UPLOADTHING_TOKEN for turbo ([b687a34](https://github.com/Wilfreno/croom/commit/b687a3417e67762a36e9ff8a7e9eb9f11fe4d65f))
+* **server:** build only src so the entry lands at dist/main.js ([2cde832](https://github.com/Wilfreno/croom/commit/2cde8322659d418790c2b242c749e26f36924081))
+
 ## [1.1.0](https://github.com/Wilfreno/croom/compare/v1.0.16...v1.1.0) (2026-11-13)
 
 ### Features
