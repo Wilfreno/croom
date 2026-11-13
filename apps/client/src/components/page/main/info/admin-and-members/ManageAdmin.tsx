@@ -6,7 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRound, UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -17,7 +17,7 @@ export default function ManageAdmin() {
   const { session } = useAuth();
 
   const params = useParams<{ id: string }>();
-  const { data: conversation, isError, error } = useConversation(params.id);
+  const { data: conversation } = useConversation(params.id);
 
   const queryClient = useQueryClient();
 
@@ -36,6 +36,7 @@ export default function ManageAdmin() {
         if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
+        throw error;
       }
     },
     onSuccess: (_, { admin, adminAction }) => {
@@ -85,7 +86,7 @@ export default function ManageAdmin() {
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
-                    <AvatarImage src={user.photo?.id} />
+                    <AvatarImage src={user.photo?.url} />
                     <AvatarFallback>
                       <UserRound className="h-1/2 w-auto" />
                     </AvatarFallback>

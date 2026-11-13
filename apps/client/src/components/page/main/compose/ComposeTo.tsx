@@ -1,5 +1,5 @@
 'use client';
-import userSearchUsers from '@/components/hooks/queries/userSearchUsers';
+import useSearchUsers from '@/components/hooks/queries/useSearchUsers';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, isGroupChat } from '@/lib/utils';
 import { UserStatus } from '@repo/enums';
-import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronDown, UserRound, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
@@ -28,14 +27,13 @@ export default function ComposeTo({
   const [inputValue, setInputValue] = useState('');
   const [seeList, setSeeList] = useState(false);
 
-  const queryClient = useQueryClient();
   const router = useRouter();
 
   const userDropdownDivRef = useRef<HTMLDivElement>(null);
   const convoDropdownDivRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: searchResult } = userSearchUsers(inputValue);
+  const { data: searchResult } = useSearchUsers(inputValue);
 
   const { foundConversations } = useSearchConversationsByMembers(selectedUsers!);
 
@@ -141,11 +139,7 @@ export default function ComposeTo({
                     <Button
                       variant="outline"
                       className="aspect-square h-fit w-auto p-0 rounded-full"
-                      onClick={() =>
-                        queryClient.setQueryData<string[][]>(['compose', 'selected_users'], (prev) =>
-                          prev?.toSpliced(index, 1),
-                        )
-                      }
+                      onClick={() => setSelectedUsers((prev) => prev.toSpliced(index, 1))}
                     >
                       <X className="h-2" />
                     </Button>
@@ -202,7 +196,7 @@ export default function ComposeTo({
                   variant="ghost"
                   className="group rounded-none h-fit w-full justify-start py-2"
                   onClick={() => {
-                    if (selectedUsers?.some((selected) => selected[1] === user.displayName)) {
+                    if (selectedUsers?.some(([selectedId]) => selectedId === user.id)) {
                       toast('Already selected');
                       return;
                     }

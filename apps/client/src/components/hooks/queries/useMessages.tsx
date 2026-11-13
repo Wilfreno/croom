@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { Conversation, Message } from '@/types/model.types';
+import { Conversation, Message } from '@repo/types';
 import { ServerResponse } from '@repo/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 

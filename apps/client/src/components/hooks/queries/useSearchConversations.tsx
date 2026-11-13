@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
 import useDebounce from '../useDebounce';

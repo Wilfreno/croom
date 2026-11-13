@@ -14,7 +14,7 @@ export default function ComposeFoundMessages({ selectedUsers }: { selectedUsers:
       <div className="mt-auto space-y-px">
         {isError ? (
           <div>
-            <p>Can't load messages</p>
+            <p>Can&apos;t load messages</p>
             <Button>Reload</Button>
           </div>
         ) : (

@@ -11,7 +11,7 @@ import { AtSign, Mail, Send, UserRound, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
-import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
+import { COMPOSE_SELECTED_USERS_QUERY_KEY, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 
 export default function UserInfoDialog({ children, user }: { children: React.ReactNode; user: User }) {
   const queryClient = useQueryClient();
@@ -25,10 +25,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
       if (!!data.length) {
         router.push('/conversation/' + data[0].id);
       } else {
-        queryClient.setQueryData<string[][]>(
-          ['compose', 'selected_users'],
-          [[userInfo!.id, userInfo!.displayName]],
-        );
+        queryClient.setQueryData<string[][]>(COMPOSE_SELECTED_USERS_QUERY_KEY, [[user.id, user.displayName]]);
         router.push('/compose');
       }
     } catch {
@@ -89,7 +86,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <AtSign className="h-4 w-auto" />
-                <span>{userInfo?.username.slice(1)}</span>
+                <span>{userInfo?.userName.slice(1)}</span>
               </div>
             </div>
 

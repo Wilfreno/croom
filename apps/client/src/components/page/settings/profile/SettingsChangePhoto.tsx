@@ -50,8 +50,10 @@ export default function SettingsChangePhoto() {
         const { message, status } = await PATCHRequest('/v1/user/photo', {
           photo: newPhoto,
         });
-        if (status !== 'OK') toast.error(message);
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
+        toast.error((error as Error).message);
+        setUploading(false);
         throw error;
       }
     },

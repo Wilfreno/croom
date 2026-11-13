@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    // Production builds skip the vitest suite; `check-types` still covers it.
+    tsconfigPath: "./tsconfig.build.json",
+  },
   images: {
     remotePatterns: [
       {

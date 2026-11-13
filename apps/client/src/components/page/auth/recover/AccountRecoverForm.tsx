@@ -24,10 +24,10 @@ export default function AccountRecoverForm({
     <form
       data-testid="recover-page-form"
       className="grid gap-4"
-      onSubmit={async (event) => {
+      onSubmit={(event) => {
         event.preventDefault();
-        await createOTPMutation.mutateAsync({ email, type: OTPType.RECOVER });
-        navigateTo(1);
+        // A failure is already toasted by the mutation's onError; only move on once the code is sent.
+        createOTPMutation.mutate({ email, type: OTPType.RECOVER }, { onSuccess: () => navigateTo(1) });
       }}
     >
       <Label htmlFor="recover-search-your-email">Search your email</Label>

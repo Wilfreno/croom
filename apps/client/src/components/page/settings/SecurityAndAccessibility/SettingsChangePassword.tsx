@@ -54,12 +54,12 @@ export default function SettingsChangePassword() {
       </div>
       <div ref={divRef} className={cn(open ? "grid gap-2 relative" : "hidden")}>
         <div className="space-y-1">
-          <Label htmlFor="current-pass" className="font-medium">
+          <Label htmlFor="new-password" className="font-medium">
             New Password
           </Label>
           <div className="relative">
             <Input
-              id="current-pass"
+              id="new-password"
               type={seePassword[0] ? "text" : "password"}
               placeholder="New Password"
               value={password.new}
@@ -79,12 +79,12 @@ export default function SettingsChangePassword() {
           </div>
         </div>
         <div className="space-y-1">
-          <Label htmlFor="current-pass" className="font-medium">
+          <Label htmlFor="confirm-password" className="font-medium">
             Confirm Password
           </Label>
           <div className="relative">
             <Input
-              id="current-pass"
+              id="confirm-password"
               type={seePassword[1] ? "text" : "password"}
               placeholder="Confirm Password"
               value={password.confirm}

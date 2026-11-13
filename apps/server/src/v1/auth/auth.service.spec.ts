@@ -133,10 +133,11 @@ describe('AuthService', () => {
 
       await (await makeService(mocks)).validateCredentials(CREDENTIALS);
 
-      expect(mocks.userModel.verifyPassword).toHaveBeenCalledWith(
-        CREDENTIALS.password,
-        undefined,
-      );
+      expect(mocks.userModel.verifyPassword).toHaveBeenCalledWith({
+        password: CREDENTIALS.password,
+        hashed: undefined,
+        configService: expect.anything(),
+      });
     });
 
     // A strategy decides who the caller is and stops there; the route is what

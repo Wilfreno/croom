@@ -2,8 +2,10 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { HttpStatus } from '@nestjs/common';
 import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@repo/constants';
+import type { SessionModel, UserModel } from '@repo/models';
 import type { AuthenticatedUser } from '@repo/types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { Connection } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -13,32 +15,37 @@ const CREDENTIALS = { email: 'ada@example.com', password: 'sup3rsecret' };
 const CLIENT_URL = 'https://croom.app';
 
 function build() {
-  const authService = {
-    issueSession: vi.fn().mockResolvedValue('a-token'),
-    logout: vi.fn().mockResolvedValue(undefined),
-  };
   const reply = {
     setCookie: vi.fn(),
     clearCookie: vi.fn(),
     redirect: vi.fn(),
   };
 
-  return { authService, reply };
+  // Filled in by makeController: a real AuthService (its cookie and session
+  // wiring is what these tests pin) with only its storage calls stubbed.
+  return { authService: undefined as unknown as AuthService, reply };
 }
 
 type Mocks = ReturnType<typeof build>;
 
 async function makeController(mocks: Mocks, env: Record<string, string> = {}) {
   const config = { CLIENT_URL, ...env };
+  const configService = { get: (key: string) => config[key] } as unknown as ConfigService;
+
+  mocks.authService = new AuthService(
+    {} as UserModel,
+    {} as SessionModel,
+    configService,
+    {} as Connection,
+  );
+  vi.spyOn(mocks.authService, 'issueSession').mockResolvedValue('a-token');
+  vi.spyOn(mocks.authService, 'logout').mockResolvedValue(undefined);
 
   const moduleRef = await Test.createTestingModule({
     controllers: [AuthController],
     providers: [
       { provide: AuthService, useValue: mocks.authService },
-      {
-        provide: ConfigService,
-        useValue: { get: (key: string) => config[key] },
-      },
+      { provide: ConfigService, useValue: configService },
     ],
   }).compile();
 

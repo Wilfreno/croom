@@ -1,4 +1,5 @@
 import { uploadThingApi } from "@/lib/server/uploadthing";
+import type { ServerResponse } from "@repo/types";
 import { NextResponse } from "next/server";
 
 export async function DELETE(request: Request) {
@@ -7,8 +8,11 @@ export async function DELETE(request: Request) {
 
     await uploadThingApi.deleteFiles(key);
 
-    return NextResponse.json({ status: "OK", message: "photo deleted" });
-  } catch (error) {
-    return NextResponse.json({ status: "INTERVAL_SERVER_ERROR", message: "Oops! something went wrong" });
+    return NextResponse.json<ServerResponse<null>>({ status: "OK", message: "photo deleted", data: null });
+  } catch {
+    return NextResponse.json<ServerResponse<null>>(
+      { status: "INTERNAL SERVER ERROR", message: "Oops! something went wrong", data: null },
+      { status: 500 },
+    );
   }
 }

@@ -1,13 +1,10 @@
 import useEmailCheck from "@/components/hooks/queries/useEmailCheck";
-import useDebounce from '@/components/hooks/useDebounce';
 import Loading from '@/components/svg/Loading';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { axiosInstance } from '@/lib/axios-instance';
 import { cn } from '@/lib/utils';
-import { CheckUserDataType, EmailStatus } from '@repo/enums';
-import { SignUpFieldProps } from '@repo/types';
-import { useQuery } from '@tanstack/react-query';
+import { EmailStatus } from '@repo/enums';
+import { SignUpFieldProps } from '@/types/auth.types';
 import { CircleCheck } from 'lucide-react';
 export default function SignupEmailInput({ formData, setFormData }: SignUpFieldProps) {
   

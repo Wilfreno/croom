@@ -1,7 +1,7 @@
 'use client';
 import { axiosInstance } from '@/lib/axios-instance';
 import { AuthContextType, LoginVariables } from '@/types/auth.types';
-import { User } from '@/types/model.types';
+import { User } from '@repo/types';
 import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import { AuthServiceOptions, OTPType } from '@repo/enums';
 import { ServerResponse, SignUpFormData } from '@repo/types';
@@ -84,7 +84,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     },
 
     onError(error) {
-      if (error.response?.status! < 500) toast.error(error.response?.data.message);
+      if ((error.response?.status ?? 500) < 500) toast.error(error.response?.data.message);
       else toast.error(SOMETHING_WENT_WRONG);
     },
     onSuccess(_, { email }) {

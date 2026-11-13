@@ -5,7 +5,7 @@ import LoginForm from '@/components/page/auth/login/LoginForm';
 import LoginWGoogle from '@/components/page/auth/login/LoginWGoogle';
 import NavigateToSignUpButton from '@/components/page/auth/login/NavigateToSignUpButton';
 import { AuthServiceOptions } from '@repo/enums';
-import { AuthContextType } from '@repo/types';
+import { AuthContextType } from '@/types/auth.types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';

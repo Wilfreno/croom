@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PATCHRequest, ServerResponse } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@/types/model.types';
+import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ImageIcon, UserRound } from 'lucide-react';
 import { useParams } from 'next/navigation';
@@ -61,13 +61,14 @@ export default function ChangePhoto() {
         if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
+        throw error;
       }
     },
     onSuccess: () => {
       const queryKeys = [
         ['conversation', params.id],
         [session.user?.id, 'conversations'],
-        [session.user?.id, 'active', 'conversations'],
+        ['active', 'conversations', session.user?.id],
       ];
 
       if (!conversation?.photo) {

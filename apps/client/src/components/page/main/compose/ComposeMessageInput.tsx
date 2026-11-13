@@ -83,7 +83,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   function submit(text: string = textInput) {
     sendMessage.mutate({
-      conversationId: foundConversations?.[0]?.id!,
+      conversationId: foundConversations?.[0]?.id as string,
       text,
       members: selectedUsers!.map((user) => user[0]),
     });

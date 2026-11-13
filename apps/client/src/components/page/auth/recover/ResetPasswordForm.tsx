@@ -41,7 +41,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
       });
     },
     onError(error) {
-      if (error.response?.status! < 500) toast.error(error.response?.data.message);
+      if ((error.response?.status ?? 500) < 500) toast.error(error.response?.data.message);
       else toast.error(SOMETHING_WENT_WRONG);
     },
     onSuccess() {
@@ -86,7 +86,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
     >
       <div className="grid gap-4 relative">
         <div>
-          <Label htmlFor="recover-new-password">Recovery OTP</Label>
+          <Label htmlFor="recover-otp">Recovery OTP</Label>
           <Input
             type="tel"
             id="recover-otp"

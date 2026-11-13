@@ -33,7 +33,7 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
           <ArrowLeft className="h-4 w-auto" />
         </Button>
         <div className="flex items-center gap-4">
-          <UserAvatar src={conversationInfo?.photoUrl} isOnline={status === UserStatus.ONLINE} />
+          <UserAvatar src={conversationInfo?.photoUrl} isOnline={conversationInfo?.status === UserStatus.ONLINE} />
           <div>
             <p className="font-medium truncate max-w-96">{conversationInfo?.conversationName}</p>
             {!!conversationInfo?.lastOnline && (
