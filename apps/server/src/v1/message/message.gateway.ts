@@ -1,41 +1,21 @@
 import fastifyCookie from '@fastify/cookie';
 import { Logger } from '@nestjs/common';
 import {
-  ConnectedSocket,
-  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { SESSION_COOKIE } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
-import { ConversationModel } from '@repo/models';
+import type { ServerToClientEvents } from '@repo/types';
 import type {
-  CallPayload,
-  ClientToServerEvents,
-  ServerToClientEvents,
-  SocketData,
-} from '@repo/types';
-import { isValidObjectId } from 'mongoose';
-import { Server, Socket } from 'socket.io';
+  TypedServer,
+  TypedSocket,
+} from '../../common/types/socket-io.types';
 import { serializeIds } from '../../common/utils/serialize-ids.util';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
-
-type TypedServer = Server<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  Record<string, never>,
-  SocketData
->;
-type TypedSocket = Socket<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  Record<string, never>,
-  SocketData
->;
 
 /**
  * Real-time delivery for messages on the `/io` namespace.
@@ -56,7 +36,6 @@ export class MessageGateway
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
-    private readonly conversationModel: ConversationModel,
   ) {}
 
   async handleConnection(client: TypedSocket) {
@@ -99,70 +78,6 @@ export class MessageGateway
       }
     } catch (error) {
       this.logger.error(error);
-    }
-  }
-
-  /** Rings every other member of a conversation the caller belongs to. */
-  @SubscribeMessage('CALL')
-  async handleCall(
-    @ConnectedSocket() client: TypedSocket,
-    @MessageBody() payload: CallPayload,
-  ) {
-    const callerId = client.data.userId;
-    const conversationId = payload?.conversationId;
-    if (!callerId) return;
-
-    try {
-      if (
-        typeof conversationId !== 'string' ||
-        !isValidObjectId(conversationId)
-      ) {
-        client.emit('ERROR', 'invalid conversation');
-        return;
-      }
-
-      const [conversation, isBlocked] = await Promise.all([
-        this.conversationModel.findConversationPayloadById(conversationId),
-        this.conversationModel.isUserBlockedInConversation({
-          conversationId,
-          userId: callerId,
-        }),
-      ]);
-
-      // Members are populated user documents here, not bare ids.
-      const members = (conversation?.members ?? []) as unknown as {
-        _id: { toString(): string };
-        displayName: string;
-        photo: { url: string } | null;
-      }[];
-      const caller = members.find(
-        (member) => member._id.toString() === callerId,
-      );
-
-      if (!conversation || !caller) {
-        client.emit('ERROR', 'conversation not found');
-        return;
-      }
-      if (isBlocked) {
-        client.emit('ERROR', 'you cannot call this conversation');
-        return;
-      }
-
-      const recipientIds = members
-        .map((member) => member._id.toString())
-        .filter((memberId) => memberId !== callerId);
-
-      this.emitToUsers(recipientIds, 'INCOMING_CALL', {
-        conversationId,
-        caller: {
-          id: callerId,
-          displayName: caller.displayName,
-          photoUrl: caller.photo?.url ?? null,
-        },
-      });
-    } catch (error) {
-      this.logger.error(error);
-      client.emit('ERROR', 'could not start the call');
     }
   }
 
