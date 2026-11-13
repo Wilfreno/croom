@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/Wilfreno/croom/compare/v1.1.2...v1.2.0) (2026-11-13)
+
+### Features
+
+* **server:** log each request and response ([7a2c3ac](https://github.com/Wilfreno/croom/commit/7a2c3ac5fe2e0fe2f0ce4ee18e33ddc5f020877c))
+
 ## [1.1.2](https://github.com/Wilfreno/croom/compare/v1.1.1...v1.1.2) (2026-11-13)
 
 ### Bug Fixes
