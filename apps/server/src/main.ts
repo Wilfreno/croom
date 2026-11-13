@@ -12,7 +12,9 @@ import { SocketIoAdapter } from './common/adapters/socket-io.adapter';
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    // Logs one line per request and per response (method, url, status, time)
+    // to stdout, which pm2 captures: `pm2 logs croom-server`.
+    new FastifyAdapter({ logger: true }),
   );
   const configService = app.get(ConfigService);
   const port = configService.get('PORT');
