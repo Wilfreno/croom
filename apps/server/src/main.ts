@@ -17,16 +17,19 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get('PORT');
   const clientUrl = configService.get<string>('CLIENT_URL');
+  // Browsers send an Origin of scheme://host[:port] only, so a CLIENT_URL with
+  // a path (https://wilfreno.site/croom) has to be cut down to match it.
+  const clientOrigin = clientUrl ? new URL(clientUrl).origin : undefined;
 
   await app.register(fastifyCookie);
 
   app.enableCors({
-    origin: clientUrl,
+    origin: clientOrigin,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'],
     credentials: true,
   });
 
-  app.useWebSocketAdapter(new SocketIoAdapter(app, clientUrl));
+  app.useWebSocketAdapter(new SocketIoAdapter(app, clientOrigin));
 
   app.enableVersioning({
     type: VersioningType.URI,

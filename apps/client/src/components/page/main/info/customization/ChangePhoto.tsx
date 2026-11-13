@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PATCHRequest, ServerResponse } from '@/lib/server/requests';
-import { cn } from '@/lib/utils';
+import { cn, withBasePath } from '@/lib/utils';
 import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ImageIcon, UserRound } from 'lucide-react';
@@ -30,7 +30,7 @@ export default function ChangePhoto() {
     mutationFn: async () => {
       try {
         if (!newPhoto) return;
-        const response = await fetch('/api/photo', {
+        const response = await fetch(withBasePath('/api/photo'), {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

@@ -1,0 +1,53 @@
+name: Deploy server
+
+# Manual only: Actions → "Deploy server" → Run workflow. Pick the branch in the
+# "Use workflow from" dropdown; its latest commit is tested, then deployed.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   VM_HOST         the VM's static external IP
+#   VM_USER         the Linux user on the VM
+#   VM_SSH_KEY      private key whose public half is in the VM's SSH keys
+#   VM_KNOWN_HOSTS  output of `ssh-keyscan -t ed25519 <VM_HOST>`
+#
+# One-time setup on the VM: Node 24, pnpm (corepack), pm2, the repo cloned to
+# ~/croom, apps/server/.env filled in, and `pm2 startup` run once.
+on:
+  workflow_dispatch:
+
+# One deploy at a time; a second click waits instead of racing the first.
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up SSH
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_KNOWN_HOSTS: ${{ secrets.VM_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$VM_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # The VM is stopped from 12am to 6am (Asia/Manila), so a deploy then
+      # fails here with a timeout rather than half-way through.
+      - name: Deploy
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          SHA: ${{ github.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o ConnectTimeout=20 \
+            "$VM_USER@$VM_HOST" "bash -s -- $SHA" < scripts/deploy-server.sh
