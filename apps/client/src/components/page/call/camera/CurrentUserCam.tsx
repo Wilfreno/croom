@@ -1,4 +1,5 @@
 'use client';
+import { useIsSelfInGrid } from '@/components/hooks/useCallParticipants';
 import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
 import { cn } from '@/lib/utils';
 import {
@@ -13,6 +14,7 @@ import { useEffect, useRef } from 'react';
 
 export default function CurrentUserCam() {
   const { localMedia, isCameraOn } = useLocalMedia();
+  const isSelfInGrid = useIsSelfInGrid();
   const showVideo = localMedia.status === 'ready' && isCameraOn;
   const callAreaRef = useRef<HTMLDivElement>(null);
   const tileRef = useRef<HTMLDivElement>(null);
@@ -39,6 +41,9 @@ export default function CurrentUserCam() {
     const requestedWidth = tileWidth.get() - panInfo.delta.x;
     tileWidth.set(Math.min(Math.max(requestedWidth, CALL_TILE_MIN_WIDTH), maxTileWidth));
   }
+
+  // In bigger calls your camera is a tile in the grid instead.
+  if (isSelfInGrid) return null;
 
   return (
     <div ref={callAreaRef} className="pointer-events-none absolute inset-0">
