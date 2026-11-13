@@ -1,5 +1,8 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": [
+    ".github/workflows/test.yml"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [

@@ -1,12 +1,15 @@
 name: Test
 
 on:
-  push:
-    branches: [main]
+  # Pushes to main are tested by release.yml, which calls this workflow
+  # before it releases.
   pull_request:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Not `github.workflow`: when called from release.yml that is "Release", and
+  # the group would collide with the release workflow's own.
+  group: test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -14,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the base commit is there to diff against.
+          fetch-depth: 0
 
       # Reads the pnpm version from "packageManager" in package.json.
       - uses: pnpm/action-setup@v4
@@ -26,4 +32,28 @@ jobs:
       # The root preinstall hook builds the shared packages.
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm test -- --continue
+      # Tests only the workspaces that changed, plus everything depending on
+      # them: a client change tests the client; a change to packages/models
+      # also tests guards and the server, which use it. Changes to the root
+      # package.json, the lockfile or this workflow test everything; changes
+      # outside any workspace (docs, other workflows) test nothing.
+      - name: Pick what to test
+        id: scope
+        env:
+          # The PR's target branch, or the last commit on main before this push.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "filter=--filter=...[$BASE...HEAD]" >> "$GITHUB_OUTPUT"
+            echo "Testing what changed since $BASE:"
+            git diff --name-only "$BASE...HEAD" | cut -d/ -f1-2 | sort -u
+          else
+            # A manual run, a new branch or a force-push: nothing to diff against.
+            echo "filter=" >> "$GITHUB_OUTPUT"
+            echo "No base commit to compare against; testing everything."
+          fi
+
+      - run: pnpm exec turbo run test $FILTER --continue
+        env:
+          FILTER: ${{ steps.scope.outputs.filter }}

@@ -1,0 +1,46 @@
+name: Release
+
+# Versions main with semantic-release once the tests pass; see release.config.js
+# for which commit types bump which part of the version.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two releases at once, and never cancel one halfway through.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # tag, GitHub release, CHANGELOG commit
+      issues: write # comment on issues a release fixes
+      pull-requests: write # comment on PRs a release ships
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # semantic-release reads every commit and tag since the last release.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec semantic-release
+        env:
+          # A PAT is needed only if main is protected against direct pushes,
+          # since the CHANGELOG commit goes straight to main.
+          GITHUB_TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
