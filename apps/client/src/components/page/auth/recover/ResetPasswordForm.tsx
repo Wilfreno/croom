@@ -86,7 +86,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
     >
       <div className="grid gap-4 relative">
         <div>
-          <Label htmlFor="recover-new-password">Recovery OTP</Label>
+          <Label htmlFor="recover-otp">Recovery OTP</Label>
           <Input
             type="tel"
             id="recover-otp"
