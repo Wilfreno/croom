@@ -37,7 +37,9 @@ export default function SettingsBlockedUsers() {
   const unblock = useMutation<void, Error, { id: string; index: number }>({
     mutationFn: async ({ id }) => {
       try {
-        const {} = await DELETERequest('/v1/block', { id });
+        const { status, message } = await DELETERequest('/v1/block', { id });
+
+        if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
         throw error;

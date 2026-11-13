@@ -36,6 +36,7 @@ export default function ManageAdmin() {
         if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
+        throw error;
       }
     },
     onSuccess: (_, { admin, adminAction }) => {
@@ -85,7 +86,7 @@ export default function ManageAdmin() {
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Avatar>
-                    <AvatarImage src={user.photo?.id} />
+                    <AvatarImage src={user.photo?.url} />
                     <AvatarFallback>
                       <UserRound className="h-1/2 w-auto" />
                     </AvatarFallback>

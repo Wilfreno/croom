@@ -50,7 +50,7 @@ export default function SettingsChangeUserName() {
             <AtSign className="h-4 w-auto absolute top-1/2 left-4 -translate-y-1/2" />
             <Input
               autoFocus
-              placeholder="Display name"
+              placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="pl-8"

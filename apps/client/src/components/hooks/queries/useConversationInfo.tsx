@@ -27,7 +27,7 @@ export default function useConversationInfo(conversation?: Conversation) {
         status = otherUser.status;
         photoUrl = otherUser.photo?.url || '';
 
-        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser.id)!.value;
+        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser.id)?.value ?? '';
         if (!conversationName) conversationName = otherUser.displayName;
 
         if (otherUser.status === UserStatus.OFFLINE) {

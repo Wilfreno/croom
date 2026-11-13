@@ -61,13 +61,14 @@ export default function ChangePhoto() {
         if (status !== 'OK') throw new Error(message);
       } catch (error) {
         toast.error((error as Error).message);
+        throw error;
       }
     },
     onSuccess: () => {
       const queryKeys = [
         ['conversation', params.id],
         [session.user?.id, 'conversations'],
-        [session.user?.id, 'active', 'conversations'],
+        ['active', 'conversations', session.user?.id],
       ];
 
       if (!conversation?.photo) {

@@ -8,7 +8,7 @@ export default function useSearchUsers(searchText: string) {
   const debouncedValue = useDebounce(searchText);
 
   const { data } = useQuery({
-    enabled: Boolean(searchText),
+    enabled: Boolean(debouncedValue),
     queryKey: ['search', 'user', debouncedValue],
     queryFn: async () => {
       const { data: response } = await axiosInstance.get<ServerResponse<User[]>>(`/user/search/${debouncedValue}`);

@@ -34,7 +34,7 @@ export default function ChangeName() {
   const changeName = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest('/v1/query_response/' + params.id + '/name', {
+        const { status, message } = await PATCHRequest('/v1/conversation/' + params.id + '/name', {
           name: value,
         });
 
@@ -45,17 +45,14 @@ export default function ChangeName() {
       }
     },
     onSuccess: async () => {
-      queryClient.setQueryData<Conversation>(['query_response', params.id], (prev) => ({
-        ...prev!,
-        name: value,
-      }));
+      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => prev && { ...prev, name: value });
       queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
         if (!prev) return [];
 
         return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
       });
 
-      queryClient.setQueryData<Conversation[]>([session.user?.id, 'active', 'conversations'], (prev) => {
+      queryClient.setQueryData<Conversation[]>(['active', 'conversations', session.user?.id], (prev) => {
         if (!prev) return [];
         return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
       });

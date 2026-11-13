@@ -60,28 +60,28 @@ export default function HomeConversation({ conversation }: { conversation: Conve
 
   const textMessage = useMemo(() => {
     if (!conversation || !session.user) return;
+    const [lastMessage] = conversation.messages;
     let name = '';
     let text = '';
 
-    if (isGroupChat(conversation)) {
-      name =
-        conversation.nicknames.find((nickname) => nickname.user === conversation.messages[0].sender.id)?.value || '';
+    // Name the sender when it isn't obvious: you anywhere, or anyone in a group chat.
+    if (lastMessage.sender.id === session.user.id) name = 'you';
+    else if (isGroupChat(conversation)) {
+      name = conversation.nicknames.find((nickname) => nickname.user === lastMessage.sender.id)?.value || '';
 
-      if (!name) name = conversation.messages[0].sender.displayName;
-    } else if (conversation.messages[0].sender.id === session.user.id) name += 'you';
+      if (!name) name = lastMessage.sender.displayName;
+    }
 
     text += name;
 
-    if (!!conversation.messages[0].photos.length) {
-      if (conversation.messages[0].photos.length > 1) text += ' sent some photos';
+    if (!!lastMessage.photos.length) {
+      if (lastMessage.photos.length > 1) text += ' sent some photos';
       else text += ' sent a photo';
     } else {
-      if (conversation.messages[0].sender.id === session.user.id) {
-        text += ': ';
-      }
-      text += conversation.messages[0].text;
+      if (name) text += ': ';
+      text += lastMessage.text;
     }
-    return text;
+    return text.trim();
   }, [conversation, session.user]);
 
   return (

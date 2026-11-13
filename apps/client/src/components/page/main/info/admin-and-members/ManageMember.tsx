@@ -34,7 +34,7 @@ export default function ManageMember() {
     queryFn: async () => {
       try {
         if (!debouncedValue) return [];
-        const { data, status, message } = await GETRequest<User[]>('/v1/user/search?value=' + debouncedValue);
+        const { data, status, message } = await GETRequest<User[]>('/v1/user/search/' + encodeURIComponent(debouncedValue));
 
         if (status !== 'OK') {
           toast.error(message);
@@ -49,7 +49,7 @@ export default function ManageMember() {
     placeholderData: [],
   });
 
-  const members = useMutation<User, Error, { id: string; action: 'ADD' | 'REMOVE'; index: number; username: string }>({
+  const members = useMutation<User, Error, { id: string; action: 'ADD' | 'REMOVE'; username: string }>({
     mutationFn: async ({ id, action, username }) => {
       try {
         let user: User;
@@ -75,7 +75,7 @@ export default function ManageMember() {
         throw error;
       }
     },
-    onSuccess: (user, { action, index }) => {
+    onSuccess: (user, { action, id }) => {
       queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => {
         if (!prev) return;
         switch (action) {
@@ -83,7 +83,7 @@ export default function ManageMember() {
             return { ...prev, members: [...prev.members, user] };
           }
           case 'REMOVE': {
-            return { ...prev, members: prev.members.toSpliced(index, 1) };
+            return { ...prev, members: prev.members.filter((member) => member.id !== id) };
           }
         }
       });
@@ -156,7 +156,7 @@ export default function ManageMember() {
               >
                 <ScrollArea className="h-[30dvh]">
                   <div className="p-2 grid gap-2">
-                    {result?.map((user, index) => (
+                    {result?.map((user) => (
                       <div key={user.id} className="flex items-center justify-between">
                         <div className="flex items-start gap-2">
                           <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
@@ -173,7 +173,6 @@ export default function ManageMember() {
                               members.mutate({
                                 action: 'REMOVE',
                                 id: user.id,
-                                index,
                                 username: user.userName,
                               })
                             }
@@ -188,7 +187,6 @@ export default function ManageMember() {
                               members.mutate({
                                 action: 'ADD',
                                 id: user.id,
-                                index,
                                 username: user.userName,
                               })
                             }
@@ -207,7 +205,7 @@ export default function ManageMember() {
             <span className="text-lg font-semibold">Members</span>
             <ScrollArea className="h-[30dvh]">
               <div className="grid gap-2 p-2">
-                {(conversation as Conversation).members.map((user, index) => (
+                {(conversation as Conversation).members.map((user) => (
                   <div key={user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
@@ -226,7 +224,6 @@ export default function ManageMember() {
                           members.mutate({
                             action: 'REMOVE',
                             id: user.id,
-                            index,
                             username: user.userName,
                           })
                         }
