@@ -110,6 +110,15 @@ describe('HomeConversation', () => {
     expect(screen.getByRole('link')).toHaveAttribute('href', `/conversation/${conversation.id}`);
   });
 
+  it('shows a group chat as its first online member plus how many others', () => {
+    const conversation = chatWith();
+    conversation.members = [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()];
+
+    renderWithQuery(<HomeConversation conversation={conversation} />);
+
+    expect(screen.getByLabelText('and 2 more')).toHaveTextContent('+2');
+  });
+
   it('prefers their nickname', () => {
     const bob = mockUser({ displayName: 'Bob' });
     const conversation = chatWith(bob);
@@ -250,6 +259,18 @@ describe('HomeActiveConversations', () => {
     render(<HomeActiveConversations />);
 
     expect(screen.getByText('No active friends')).toBeInTheDocument();
+  });
+
+  it('shows a group chat as its first online member plus how many others', () => {
+    const group = mockConversation({
+      name: 'Team',
+      members: [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()],
+    });
+    active.activeConversations = [group];
+
+    render(<HomeActiveConversations />);
+
+    expect(screen.getByLabelText('and 2 more')).toHaveTextContent('+2');
   });
 
   it('offers a retry after a failure', async () => {

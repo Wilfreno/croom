@@ -3,6 +3,7 @@ import {
   cn,
   emitSocketEventAndWaitForServerReply,
   getConversationName,
+  getGroupAvatarMembers,
   isConversationOnline,
   getMediaErrorMessage,
   getSecondsInterval,
@@ -65,6 +66,32 @@ describe('isConversationOnline', () => {
 
   it('ignores the current user', () => {
     expect(isConversationOnline(conversation(['me', UserStatus.ONLINE], ['ann', UserStatus.OFFLINE]), 'me')).toBe(false);
+  });
+});
+
+describe('getGroupAvatarMembers', () => {
+  function conversation(...statuses: [string, UserStatus][]) {
+    return { members: statuses.map(([id, status]) => ({ id, status })) } as unknown as Conversation;
+  }
+
+  it('shows the first other member who is online and counts the rest', () => {
+    const { shown, remainingCount } = getGroupAvatarMembers(
+      conversation(['me', UserStatus.ONLINE], ['ann', UserStatus.OFFLINE], ['bob', UserStatus.ONLINE], ['cat', UserStatus.ONLINE]),
+      'me',
+    );
+
+    expect(shown?.id).toBe('bob');
+    expect(remainingCount).toBe(2);
+  });
+
+  it('falls back to the first other member when nobody is online', () => {
+    const { shown, remainingCount } = getGroupAvatarMembers(
+      conversation(['ann', UserStatus.OFFLINE], ['bob', UserStatus.OFFLINE]),
+      'me',
+    );
+
+    expect(shown?.id).toBe('ann');
+    expect(remainingCount).toBe(1);
   });
 });
 

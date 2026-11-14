@@ -5,6 +5,7 @@ import { Conversation } from "@repo/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import GroupAvatar from "../GroupAvatar";
 import UserAvatar from "../UserAvatar";
 
 export default function HomeConversation({ conversation }: { conversation: Conversation }) {
@@ -89,7 +90,11 @@ export default function HomeConversation({ conversation }: { conversation: Conve
       href={"/conversation/" + conversation.id}
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
-      <UserAvatar src={photoUrl} isOnline={isOnline} />
+      {isGroupChat(conversation) ? (
+        <GroupAvatar conversation={conversation} currentUserId={session.user?.id} />
+      ) : (
+        <UserAvatar src={photoUrl} isOnline={isOnline} />
+      )}
       <div className="flex flex-col items-start justify-start w-full min-w-0">
         <span className="font-semibold truncate max-w-full">{conversationName}</span>
         <div

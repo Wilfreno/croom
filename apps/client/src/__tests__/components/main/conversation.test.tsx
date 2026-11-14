@@ -72,6 +72,14 @@ describe('ConversationHeader', () => {
     expect(screen.getByText('5 minute(s) ago')).toBeInTheDocument();
   });
 
+  it('shows a group chat as its first online member plus how many others', () => {
+    const conversation = mockConversation({ name: 'Team', members: [mockUser(), mockUser(), mockUser()] });
+
+    renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
+
+    expect(screen.getByLabelText('and 2 more')).toHaveTextContent('+2');
+  });
+
   it('rings the conversation and opens the call', async () => {
     renderWithQuery(<ConversationHeader conversationInfo={info} />);
 

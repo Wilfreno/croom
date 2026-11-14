@@ -19,6 +19,17 @@ export function isConversationOnline(conversation: Pick<Conversation, "members">
   return conversation.members.some((member) => member.id !== currentUserId && member.status === UserStatus.ONLINE);
 }
 
+/**
+ * The member to show on a group chat's avatar (the first other member who is online, else the
+ * first other member) and how many other members there are besides them.
+ */
+export function getGroupAvatarMembers(conversation: Pick<Conversation, "members">, currentUserId?: string) {
+  const others = conversation.members.filter((member) => member.id !== currentUserId);
+  const shown = others.find((member) => member.status === UserStatus.ONLINE) ?? others[0];
+
+  return { shown, remainingCount: Math.max(others.length - 1, 0) };
+}
+
 export function getConversationName(conversation: Conversation, currentUserId?: string) {
   if (conversation.name) return conversation.name;
 

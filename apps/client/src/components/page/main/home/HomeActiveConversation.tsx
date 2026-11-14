@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { getConversationName, isGroupChat } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import GroupAvatar from '../GroupAvatar';
 import UserAvatar from '../UserAvatar';
 
 export default function HomeActiveConversations() {
@@ -42,11 +43,15 @@ export default function HomeActiveConversations() {
                     <TooltipTrigger asChild>
                       <Link href={'/conversation/' + conversation.id}>
                         <div className="flex flex-col items-center gap-1 h-fit w-fit">
-                          <UserAvatar
-                            isOnline
-                            src={isGroup ? conversation.photo?.url : conversation.members[0].photo?.url}
-                            className="bg-background"
-                          />
+                          {isGroup ? (
+                            <GroupAvatar
+                              conversation={conversation}
+                              currentUserId={session.user?.id}
+                              className="bg-background"
+                            />
+                          ) : (
+                            <UserAvatar isOnline src={conversation.members[0].photo?.url} className="bg-background" />
+                          )}
                           <p className="text-xs font-medium w-14 truncate">
                             {conversationName}
                           </p>
