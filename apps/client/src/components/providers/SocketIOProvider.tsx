@@ -99,15 +99,21 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
       withCredentials: true,
     });
     setSocket(socket);
+    function onConnectError(error: Error) {
+      if (!socket.active) toast(error.message);
+    }
 
     socket.on('MESSAGE', onMessage);
     socket.on('USER_STATUS', onUserStatus);
     socket.on('ERROR', onError);
+
+    socket.on('connect_error', onConnectError);
     socket.on('INCOMING_CALL', onIncomingCall);
 
     return () => {
       socket?.off('USER_STATUS', onUserStatus);
       socket?.off('ERROR', onError);
+      socket?.off('connect_error', onConnectError);
       socket?.off('INCOMING_CALL', onIncomingCall);
       socket?.off('MESSAGE', onMessage);
       socket?.disconnect();

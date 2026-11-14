@@ -4,7 +4,7 @@ import Fastify from 'fastify';
 import { UserStatus } from '@repo/enums';
 import { Types } from 'mongoose';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TypedServer, TypedSocket } from '../../common/types/socket-io.types';
+import type { TypedNamespace, TypedServer, TypedSocket } from '../../common/types/socket-io.types';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
 import { MessageGateway } from './message.gateway';
@@ -50,15 +50,68 @@ beforeAll(async () => {
 beforeEach(() => vi.clearAllMocks());
 
 describe('MessageGateway', () => {
-  describe('handleConnection', () => {
-    it("authenticates from the session cookie and joins the user's room", async () => {
+  describe('afterInit (handshake middleware)', () => {
+    function runMiddleware(gateway: MessageGateway, client: TypedSocket) {
+      let middleware!: (socket: TypedSocket, next: (error?: Error) => void) => void;
+      const namespace = { use: vi.fn((fn: typeof middleware) => (middleware = fn)) };
+      gateway.afterInit(namespace as unknown as TypedNamespace);
+      return new Promise<Error | undefined>((resolve) => middleware(client, resolve));
+    }
+
+    it('authenticates from the session cookie before the socket connects', async () => {
       const { gateway, authService } = build();
       const { client, spies } = fakeClient(`other=1; ${SESSION_COOKIE}=token-123`);
 
-      await gateway.handleConnection(client);
+      await expect(runMiddleware(gateway, client)).resolves.toBeUndefined();
 
       expect(authService.resolveSession).toHaveBeenCalledWith('token-123');
       expect(spies.data.userId).toBe(USER_ID);
+    });
+
+    it.each([
+      ['no cookie header', undefined],
+      ['no session cookie', 'theme=dark'],
+    ])('rejects a handshake with %s', async (_, cookie) => {
+      const { gateway, authService } = build();
+      const { client, spies } = fakeClient(cookie);
+
+      const error = await runMiddleware(gateway, client);
+
+      expect(authService.resolveSession).not.toHaveBeenCalled();
+      expect(error?.message).toBe('you are not logged in');
+      expect(spies.data.userId).toBeUndefined();
+    });
+
+    it('rejects a handshake whose session is invalid', async () => {
+      const { gateway, authService } = build();
+      authService.resolveSession.mockResolvedValue(null);
+      const { client } = fakeClient(`${SESSION_COOKIE}=expired`);
+
+      expect((await runMiddleware(gateway, client))?.message).toBe('you are not logged in');
+    });
+
+    it('rejects instead of throwing when the lookup fails', async () => {
+      const { gateway, authService } = build();
+      authService.resolveSession.mockRejectedValue(new Error('db down'));
+      const { client } = fakeClient(`${SESSION_COOKIE}=t`);
+
+      expect((await runMiddleware(gateway, client))?.message).toBe('could not connect');
+    });
+  });
+
+  describe('handleConnection', () => {
+    function authenticated() {
+      const { client, spies } = fakeClient();
+      spies.data.userId = USER_ID;
+      return { client, spies };
+    }
+
+    it("joins the user's room", async () => {
+      const { gateway } = build();
+      const { client, spies } = authenticated();
+
+      await gateway.handleConnection(client);
+
       expect(spies.join).toHaveBeenCalledWith(USER_ID);
       expect(spies.disconnect).not.toHaveBeenCalled();
     });
@@ -66,7 +119,7 @@ describe('MessageGateway', () => {
     it('marks the user online on their first socket and tells their partners', async () => {
       const { gateway, userService, server, roomEmit } = build({ socketsInRoom: 1 });
 
-      await gateway.handleConnection(fakeClient(`${SESSION_COOKIE}=t`).client);
+      await gateway.handleConnection(authenticated().client);
 
       expect(userService.updateUserStatus).toHaveBeenCalledWith(USER_ID, UserStatus.ONLINE);
       expect(server.to).toHaveBeenCalledWith(['partner-1', 'partner-2']);
@@ -80,41 +133,25 @@ describe('MessageGateway', () => {
     it('does not re-announce a user who already has another socket open', async () => {
       const { gateway, userService } = build({ socketsInRoom: 2 });
 
-      await gateway.handleConnection(fakeClient(`${SESSION_COOKIE}=t`).client);
+      await gateway.handleConnection(authenticated().client);
 
       expect(userService.updateUserStatus).not.toHaveBeenCalled();
     });
 
-    it.each([
-      ['no cookie header', undefined],
-      ['no session cookie', 'theme=dark'],
-    ])('turns away a socket with %s', async (_, cookie) => {
-      const { gateway, authService } = build();
-      const { client, spies } = fakeClient(cookie);
+    it('disconnects a socket that was never authenticated', async () => {
+      const { gateway } = build();
+      const { client, spies } = fakeClient();
 
       await gateway.handleConnection(client);
 
-      expect(authService.resolveSession).not.toHaveBeenCalled();
-      expect(spies.emit).toHaveBeenCalledWith('ERROR', 'you are not logged in');
-      expect(spies.disconnect).toHaveBeenCalled();
-    });
-
-    it('turns away a socket whose session is invalid', async () => {
-      const { gateway, authService } = build();
-      authService.resolveSession.mockResolvedValue(null);
-      const { client, spies } = fakeClient(`${SESSION_COOKIE}=expired`);
-
-      await gateway.handleConnection(client);
-
-      expect(spies.emit).toHaveBeenCalledWith('ERROR', 'you are not logged in');
       expect(spies.disconnect).toHaveBeenCalled();
       expect(spies.join).not.toHaveBeenCalled();
     });
 
     it('disconnects instead of throwing when something fails', async () => {
-      const { gateway, authService } = build();
-      authService.resolveSession.mockRejectedValue(new Error('db down'));
-      const { client, spies } = fakeClient(`${SESSION_COOKIE}=t`);
+      const { gateway, fetchSockets } = build();
+      fetchSockets.mockRejectedValue(new Error('adapter down'));
+      const { client, spies } = authenticated();
 
       await expect(gateway.handleConnection(client)).resolves.toBeUndefined();
       expect(spies.disconnect).toHaveBeenCalled();
@@ -124,7 +161,7 @@ describe('MessageGateway', () => {
       const { gateway, userService, server } = build();
       userService.updateUserStatus.mockResolvedValue(null);
 
-      await gateway.handleConnection(fakeClient(`${SESSION_COOKIE}=t`).client);
+      await gateway.handleConnection(authenticated().client);
 
       expect(server.to).not.toHaveBeenCalled();
     });
