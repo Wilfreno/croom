@@ -94,7 +94,7 @@ const SignUpOTPForm = forwardRef<
         onChange={(value) => setFormData((prev) => ({ ...prev, pin: value.toLocaleUpperCase() }))}
         autoFocus
       >
-        <InputOTPGroup className="w-full flex justify-center gap-8 ">
+        <InputOTPGroup className="w-full flex justify-center gap-2 sm:gap-4">
           {Array.from({ length: 6 }).map((_, index, array) => (
             <InputOTPSlot
               key={index}

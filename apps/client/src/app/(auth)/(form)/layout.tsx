@@ -4,9 +4,9 @@ import landingPageImage from "../../../../public/landing_page_image.png";
 
 export default function layout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="h-[90dvh] w-full flex items-center">
-      <div className="h-full grow overflow-hidden hidden md:block">
-        <Image src={landingPageImage} alt="" className="h-full w-auto object-cover" />
+    <section className="flex-1 min-h-0 w-full flex">
+      <div className="hidden lg:block lg:w-1/2 h-full overflow-hidden">
+        <Image src={landingPageImage} alt="" sizes="50vw" priority className="h-full w-full object-contain" />
       </div>
       {children}
     </section>
