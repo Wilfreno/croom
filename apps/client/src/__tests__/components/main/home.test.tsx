@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 /** A one-to-one conversation whose last message is `text`, sent by `sender`. */
-function chatWith(other = mockUser({ displayName: 'Bob' }), lastMessage: Parameters<typeof mockMessage>[0] = {}) {
+function chatWith(other = mockUser({ displayName: 'Bob', userName: 'bob' }), lastMessage: Parameters<typeof mockMessage>[0] = {}) {
   return mockConversation({
     members: [other],
     messages: [mockMessage({ sender: other, text: 'hello', seenBy: [], ...lastMessage }) as never],
@@ -105,7 +105,7 @@ describe('HomeConversation', () => {
 
     renderWithQuery(<HomeConversation conversation={conversation} />);
 
-    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('bob')).toBeInTheDocument();
     expect(screen.getByText('hello')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute('href', `/conversation/${conversation.id}`);
   });
@@ -206,26 +206,26 @@ describe('HomeConversation', () => {
 
 describe('HomeConversations', () => {
   it('lists the conversations', () => {
-    conversations = [chatWith(mockUser({ displayName: 'Bob' })), chatWith(mockUser({ displayName: 'Ann' }))];
+    conversations = [chatWith(mockUser({ userName: 'bob' })), chatWith(mockUser({ userName: 'ann' }))];
 
     renderWithQuery(<HomeConversations />);
 
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Ann')).toBeInTheDocument();
+    expect(screen.getByText('bob')).toBeInTheDocument();
+    expect(screen.getByText('ann')).toBeInTheDocument();
   });
 
   it('shows search results instead while searching', async () => {
-    conversations = [chatWith(mockUser({ displayName: 'Bob' }))];
+    conversations = [chatWith(mockUser({ userName: 'bob' }))];
     const { rerender } = renderWithQuery(<HomeConversations />);
 
     await userEvent.type(screen.getByPlaceholderText('Search'), 'an');
     expect(searchSpy).toHaveBeenLastCalledWith('an');
 
-    searchResults = [chatWith(mockUser({ displayName: 'Ann' }))];
+    searchResults = [chatWith(mockUser({ userName: 'ann' }))];
     rerender(<HomeConversations />);
 
-    expect(screen.getByText('Ann')).toBeInTheDocument();
-    expect(screen.queryByText('Bob')).not.toBeInTheDocument();
+    expect(screen.getByText('ann')).toBeInTheDocument();
+    expect(screen.queryByText('bob')).not.toBeInTheDocument();
   });
 
   it('opens the compose page', async () => {
@@ -263,13 +263,13 @@ describe('HomeActiveConversations', () => {
   });
 
   it('links to each active conversation by person or group name', () => {
-    const one = chatWith(mockUser({ displayName: 'Bob' }));
+    const one = chatWith(mockUser({ userName: 'bob' }));
     const group = mockConversation({ name: 'Team', members: [mockUser(), mockUser()] });
     active.activeConversations = [one, group];
 
     render(<HomeActiveConversations />);
 
-    expect(screen.getByRole('link', { name: /Bob/ })).toHaveAttribute('href', `/conversation/${one.id}`);
+    expect(screen.getByRole('link', { name: /bob/ })).toHaveAttribute('href', `/conversation/${one.id}`);
     expect(screen.getByRole('link', { name: /Team/ })).toHaveAttribute('href', `/conversation/${group.id}`);
     expect(screen.queryByText('see more')).not.toBeInTheDocument();
   });

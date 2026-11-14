@@ -55,7 +55,7 @@ function at(secondsAgo: number) {
 }
 
 describe('ConversationHeader', () => {
-  const info = { photoUrl: '', conversationName: 'Bob', status: UserStatus.ONLINE, lastOnline: '' };
+  const info = { photoUrl: '', conversationName: 'Bob', status: UserStatus.ONLINE, isOnline: true, lastOnline: '' };
 
   it('shows the conversation name', () => {
     renderWithQuery(<ConversationHeader conversationInfo={info} />);
@@ -67,7 +67,7 @@ describe('ConversationHeader', () => {
     const { container, rerender } = renderWithQuery(<ConversationHeader conversationInfo={info} />);
     expect(container.querySelector('.bg-green-500')).toBeInTheDocument();
 
-    rerender(<ConversationHeader conversationInfo={{ ...info, status: UserStatus.OFFLINE, lastOnline: '5 minute(s) ago' }} />);
+    rerender(<ConversationHeader conversationInfo={{ ...info, status: UserStatus.OFFLINE, isOnline: false, lastOnline: '5 minute(s) ago' }} />);
     expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument();
     expect(screen.getByText('5 minute(s) ago')).toBeInTheDocument();
   });

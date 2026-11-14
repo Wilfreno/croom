@@ -2,6 +2,8 @@ import {
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
+  getConversationName,
+  isConversationOnline,
   getMediaErrorMessage,
   getSecondsInterval,
   getTimeIntervalText,
@@ -11,6 +13,7 @@ import {
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
 import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
+import { UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +47,48 @@ describe('isGroupChat', () => {
 
   it('is true for two or more other members', () => {
     expect(isGroupChat(conversation(2))).toBe(true);
+  });
+});
+
+describe('isConversationOnline', () => {
+  function conversation(...statuses: [string, UserStatus][]) {
+    return { members: statuses.map(([id, status]) => ({ id, status })) } as unknown as Conversation;
+  }
+
+  it('is online when at least one other member is online', () => {
+    expect(isConversationOnline(conversation(['ann', UserStatus.OFFLINE], ['bob', UserStatus.ONLINE]), 'me')).toBe(true);
+  });
+
+  it('is offline when every other member is offline', () => {
+    expect(isConversationOnline(conversation(['ann', UserStatus.OFFLINE], ['bob', UserStatus.OFFLINE]), 'me')).toBe(false);
+  });
+
+  it('ignores the current user', () => {
+    expect(isConversationOnline(conversation(['me', UserStatus.ONLINE], ['ann', UserStatus.OFFLINE]), 'me')).toBe(false);
+  });
+});
+
+describe('getConversationName', () => {
+  const ann = { id: 'ann', userName: 'ann' };
+  const bob = { id: 'bob', userName: 'bob' };
+  const me = { id: 'me', userName: 'me' };
+
+  function conversation(name: string, members: { id: string; userName: string }[], nicknames: Conversation['nicknames'] = []) {
+    return { name, members, nicknames } as unknown as Conversation;
+  }
+
+  it('uses the name when there is one', () => {
+    expect(getConversationName(conversation('Team', [ann, bob]), 'me')).toBe('Team');
+  });
+
+  it("lists the other members' userNames when there is no name", () => {
+    expect(getConversationName(conversation('', [me, ann, bob]), 'me')).toBe('ann, bob');
+  });
+
+  it("prefers a member's nickname over their userName", () => {
+    expect(getConversationName(conversation('', [ann, bob], [{ user: 'bob', value: 'Bobby' }]), 'me')).toBe(
+      'ann, Bobby',
+    );
   });
 });
 

@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { UserStatus } from '@repo/enums';
 import { ArrowLeft, UserRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
@@ -53,7 +52,7 @@ export default function InfoSidebar() {
               <UserRound className="h-1/2 w-auto" />
             </AvatarFallback>
           </Avatar>
-          {conversationInfo?.status === UserStatus.ONLINE && (
+          {conversationInfo?.isOnline && (
             <div className="bg-green-500 aspect-square h-8 border-2 border-background w-auto rounded-full absolute bottom-1 right-0"></div>
           )}
         </span>

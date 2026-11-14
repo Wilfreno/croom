@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { PATCHRequest } from '@/lib/server/requests';
-import { cn } from '@/lib/utils';
+import { cn, getConversationName } from '@/lib/utils';
 import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Pen, PenLine, X } from 'lucide-react';
@@ -140,7 +140,7 @@ export default function ChangeName() {
                 setOpen(true);
               }}
             >
-              <span>{conversation!.name}</span>
+              <span>{getConversationName(conversation!, session.user?.id)}</span>
               <span className="aspect-square h-fit w-auto p-2 bg-background shadow-sm border rounded-full text-primary">
                 <Pen className="h-4 w-auto" />
               </span>

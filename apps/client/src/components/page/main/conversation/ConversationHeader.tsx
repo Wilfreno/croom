@@ -1,5 +1,4 @@
 'use client';
-import { UserStatus } from '@repo/enums';
 
 import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
 import { useSocketIO } from '@/components/providers/SocketIOProvider';
@@ -33,7 +32,7 @@ export default function ConversationHeader({ conversationInfo }: { conversationI
           <ArrowLeft className="h-4 w-auto" />
         </Button>
         <div className="flex items-center gap-4 min-w-0">
-          <UserAvatar src={conversationInfo?.photoUrl} isOnline={conversationInfo?.status === UserStatus.ONLINE} />
+          <UserAvatar src={conversationInfo?.photoUrl} isOnline={Boolean(conversationInfo?.isOnline)} />
           <div className="min-w-0">
             <p className="font-medium truncate max-w-96">{conversationInfo?.conversationName}</p>
             {!!conversationInfo?.lastOnline && (

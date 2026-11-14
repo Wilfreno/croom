@@ -1,17 +1,19 @@
 'use client';
 import useActiveConversation from '@/components/hooks/queries/useActiveConversation';
+import { useAuth } from '@/components/providers/AuthProvider';
 import Loading from '@/components/svg/Loading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { isGroupChat } from '@/lib/utils';
+import { getConversationName, isGroupChat } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import UserAvatar from '../UserAvatar';
 
 export default function HomeActiveConversations() {
   const { activeConversations, isError, isLoading, refetch, isRefetching } = useActiveConversation();
+  const { session } = useAuth();
   return (
     <section className="grid gap-4">
       <p className="font-bold hidden md:block indent-4">Active Conversations</p>
@@ -32,7 +34,8 @@ export default function HomeActiveConversations() {
         ) : Boolean(activeConversations?.length) ? (
           <div className="flex items-center justify-start gap-2 px-1">
             {activeConversations?.map((conversation) => {
-              const isGroup = isGroupChat(conversation)
+              const isGroup = isGroupChat(conversation);
+              const conversationName = getConversationName(conversation, session.user?.id);
               return (
                 <TooltipProvider key={conversation.id}>
                   <Tooltip>
@@ -45,12 +48,12 @@ export default function HomeActiveConversations() {
                             className="bg-background"
                           />
                           <p className="text-xs font-medium w-14 truncate">
-                            {isGroup ? conversation.name : conversation.members[0].displayName}
+                            {conversationName}
                           </p>
                         </div>
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent>{isGroup ? conversation.name : conversation.members[0].displayName}</TooltipContent>
+                    <TooltipContent>{conversationName}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               );

@@ -1,22 +1,21 @@
-'use client';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { cn, getTimeIntervalText, isGroupChat } from '@/lib/utils';
-import { UserStatus } from '@repo/enums';
-import { Conversation } from '@repo/types';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
-import UserAvatar from '../UserAvatar';
+"use client";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { cn, getConversationName, getTimeIntervalText, isConversationOnline, isGroupChat } from "@/lib/utils";
+import { Conversation } from "@repo/types";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useMemo } from "react";
+import UserAvatar from "../UserAvatar";
 
 export default function HomeConversation({ conversation }: { conversation: Conversation }) {
   const { session } = useAuth();
   const pathname = usePathname();
 
   const { conversationName, photoUrl, seen, timeIntervalText, isOnline } = useMemo(() => {
-    let conversationName = '';
+    let conversationName = "";
     let photoUrl: string;
     let seen: boolean;
-    let timeIntervalText = '';
+    let timeIntervalText = "";
     let isOnline = false;
 
     if (!session)
@@ -27,17 +26,13 @@ export default function HomeConversation({ conversation }: { conversation: Conve
         timeIntervalText,
         isOnline: isOnline!,
       };
+    conversationName = getConversationName(conversation, session.user?.id);
     if (isGroupChat(conversation)) {
-      conversationName = conversation.name;
       photoUrl = conversation.photo?.url as string;
     } else {
       const otherUser = conversation.members[0];
 
       photoUrl = otherUser?.photo?.url as string;
-
-      conversationName = conversation.nicknames.find((nickname) => nickname.user === otherUser?.id)?.value || '';
-
-      if (!conversationName) conversationName = otherUser?.displayName;
     }
 
     if (session.user?.id === conversation.messages[0].sender.id) {
@@ -45,7 +40,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     } else {
       seen = conversation.messages[0]?.seenBy.some((user) => user.id === session.user?.id);
     }
-    isOnline = conversation.members.some((user) => user.status === UserStatus.ONLINE);
+    isOnline = isConversationOnline(conversation, session.user?.id);
 
     timeIntervalText = getTimeIntervalText(conversation.messages[0].dateCreated);
 
@@ -61,13 +56,13 @@ export default function HomeConversation({ conversation }: { conversation: Conve
   const textMessage = useMemo(() => {
     if (!conversation || !session.user) return;
     const [lastMessage] = conversation.messages;
-    let name = '';
-    let text = '';
+    let name = "";
+    let text = "";
 
     // Name the sender when it isn't obvious: you anywhere, or anyone in a group chat.
-    if (lastMessage.sender.id === session.user.id) name = 'you';
+    if (lastMessage.sender.id === session.user.id) name = "you";
     else if (isGroupChat(conversation)) {
-      name = conversation.nicknames.find((nickname) => nickname.user === lastMessage.sender.id)?.value || '';
+      name = conversation.nicknames.find((nickname) => nickname.user === lastMessage.sender.id)?.value || "";
 
       if (!name) name = lastMessage.sender.displayName;
     }
@@ -75,10 +70,10 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     text += name;
 
     if (!!lastMessage.photos.length) {
-      if (lastMessage.photos.length > 1) text += ' sent some photos';
-      else text += ' sent a photo';
+      if (lastMessage.photos.length > 1) text += " sent some photos";
+      else text += " sent a photo";
     } else {
-      if (name) text += ': ';
+      if (name) text += ": ";
       text += lastMessage.text;
     }
     return text.trim();
@@ -88,10 +83,10 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     <Link
       key={conversation.id}
       className={cn(
-        'flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer',
-        pathname.startsWith('/conversation/' + conversation.id) && 'bg-muted',
+        "flex items-center justify-start gap-2 w-full h-fit p-2  rounded-sm relative hover:bg-muted cursor-pointer",
+        pathname.startsWith("/conversation/" + conversation.id) && "bg-muted",
       )}
-      href={'/conversation/' + conversation.id}
+      href={"/conversation/" + conversation.id}
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
       <UserAvatar src={photoUrl} isOnline={isOnline} />
@@ -99,8 +94,8 @@ export default function HomeConversation({ conversation }: { conversation: Conve
         <span className="font-semibold truncate max-w-full">{conversationName}</span>
         <div
           className={cn(
-            'flex items-center justify-between gap-2 text-xs w-full',
-            seen ? 'text-muted-foreground' : 'font-semibold',
+            "flex items-center justify-between gap-2 text-xs w-full",
+            seen ? "text-muted-foreground" : "font-semibold",
           )}
         >
           <p className="truncate min-w-0">{textMessage}</p>
