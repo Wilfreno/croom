@@ -1,17 +1,18 @@
 <div align="center">
   
-[![Croom](https://github.com/Wilfreno/croom/blob/main/apps/client/public/croom-logo.png)](https://www.chat-up.xyz/)
+[![Croom](https://github.com/Wilfreno/croom/blob/main/apps/client/public/croom-logo.png)](https://croom.wilfreno.site/)
 </div>
 
 <div align="center">
 
-[![Croom](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=Croom)](https://www.chat-up.xyz/)
+[![Croom](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=40&duration=1&pause=&color=7F00FF&center=true&vCenter=true&repeat=false&width=435&lines=Croom)](https://croom.wilfreno.site/)
 </div>
 
 <p align="center" >Connect and Chat with your friends and Communities</p>
 
 # Contents
 - [Website](#website)
+- [Changelog](CHANGELOG.md)
 - [Features](#features)
 - [Technology used](#technology-used)
 - [Project structure](#project-structure)
@@ -26,7 +27,7 @@
 - [Releases and commit messages](#releases-and-commit-messages)
 
 # Website
-:globe_with_meridians: <https://www.chat-up.xyz/>
+:globe_with_meridians: <https://croom.wilfreno.site/>
 
 # Features
 - Sign up with email and password, verified by a one-time code sent by email
