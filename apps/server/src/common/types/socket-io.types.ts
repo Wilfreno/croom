@@ -3,7 +3,7 @@ import type {
   ServerToClientEvents,
   SocketData,
 } from '@repo/types';
-import type { Server, Socket } from 'socket.io';
+import type { Namespace, Server, Socket } from 'socket.io';
 
 export type TypedServer = Server<
   ClientToServerEvents,
@@ -13,6 +13,13 @@ export type TypedServer = Server<
 >;
 
 export type TypedSocket = Socket<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>;
+
+export type TypedNamespace = Namespace<
   ClientToServerEvents,
   ServerToClientEvents,
   Record<string, never>,
