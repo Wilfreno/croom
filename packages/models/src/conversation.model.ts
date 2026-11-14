@@ -1,10 +1,10 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { ConversationStatus, UserStatus } from '@repo/enums';
-import { Conversation } from '@repo/schemas';
-import type { CallMember } from '@repo/types';
-import { ClientSession, Model, Types } from 'mongoose';
-import { toEntity } from './pipeline';
+import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { ConversationStatus, UserStatus } from "@repo/enums";
+import { Conversation } from "@repo/schemas";
+import type { CallMember } from "@repo/types";
+import { ClientSession, Model, Types } from "mongoose";
+import { toEntity } from "./pipeline";
 
 @Injectable()
 export class ConversationModel {
@@ -80,23 +80,23 @@ export class ConversationModel {
         { $match: { _id: new Types.ObjectId(conversationId) } },
         {
           $lookup: {
-            from: 'user',
-            localField: 'members',
-            foreignField: '_id',
-            as: 'members',
+            from: "user",
+            localField: "members",
+            foreignField: "_id",
+            as: "members",
             pipeline: [
               { $project: { displayName: 1, photo: 1 } },
               {
                 $lookup: {
-                  from: 'photo',
-                  localField: 'photo',
-                  foreignField: '_id',
-                  as: 'photo',
+                  from: "photo",
+                  localField: "photo",
+                  foreignField: "_id",
+                  as: "photo",
                   pipeline: [{ $project: { url: 1 } }],
                 },
               },
-              { $set: { photoUrl: { $ifNull: [{ $first: '$photo.url' }, null] } } },
-              { $unset: 'photo' },
+              { $set: { photoUrl: { $ifNull: [{ $first: "$photo.url" }, null] } } },
+              { $unset: "photo" },
               ...toEntity,
             ],
           },
@@ -113,14 +113,14 @@ export class ConversationModel {
 
   /** A conversation with its members, admins and photo populated, as the client renders it. */
   async findConversationPayloadById(conversationId: string) {
-    const userFields = 'email userName displayName photo status lastOnline';
-    const userPopulate = { path: 'photo', select: 'url' };
+    const userFields = "email userName displayName photo status lastOnline";
+    const userPopulate = { path: "photo", select: "url" };
 
     try {
       return await this.Conversation.findOne({ _id: conversationId }).populate([
-        { path: 'members', select: userFields, populate: userPopulate },
-        { path: 'admins', select: userFields, populate: userPopulate },
-        { path: 'photo', select: 'url' },
+        { path: "members", select: userFields, populate: userPopulate },
+        { path: "admins", select: userFields, populate: userPopulate },
+        { path: "photo", select: "url" },
       ]);
     } catch (error) {
       this.logger.error(error);
@@ -131,7 +131,7 @@ export class ConversationModel {
   /** Ids of every user who shares at least one conversation with the given user. */
   async getConversationPartnerIds(userId: string) {
     try {
-      const memberIds = await this.Conversation.distinct('members', {
+      const memberIds = await this.Conversation.distinct("members", {
         members: new Types.ObjectId(userId),
       });
       return memberIds.map(String).filter((id) => id !== userId);
@@ -141,14 +141,41 @@ export class ConversationModel {
     }
   }
 
-  async findConversationByMembers(members: string[]) {
+  /** Conversations with exactly these members; populated members leave out the requester. */
+  async findConversationByMembers(members: string[], requesterId: string) {
     try {
-      return await this.Conversation.find({
-        members: {
-          $size: members.length,
-          $all: members.map((member) => new Types.ObjectId(member)),
+      return await this.Conversation.aggregate([
+        {
+          $match: {
+            members: {
+              $size: members.length,
+              $all: members.map((member) => new Types.ObjectId(member)),
+            },
+          },
         },
-      }).lean();
+        {
+          $lookup: {
+            from: "user",
+            localField: "members",
+            foreignField: "_id",
+            as: "members",
+            pipeline: [
+              { $match: { _id: { $ne: new Types.ObjectId(requesterId) } } },
+              {
+                $lookup: {
+                  from: "photo",
+                  localField: "photo",
+                  foreignField: "_id",
+                  as: "photo",
+                  pipeline: [{ $project: { url: 1 } }],
+                },
+              },
+              { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
+              { $project: { email: 1, userName: 1, displayName: 1, photo: 1, status: 1, lastOnline: 1 } },
+            ],
+          },
+        },
+      ]);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -161,58 +188,58 @@ export class ConversationModel {
         { $match: { members: new Types.ObjectId(userId) } },
         {
           $lookup: {
-            from: 'photo',
-            localField: 'photo',
-            foreignField: '_id',
-            as: 'photo',
+            from: "photo",
+            localField: "photo",
+            foreignField: "_id",
+            as: "photo",
             pipeline: [{ $project: { url: 1 } }],
           },
         },
-        { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+        { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
         {
           $lookup: {
-            from: 'user',
-            localField: 'members',
-            foreignField: '_id',
-            as: 'members',
+            from: "user",
+            localField: "members",
+            foreignField: "_id",
+            as: "members",
             pipeline: [
               { $match: { _id: { $ne: new Types.ObjectId(userId) } } },
               {
                 $lookup: {
-                  from: 'photo',
-                  localField: 'photo',
-                  foreignField: '_id',
-                  as: 'photo',
+                  from: "photo",
+                  localField: "photo",
+                  foreignField: "_id",
+                  as: "photo",
                   pipeline: [{ $project: { url: 1 } }],
                 },
               },
-              { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+              { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
               { $project: { status: 1, displayName: 1, photo: 1 } },
             ],
           },
         },
         {
           $lookup: {
-            from: 'message',
-            localField: '_id',
-            foreignField: 'conversation',
-            as: 'messages',
+            from: "message",
+            localField: "_id",
+            foreignField: "conversation",
+            as: "messages",
             pipeline: [
               { $sort: { dateCreated: -1 } },
               { $limit: 1 },
               {
                 $lookup: {
-                  from: 'user',
-                  localField: 'sender',
-                  foreignField: '_id',
-                  as: 'sender',
+                  from: "user",
+                  localField: "sender",
+                  foreignField: "_id",
+                  as: "sender",
                   pipeline: [{ $project: { displayName: 1 } }],
                 },
               },
               {
                 $set: {
-                  sender: { $ifNull: [{ $first: '$sender' }, null] },
-                  seenBy: { $map: { input: '$seenBy', as: 'id', in: { _id: '$$id' } } },
+                  sender: { $ifNull: [{ $first: "$sender" }, null] },
+                  seenBy: { $map: { input: "$seenBy", as: "id", in: { _id: "$$id" } } },
                 },
               },
             ],
@@ -225,47 +252,48 @@ export class ConversationModel {
     }
   }
 
-
   async getActiveConversationByUserId(userId: string) {
     const userObjectId = new Types.ObjectId(userId);
 
     try {
       return await this.Conversation.aggregate([
-        { $match: { members: userObjectId, status: { $ne: ConversationStatus.BLOCKED } } },
+        {
+          $match: { members: { $in: [new Types.ObjectId(userObjectId)] }, status: { $ne: ConversationStatus.BLOCKED } },
+        },
         {
           $lookup: {
-            from: 'user',
-            localField: 'members',
-            foreignField: '_id',
-            as: 'members',
+            from: "user",
+            localField: "members",
+            foreignField: "_id",
+            as: "members",
             pipeline: [
               { $match: { _id: { $ne: userObjectId } } },
               {
                 $lookup: {
-                  from: 'photo',
-                  localField: 'photo',
-                  foreignField: '_id',
-                  as: 'photo',
+                  from: "photo",
+                  localField: "photo",
+                  foreignField: "_id",
+                  as: "photo",
                   pipeline: [{ $project: { url: 1 } }],
                 },
               },
-              { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
+              { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
               { $project: { status: 1, displayName: 1, photo: 1 } },
             ],
           },
         },
-        { $match: { 'members.status': UserStatus.ONLINE } },
+        { $match: { "members.status": UserStatus.ONLINE } },
         {
           $lookup: {
-            from: 'photo',
-            localField: 'photo',
-            foreignField: '_id',
-            as: 'photo',
+            from: "photo",
+            localField: "photo",
+            foreignField: "_id",
+            as: "photo",
             pipeline: [{ $project: { url: 1 } }],
           },
         },
-        { $set: { photo: { $ifNull: [{ $first: '$photo' }, null] } } },
-        { $project: { name: 1, photo: 1, members: 1, lastUpdated: 1 } },
+        { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
+        { $project: { name: 1, photo: 1, members: 1, nicknames: 1, lastUpdated: 1 } },
         { $sort: { lastUpdated: -1 } },
       ]);
     } catch (error) {

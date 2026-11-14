@@ -146,7 +146,7 @@ describe('ConversationService', () => {
     const { service, conversationModel } = build();
 
     await expect(service.getConversationByMembersId([ADA], ME)).resolves.toEqual({ id: 'c1' });
-    expect(conversationModel.findConversationByMembers).toHaveBeenCalledWith([ADA, ME]);
+    expect(conversationModel.findConversationByMembers).toHaveBeenCalledWith([ADA, ME], ME);
   });
 
   it('reads a conversation payload by id', async () => {
