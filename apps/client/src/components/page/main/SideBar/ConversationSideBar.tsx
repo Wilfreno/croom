@@ -20,7 +20,6 @@ export default function ConversationSideBar() {
         open
           ? "grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_auto_1fr] gap-4 pt-4 md:grid-rows-[auto_1fr] md:gap-10 md:py-5 w-full shrink-0 md:w-72 lg:w-80 xl:w-[24rem]"
           : "hidden",
-        // Below lg there is no room for the list next to a conversation, compose or settings.
         open && pathname !== "/" && "hidden lg:grid",
       )}
     >
