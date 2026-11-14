@@ -42,7 +42,7 @@ export default function ConversationHeader({
           <ArrowLeft className="h-4 w-auto" />
         </Button>
         <div className="flex items-center gap-4 min-w-0">
-          {conversation && isGroupChat(conversation) ? (
+          {conversation && isGroupChat(conversation, session.user?.id) ? (
             <GroupAvatar conversation={conversation} currentUserId={session.user?.id} />
           ) : (
             <UserAvatar src={conversationInfo?.photoUrl} isOnline={Boolean(conversationInfo?.isOnline)} />

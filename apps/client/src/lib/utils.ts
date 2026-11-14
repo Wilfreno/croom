@@ -11,8 +11,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function isGroupChat(conversation: Conversation) {
-  return conversation.members.length > 1;
+/**
+ * Whether the conversation has more than one member besides the current user. Conversation lists
+ * leave the current user out of `members` but a single conversation includes them, so pass
+ * `currentUserId` to count both the same way.
+ */
+export function isGroupChat(conversation: Pick<Conversation, "members">, currentUserId?: string) {
+  return conversation.members.filter((member) => member.id !== currentUserId).length > 1;
 }
 
 export function isConversationOnline(conversation: Pick<Conversation, "members">, currentUserId?: string) {

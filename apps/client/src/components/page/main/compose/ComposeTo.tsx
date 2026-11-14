@@ -60,7 +60,7 @@ export default function ComposeTo({
       className={cn("w-full border-b flex items-center p-3 relative gap-4 z-50", !!selectedUsers?.length && "shadow")}
     >
       <AnimatePresence>
-        {openBanner && Boolean(foundConversations) && foundConversations?.some(isGroupChat) && (
+        {openBanner && Boolean(foundConversations) && foundConversations?.some((conversation) => isGroupChat(conversation, session.user?.id)) && (
           <motion.div
             key="found-group-chats"
             initial={{ y: -10, opacity: 0 }}

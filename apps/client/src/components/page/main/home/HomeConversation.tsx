@@ -28,7 +28,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
         isOnline: isOnline!,
       };
     conversationName = getConversationName(conversation, session.user?.id);
-    if (isGroupChat(conversation)) {
+    if (isGroupChat(conversation, session.user?.id)) {
       photoUrl = conversation.photo?.url as string;
     } else {
       const otherUser = conversation.members[0];
@@ -62,7 +62,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
 
     // Name the sender when it isn't obvious: you anywhere, or anyone in a group chat.
     if (lastMessage.sender.id === session.user.id) name = "you";
-    else if (isGroupChat(conversation)) {
+    else if (isGroupChat(conversation, session.user?.id)) {
       name = conversation.nicknames.find((nickname) => nickname.user === lastMessage.sender.id)?.value || "";
 
       if (!name) name = lastMessage.sender.displayName;
@@ -90,7 +90,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
       href={"/conversation/" + conversation.id}
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
-      {isGroupChat(conversation) ? (
+      {isGroupChat(conversation, session.user?.id) ? (
         <GroupAvatar conversation={conversation} currentUserId={session.user?.id} />
       ) : (
         <UserAvatar src={photoUrl} isOnline={isOnline} />

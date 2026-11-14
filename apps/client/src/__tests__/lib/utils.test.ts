@@ -49,6 +49,11 @@ describe('isGroupChat', () => {
   it('is true for two or more other members', () => {
     expect(isGroupChat(conversation(2))).toBe(true);
   });
+
+  it('leaves out the current user, so a one-to-one conversation that includes them is not a group', () => {
+    expect(isGroupChat(conversation(2), '0')).toBe(false);
+    expect(isGroupChat(conversation(3), '0')).toBe(true);
+  });
 });
 
 describe('isConversationOnline', () => {

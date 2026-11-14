@@ -1,6 +1,7 @@
 'use client';
 import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { isGroupChat } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function InfoCustomization() {
 
   const params = useParams<{ id: string }>();
   const { data: conversation } = useConversation(params.id);
+  const { session } = useAuth();
 
   return (
     <Collapsible onOpenChange={(isOpen) => setIsOpen(isOpen)}>
@@ -24,7 +26,7 @@ export default function InfoCustomization() {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">
-        {conversation && isGroupChat(conversation) && (
+        {conversation && isGroupChat(conversation, session.user?.id) && (
           <>
             <ChangePhoto />
             <ChangeName />

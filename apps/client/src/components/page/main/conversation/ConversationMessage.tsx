@@ -128,7 +128,8 @@ export default function ConversationMessage({
   }, [noText, session.user, quickMessagePlacement, message]);
 
   const photoStyle = useMemo(() => {
-    let style = 'h-fit w-[60vw] sm:w-[40vw] lg:w-[25dvw] max-w-full rounded-sm overflow-hidden grid ml-auto';
+    let style = 'h-fit w-[60vw] sm:w-[40vw] lg:w-[25dvw] max-w-full rounded-sm overflow-hidden grid';
+    style += message.sender.id === session.user?.id ? ' ml-auto' : ' mr-auto';
 
     if (!!message.photos.length) style += ' mt-px';
     if (message.photos.length > 1) style += ' bg-muted rounded-lg';
@@ -142,7 +143,7 @@ export default function ConversationMessage({
     const gridCols = ['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][getPhotoColumns(message.photos.length) - 1];
     if (gridCols) style += ' ' + gridCols;
     return style;
-  }, [message]);
+  }, [message, session.user]);
 
   const photoCornerStyles = useMemo(() => {
     const photoCount = message.photos.length;
@@ -174,7 +175,7 @@ export default function ConversationMessage({
   return (
     <span className="grid gap-3">
       {showTimeInterval && (
-        <div key={message.id + 'time_interval'} className="text-center text-xs text-muted-foreground font-medium">
+        <div key={message.id + 'time_interval'} className="mt-6 text-center text-xs text-muted-foreground font-medium">
           {timeIntervalText}
         </div>
       )}

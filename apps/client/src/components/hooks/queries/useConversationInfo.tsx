@@ -18,7 +18,7 @@ export default function useConversationInfo(conversation?: Conversation) {
       let status: UserStatus | null = null;
       const isOnline = isConversationOnline(conversation!, session.user?.id);
 
-      if (isGroupChat(conversation!)) {
+      if (isGroupChat(conversation!, session.user?.id)) {
         photoUrl = conversation!.photo?.url || '';
       } else {
         const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
