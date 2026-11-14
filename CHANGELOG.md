@@ -1,3 +1,9 @@
+## [1.2.3](https://github.com/Wilfreno/croom/compare/v1.2.2...v1.2.3) (2026-11-14)
+
+### Bug Fixes
+
+* **client:** stop redirecting the domain root to the base path ([26408ae](https://github.com/Wilfreno/croom/commit/26408aea3b139f580db904b807dc1ea712d47bd4))
+
 ## [1.2.2](https://github.com/Wilfreno/croom/compare/v1.2.1...v1.2.2) (2026-11-13)
 
 ### Bug Fixes
