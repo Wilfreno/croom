@@ -1,3 +1,9 @@
+## [1.2.4](https://github.com/Wilfreno/croom/compare/v1.2.3...v1.2.4) (2026-11-14)
+
+### Bug Fixes
+
+* **server:** authenticate sockets in handshake middleware ([5bf205c](https://github.com/Wilfreno/croom/commit/5bf205c8dec42af2b6968b9e6a792e1a524c5279))
+
 ## [1.2.3](https://github.com/Wilfreno/croom/compare/v1.2.2...v1.2.3) (2026-11-14)
 
 ### Bug Fixes
