@@ -115,7 +115,7 @@ export default function ComposeTo({
         )}
       </AnimatePresence>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" className="aspect-square h-fit w-auto p-1 md:hidden" onClick={() => router.push('/')}>
+        <Button variant="ghost" className="aspect-square h-fit w-auto p-1 lg:hidden" onClick={() => router.push('/')}>
           <ArrowLeft className="h-4 w-auto" />
         </Button>
         <Label htmlFor="add-member">To: </Label>
@@ -151,7 +151,7 @@ export default function ComposeTo({
         </DropdownMenu>
       )}
       {Boolean(selectedUsers) && Boolean(selectedUsers?.length) && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
           {selectedUsers!.slice(-5).map((value, index) => (
             <div
               key={value[0]}
@@ -171,7 +171,7 @@ export default function ComposeTo({
           ))}
         </div>
       )}
-      <div ref={userDropdownDivRef} className="grow">
+      <div ref={userDropdownDivRef} className="grow min-w-24">
         <Input
           ref={inputRef}
           id="add-member"
@@ -184,7 +184,7 @@ export default function ComposeTo({
         />
         <div
           className={cn(
-            'absolute top-3/4 left-10 w-80 h-[50dvh] bg-background shadow-lg border rounded-sm z-10',
+            'absolute top-3/4 left-10 w-80 max-w-[calc(100%-3rem)] h-[50dvh] bg-background shadow-lg border rounded-sm z-10',
             open ? 'inline-block' : 'hidden',
           )}
         >

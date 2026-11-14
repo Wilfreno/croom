@@ -19,7 +19,7 @@ export default function HomeSideBarMobileHeader() {
 
   return (
     <>
-      <div className="flex items-center justify-between md:hidden">
+      <div className="flex items-center justify-between px-4 md:hidden">
         <Sheet>
           <SheetTrigger asChild>
             <Button
@@ -83,7 +83,7 @@ export default function HomeSideBarMobileHeader() {
         </TooltipProvider>
       </div>
 
-      <p className="font-bold  md:hidden">Conversations</p>
+      <p className="font-bold px-4 md:hidden">Conversations</p>
     </>
   );
 }

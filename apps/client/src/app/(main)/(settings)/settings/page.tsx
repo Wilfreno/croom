@@ -10,12 +10,12 @@ export default function Page() {
   const router = useRouter();
 
   return (
-    <main className="md:pl-16 md:p-2">
+    <main className="grow min-w-0 overflow-y-auto">
       <Card className=" rounded-none md:rounded-md">
         <CardHeader className="flex flex-row items-center gap-4 px-4">
           <Button
             variant="ghost"
-            className="aspect-square h-fit w-auto p-1 md:hidden"
+            className="aspect-square h-fit w-auto p-1 lg:hidden"
             onClick={() => router.push("/")}
           >
             <ArrowLeft className="h-4 w-auto" />

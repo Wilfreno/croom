@@ -288,7 +288,8 @@ describe('ConversationSideBar', () => {
     renderWithQuery(<ConversationSideBar />);
 
     expect(await screen.findByText('Active Conversations')).toBeInTheDocument();
-    expect(screen.getByText('Conversations')).toBeInTheDocument();
+    // One heading from the mobile header, one from the desktop list; CSS shows only one of them.
+    expect(screen.getAllByText('Conversations')).toHaveLength(2);
   });
 
   it('is hidden on mobile away from home', () => {

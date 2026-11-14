@@ -71,7 +71,7 @@ export default function ChangeName() {
           <span>Change chat name</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[35dvw]">
+      <DialogContent className="md:w-[35dvw]">
         <DialogHeader>
           <DialogTitle>Change name</DialogTitle>
         </DialogHeader>

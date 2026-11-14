@@ -95,16 +95,16 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     >
       {!seen && <span className="absolute top-1 right-1 aspect-square h-4 w-auto bg-primary rounded-full"></span>}
       <UserAvatar src={photoUrl} isOnline={isOnline} />
-      <div className="flex flex-col items-start justify-start w-full">
-        <span className="font-semibold truncate max-w-60">{conversationName}</span>
+      <div className="flex flex-col items-start justify-start w-full min-w-0">
+        <span className="font-semibold truncate max-w-full">{conversationName}</span>
         <div
           className={cn(
-            'flex items-center justify-between text-xs w-full',
+            'flex items-center justify-between gap-2 text-xs w-full',
             seen ? 'text-muted-foreground' : 'font-semibold',
           )}
         >
-          <p className="truncate  max-w-56">{textMessage}</p>
-          <p>{timeIntervalText}</p>
+          <p className="truncate min-w-0">{textMessage}</p>
+          <p className="shrink-0">{timeIntervalText}</p>
         </div>
       </div>
     </Link>

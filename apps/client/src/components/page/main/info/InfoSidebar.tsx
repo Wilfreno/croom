@@ -41,7 +41,7 @@ export default function InfoSidebar() {
   }, [conversation, session.user]);
 
   return (
-    <SidebarContent className={cn(!isOpen && 'hidden', 'relative')}>
+    <SidebarContent className={cn('relative w-full shrink-0 md:w-72 xl:w-80', !isOpen && 'hidden')}>
       <Button variant="ghost" className="md:hidden absolute top-2 left-0" onClick={() => setIsOpen(false)}>
         <ArrowLeft className="h-6 w-auto" />
       </Button>
@@ -58,7 +58,7 @@ export default function InfoSidebar() {
           )}
         </span>
         <div className="text-center">
-          <p className="font-medium text-lg truncate max-w-72">{conversationInfo?.conversationName}</p>
+          <p className="font-medium text-lg truncate max-w-64">{conversationInfo?.conversationName}</p>
           {Boolean(conversationInfo?.lastOnline) && (
             <p className="text-xs font-medium text-muted-foreground">Online {conversationInfo?.lastOnline}</p>
           )}

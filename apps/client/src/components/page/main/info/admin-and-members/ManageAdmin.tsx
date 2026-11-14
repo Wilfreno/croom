@@ -71,7 +71,7 @@ export default function ManageAdmin() {
           <span>Manage admin</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="gap-8 w-[40dvw]">
+      <DialogContent className="gap-8 md:w-[40dvw]">
         <DialogHeader>
           <DialogTitle>Manage admin</DialogTitle>
         </DialogHeader>
@@ -84,14 +84,14 @@ export default function ManageAdmin() {
           <div className="grid gap-2">
             {conversation?.members.map((user) => (
               <div key={user.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   <Avatar>
                     <AvatarImage src={user.photo?.url} />
                     <AvatarFallback>
                       <UserRound className="h-1/2 w-auto" />
                     </AvatarFallback>
                   </Avatar>
-                  <p className="truncate max-w-80">{user.displayName}</p>
+                  <p className="truncate">{user.displayName}</p>
                 </div>
                 {user.id === session.user?.id ? (
                   <p className="text-xs font-semibold text-muted-foreground mr-4">You</p>

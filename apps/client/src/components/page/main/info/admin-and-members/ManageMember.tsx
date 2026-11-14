@@ -117,7 +117,7 @@ export default function ManageMember() {
           <span>Manage Members</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[40dvw] ">
+      <DialogContent className="md:w-[40dvw]">
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
