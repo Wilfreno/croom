@@ -9,6 +9,7 @@ import MessageToast from '@/components/page/main/conversation/MessageToast';
 import { axiosInstance } from '@/lib/axios-instance';
 import { UserStatus } from '@repo/enums';
 import type { Message, MessagePayload, UserSession } from '@repo/types';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
@@ -32,7 +33,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), useParams: () =
 const sidebar = { onMobile: false, setIsOpen: vi.fn() };
 vi.mock('@/components/hooks/queries/useInfoSidebarOpen', () => ({ default: () => sidebar }));
 
-const sendMessage = { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(undefined), isPending: false };
+const sendMessage = { mutate: vi.fn(), isPending: false };
 const sendMessageHookSpy = vi.fn((_text: string) => ({ sendMessage }));
 vi.mock('@/components/hooks/mutation/useSendMessage.mutation', () => ({ default: (text: string) => sendMessageHookSpy(text) }));
 
@@ -209,6 +210,22 @@ describe('ConversationMessage', () => {
     expect(corners[1]).not.toMatch(/rounded-(tl|tr|bl|br)-md/);
   });
 
+  it('scrolls the last message into view again when it fails, so the note is visible', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const pending = { ...message({ text: 'lost' }), pending: true };
+
+    const { rerender, queryClient } = renderWithQuery(<ConversationMessage message={pending} isLastMessage />);
+    scrollIntoView.mockClear();
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ConversationMessage message={{ ...pending, pending: false, failed: true }} isLastMessage />
+      </QueryClientProvider>,
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'instant', block: 'nearest' });
+  });
+
   it('marks the last message as seen and scrolls it into view', async () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
@@ -234,6 +251,93 @@ describe('ConversationMessage', () => {
 
     expect(axiosInstance.patch).not.toHaveBeenCalled();
   });
+
+  it('shows a message that is still sending muted, and full color once saved', () => {
+    const msg = message({ text: 'on its way' });
+
+    const { rerender, queryClient } = renderWithQuery(
+      <ConversationMessage message={{ ...msg, pending: true }} isLastMessage={false} />,
+    );
+    const bubble = screen.getByText('on its way').closest('[class*="transition-opacity"]')!;
+    expect(bubble).toHaveClass('opacity-50');
+    expect(bubble).toHaveAttribute('aria-busy', 'true');
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ConversationMessage message={msg} isLastMessage={false} />
+      </QueryClientProvider>,
+    );
+    expect(bubble).not.toHaveClass('opacity-50');
+    expect(bubble).not.toHaveAttribute('aria-busy');
+  });
+
+  it('keeps a message that failed to send muted, with a note below it', () => {
+    renderWithQuery(
+      <ConversationMessage message={{ ...message({ text: 'lost' }), failed: true }} isLastMessage={false} />,
+    );
+
+    expect(screen.getByText('lost').closest('[class*="transition-opacity"]')).toHaveClass('opacity-50');
+    expect(screen.getByRole('alert')).toHaveTextContent('Message not sent');
+  });
+
+  it('retries a failed message when its note or bubble is tapped', async () => {
+    const onRetry = vi.fn();
+    const failed = { ...message({ text: 'lost' }), failed: true };
+    renderWithQuery(<ConversationMessage message={failed} isLastMessage={false} onRetry={onRetry} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await userEvent.click(screen.getByText('lost'));
+
+    expect(onRetry).toHaveBeenCalledTimes(2);
+    expect(onRetry).toHaveBeenCalledWith(failed);
+  });
+
+  it('shows a loading note instead of Retry while a message is being resent', () => {
+    const onRetry = vi.fn();
+    renderWithQuery(
+      <ConversationMessage
+        message={{ ...message({ text: 'lost' }), pending: true, resending: true }}
+        isLastMessage={false}
+        onRetry={onRetry}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Resending');
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  it('does nothing when a sent message is tapped', async () => {
+    const onRetry = vi.fn();
+    renderWithQuery(<ConversationMessage message={message({ text: 'fine' })} isLastMessage={false} onRetry={onRetry} />);
+
+    await userEvent.click(screen.getByText('fine'));
+
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+
+  it('shows no note for a message that was sent', () => {
+    renderWithQuery(<ConversationMessage message={message()} isLastMessage={false} />);
+
+    expect(screen.queryByText('Message not sent')).not.toBeInTheDocument();
+  });
+
+  it('never marks a message that failed to send as seen', () => {
+    Element.prototype.scrollIntoView = vi.fn();
+
+    renderWithQuery(<ConversationMessage message={{ ...message(), id: 'pending-1', failed: true }} isLastMessage />);
+
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('waits for a pending last message to be saved before marking it seen', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const msg = message();
+
+    renderWithQuery(<ConversationMessage message={{ ...msg, id: 'pending-1', pending: true }} isLastMessage />);
+
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
 });
 
 describe('ConversationMessages', () => {
@@ -251,6 +355,22 @@ describe('ConversationMessages', () => {
     expect(screen.getByText('third')).toBeInTheDocument();
     await waitFor(() => expect(axiosInstance.patch).toHaveBeenCalledTimes(1));
     expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${third.id}/seenBy`, expect.anything());
+  });
+
+  it('resends a failed message with its text and photos in place of the failed copy', async () => {
+    const photo = mockPhoto({ key: 'k1', url: 'https://utfs.io/a.png', width: 10, height: 20 });
+    const failed = { ...mockMessage({ text: 'lost', conversation: 'c1', photos: [photo] }), failed: true };
+    messagePages = { pages: [{ pageParam: 1, result: [failed] }] };
+
+    renderWithQuery(<ConversationMessages conversation={mockConversation()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(sendMessage.mutate).toHaveBeenCalledWith({
+      conversationId: 'c1',
+      text: 'lost',
+      photoInput: [{ key: 'k1', url: 'https://utfs.io/a.png', width: 10, height: 20 }],
+      retryId: failed.id,
+    });
   });
 
   it('renders nothing before messages load', () => {
@@ -276,7 +396,7 @@ describe('ConversationMessageInput', () => {
 
     await user().click(buttons[buttons.length - 1]);
 
-    expect(sendMessage.mutateAsync).toHaveBeenCalledWith({ conversationId: 'c1', photoInput: [], text: '👍' });
+    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: 'c1', photoInput: [], text: '👍' });
   });
 
   it('sends the typed text on Enter and clears the box', async () => {
@@ -286,7 +406,7 @@ describe('ConversationMessageInput', () => {
     await user().type(textarea, 'hello{Enter}');
 
     expect(sendMessageHookSpy).toHaveBeenLastCalledWith('');
-    expect(sendMessage.mutateAsync).toHaveBeenCalledWith({ conversationId: 'c1', photoInput: [], text: '' });
+    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: 'c1', photoInput: [], text: 'hello' });
     await waitFor(() => expect(textarea).toHaveValue(''));
   });
 
@@ -318,7 +438,7 @@ describe('ConversationMessageInput', () => {
 
     await user().type(screen.getByPlaceholderText('Aa'), '{Enter}');
 
-    expect(sendMessage.mutateAsync).toHaveBeenCalledWith({
+    expect(sendMessage.mutate).toHaveBeenCalledWith({
       conversationId: 'c1',
       text: '',
       photoInput: [{ ...UPLOADED_FILE, width: 640, height: 480 }],

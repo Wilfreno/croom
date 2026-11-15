@@ -14,7 +14,7 @@ import { ChangeEvent, KeyboardEvent, useLayoutEffect, useRef, useState } from 'r
  */
 export default function useMessageTextarea({
   onSubmit,
-  canSubmit = (value) => !!value.trim(),
+  canSubmit = (value) => Boolean(value.trim()),
 }: {
   onSubmit: () => void;
   canSubmit?: (value: string) => boolean;

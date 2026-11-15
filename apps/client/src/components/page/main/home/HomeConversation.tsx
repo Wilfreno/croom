@@ -55,7 +55,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
 
     text += name;
 
-    if (!!lastMessage.photos.length) {
+    if (Boolean(lastMessage.photos.length)) {
       if (lastMessage.photos.length > 1) text += " sent some photos";
       else text += " sent a photo";
     } else {

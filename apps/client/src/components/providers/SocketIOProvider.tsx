@@ -1,4 +1,6 @@
 'use client';
+import { appendMessage } from '@/lib/utils';
+import type { MessagePages } from '@/types/message.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
 import type {
   ClientToServerEvents,
@@ -8,7 +10,7 @@ import type {
   ServerToClientEvents,
   UserStatusPayload,
 } from '@repo/types';
-import { InfiniteData, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
@@ -40,26 +42,10 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     if (pathname.startsWith('/conversation/' + conversationId)) {
       const newMessage: Message = { ...message, conversation: conversationId };
 
-      queryClient.setQueryData<
-        | InfiniteData<
-            {
-              pageParam: number;
-              result: Message[];
-            },
-            unknown
-          >
-        | undefined
-      >(['conversation', 'messages', conversationId], (prev) => {
-        if (!prev) return;
-
-        return {
-          ...prev,
-          pages: prev.pages.map(({ pageParam, result }, index) => ({
-            pageParam,
-            result: index === prev.pages.length - 1 ? [...result, newMessage] : result,
-          })),
-        };
-      });
+      queryClient.setQueryData<MessagePages>(
+        ['conversation', 'messages', conversationId],
+        (prev) => prev && appendMessage(prev, newMessage),
+      );
     } else {
       toast.custom((toastId) => <MessageToast message={message} toastId={toastId} />, {
         duration: Infinity,

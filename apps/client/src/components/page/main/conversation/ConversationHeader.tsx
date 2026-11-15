@@ -49,7 +49,7 @@ export default function ConversationHeader({
           )}
           <div className="min-w-0">
             <p className="font-medium truncate max-w-96">{conversationInfo?.conversationName}</p>
-            {!!conversationInfo?.lastOnline && (
+            {Boolean(conversationInfo?.lastOnline) && (
               <p className="text-xs font-medium text-muted-foreground">{conversationInfo?.lastOnline}</p>
             )}
           </div>

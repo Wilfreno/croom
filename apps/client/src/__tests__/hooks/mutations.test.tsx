@@ -1,4 +1,4 @@
-import { mockConversation, mockMessage } from '@/__tests__/mocks/mock-entities';
+import { mockConversation, mockMessage, mockUser } from '@/__tests__/mocks/mock-entities';
 import { renderHookWithQuery } from '@/__tests__/mocks/render-with-query';
 import useComposeMessage from '@/components/hooks/mutation/useComposeMessage.mutation';
 import useCreateConversation from '@/components/hooks/mutation/useCreateConversation.mutation';
@@ -6,6 +6,7 @@ import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation'
 import { axiosInstance } from '@/lib/axios-instance';
 import type { Message, MessagePayload } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
+import type { CachedMessage } from '@/types/message.types';
 import { act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -75,6 +76,79 @@ describe('useSendMessage', () => {
     expect(cache.pages[1].result).toEqual([recent, { ...payload, conversation: conversationId }]);
   });
 
+  it('shows a muted copy while sending, then swaps in the saved message under the same key', async () => {
+    const conversationId = 'c1';
+    const me = mockUser();
+    const recent = mockMessage();
+    const payload = payloadFor(conversationId, 'new one');
+    let respond!: (value: unknown) => void;
+    post.mockReturnValue(new Promise((resolve) => (respond = resolve)));
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], me);
+    queryClient.setQueryData(['conversation', 'messages', conversationId], cachedPages(conversationId, [[recent]]));
+    const messages = () =>
+      queryClient.getQueryData<MessagePages>(['conversation', 'messages', conversationId])!.pages[0].result as CachedMessage[];
+
+    act(() => result.current.sendMessage.mutate({ text: 'new one', photoInput: [], conversationId }));
+
+    await waitFor(() => expect(messages()).toHaveLength(2));
+    const pending = messages()[1];
+    expect(pending).toMatchObject({ pending: true, text: 'new one', sender: me, conversation: conversationId });
+
+    await act(async () => respond({ data: { status: 'OK', message: '', data: payload } }));
+
+    await waitFor(() => expect(messages()[1].pending).toBeUndefined());
+    expect(messages()).toEqual([recent, { ...payload, conversation: conversationId, clientKey: pending.clientKey }]);
+  });
+
+  it('keeps the muted copy and marks it failed when sending fails', async () => {
+    const conversationId = 'c1';
+    const recent = mockMessage();
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], mockUser());
+    queryClient.setQueryData(['conversation', 'messages', conversationId], cachedPages(conversationId, [[recent]]));
+
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    const [kept, failed] = queryClient.getQueryData<MessagePages>(['conversation', 'messages', conversationId])!.pages[0]
+      .result as CachedMessage[];
+    expect(kept).toEqual(recent);
+    expect(failed).toMatchObject({ text: 'x', pending: false, failed: true });
+  });
+
+  it('replaces a failed message with a new muted copy at the bottom when retrying', async () => {
+    const conversationId = 'c1';
+    const failed = { ...mockMessage({ text: 'lost' }), failed: true };
+    const later = mockMessage({ text: 'later' });
+    post.mockReturnValue(new Promise(() => {}));
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], mockUser());
+    queryClient.setQueryData(['conversation', 'messages', conversationId], cachedPages(conversationId, [[failed, later]]));
+
+    act(() =>
+      result.current.sendMessage.mutate({ text: 'lost', photoInput: [], conversationId, retryId: failed.id }),
+    );
+
+    await waitFor(() => {
+      const messages = queryClient.getQueryData<MessagePages>(['conversation', 'messages', conversationId])!.pages[0]
+        .result as CachedMessage[];
+      expect(messages.map(({ text }) => text)).toEqual(['later', 'lost']);
+      expect(messages[1]).toMatchObject({ pending: true });
+      expect(messages[1].failed).toBeUndefined();
+    });
+  });
+
   it('leaves the cache alone when the conversation was never loaded', async () => {
     serverReturns(payloadFor('c1'));
 
@@ -98,10 +172,10 @@ describe('useComposeMessage', () => {
   it('posts the message with the members for a first message', async () => {
     const payload = payloadFor('new-conversation');
     serverReturns(payload);
-    const photos = [{ url: 'u' }];
+    const photos = [{ key: 'k', url: 'u', width: 1, height: 1 }];
 
-    const { result } = renderHookWithQuery(() => useComposeMessage({ photos }));
-    await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'] }));
+    const { result } = renderHookWithQuery(() => useComposeMessage());
+    await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'], photos }));
 
     expect(post).toHaveBeenCalledWith('/message', { conversationId: '', text: 'hi', photos, members: ['u1'] });
   });
@@ -109,8 +183,8 @@ describe('useComposeMessage', () => {
   it('navigates to the conversation the server created', async () => {
     serverReturns(payloadFor('new-conversation'));
 
-    const { result } = renderHookWithQuery(() => useComposeMessage({ photos: [] }));
-    await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'] }));
+    const { result } = renderHookWithQuery(() => useComposeMessage());
+    await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'], photos: [] }));
 
     expect(push).toHaveBeenCalledWith('/conversation/new-conversation');
   });
@@ -120,9 +194,9 @@ describe('useComposeMessage', () => {
     const payload = payloadFor('c1');
     serverReturns(payload);
 
-    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage({ photos: [] }));
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
     queryClient.setQueryData(['conversation', 'messages', 'c1'], cachedPages('c1', [[existing]]));
-    await act(() => result.current.sendMessage.mutateAsync({ conversationId: 'c1', text: 'hi', members: [] }));
+    await act(() => result.current.sendMessage.mutateAsync({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
 
     expect(push).toHaveBeenCalledWith('/conversation/c1');
     const cache = queryClient.getQueryData<MessagePages>(['conversation', 'messages', 'c1'])!;
@@ -132,10 +206,97 @@ describe('useComposeMessage', () => {
   it('does not navigate when sending fails', async () => {
     post.mockRejectedValue(new Error('network'));
 
-    const { result } = renderHookWithQuery(() => useComposeMessage({ photos: [] }));
-    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [] }));
+    const { result } = renderHookWithQuery(() => useComposeMessage());
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
 
     await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it('shows a muted copy in the existing conversation while sending', async () => {
+    const existing = mockMessage();
+    const me = mockUser();
+    let respond!: (value: unknown) => void;
+    post.mockReturnValue(new Promise((resolve) => (respond = resolve)));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], me);
+    queryClient.setQueryData(['conversation', 'messages', 'c1'], cachedPages('c1', [[existing]]));
+    const messages = () =>
+      queryClient.getQueryData<MessagePages>(['conversation', 'messages', 'c1'])!.pages[0].result as CachedMessage[];
+
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(messages()).toHaveLength(2));
+    expect(messages()[1]).toMatchObject({ pending: true, text: 'hi', sender: me });
+
+    const payload = payloadFor('c1');
+    await act(async () => respond({ data: { status: 'OK', message: '', data: payload } }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/conversation/c1'));
+    expect(messages()[1]).toEqual({ ...payload, conversation: 'c1', clientKey: expect.stringMatching(/^pending-/) });
+  });
+
+  it('shows a muted copy for a first message, then clears it once the conversation exists', async () => {
+    let respond!: (value: unknown) => void;
+    post.mockReturnValue(new Promise((resolve) => (respond = resolve)));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], mockUser());
+    const draftKey = ['conversation', 'messages', undefined];
+
+    act(() => result.current.sendMessage.mutate({ text: 'hi', members: ['u1'], photos: [] }));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData<MessagePages>(draftKey)?.pages[0].result).toEqual([
+        expect.objectContaining({ pending: true, text: 'hi' }),
+      ]),
+    );
+
+    await act(async () => respond({ data: { status: 'OK', message: '', data: payloadFor('new-conversation') } }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/conversation/new-conversation'));
+    expect(queryClient.getQueryData(draftKey)).toBeUndefined();
+  });
+
+  it('replaces a failed first message with a new muted copy when retrying', async () => {
+    const failed = { ...mockMessage({ text: 'lost' }), failed: true };
+    post.mockReturnValue(new Promise(() => {}));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], mockUser());
+    const draftKey = ['conversation', 'messages', undefined];
+    queryClient.setQueryData(draftKey, cachedPages('', [[failed]]));
+
+    act(() => result.current.sendMessage.mutate({ text: 'lost', members: ['u1'], photos: [], retryId: failed.id }));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryData<MessagePages>(draftKey)!.pages[0].result).toEqual([
+        expect.objectContaining({ text: 'lost', pending: true }),
+      ]),
+    );
+  });
+
+  it('keeps the muted copy of a first message and marks it failed when sending fails', async () => {
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    queryClient.setQueryDefaults(['user', 'session'], { gcTime: Infinity });
+    queryClient.setQueryData(['user', 'session'], mockUser());
+
+    act(() => result.current.sendMessage.mutate({ text: 'hi', members: ['u1'], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(queryClient.getQueryData<MessagePages>(['conversation', 'messages', undefined])!.pages[0].result).toEqual([
+      expect.objectContaining({ text: 'hi', pending: false, failed: true }),
+    ]);
     expect(push).not.toHaveBeenCalled();
   });
 });

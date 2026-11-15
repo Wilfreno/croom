@@ -1,4 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
+import type { CachedMessage } from '@/types/message.types';
 import { Conversation, Message } from '@repo/types';
 import { ServerResponse } from '@repo/types';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -6,7 +7,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 export default function useMessages(foundConversation: Conversation[]) {
   const { data: foundMessages, isError } = useInfiniteQuery<{
     pageParam: number;
-    result: Message[];
+    result: CachedMessage[];
   }>({
     enabled: Boolean(foundConversation) && Boolean(foundConversation![0]) && foundConversation!.length === 1,
     queryKey: ['conversation', 'messages', foundConversation?.[0]?.id],

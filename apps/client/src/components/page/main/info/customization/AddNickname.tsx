@@ -137,7 +137,7 @@ export default function AddNickname() {
                         value={newNickname.value}
                         onChange={(e) => setNewNickname({ user: id, value: e.currentTarget.value })}
                       />
-                      {!!newNickname.value && (
+                      {Boolean(newNickname.value) && (
                         <Button
                           type="button"
                           variant="outline"

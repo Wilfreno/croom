@@ -1,9 +1,11 @@
 import type { CallSession } from "@/types/call.types";
+import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
 import { SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS } from "@repo/constants";
 import { UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
+import type { Photo, User } from "@repo/types";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -105,4 +107,85 @@ export function peopleLabel(count: number) {
  */
 export function withBasePath(path: string) {
   return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
+}
+
+export function createPendingMessage({
+  conversationId,
+  sender,
+  text,
+  photos,
+  resending,
+}: {
+  conversationId: string;
+  sender: User;
+  text: string;
+  photos: PhotoInput[];
+  resending?: boolean;
+}): CachedMessage {
+  const id = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const now = new Date();
+
+  return {
+    id,
+    clientKey: id,
+    pending: true,
+    resending,
+    conversation: conversationId,
+    sender,
+    text,
+    photos: photos.map((photo) => ({ ...photo, id: photo.key }) as unknown as Photo),
+    seenBy: [],
+    status: "",
+    dateCreated: now,
+    lastUpdated: now,
+  } as unknown as CachedMessage;
+}
+
+export function appendMessage(pages: MessagePages | undefined, message: CachedMessage): MessagePages {
+  if (!pages) return { pages: [{ pageParam: 1, result: [message] }], pageParams: [1] };
+
+  return {
+    ...pages,
+    pages: pages.pages.map(({ pageParam, result }, index) => ({
+      pageParam,
+      result: index === pages.pages.length - 1 ? [...result, message] : result,
+    })),
+  };
+}
+
+export function replaceMessage(pages: MessagePages, id: string | undefined, message: CachedMessage): MessagePages {
+  const isCached = Boolean(id) && pages.pages.some(({ result }) => result.some((cached) => cached.id === id));
+  if (!isCached) return appendMessage(pages, message);
+
+  return {
+    ...pages,
+    pages: pages.pages.map(({ pageParam, result }) => ({
+      pageParam,
+      result: result.map((cached) => (cached.id === id ? message : cached)),
+    })),
+  };
+}
+
+export function removeMessage(pages: MessagePages, id: string): MessagePages {
+  return {
+    ...pages,
+    pages: pages.pages.map(({ pageParam, result }) => ({
+      pageParam,
+      result: result.filter((cached) => cached.id !== id),
+    })),
+  };
+}
+
+export function toPhotoInputs(photos: Photo[]): PhotoInput[] {
+  return photos.map(({ key, url, width, height }) => ({ key, url, width, height }));
+}
+
+export function markMessageFailed(pages: MessagePages, id: string): MessagePages {
+  return {
+    ...pages,
+    pages: pages.pages.map(({ pageParam, result }) => ({
+      pageParam,
+      result: result.map((cached) => (cached.id === id ? { ...cached, pending: false, failed: true } : cached)),
+    })),
+  };
 }

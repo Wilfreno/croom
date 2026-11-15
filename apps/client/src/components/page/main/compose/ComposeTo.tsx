@@ -57,7 +57,7 @@ export default function ComposeTo({
 
   return (
     <section
-      className={cn("w-full border-b flex items-center p-3 relative gap-4 z-50", !!selectedUsers?.length && "shadow")}
+      className={cn("w-full border-b flex items-center p-3 relative gap-4 z-50", Boolean(selectedUsers?.length) && "shadow")}
     >
       <AnimatePresence>
         {openBanner && Boolean(foundConversations) && foundConversations?.some((conversation) => isGroupChat(conversation, session.user?.id)) && (

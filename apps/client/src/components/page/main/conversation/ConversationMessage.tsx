@@ -1,8 +1,10 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
 import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
+import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,11 +17,13 @@ export default function ConversationMessage({
   prevMessage,
   nextMessage,
   isLastMessage,
+  onRetry,
 }: {
-  message: Message;
+  message: CachedMessage;
   prevMessage?: Message;
   nextMessage?: Message;
   isLastMessage: boolean;
+  onRetry?: (message: CachedMessage) => void;
 }) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -31,11 +35,11 @@ export default function ConversationMessage({
     let showTimeInterval = false;
     let timeIntervalText = '';
 
-    if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+    if (nextMessage && nextMessage.sender.id === message.sender.id) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
       const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
       if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
-        if (!!prevMessage && prevMessage.sender.id === message.sender.id) {
+        if (prevMessage && prevMessage.sender.id === message.sender.id) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
           const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
           if (prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
@@ -52,7 +56,7 @@ export default function ConversationMessage({
       const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
 
       if (prevMessage!.sender.id === message.sender.id && prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
-        if (!!nextMessage && nextMessage.sender.id === message.sender.id) {
+        if (nextMessage && nextMessage.sender.id === message.sender.id) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
           const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
           if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
@@ -121,7 +125,7 @@ export default function ConversationMessage({
       }
     }
 
-    if (!!message.photos.length)
+    if (Boolean(message.photos.length))
       style += isSender ? ' rounded-l-lg rounded-tr-lg rounded-br' : ' rounded-r-lg rounded-tl-lg rounded-bl';
 
     return style;
@@ -131,7 +135,7 @@ export default function ConversationMessage({
     let style = 'h-fit w-[60vw] sm:w-[40vw] lg:w-[25dvw] max-w-full rounded-sm overflow-hidden grid';
     style += message.sender.id === session.user?.id ? ' ml-auto' : ' mr-auto';
 
-    if (!!message.photos.length) style += ' mt-px';
+    if (Boolean(message.photos.length)) style += ' mt-px';
     if (message.photos.length > 1) style += ' bg-muted rounded-lg';
     else if (message.photos.length === 1) style += ' border shadow-sm';
     if (message.text)
@@ -169,8 +173,12 @@ export default function ConversationMessage({
   useEffect(() => {
     if (!isLastMessage) return;
     divRef.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+  }, [isLastMessage, message.pending, message.failed]);
+
+  useEffect(() => {
+    if (!isLastMessage || message.pending || message.failed) return;
     seen.mutate();
-  }, [isLastMessage]);
+  }, [isLastMessage, message.pending, message.failed]);
 
   return (
     <span className="grid gap-3">
@@ -195,7 +203,15 @@ export default function ConversationMessage({
             </AvatarFallback>
           </Avatar>
         )}
-        <div className="grid">
+        <div
+          className={cn(
+            'grid transition-opacity duration-300',
+            (message.pending || message.failed) && 'opacity-50',
+            message.failed && onRetry && 'cursor-pointer',
+          )}
+          aria-busy={message.pending || undefined}
+          onClick={message.failed && onRetry ? () => onRetry(message) : undefined}
+        >
           {Boolean(message.text) && (
             <div className={cn(textStyle)}>
               <span>{message.text}</span>
@@ -215,6 +231,28 @@ export default function ConversationMessage({
             ))}
           </div>
         </div>
+        {message.pending && message.resending && (
+          <div
+            role="status"
+            className="-mt-1 flex items-center justify-end gap-1 text-xs font-medium text-muted-foreground"
+          >
+            <Loading className="h-4 fill-muted-foreground" />
+            Resending
+          </div>
+        )}
+        {message.failed && (
+          <div role="alert" className="-mt-1 text-right text-xs font-medium text-destructive">
+            Message not sent
+            {onRetry && (
+              <>
+                {' · '}
+                <button type="button" className="underline" onClick={() => onRetry(message)}>
+                  Retry
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </span>
   );
