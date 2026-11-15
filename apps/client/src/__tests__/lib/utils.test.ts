@@ -101,11 +101,11 @@ describe('getGroupAvatarMembers', () => {
 });
 
 describe('getConversationName', () => {
-  const ann = { id: 'ann', userName: 'ann' };
-  const bob = { id: 'bob', userName: 'bob' };
-  const me = { id: 'me', userName: 'me' };
+  const ann = { id: 'ann', displayName: 'Ann' };
+  const bob = { id: 'bob', displayName: 'Bob' };
+  const me = { id: 'me', displayName: 'Me' };
 
-  function conversation(name: string, members: { id: string; userName: string }[], nicknames: Conversation['nicknames'] = []) {
+  function conversation(name: string, members: { id: string; displayName: string }[], nicknames: Conversation['nicknames'] = []) {
     return { name, members, nicknames } as unknown as Conversation;
   }
 
@@ -113,13 +113,13 @@ describe('getConversationName', () => {
     expect(getConversationName(conversation('Team', [ann, bob]), 'me')).toBe('Team');
   });
 
-  it("lists the other members' userNames when there is no name", () => {
-    expect(getConversationName(conversation('', [me, ann, bob]), 'me')).toBe('ann, bob');
+  it("lists the other members' display names when there is no name", () => {
+    expect(getConversationName(conversation('', [me, ann, bob]), 'me')).toBe('Ann, Bob');
   });
 
-  it("prefers a member's nickname over their userName", () => {
+  it("prefers a member's nickname over their display name", () => {
     expect(getConversationName(conversation('', [ann, bob], [{ user: 'bob', value: 'Bobby' }]), 'me')).toBe(
-      'ann, Bobby',
+      'Ann, Bobby',
     );
   });
 });

@@ -8,10 +8,12 @@ export default function UserAvatar({
   src,
   isOnline,
   className,
+  onlineClassName,
 }: {
   src?: string;
   isOnline: boolean;
   className?: string;
+  onlineClassName?: string;
 }) {
   return (
     <div className="relative h-fit w-fit">
@@ -22,7 +24,12 @@ export default function UserAvatar({
         </AvatarFallback>
       </Avatar>
       {isOnline && (
-        <div className="bg-green-500 aspect-square h-4 border-2 border-background w-auto rounded-full absolute bottom-0 right-0"></div>
+        <div
+          className={cn(
+            'bg-green-500 aspect-square h-4 border-2 border-background w-auto rounded-full absolute bottom-0 right-0',
+            onlineClassName,
+          )}
+        ></div>
       )}
     </div>
   );

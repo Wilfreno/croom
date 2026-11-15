@@ -5,12 +5,12 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn, isGroupChat } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { ConversationInfo } from '@/types/common.types';
 import { Conversation } from '@repo/types';
 import { ArrowLeft, Ellipsis, Video } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import GroupAvatar from '../GroupAvatar';
+import ConversationAvatar from '../ConversationAvatar';
 import UserAvatar from '../UserAvatar';
 
 export default function ConversationHeader({
@@ -42,8 +42,8 @@ export default function ConversationHeader({
           <ArrowLeft className="h-4 w-auto" />
         </Button>
         <div className="flex items-center gap-4 min-w-0">
-          {conversation && isGroupChat(conversation, session.user?.id) ? (
-            <GroupAvatar conversation={conversation} currentUserId={session.user?.id} />
+          {conversation ? (
+            <ConversationAvatar conversation={conversation} currentUserId={session.user?.id} />
           ) : (
             <UserAvatar src={conversationInfo?.photoUrl} isOnline={Boolean(conversationInfo?.isOnline)} />
           )}

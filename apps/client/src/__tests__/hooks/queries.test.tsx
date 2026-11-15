@@ -177,12 +177,12 @@ describe('useConversationInfo', () => {
     expect(result.current.data?.status).toBe(UserStatus.ONLINE);
   });
 
-  it('falls back to their userName when they have no nickname', async () => {
+  it('falls back to their display name when they have no nickname', async () => {
     const conversation = mockConversation({ members: [mockUser({ displayName: 'Bob', userName: 'bob' })] });
 
     const { result } = renderHookWithQuery(() => useConversationInfo(conversation));
 
-    await waitFor(() => expect(result.current.data?.conversationName).toBe('bob'));
+    await waitFor(() => expect(result.current.data?.conversationName).toBe('Bob'));
   });
 
   it.each([

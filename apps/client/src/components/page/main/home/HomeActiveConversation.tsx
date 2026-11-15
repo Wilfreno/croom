@@ -6,11 +6,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getConversationName, isGroupChat } from '@/lib/utils';
+import { getConversationName } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import GroupAvatar from '../GroupAvatar';
-import UserAvatar from '../UserAvatar';
+import ConversationAvatar from '../ConversationAvatar';
 
 export default function HomeActiveConversations() {
   const { activeConversations, isError, isLoading, refetch, isRefetching } = useActiveConversation();
@@ -35,7 +34,6 @@ export default function HomeActiveConversations() {
         ) : Boolean(activeConversations?.length) ? (
           <div className="flex items-center justify-start gap-2 px-1">
             {activeConversations?.map((conversation) => {
-              const isGroup = isGroupChat(conversation, session.user?.id);
               const conversationName = getConversationName(conversation, session.user?.id);
               return (
                 <TooltipProvider key={conversation.id}>
@@ -43,15 +41,11 @@ export default function HomeActiveConversations() {
                     <TooltipTrigger asChild>
                       <Link href={'/conversation/' + conversation.id}>
                         <div className="flex flex-col items-center gap-1 h-fit w-fit">
-                          {isGroup ? (
-                            <GroupAvatar
-                              conversation={conversation}
-                              currentUserId={session.user?.id}
-                              className="bg-background"
-                            />
-                          ) : (
-                            <UserAvatar isOnline src={conversation.members[0].photo?.url} className="bg-background" />
-                          )}
+                          <ConversationAvatar
+                            conversation={conversation}
+                            currentUserId={session.user?.id}
+                            className="bg-background"
+                          />
                           <p className="text-xs font-medium w-14 truncate">
                             {conversationName}
                           </p>

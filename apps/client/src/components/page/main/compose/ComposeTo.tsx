@@ -2,7 +2,6 @@
 import useSearchConversationsByMembers from "@/components/hooks/queries/useSearchConversationsByMember";
 import useSearchUsers from "@/components/hooks/queries/useSearchUsers";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -10,11 +9,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, getConversationName, isGroupChat } from "@/lib/utils";
 import { UserStatus } from "@repo/enums";
-import { ArrowLeft, ChevronDown, UserRound, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import ConversationAvatar from "../ConversationAvatar";
 import UserAvatar from "../UserAvatar";
 
 export default function ComposeTo({
@@ -114,12 +114,7 @@ export default function ComposeTo({
                       className="h-fit w-full p-2 justify-start rounded-sm"
                       onClick={() => router.push("/conversation/" + convo.id)}
                     >
-                      <Avatar>
-                        <AvatarImage src={convo.photo?.url} />
-                        <AvatarFallback>
-                          <UserRound className="h-1/2 w-auto" />
-                        </AvatarFallback>
-                      </Avatar>
+                      <ConversationAvatar conversation={convo} currentUserId={session.user?.id} />
                       <span className="font-semibold truncate max-w-[40vw]">{getConversationName(convo, session.user?.id)}</span>
                     </Button>
                   ))}

@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 /** A one-to-one conversation whose last message is `text`, sent by `sender`. */
-function chatWith(other = mockUser({ displayName: 'Bob', userName: 'bob' }), lastMessage: Parameters<typeof mockMessage>[0] = {}) {
+function chatWith(other = mockUser({ displayName: 'Bob' }), lastMessage: Parameters<typeof mockMessage>[0] = {}) {
   return mockConversation({
     members: [other],
     messages: [mockMessage({ sender: other, text: 'hello', seenBy: [], ...lastMessage }) as never],
@@ -105,7 +105,7 @@ describe('HomeConversation', () => {
 
     renderWithQuery(<HomeConversation conversation={conversation} />);
 
-    expect(screen.getByText('bob')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('hello')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute('href', `/conversation/${conversation.id}`);
   });
@@ -215,26 +215,26 @@ describe('HomeConversation', () => {
 
 describe('HomeConversations', () => {
   it('lists the conversations', () => {
-    conversations = [chatWith(mockUser({ userName: 'bob' })), chatWith(mockUser({ userName: 'ann' }))];
+    conversations = [chatWith(mockUser({ displayName: 'Bob' })), chatWith(mockUser({ displayName: 'Ann' }))];
 
     renderWithQuery(<HomeConversations />);
 
-    expect(screen.getByText('bob')).toBeInTheDocument();
-    expect(screen.getByText('ann')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('Ann')).toBeInTheDocument();
   });
 
   it('shows search results instead while searching', async () => {
-    conversations = [chatWith(mockUser({ userName: 'bob' }))];
+    conversations = [chatWith(mockUser({ displayName: 'Bob' }))];
     const { rerender } = renderWithQuery(<HomeConversations />);
 
     await userEvent.type(screen.getByPlaceholderText('Search'), 'an');
     expect(searchSpy).toHaveBeenLastCalledWith('an');
 
-    searchResults = [chatWith(mockUser({ userName: 'ann' }))];
+    searchResults = [chatWith(mockUser({ displayName: 'Ann' }))];
     rerender(<HomeConversations />);
 
-    expect(screen.getByText('ann')).toBeInTheDocument();
-    expect(screen.queryByText('bob')).not.toBeInTheDocument();
+    expect(screen.getByText('Ann')).toBeInTheDocument();
+    expect(screen.queryByText('Bob')).not.toBeInTheDocument();
   });
 
   it('opens the compose page', async () => {
@@ -273,6 +273,19 @@ describe('HomeActiveConversations', () => {
     expect(screen.getByLabelText('and 2 more')).toHaveTextContent('+2');
   });
 
+  it("uses a group chat's own photo instead of its members when it has one", () => {
+    const group = mockConversation({
+      name: 'Team',
+      members: [mockUser(), mockUser(), mockUser()],
+      photo: { id: 'p', url: 'https://utfs.io/team' } as never,
+    });
+    active.activeConversations = [group];
+
+    render(<HomeActiveConversations />);
+
+    expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
+  });
+
   it('offers a retry after a failure', async () => {
     active.isError = true;
 
@@ -284,13 +297,13 @@ describe('HomeActiveConversations', () => {
   });
 
   it('links to each active conversation by person or group name', () => {
-    const one = chatWith(mockUser({ userName: 'bob' }));
+    const one = chatWith(mockUser({ displayName: 'Bob' }));
     const group = mockConversation({ name: 'Team', members: [mockUser(), mockUser()] });
     active.activeConversations = [one, group];
 
     render(<HomeActiveConversations />);
 
-    expect(screen.getByRole('link', { name: /bob/ })).toHaveAttribute('href', `/conversation/${one.id}`);
+    expect(screen.getByRole('link', { name: /Bob/ })).toHaveAttribute('href', `/conversation/${one.id}`);
     expect(screen.getByRole('link', { name: /Team/ })).toHaveAttribute('href', `/conversation/${group.id}`);
     expect(screen.queryByText('see more')).not.toBeInTheDocument();
   });
@@ -309,7 +322,6 @@ describe('ConversationSideBar', () => {
     renderWithQuery(<ConversationSideBar />);
 
     expect(await screen.findByText('Active Conversations')).toBeInTheDocument();
-    // One heading from the mobile header, one from the desktop list; CSS shows only one of them.
     expect(screen.getAllByText('Conversations')).toHaveLength(2);
   });
 

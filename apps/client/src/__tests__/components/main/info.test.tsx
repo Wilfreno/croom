@@ -120,12 +120,12 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('InfoSidebar', () => {
   it("shows a one-to-one chat's person, their status and every section", async () => {
-    bob = mockUser({ displayName: 'Bob', userName: 'bob', status: UserStatus.ONLINE });
+    bob = mockUser({ displayName: 'Bob', status: UserStatus.ONLINE });
     conversation = oneToOne();
 
     const { container } = renderInfo(<InfoSidebar />);
 
-    expect(await screen.findByText('bob')).toBeInTheDocument();
+    expect(await screen.findByText('Bob')).toBeInTheDocument();
     expect(container.querySelector('.bg-green-500')).toBeInTheDocument();
     for (const section of ['Customization', 'Media', 'Privacy & Support'])
       expect(screen.getByRole('button', { name: section })).toBeInTheDocument();
@@ -140,6 +140,12 @@ describe('InfoSidebar', () => {
     expect(await screen.findByText('Online 2 hour(s) ago')).toBeInTheDocument();
   });
 
+  it("shows a group chat's avatar as one member plus how many others", async () => {
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByLabelText('and 1 more')).toHaveTextContent('+1');
+  });
+
   it('shows admins and members only in a group chat', async () => {
     renderInfo(<InfoSidebar />);
 
@@ -151,7 +157,7 @@ describe('InfoSidebar', () => {
 
     renderInfo(<InfoSidebar />);
 
-    await screen.findByText('@bob');
+    await screen.findByText('Bob');
     expect(screen.queryByRole('button', { name: 'Customization' })).not.toBeInTheDocument();
   });
 

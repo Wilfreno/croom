@@ -167,7 +167,7 @@ describe('ComposeTo', () => {
     expect(screen.getByText('2 group chat(s)')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'see list' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Team' }));
+    await userEvent.click(screen.getByRole('button', { name: /Team/ }));
 
     expect(push).toHaveBeenCalledWith(`/conversation/${foundConversations[0].id}`);
   });
