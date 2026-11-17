@@ -1,5 +1,5 @@
 'use client';
-import { appendMessage } from '@/lib/utils';
+import { appendMessage, getNicknameNoticeText, setCachedNicknames } from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
 import type {
@@ -39,12 +39,26 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   function onMessage(message: MessagePayload) {
     const conversationId = message.conversation.id;
 
+    if (message.notice)
+      setCachedNicknames(queryClient, { conversationId, userId: session.user?.id }, () => message.conversation.nicknames);
+
     if (pathname.startsWith('/conversation/' + conversationId)) {
       const newMessage: Message = { ...message, conversation: conversationId };
 
       queryClient.setQueryData<MessagePages>(
         ['conversation', 'messages', conversationId],
         (prev) => prev && appendMessage(prev, newMessage),
+      );
+    } else if (message.notice) {
+      if (message.notice.user !== session.user?.id) return;
+      toast(
+        getNicknameNoticeText({
+          notice: message.notice,
+          actorId: message.sender.id,
+          actorName: message.sender.displayName,
+          targetName: '',
+          currentUserId: session.user?.id,
+        }),
       );
     } else {
       toast.custom((toastId) => <MessageToast message={message} toastId={toastId} />, {

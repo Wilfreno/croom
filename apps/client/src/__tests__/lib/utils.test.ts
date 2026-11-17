@@ -8,15 +8,17 @@ import {
   isBlockedMember,
   isConversationOnline,
   getMediaErrorMessage,
+  getNicknameNoticeText,
   getSecondsInterval,
   getTimeIntervalText,
   isGroupChat,
+  isSameSender,
   peopleLabel,
 } from '@/lib/utils';
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
 import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
-import { ConversationStatus, UserStatus } from '@repo/enums';
+import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
 import { AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -301,5 +303,40 @@ describe('peopleLabel', () => {
 
   it.each([0, 2, 10])('uses the plural for %i', (count) => {
     expect(peopleLabel(count)).toBe(`${count} people`);
+  });
+});
+
+describe('getNicknameNoticeText', () => {
+  const notice = (user: string, value = 'Ace') => ({ type: MessageNoticeType.NICKNAME, user, value });
+  const text = (user: string, actorId: string, value?: string) =>
+    getNicknameNoticeText({ notice: notice(user, value), actorId, actorName: 'Ada', targetName: 'Bob', currentUserId: 'me' });
+
+  it.each([
+    ['someone else set your nickname', 'me', 'ada', undefined, 'Ada set your nickname to Ace'],
+    ["you set someone else's nickname", 'bob', 'me', undefined, "You set Bob's nickname to Ace"],
+    ['you set your own nickname', 'me', 'me', undefined, 'You set your nickname to Ace'],
+    ['someone set their own nickname', 'ada', 'ada', undefined, 'Ada set their own nickname to Ace'],
+    ["someone set a third person's nickname", 'bob', 'ada', undefined, "Ada set Bob's nickname to Ace"],
+    ['someone cleared your nickname', 'me', 'ada', '', 'Ada cleared your nickname'],
+    ["you cleared someone else's nickname", 'bob', 'me', '', "You cleared Bob's nickname"],
+  ])('reads naturally when %s', (_, user, actorId, value, expected) => {
+    expect(text(user, actorId, value)).toBe(expected);
+  });
+});
+
+describe('isSameSender', () => {
+  const from = (id: string, notice: object | null = null) => ({ sender: { id }, notice }) as never;
+
+  it('groups consecutive messages from the same person', () => {
+    expect(isSameSender(from('a'), from('a'))).toBe(true);
+    expect(isSameSender(from('a'), from('b'))).toBe(false);
+    expect(isSameSender(undefined, from('a'))).toBe(false);
+  });
+
+  it('never groups a message with a notice', () => {
+    const notice = from('a', { type: MessageNoticeType.NICKNAME, user: 'b', value: 'x' });
+
+    expect(isSameSender(notice, from('a'))).toBe(false);
+    expect(isSameSender(from('a'), notice)).toBe(false);
   });
 });

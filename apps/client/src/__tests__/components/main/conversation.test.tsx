@@ -1,5 +1,6 @@
 import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
+import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import ConversationHeader from '@/components/page/main/conversation/ConversationHeader';
 import ConversationMessage from '@/components/page/main/conversation/ConversationMessage';
@@ -7,13 +8,14 @@ import ConversationMessageInput from '@/components/page/main/conversation/Conver
 import ConversationMessages from '@/components/page/main/conversation/ConversationMessages';
 import MessageToast from '@/components/page/main/conversation/MessageToast';
 import { axiosInstance } from '@/lib/axios-instance';
-import { UserStatus } from '@repo/enums';
-import type { Message, MessagePayload, UserSession } from '@repo/types';
+import { MessageNoticeType, UserStatus } from '@repo/enums';
+import type { Message, MessagePayload, User, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
+import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
@@ -176,6 +178,73 @@ describe('ConversationMessage', () => {
     );
 
     expect(container.querySelector('.opacity-0')).toBeInTheDocument();
+  });
+
+  describe('nickname notices', () => {
+    function withConversation(ui: React.ReactElement) {
+      const queryClient = makeQueryClient();
+      queryClient.setDefaultOptions({ queries: { staleTime: Infinity, gcTime: Infinity } });
+      const conversation = mockConversation({
+        id: 'c1',
+        members: [other, sessionUser as unknown as User],
+        nicknames: [
+          { user: other.id, value: '' },
+          { user: sessionUser.id, value: 'Ace' },
+        ],
+      });
+      queryClient.setQueryData(['conversation', 'c1'], conversation);
+      return { ...renderWithQuery(React.cloneElement(ui, { conversation } as never), queryClient), conversation };
+    }
+
+    const notice = (user: string, value = 'Ace') =>
+      message({ text: '', notice: { type: MessageNoticeType.NICKNAME, user, value } });
+
+    it('reads as a centered sentence instead of a bubble', () => {
+      const { container } = withConversation(
+        <ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />,
+      );
+
+      expect(screen.getByText((_, element) => element?.textContent === 'Bob set your nickname to Ace' && element.tagName === 'SPAN')).toBeInTheDocument();
+      expect(container.querySelector('.border')).not.toBeInTheDocument();
+      expect(container.querySelector('.grid-cols-\\[auto_1fr\\]')).not.toBeInTheDocument();
+    });
+
+    it('highlights who made the change and the new nickname', () => {
+      withConversation(<ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />);
+
+      expect(screen.getByText('Bob')).toHaveClass('font-medium', 'text-foreground');
+      expect(screen.getByText('Ace')).toHaveClass('font-medium', 'text-foreground');
+    });
+
+    it("opens the nickname editor on that person's nickname from the pen", async () => {
+      withConversation(<ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Edit nickname' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByLabelText(`Nickname for ${sessionUser.displayName}`)).toHaveValue('Ace');
+    });
+
+    it('has no pen when you cannot change nicknames', () => {
+      withConversation(
+        <ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} canEditNicknames={false} />,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Edit nickname' })).not.toBeInTheDocument();
+    });
+
+    it('does not fold the next message from the same person into the notice', () => {
+      const { container } = renderWithQuery(
+        <ConversationMessage
+          message={message({ dateCreated: at(20) })}
+          prevMessage={notice(sessionUser.id)}
+          nextMessage={notice(other.id)}
+          isLastMessage={false}
+        />,
+      );
+
+      expect(container.querySelector('.opacity-0')).not.toBeInTheDocument();
+    });
   });
 
   it('shows a message that is a single emoji big, without a bubble', () => {

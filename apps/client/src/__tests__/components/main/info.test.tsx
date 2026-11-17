@@ -17,10 +17,11 @@ import InfoSidebar from '@/components/page/main/info/InfoSidebar';
 import UserInfoDialog from '@/components/page/main/info/UserInfoDialog';
 import { axiosInstance } from '@/lib/axios-instance';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
-import { COMPOSE_SELECTED_USERS_QUERY_KEY, SOMETHING_WENT_WRONG } from '@repo/constants';
-import { ConversationStatus, UserStatus } from '@repo/enums';
+import { COMPOSE_SELECTED_USERS_QUERY_KEY, NICKNAME_MAX_LENGTH, SOMETHING_WENT_WRONG } from '@repo/constants';
+import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation, User, UserSession } from '@repo/types';
 import { act, screen, waitFor, within } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { toast } from 'sonner';
@@ -43,7 +44,7 @@ vi.mock('next/dynamic', async () => {
     },
   };
 });
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 vi.mock('@/lib/server/requests', () => ({ GETRequest: vi.fn(), PATCHRequest: vi.fn() }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
@@ -115,6 +116,7 @@ beforeEach(() => {
   onMobile = false;
   vi.mocked(axiosInstance.get).mockImplementation(async () => ({ data: { data: conversation } }));
   vi.mocked(PATCHRequest).mockResolvedValue(OK as never);
+  vi.mocked(axiosInstance.patch).mockResolvedValue({ data: OK });
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -389,16 +391,41 @@ describe('AddNickname', () => {
   it('saves a new nickname everywhere it is cached', async () => {
     const { queryClient } = renderInfo(<AddNickname />);
     queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation]);
+    queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
     await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
     const dialog = await screen.findByRole('dialog');
 
     await userEvent.click(within(dialog).getByText('Set nickname'));
+    await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), ' Bobby {Enter}');
+
+    expect(axiosInstance.patch).toHaveBeenCalledWith('/conversation/c1/nicknames', { user: bob.id, value: ' Bobby ' });
+    await waitFor(() => expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: 'Bobby' }));
+    for (const key of [[sessionUser.id, 'conversations'], ['active', 'conversations', sessionUser.id]])
+      expect(queryClient.getQueryData<Conversation[]>(key)![0].nicknames).toContainEqual({ user: bob.id, value: 'Bobby' });
+    expect(await within(dialog).findByText('Bobby')).toBeInTheDocument();
+  });
+
+  it('adds the notice the server posted to the open chat', async () => {
+    const notice = {
+      ...mockMessage({ text: '', sender: sessionUser as unknown as User }),
+      notice: { type: MessageNoticeType.NICKNAME, user: bob.id, value: 'Bobby' },
+      conversation: { id: 'c1', nicknames: [] },
+    };
+    vi.mocked(axiosInstance.patch).mockResolvedValue({
+      data: { ...OK, data: { user: bob.id, value: 'Bobby', message: notice } },
+    });
+    const { queryClient } = renderInfo(<AddNickname />);
+    queryClient.setQueryData(['conversation', 'messages', 'c1'], { pages: [{ pageParam: 1, result: [] }], pageParams: [1] });
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByText('Set nickname'));
     await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'Bobby{Enter}');
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/nicknames', { nickname: { user: bob.id, value: 'Bobby' } });
-    await waitFor(() => expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: 'Bobby' }));
-    const list = queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])!;
-    expect(list[0].nicknames).toContainEqual({ user: bob.id, value: 'Bobby' });
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<{ pages: { result: unknown[] }[] }>(['conversation', 'messages', 'c1'])!.pages[0].result,
+      ).toEqual([{ ...notice, conversation: 'c1' }]),
+    );
   });
 
   it('edits an existing nickname, starting from its value', async () => {
@@ -411,9 +438,14 @@ describe('AddNickname', () => {
     expect(within(dialog).getByPlaceholderText('Set nickname')).toHaveValue('Caz');
   });
 
-  it('shows why a nickname could not be saved', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'BAD REQUEST', message: 'too long', data: null } as never);
-    renderInfo(<AddNickname />);
+  it('shows why a nickname could not be saved and keeps the old one', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(
+      new AxiosError('bad request', '400', undefined, undefined, {
+        status: 400,
+        data: { status: 'BAD REQUEST', message: 'too long', data: null },
+      } as never),
+    );
+    const { queryClient } = renderInfo(<AddNickname />);
     await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
     const dialog = await screen.findByRole('dialog');
 
@@ -421,6 +453,80 @@ describe('AddNickname', () => {
     await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'x{Enter}');
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('too long'));
+    expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: '' });
+  });
+
+  async function openNicknames() {
+    await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
+    return screen.findByRole('dialog');
+  }
+
+  it('explains who sees the nicknames and marks your own row', async () => {
+    conversation = groupChat({ nicknames: [{ user: sessionUser.id, value: '' }, { user: bob.id, value: '' }] });
+    renderInfo(<AddNickname />);
+
+    const dialog = await openNicknames();
+
+    expect(within(dialog).getByText('Everyone in this chat will see the nicknames you set.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Edit nickname for Me' })).toHaveTextContent('You');
+    expect(within(dialog).getByRole('button', { name: 'Edit nickname for Bob' })).not.toHaveTextContent('You');
+  });
+
+  it('only saves once the nickname has changed, and counts its length', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(within(dialog).getByText(`3/${NICKNAME_MAX_LENGTH}`)).toBeInTheDocument();
+
+    await userEvent.type(within(dialog).getByLabelText('Nickname for Carol'), 'z');
+
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(within(dialog).getByText(`4/${NICKNAME_MAX_LENGTH}`)).toBeInTheDocument();
+  });
+
+  it('removes a nickname by clearing it', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Clear nickname' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+    expect(axiosInstance.patch).toHaveBeenCalledWith('/conversation/c1/nicknames', { user: carol.id, value: '' });
+    expect(await within(dialog).findByRole('button', { name: 'Edit nickname for Carol' })).toHaveTextContent('Set nickname');
+  });
+
+  it('cancels an edit without saving, by button or Escape, and keeps the dialog open', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+    await userEvent.type(within(dialog).getByLabelText('Nickname for Carol'), 'zzz');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(within(dialog).getByText('Caz')).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Bob' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(within(dialog).queryByLabelText('Nickname for Bob')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a generic message when the server fails', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(new Error('network down'));
+    renderInfo(<AddNickname />);
+    await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByText('Set nickname'));
+    await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'x{Enter}');
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
   });
 });
 

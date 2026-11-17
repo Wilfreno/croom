@@ -1,9 +1,10 @@
-import { mockMessage, mockSession } from '@/__tests__/mocks/mock-entities';
+import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import SocketIOProvider, { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
-import type { Message, MessagePayload, UserSession } from '@repo/types';
+import { MessageNoticeType } from '@repo/enums';
+import type { Conversation, Message, MessagePayload, UserSession } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -107,6 +108,50 @@ describe('SocketIOProvider', () => {
         duration: Infinity,
         className: 'rounded-lg w-full hover:h-fit',
         position: 'bottom-right',
+      });
+    });
+
+    describe('nickname notices', () => {
+      function noticeIn(conversationId: string, user: string, value = 'Ace'): MessagePayload {
+        return {
+          ...mockMessage({ text: '', sender: mockUser({ displayName: 'Ada' }) }),
+          notice: { type: MessageNoticeType.NICKNAME, user, value },
+          conversation: { id: conversationId, nicknames: [{ user, value }] },
+        } as MessagePayload;
+      }
+
+      it('updates the cached nicknames everywhere', () => {
+        const { queryClient } = renderProvider();
+        const conversation = mockConversation({ id: 'c2', nicknames: [{ user: sessionUser!.id, value: '' }] });
+        queryClient.setQueryData(['conversation', 'c2'], conversation);
+        queryClient.setQueryData([sessionUser!.id, 'conversations'], [conversation]);
+        queryClient.setQueryData(['active', 'conversations', sessionUser!.id], [conversation]);
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', sessionUser!.id)));
+
+        const expected = [{ user: sessionUser!.id, value: 'Ace' }];
+        expect(queryClient.getQueryData<Conversation>(['conversation', 'c2'])!.nicknames).toEqual(expected);
+        for (const key of [[sessionUser!.id, 'conversations'], ['active', 'conversations', sessionUser!.id]])
+          expect(queryClient.getQueryData<Conversation[]>(key)![0].nicknames).toEqual(expected);
+      });
+
+      it('tells you when someone changed your nickname elsewhere, without a reply toast', () => {
+        pathname = '/conversation/c1';
+        renderProvider();
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', sessionUser!.id)));
+
+        expect(toast).toHaveBeenCalledWith('Ada set your nickname to Ace');
+        expect(toast.custom).not.toHaveBeenCalled();
+      });
+
+      it("stays quiet about someone else's nickname in another conversation", () => {
+        renderProvider();
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', 'someone-else')));
+
+        expect(toast).not.toHaveBeenCalled();
+        expect(toast.custom).not.toHaveBeenCalled();
       });
     });
 

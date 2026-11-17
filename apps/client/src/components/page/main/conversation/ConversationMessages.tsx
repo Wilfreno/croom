@@ -35,6 +35,8 @@ export default function ConversationMessages({ conversation }: { conversation?: 
                 isLastMessage={pagesIndex === foundMessages.pages.length - 1 && messageIndex === page.result.length - 1}
                 markSeen={markSeen}
                 onRetry={retry}
+                conversation={conversation}
+                canEditNicknames={markSeen}
               />
             )),
           )}
