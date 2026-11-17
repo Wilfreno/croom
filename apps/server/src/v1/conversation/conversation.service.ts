@@ -3,7 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
+import {
+  ConversationModel,
+  MessageModel,
+  PhotoModel,
+  UserModel,
+} from '@repo/models';
+import { isGroupChat } from '@repo/utils';
 import { ClientSession, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -43,15 +49,15 @@ export class ConversationService {
     }
 
     const memberIds = members.map((id) => new Types.ObjectId(id));
-    const isGroupChat = members.length > 2;
+    const isGroup = isGroupChat(members);
 
     return await this.conversationModel.createConversation(
       {
-        name: isGroupChat
+        name: isGroup
           ? foundUsers.map((user) => user.displayName).join(', ')
           : '',
         members: memberIds,
-        admins: isGroupChat ? [new Types.ObjectId(userId)] : memberIds,
+        admins: isGroup ? [new Types.ObjectId(userId)] : memberIds,
         nicknames: members.map((member) => ({
           user: new Types.ObjectId(member),
           value: '',
