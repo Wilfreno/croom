@@ -437,6 +437,69 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('leaveConversation', () => {
+    const base = { conversationId: CONVERSATION_ID, memberId: USER_ID, isLastMember: false };
+
+    it('pulls the member everywhere, as long as another admin would remain', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation(base);
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(String(filter.members)).toBe(USER_ID);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(String(filter.$or[0].admins.$ne)).toBe(USER_ID);
+      expect(filter.$or[1]).toEqual({ 'admins.1': { $exists: true } });
+      expect(String(update.$pull.members)).toBe(USER_ID);
+      expect(String(update.$pull.admins)).toBe(USER_ID);
+      expect(String(update.$pull.nicknames.user)).toBe(USER_ID);
+      expect(update.$set).toBeUndefined();
+    });
+
+    it('hands the admin role to the other member when only two are left', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation({ ...base, newAdminId: OTHER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter.members.$size).toBe(2);
+      expect(filter.admins.map(String)).toEqual([USER_ID]);
+      expect(update.$set.admins.map(String)).toEqual([OTHER_ID]);
+      expect(update.$pull.admins).toBeUndefined();
+      expect(String(update.$pull.members)).toBe(USER_ID);
+    });
+
+    it('deletes the conversation when the last member leaves', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation({ ...base, isLastMember: true });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter.members.$size).toBe(1);
+      expect(update.$set.status).toBe(ConversationStatus.DELETED);
+      expect(String(update.$pull.admins)).toBe(USER_ID);
+    });
+
+    it('reports whether the conversation changed', async () => {
+      const { collection, model } = build();
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.leaveConversation(base)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.leaveConversation(base)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.leaveConversation(base)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('removeAdmin', () => {
     it('removes an admin only when the requester is an admin and another admin remains', async () => {
       const { collection, model } = build();

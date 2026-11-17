@@ -267,6 +267,41 @@ export class ConversationService {
     return { memberId };
   }
 
+  async leaveConversation({
+    conversationId,
+    userId,
+  }: {
+    conversationId: string;
+    userId: string;
+  }) {
+    const conversation = await this.findGroup(conversationId);
+    const adminIds = conversation.admins.map(String);
+    const otherMemberIds = conversation.members
+      .map(String)
+      .filter((memberId) => memberId !== userId);
+
+    const isOnlyAdmin = adminIds.length === 1 && adminIds[0] === userId;
+    if (isOnlyAdmin && otherMemberIds.length > 1)
+      throw new ConflictException(
+        'make another member an admin before leaving the group',
+      );
+
+    const newAdminId = isOnlyAdmin ? otherMemberIds[0] : undefined;
+
+    const left = await this.conversationModel.leaveConversation({
+      conversationId,
+      memberId: userId,
+      newAdminId,
+      isLastMember: otherMemberIds.length === 0,
+    });
+    if (!left)
+      throw new ConflictException(
+        'the members of this conversation changed, try again',
+      );
+
+    return { conversationId, newAdminId: newAdminId ?? null };
+  }
+
   private async findGroup(conversationId: string) {
     const conversation =
       await this.conversationModel.findConversationById(conversationId);

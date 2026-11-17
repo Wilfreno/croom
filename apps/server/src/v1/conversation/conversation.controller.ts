@@ -18,6 +18,7 @@ import {
   GetConversationByMembersIdDto,
 } from './dto/get-conversation';
 import { BlockConversationDto } from './dto/block-conversation.dto';
+import { LeaveConversationDto } from './dto/leave-conversation.dto';
 import { GetConversationMediaDto } from './dto/get-media.dto';
 import { GetConversationMessageDto } from './dto/get-message.dto';
 import {
@@ -143,6 +144,18 @@ export class ConversationController {
       conversationId,
       memberId,
       requesterId: currentUser.id,
+    });
+  }
+
+  @IsMember({ param: 'conversationId' })
+  @Post('/:conversationId/leave')
+  leaveConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { conversationId }: LeaveConversationDto,
+  ) {
+    return this.conversationService.leaveConversation({
+      conversationId,
+      userId: user.id,
     });
   }
 

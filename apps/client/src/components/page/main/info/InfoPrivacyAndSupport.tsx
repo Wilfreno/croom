@@ -3,15 +3,12 @@ import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import LeaveGroupDialog from '@/components/page/main/info/LeaveGroupDialog';
 import ReportUserDialog from '@/components/page/main/info/ReportUserDialog';
-import { axiosInstance } from '@/lib/axios-instance';
-import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import { ConversationStatus } from "@repo/enums";
-import { useMutation } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, LogOut, ShieldMinus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShieldMinus } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function InfoPrivacyAndSupport() {
   const [open, setOpen] = useState(false);
@@ -21,15 +18,6 @@ export default function InfoPrivacyAndSupport() {
 
   const { data: conversation } = useConversation(params.id);
   const { blockConversation, unblockConversation } = useBlockConversation();
-
-  const leaveConversation = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.post(`/conversation/${params.id}/leave`);
-    },
-    onError() {
-      toast.error(SOMETHING_WENT_WRONG);
-    },
-  });
 
   return (
     <Collapsible onOpenChange={setOpen}>
@@ -41,13 +29,8 @@ export default function InfoPrivacyAndSupport() {
       </CollapsibleTrigger>
       <CollapsibleContent className="grid gap-2 p-2">
         {conversation ? <ReportUserDialog conversation={conversation} /> : null}
-        {Boolean(conversation) && conversation!.isGroupChat ? (
-          <Button variant="ghost" className="w-full justify-start" onClick={() => leaveConversation.mutate()}>
-            <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full">
-              <LogOut className="h-4 w-auto stroke-2" />
-            </span>
-            <span>Leave group chat</span>
-          </Button>
+        {conversation?.isGroupChat ? (
+          <LeaveGroupDialog conversation={conversation} />
         ) : conversation?.status === ConversationStatus.BLOCKED && conversation?.blocker === session.user?.id ? (
           <Button
             variant="secondary"

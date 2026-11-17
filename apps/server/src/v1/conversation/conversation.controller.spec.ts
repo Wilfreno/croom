@@ -25,6 +25,7 @@ function build() {
     removeAdmin: vi.fn().mockResolvedValue({ memberId: 'ada' }),
     addMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
     removeMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
+    leaveConversation: vi.fn().mockResolvedValue({ conversationId: 'c1', newAdminId: null }),
   };
   const controller = new ConversationController(conversationService as unknown as ConversationService);
   return { controller, conversationService };
@@ -122,6 +123,16 @@ describe('ConversationController', () => {
       memberId: 'ada',
       requesterId: 'me',
     });
+  });
+
+  it('leaves a conversation on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.leaveConversation(USER, { conversationId: 'c1' })).resolves.toEqual({
+      conversationId: 'c1',
+      newAdminId: null,
+    });
+    expect(conversationService.leaveConversation).toHaveBeenCalledWith({ conversationId: 'c1', userId: 'me' });
   });
 
   it('blocks a conversation on behalf of the caller', async () => {

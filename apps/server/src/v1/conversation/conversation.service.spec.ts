@@ -44,6 +44,7 @@ function build() {
     removeAdmin: vi.fn().mockResolvedValue(true),
     addMember: vi.fn().mockResolvedValue(true),
     removeMember: vi.fn().mockResolvedValue(true),
+    leaveConversation: vi.fn().mockResolvedValue(true),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -396,6 +397,62 @@ describe('ConversationService', () => {
       conversationModel.removeMember.mockResolvedValue(false);
 
       await expect(service.removeMember(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('leaveConversation', () => {
+    const query = { conversationId: 'c1', userId: ME };
+
+    it('lets a member who is not the only admin leave', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, ADA] });
+
+      await expect(service.leaveConversation(query)).resolves.toEqual({ conversationId: 'c1', newAdminId: null });
+      expect(conversationModel.leaveConversation).toHaveBeenCalledWith({
+        conversationId: 'c1',
+        memberId: ME,
+        newAdminId: undefined,
+        isLastMember: false,
+      });
+    });
+
+    it('makes the other member admin when the only admin leaves a group of two', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA], admins: [ME] });
+
+      await expect(service.leaveConversation(query)).resolves.toEqual({ conversationId: 'c1', newAdminId: ADA });
+      expect(conversationModel.leaveConversation).toHaveBeenCalledWith(expect.objectContaining({ newAdminId: ADA }));
+    });
+
+    it('marks the last member leaving', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME], admins: [ME] });
+
+      await service.leaveConversation(query);
+
+      expect(conversationModel.leaveConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ newAdminId: undefined, isLastMember: true }),
+      );
+    });
+
+    it.each([
+      ['a missing conversation', null, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, BadRequestException],
+      ['the only admin while others would need a new admin', { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME] }, ConflictException],
+    ])('refuses %s', async (_, conversation, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.leaveConversation(query)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.leaveConversation).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the members changed in the meantime', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, ADA] });
+      conversationModel.leaveConversation.mockResolvedValue(false);
+
+      await expect(service.leaveConversation(query)).rejects.toBeInstanceOf(ConflictException);
     });
   });
 

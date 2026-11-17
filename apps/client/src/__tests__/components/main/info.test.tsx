@@ -19,6 +19,7 @@ import { axiosInstance } from '@/lib/axios-instance';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
 import {
   COMPOSE_SELECTED_USERS_QUERY_KEY,
+  LEFT_GROUP_CHAT,
   NICKNAME_MAX_LENGTH,
   REPORT_REASON_MAX_LENGTH,
   SOMETHING_WENT_WRONG,
@@ -916,14 +917,81 @@ describe('InfoPrivacyAndSupport', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('slow down'));
   });
 
-  it('leaves a group chat', async () => {
-    vi.mocked(axiosInstance.post).mockResolvedValue({});
-    renderInfo(<InfoPrivacyAndSupport />);
-    await open();
+  describe('leaving a group chat', () => {
+    async function openLeaveDialog() {
+      await open();
+      await userEvent.click(screen.getByRole('button', { name: 'Leave group chat' }));
+      return screen.findByRole('dialog');
+    }
 
-    await userEvent.click(screen.getByRole('button', { name: 'Leave group chat' }));
+    it('leaves after confirming, drops the chat from the list and goes home', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      vi.mocked(axiosInstance.post).mockResolvedValue({});
+      const { queryClient } = renderInfo(<InfoPrivacyAndSupport />);
+      queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation, mockConversation({ id: 'c2' })]);
+      const dialog = await openLeaveDialog();
 
-    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+      expect(axiosInstance.post).not.toHaveBeenCalled();
+      expect(within(dialog).getByText(/stop getting messages from this group/)).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(LEFT_GROUP_CHAT));
+      expect(push).toHaveBeenCalledWith('/');
+      expect(queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])!.map((c) => c.id)).toEqual(['c2']);
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('stays in the group when cancelled', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(axiosInstance.post).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('asks the only admin to make someone else admin first', async () => {
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      expect(within(dialog).getByText(/only admin\. Make another member an admin/)).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: 'Leave' })).toBeDisabled();
+    });
+
+    it('tells the only admin of a two-person group that the other member takes over', async () => {
+      conversation = groupChat({ members: [bob] });
+      vi.mocked(axiosInstance.post).mockResolvedValue({});
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      expect(within(dialog).getByText('Bob will become the admin of this group.')).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+    });
+
+    it('shows why the server refused and stays put', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      vi.mocked(axiosInstance.post).mockRejectedValue(
+        new AxiosError('409', '409', undefined, undefined, {
+          status: 409,
+          data: { status: 'CONFLICT', message: 'make another member an admin before leaving the group', data: null },
+        } as never),
+      );
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('make another member an admin before leaving the group'),
+      );
+      expect(push).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
   });
 
   it('blocks the other person in a one-to-one chat and refreshes', async () => {

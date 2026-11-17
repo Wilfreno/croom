@@ -229,6 +229,50 @@ export class ConversationModel {
     }
   }
 
+  async leaveConversation({
+    conversationId,
+    memberId,
+    newAdminId,
+    isLastMember,
+  }: {
+    conversationId: string;
+    memberId: string;
+    newAdminId?: string;
+    isLastMember: boolean;
+  }) {
+    const memberObjectId = new Types.ObjectId(memberId);
+    const filter: Record<string, unknown> = {
+      _id: conversationId,
+      isGroupChat: true,
+      members: memberObjectId,
+      status: { $ne: ConversationStatus.DELETED },
+    };
+    const update: Record<string, Record<string, unknown>> = {
+      $pull: { members: memberObjectId, nicknames: { user: memberObjectId } },
+    };
+
+    if (newAdminId) {
+      filter.members = { $size: 2, $all: [memberObjectId] };
+      filter.admins = [memberObjectId];
+      update.$set = { admins: [new Types.ObjectId(newAdminId)] };
+    } else if (isLastMember) {
+      filter.members = { $size: 1, $all: [memberObjectId] };
+      update.$pull.admins = memberObjectId;
+      update.$set = { status: ConversationStatus.DELETED };
+    } else {
+      filter.$or = [{ admins: { $ne: memberObjectId } }, { "admins.1": { $exists: true } }];
+      update.$pull.admins = memberObjectId;
+    }
+
+    try {
+      const result = await this.Conversation.updateOne(filter, update);
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async removeAdmin({
     conversationId,
     memberId,
