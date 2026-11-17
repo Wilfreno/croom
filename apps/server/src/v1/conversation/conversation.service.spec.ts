@@ -48,6 +48,7 @@ function build() {
     leaveConversation: vi.fn().mockResolvedValue(true),
     setPhoto: vi.fn().mockResolvedValue({ changed: true, previousPhotoId: null }),
     setName: vi.fn().mockResolvedValue(true),
+    backfillIsGroupChat: vi.fn().mockResolvedValue(0),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -97,6 +98,17 @@ const ids = (values: unknown[]) => values.map(String);
 
 describe('ConversationService', () => {
   beforeEach(() => vi.clearAllMocks());
+
+  describe('onApplicationBootstrap', () => {
+    it('backfills isGroupChat on conversations created before it existed', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.backfillIsGroupChat.mockResolvedValue(3);
+
+      await service.onApplicationBootstrap();
+
+      expect(conversationModel.backfillIsGroupChat).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe('create', () => {
     it('refuses a second one-to-one conversation between the same two people', async () => {

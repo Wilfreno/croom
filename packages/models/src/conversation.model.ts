@@ -39,6 +39,25 @@ export class ConversationModel {
     }
   }
 
+  async backfillIsGroupChat() {
+    const isGroupBySize = { $gt: [{ $size: "$members" }, 2] };
+
+    try {
+      const result = await this.Conversation.updateMany({ isGroupChat: { $exists: false } }, [
+        {
+          $set: {
+            isGroupChat: isGroupBySize,
+            name: { $cond: [isGroupBySize, "", { $ifNull: ["$name", ""] }] },
+          },
+        },
+      ]);
+      return result.modifiedCount;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async isConversationMember({ conversationId, userId }: { conversationId: string; userId: string }) {
     try {
       return Boolean(

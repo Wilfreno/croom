@@ -3,7 +3,9 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { ConversationStatus, MessageNoticeType, PhotoType } from '@repo/enums';
@@ -25,7 +27,9 @@ import { GetConversationMessageDto } from './dto/get-message.dto';
 import { SetNicknameDto } from './dto/set-nickname.dto';
 
 @Injectable()
-export class ConversationService {
+export class ConversationService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(ConversationService.name);
+
   constructor(
     private readonly conversationModel: ConversationModel,
     private readonly userModel: UserModel,
@@ -35,6 +39,12 @@ export class ConversationService {
     @InjectConnection() private readonly connection: Connection,
     private readonly messageGateway: MessageGateway,
   ) {}
+
+  async onApplicationBootstrap() {
+    const updated = await this.conversationModel.backfillIsGroupChat();
+    if (updated > 0)
+      this.logger.log(`added isGroupChat to ${updated} conversations`);
+  }
 
   /**
    * Creates a conversation inside the caller's transaction. Used to create

@@ -25,6 +25,7 @@ function build() {
       distinct: vi.fn().mockResolvedValue([]),
       aggregate: vi.fn().mockResolvedValue([]),
       updateOne: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      updateMany: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
       findOneAndUpdate: vi.fn().mockResolvedValue(null),
     },
   );
@@ -376,6 +377,28 @@ describe('ConversationModel', () => {
       await expect(
         model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('backfillIsGroupChat', () => {
+    it('sets isGroupChat by size and clears generated group names, only where the field is missing', async () => {
+      const { collection, model } = build();
+      collection.updateMany.mockResolvedValue({ modifiedCount: 4 });
+
+      await expect(model.backfillIsGroupChat()).resolves.toBe(4);
+
+      const [filter, [stage]] = collection.updateMany.mock.calls[0];
+      const isGroupBySize = { $gt: [{ $size: '$members' }, 2] };
+      expect(filter).toEqual({ isGroupChat: { $exists: false } });
+      expect(stage.$set.isGroupChat).toEqual(isGroupBySize);
+      expect(stage.$set.name).toEqual({ $cond: [isGroupBySize, '', { $ifNull: ['$name', ''] }] });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateMany.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.backfillIsGroupChat()).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 
