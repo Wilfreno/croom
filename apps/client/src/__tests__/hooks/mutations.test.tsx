@@ -205,7 +205,16 @@ describe('useComposeMessage', () => {
     const { result } = renderHookWithQuery(() => useComposeMessage());
     await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'], photos }));
 
-    expect(post).toHaveBeenCalledWith('/message', { conversationId: '', text: 'hi', photos, members: ['u1'] });
+    expect(post).toHaveBeenCalledWith('/message', { text: 'hi', photos, members: ['u1'] });
+  });
+
+  it('posts only the conversation, not the members, into a conversation that already exists', async () => {
+    serverReturns(payloadFor('c1'));
+
+    const { result } = renderHookWithQuery(() => useComposeMessage());
+    await act(() => result.current.sendMessage.mutateAsync({ conversationId: 'c1', text: 'hi', members: ['u1'], photos: [] }));
+
+    expect(post).toHaveBeenCalledWith('/message', { conversationId: 'c1', text: 'hi', photos: [] });
   });
 
   it('navigates to the conversation the server created', async () => {
@@ -357,7 +366,7 @@ describe('useComposeMessage', () => {
 });
 
 describe('useCreateConversation', () => {
-  it('creates the conversation, then sends the first message into it with the members', async () => {
+  it('creates the conversation, then sends the first message into it', async () => {
     const conversation = mockConversation();
     post
       .mockResolvedValueOnce({ data: { status: 'OK', message: '', data: conversation } })
@@ -372,7 +381,6 @@ describe('useCreateConversation', () => {
         conversationId: conversation.id,
         text: 'hello',
         photos: [],
-        members: ['u1', 'u2'],
       }),
     );
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/conversation/${conversation.id}`));

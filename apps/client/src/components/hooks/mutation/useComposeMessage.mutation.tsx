@@ -17,12 +17,11 @@ export default function useComposeMessage() {
     { pendingId?: string }
   >({
     mutationFn: async ({ conversationId, text, members, photos }) => {
-      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>('/message', {
-        conversationId,
-        text,
-        photos,
-        members,
-      });
+      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>(
+        '/message',
+        conversationId ? { conversationId, text, photos } : { text, photos, members },
+        
+      );
 
       return response.data;
     },
