@@ -89,7 +89,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         id: `incoming-call-${call.conversationId}`, // a repeated ring from the same call replaces the toast
         duration: CALL_RING_DURATION_MS,
         className: 'w-full',
-        position: onMobile ? 'top-center' : 'bottom-right',
+        position: 'top-center',
       },
     );
   }

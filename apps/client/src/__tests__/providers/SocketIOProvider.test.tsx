@@ -186,7 +186,7 @@ describe('SocketIOProvider', () => {
     act(() => server.serverEmit('INCOMING_CALL', call));
 
     const [render, options] = vi.mocked(toast.custom).mock.calls[0];
-    expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS });
+    expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS, position: 'top-center' });
 
     const element = render('toast-1') as React.ReactElement<{ call: unknown; onAccept: () => void }>;
     expect(element.props.call).toBe(call);
