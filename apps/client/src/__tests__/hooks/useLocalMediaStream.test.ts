@@ -1,5 +1,5 @@
 import { installMediaDevices, mockStream, mockTrack } from '@/__tests__/mocks/mock-media';
-import useLocalMediaStream, { useCameraDevices } from '@/components/hooks/useLocalMediaStream';
+import useLocalMediaStream, { useMediaDevices } from '@/components/hooks/useLocalMediaStream';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
@@ -22,6 +22,16 @@ describe('useLocalMediaStream', () => {
 
     await waitFor(() =>
       expect(mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: { deviceId: { exact: 'cam-2' } }, audio: true }),
+    );
+  });
+
+  it('asks for the exact microphone that was chosen', async () => {
+    const mediaDevices = installMediaDevices();
+
+    renderHook(() => useLocalMediaStream({ microphoneDeviceId: 'mic-2' }));
+
+    await waitFor(() =>
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: true, audio: { deviceId: { exact: 'mic-2' } } }),
     );
   });
 
@@ -97,22 +107,24 @@ describe('useLocalMediaStream', () => {
   });
 });
 
-describe('useCameraDevices', () => {
+describe('useMediaDevices', () => {
   const camera = (deviceId: string) => ({ kind: 'videoinput' as const, deviceId, label: deviceId });
 
-  it('lists only cameras that have a device id', async () => {
+  it('lists only devices of the asked kind that have a device id', async () => {
     installMediaDevices({
       devices: [camera('cam-1'), { kind: 'audioinput', deviceId: 'mic-1' }, camera('')],
     });
 
-    const { result } = renderHook(() => useCameraDevices());
+    const { result: cameras } = renderHook(() => useMediaDevices('videoinput'));
+    const { result: microphones } = renderHook(() => useMediaDevices('audioinput'));
 
-    await waitFor(() => expect(result.current.map(({ deviceId }) => deviceId)).toEqual(['cam-1']));
+    await waitFor(() => expect(cameras.current.map(({ deviceId }) => deviceId)).toEqual(['cam-1']));
+    await waitFor(() => expect(microphones.current.map(({ deviceId }) => deviceId)).toEqual(['mic-1']));
   });
 
   it('refreshes when a device is plugged in', async () => {
     const mediaDevices = installMediaDevices({ devices: [camera('cam-1')] });
-    const { result } = renderHook(() => useCameraDevices());
+    const { result } = renderHook(() => useMediaDevices('videoinput'));
     await waitFor(() => expect(result.current).toHaveLength(1));
 
     mediaDevices.enumerateDevices.mockResolvedValue([camera('cam-1'), camera('cam-2')]);
@@ -123,7 +135,7 @@ describe('useCameraDevices', () => {
 
   it('re-lists when the refresh key changes (labels appear once permission is granted)', async () => {
     const mediaDevices = installMediaDevices({ devices: [camera('cam-1')] });
-    const { rerender } = renderHook(({ key }) => useCameraDevices(key), { initialProps: { key: 1 } });
+    const { rerender } = renderHook(({ key }) => useMediaDevices('videoinput', key), { initialProps: { key: 1 } });
     await waitFor(() => expect(mediaDevices.enumerateDevices).toHaveBeenCalledTimes(1));
 
     rerender({ key: 2 });
@@ -133,7 +145,7 @@ describe('useCameraDevices', () => {
 
   it('stops listening for device changes once unmounted', () => {
     const mediaDevices = installMediaDevices();
-    const { unmount } = renderHook(() => useCameraDevices());
+    const { unmount } = renderHook(() => useMediaDevices('videoinput'));
 
     unmount();
 

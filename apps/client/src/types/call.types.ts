@@ -10,6 +10,7 @@ export type LocalMediaState =
 
 export type LocalMediaOptions = {
   cameraDeviceId?: string;
+  microphoneDeviceId?: string;
   video?: boolean;
   audio?: boolean;
 };
@@ -19,6 +20,9 @@ export type LocalMediaContextType = {
   cameras: MediaDeviceInfo[];
   activeCameraId?: string;
   selectCamera: (cameraDeviceId: string) => void;
+  microphones: MediaDeviceInfo[];
+  activeMicrophoneId?: string;
+  selectMicrophone: (microphoneDeviceId: string) => void;
   isCameraOn: boolean;
   toggleCamera: () => void;
 };

@@ -34,6 +34,8 @@ beforeEach(() => {
     localMedia: { status: 'ready', stream: mockStream([videoTrack]), error: null },
     cameras: [],
     selectCamera: vi.fn(),
+    microphones: [],
+    selectMicrophone: vi.fn(),
     isCameraOn: true,
     toggleCamera: vi.fn(),
   };

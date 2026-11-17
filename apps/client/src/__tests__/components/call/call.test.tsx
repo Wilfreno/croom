@@ -9,6 +9,7 @@ import RemoteParticipants from '@/components/page/call/RemoteParticipants';
 import CurrentUserCam from '@/components/page/call/camera/CurrentUserCam';
 import OpenCamera from '@/components/page/call/camera/OpenCamera';
 import SelectCamera from '@/components/page/call/camera/SelectCamera';
+import SelectMicrophone from '@/components/page/call/microphone/SelectMicrophone';
 import type { CallContextType, CallParticipant, LocalMediaContextType } from '@/types/call.types';
 import { CALL_MAX_VISIBLE_TILES } from '@repo/constants';
 import type { CallMember, UserSession } from '@repo/types';
@@ -113,6 +114,9 @@ beforeEach(() => {
     cameras: [],
     activeCameraId: undefined,
     selectCamera: vi.fn(),
+    microphones: [],
+    activeMicrophoneId: undefined,
+    selectMicrophone: vi.fn(),
     isCameraOn: true,
     toggleCamera: vi.fn(),
   };
@@ -143,9 +147,10 @@ describe('Controls', () => {
     expect(call.leave).toHaveBeenCalledOnce();
   });
 
-  it('includes the camera controls and the participants button', () => {
+  it('includes the microphone and camera controls and the participants button', () => {
     render(<Controls />);
 
+    expect(screen.getByRole('button', { name: 'Choose microphone' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Turn camera off' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose camera' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show 1 person' })).toBeInTheDocument();
@@ -188,6 +193,31 @@ describe('SelectCamera', () => {
     const unnamed = screen.getByRole('menuitemradio', { name: 'Camera 2' });
     await userEvent.click(unnamed);
     expect(localMedia.selectCamera).toHaveBeenCalledWith('cam-2');
+  });
+});
+
+describe('SelectMicrophone', () => {
+  it('says when there are no microphones', async () => {
+    render(<SelectMicrophone />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Choose microphone' }));
+
+    expect(await screen.findByText('No microphones found')).toBeInTheDocument();
+  });
+
+  it('lists the microphones, marks the active one and switches on pick', async () => {
+    localMedia.microphones = [
+      { deviceId: 'mic-1', label: 'Headset' } as MediaDeviceInfo,
+      { deviceId: 'mic-2', label: '' } as MediaDeviceInfo,
+    ];
+    localMedia.activeMicrophoneId = 'mic-1';
+    render(<SelectMicrophone />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Choose microphone' }));
+
+    expect(await screen.findByRole('menuitemradio', { name: 'Headset' })).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Microphone 2' }));
+    expect(localMedia.selectMicrophone).toHaveBeenCalledWith('mic-2');
   });
 });
 

@@ -1,5 +1,5 @@
 'use client';
-import useLocalMediaStream, { useCameraDevices } from '@/components/hooks/useLocalMediaStream';
+import useLocalMediaStream, { useMediaDevices } from '@/components/hooks/useLocalMediaStream';
 import { LocalMediaContextType } from '@/types/call.types';
 import React, { createContext, useContext, useState } from 'react';
 
@@ -13,10 +13,18 @@ export function useLocalMedia() {
 
 export default function LocalMediaProvider({ children }: { children: React.ReactNode }) {
   const [selectedCameraId, setSelectedCameraId] = useState<string>();
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>();
   const [isCameraOn, setIsCameraOn] = useState(true);
-  const localMedia = useLocalMediaStream({ cameraDeviceId: selectedCameraId, video: isCameraOn });
-  const cameras = useCameraDevices(localMedia.stream);
+  const localMedia = useLocalMediaStream({
+    cameraDeviceId: selectedCameraId,
+    microphoneDeviceId: selectedMicrophoneId,
+    video: isCameraOn,
+  });
+  const cameras = useMediaDevices('videoinput', localMedia.stream);
+  const microphones = useMediaDevices('audioinput', localMedia.stream);
   const activeCameraId = selectedCameraId ?? localMedia.stream?.getVideoTracks()[0]?.getSettings().deviceId;
+  const activeMicrophoneId =
+    selectedMicrophoneId ?? localMedia.stream?.getAudioTracks()[0]?.getSettings().deviceId;
 
   function toggleCamera() {
     if (isCameraOn && activeCameraId) setSelectedCameraId(activeCameraId);
@@ -25,7 +33,17 @@ export default function LocalMediaProvider({ children }: { children: React.React
 
   return (
     <LocalMediaContext.Provider
-      value={{ localMedia, cameras, activeCameraId, selectCamera: setSelectedCameraId, isCameraOn, toggleCamera }}
+      value={{
+        localMedia,
+        cameras,
+        activeCameraId,
+        selectCamera: setSelectedCameraId,
+        microphones,
+        activeMicrophoneId,
+        selectMicrophone: setSelectedMicrophoneId,
+        isCameraOn,
+        toggleCamera,
+      }}
     >
       {children}
     </LocalMediaContext.Provider>
