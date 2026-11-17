@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { IsMember, NotBlocked } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
@@ -8,6 +8,7 @@ import {
   GetConversationByIdDto,
   GetConversationByMembersIdDto,
 } from './dto/get-conversation';
+import { BlockConversationDto } from './dto/block-conversation.dto';
 import { GetConversationMediaDto } from './dto/get-media.dto';
 import { GetConversationMessageDto } from './dto/get-message.dto';
 
@@ -51,5 +52,24 @@ export class ConversationController {
   @Get('/:conversationId/media')
   getConversationMedia(@Param() { conversationId }: GetConversationMediaDto) {
     return this.conversationService.getConversationMedia(conversationId);
+  }
+
+  @IsMember({ param: 'conversationId' })
+  @Post('/:conversationId/block')
+  blockConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { conversationId }: BlockConversationDto,
+  ) {
+    return this.conversationService.blockConversation({ conversationId, userId: user.id });
+  }
+
+  // No `@NotBlocked()`: the blocker must get through, and the service rejects anyone else.
+  @IsMember({ param: 'conversationId' })
+  @Delete('/:conversationId/block')
+  unblockConversation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() { conversationId }: BlockConversationDto,
+  ) {
+    return this.conversationService.unblockConversation({ conversationId, userId: user.id });
   }
 }

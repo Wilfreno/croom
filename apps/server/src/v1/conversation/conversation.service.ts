@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConversationStatus } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { ClientSession, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
@@ -92,5 +95,35 @@ export class ConversationService {
 
   async getConversationMedia(conversationId: string) {
     return await this.photoModel.getPhotosByConversationId(conversationId);
+  }
+
+  /** Blocks the other member of a one-to-one conversation on behalf of `userId`. */
+  async blockConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
+    const conversation = await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation || conversation.status === ConversationStatus.DELETED)
+      throw new NotFoundException('conversation does not exist');
+    if (conversation.members.length !== 2)
+      throw new BadRequestException('only one-to-one conversations can be blocked');
+    if (conversation.status === ConversationStatus.BLOCKED)
+      throw new ConflictException('conversation is already blocked');
+
+    // Conditional update: loses cleanly to a concurrent block from the other member.
+    if (!(await this.conversationModel.blockConversation({ conversationId, userId })))
+      throw new ConflictException('conversation is already blocked');
+  }
+
+  /** Lifts a block; only the member who blocked may do it. */
+  async unblockConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
+    const conversation = await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation) throw new NotFoundException('conversation does not exist');
+    if (conversation.status !== ConversationStatus.BLOCKED)
+      throw new ConflictException('conversation is not blocked');
+    if (String(conversation.blocker) !== userId)
+      throw new ForbiddenException('only the user who blocked can unblock');
+
+    if (!(await this.conversationModel.unblockConversation({ conversationId, userId })))
+      throw new ConflictException('conversation is not blocked');
   }
 }
