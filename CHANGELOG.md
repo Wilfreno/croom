@@ -1,3 +1,9 @@
+## [1.4.0](https://github.com/Wilfreno/croom/compare/v1.3.0...v1.4.0) (2026-11-17)
+
+### Features
+
+* block and unblock one-to-one conversations ([46c2a16](https://github.com/Wilfreno/croom/commit/46c2a16e12dfad8289c3516359dcffce2e3614c0))
+
 ## [1.3.0](https://github.com/Wilfreno/croom/compare/v1.2.4...v1.3.0) (2026-11-17)
 
 ### Features
