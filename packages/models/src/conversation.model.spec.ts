@@ -25,6 +25,7 @@ function build() {
       distinct: vi.fn().mockResolvedValue([]),
       aggregate: vi.fn().mockResolvedValue([]),
       updateOne: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      findOneAndUpdate: vi.fn().mockResolvedValue(null),
     },
   );
 
@@ -319,6 +320,61 @@ describe('ConversationModel', () => {
 
       await expect(
         model.setNickname({ conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('setPhoto', () => {
+    const PHOTO_ID = '64b7f0c2a1b2c3d4e5f60720';
+    const OLD_PHOTO_ID = '64b7f0c2a1b2c3d4e5f60721';
+
+    it('points a live group at the new photo, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }, session);
+
+      const [filter, update, options] = collection.findOneAndUpdate.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(update.$set.photo).toBeInstanceOf(Types.ObjectId);
+      expect(String(update.$set.photo)).toBe(PHOTO_ID);
+      expect(options.session).toBe(session);
+    });
+
+    it('hands back the photo it replaced', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockResolvedValue({ photo: new Types.ObjectId(OLD_PHOTO_ID) });
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: true, previousPhotoId: OLD_PHOTO_ID });
+    });
+
+    it('reports no previous photo for a group that had none', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockResolvedValue({ photo: null });
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: true, previousPhotoId: null });
+    });
+
+    it('reports no change when nothing matched', async () => {
+      const { model } = build();
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: false, previousPhotoId: null });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { ConversationStatus, MessageNoticeType } from '@repo/enums';
+import { ConversationStatus, MessageNoticeType, PhotoType } from '@repo/enums';
 import {
   ConversationModel,
   MessageModel,
@@ -18,6 +18,7 @@ import { ClientSession, Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CallGateway } from '../call/call.gateway';
 import { MessageGateway } from '../message/message.gateway';
+import { ConversationPhotoDto } from './dto/change-photo.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { GetConversationByIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
@@ -298,6 +299,57 @@ export class ConversationService {
       );
 
     return { conversationId, newAdminId: newAdminId ?? null };
+  }
+
+  async changePhoto({
+    conversationId,
+    photo,
+    requesterId,
+  }: {
+    conversationId: string;
+    photo: ConversationPhotoDto;
+    requesterId: string;
+  }) {
+    await this.findGroup(conversationId);
+
+    const session = await this.connection.startSession();
+    let newPhotoId = '';
+
+    try {
+      await session.withTransaction(async () => {
+        const [newPhoto] = await this.photoModel.createMany(
+          [
+            {
+              owner: new Types.ObjectId(requesterId),
+              type: PhotoType.CONVERSATION,
+              key: photo.key,
+              url: photo.url,
+              width: photo.width,
+              height: photo.height,
+            },
+          ],
+          session,
+        );
+        newPhotoId = String(newPhoto._id);
+
+        const { changed, previousPhotoId } =
+          await this.conversationModel.setPhoto(
+            { conversationId, photoId: newPhotoId, requesterId },
+            session,
+          );
+        if (!changed)
+          throw new ConflictException(
+            'the admins of this conversation changed, try again',
+          );
+
+        if (previousPhotoId)
+          await this.photoModel.deleteById(previousPhotoId, session);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { photo: { id: newPhotoId, url: photo.url } };
   }
 
   private async findGroup(conversationId: string) {

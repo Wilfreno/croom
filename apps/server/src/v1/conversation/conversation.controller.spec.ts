@@ -26,6 +26,7 @@ function build() {
     addMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
     removeMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
     leaveConversation: vi.fn().mockResolvedValue({ conversationId: 'c1', newAdminId: null }),
+    changePhoto: vi.fn().mockResolvedValue({ photo: { id: 'p1', url: 'https://utfs.io/new.png' } }),
   };
   const controller = new ConversationController(conversationService as unknown as ConversationService);
   return { controller, conversationService };
@@ -151,6 +152,16 @@ describe('ConversationController', () => {
     expect(conversationService.unblockConversation).toHaveBeenCalledWith({ conversationId: 'c1', userId: 'me' });
   });
 
+  it('changes the group photo as the current user', async () => {
+    const { controller, conversationService } = build();
+    const photo = { key: 'k', url: 'https://utfs.io/new.png' };
+
+    await expect(controller.changePhoto(USER, { conversationId: 'c1' }, { photo })).resolves.toEqual({
+      photo: { id: 'p1', url: 'https://utfs.io/new.png' },
+    });
+    expect(conversationService.changePhoto).toHaveBeenCalledWith({ conversationId: 'c1', photo, requesterId: 'me' });
+  });
+
   describe('blocked members', () => {
     const route = (name: keyof ConversationController) => ConversationController.prototype[name] as object;
     const isBlockGuarded = (name: keyof ConversationController) =>
@@ -176,7 +187,7 @@ describe('ConversationController', () => {
   describe('admin routes', () => {
     const route = (name: keyof ConversationController) => ConversationController.prototype[name] as object;
 
-    it.each(['addAdmin', 'removeAdmin', 'addMember', 'removeMember'] as const)('only lets admins reach %s', (name) => {
+    it.each(['addAdmin', 'removeAdmin', 'addMember', 'removeMember', 'changePhoto'] as const)('only lets admins reach %s', (name) => {
       expect(Reflect.getMetadata(GUARDS_METADATA, route(name))).toContain(ConversationAdminGuard);
       expect(Reflect.getMetadata(CONVERSATION_ADMIN_SOURCE_KEY, route(name))).toEqual({ param: 'conversationId' });
     });

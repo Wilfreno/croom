@@ -301,6 +301,30 @@ export class ConversationModel {
     }
   }
 
+  async setPhoto(
+    { conversationId, photoId, requesterId }: { conversationId: string; photoId: string; requesterId: string },
+    session?: ClientSession,
+  ) {
+    try {
+      const previous = await this.Conversation.findOneAndUpdate(
+        {
+          _id: conversationId,
+          admins: new Types.ObjectId(requesterId),
+          isGroupChat: true,
+          status: { $ne: ConversationStatus.DELETED },
+        },
+        { $set: { photo: new Types.ObjectId(photoId) } },
+        { session, projection: { photo: 1 } },
+      );
+      if (!previous) return { changed: false, previousPhotoId: null };
+
+      return { changed: true, previousPhotoId: previous.photo ? String(previous.photo) : null };
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async getBlockedConversationsByUserId(userId: string) {
     const userObjectId = new Types.ObjectId(userId);
 

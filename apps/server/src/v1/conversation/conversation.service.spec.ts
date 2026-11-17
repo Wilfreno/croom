@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ConversationStatus, MessageNoticeType } from '@repo/enums';
+import { ConversationStatus, MessageNoticeType, PhotoType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { ClientSession, Connection, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,6 +20,7 @@ const users = {
 const session = { id: 'session' } as unknown as ClientSession;
 
 const NOTICE_ID = new Types.ObjectId('64b7f0c2a1b2c3d4e5f60799');
+const NEW_PHOTO_ID = new Types.ObjectId('64b7f0c2a1b2c3d4e5f60798');
 const NOTICE_PAYLOAD = { id: String(NOTICE_ID), notice: { type: 'NICKNAME', user: ADA, value: 'Ace' } };
 
 type NewConversation = {
@@ -45,6 +46,7 @@ function build() {
     addMember: vi.fn().mockResolvedValue(true),
     removeMember: vi.fn().mockResolvedValue(true),
     leaveConversation: vi.fn().mockResolvedValue(true),
+    setPhoto: vi.fn().mockResolvedValue({ changed: true, previousPhotoId: null }),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -54,7 +56,11 @@ function build() {
     createMessage: vi.fn().mockResolvedValue({ _id: NOTICE_ID }),
     findMessagePayloadById: vi.fn().mockResolvedValue(NOTICE_PAYLOAD),
   };
-  const photoModel = { getPhotosByConversationId: vi.fn().mockResolvedValue([]) };
+  const photoModel = {
+    getPhotosByConversationId: vi.fn().mockResolvedValue([]),
+    createMany: vi.fn().mockResolvedValue([{ _id: NEW_PHOTO_ID }]),
+    deleteById: vi.fn().mockResolvedValue(undefined),
+  };
 
   const callGateway = { endCall: vi.fn().mockResolvedValue(undefined) };
   const messageGateway = { emitToUsers: vi.fn() };
@@ -285,6 +291,64 @@ describe('ConversationService', () => {
       conversationModel.addAdmin.mockResolvedValue(false);
 
       await expect(service.addAdmin(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('changePhoto', () => {
+    const photo = { key: 'uploaded-key', url: 'https://utfs.io/uploaded.png' };
+    const query = { conversationId: 'c1', photo, requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME] };
+
+    it('saves the upload as the group photo, owned by the admin who set it', async () => {
+      const { service, conversationModel, photoModel, transaction } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.changePhoto(query)).resolves.toEqual({
+        photo: { id: String(NEW_PHOTO_ID), url: photo.url },
+      });
+
+      const [[newPhoto], photoSession] = photoModel.createMany.mock.calls[0];
+      expect(String(newPhoto.owner)).toBe(ME);
+      expect(newPhoto).toMatchObject({ type: PhotoType.CONVERSATION, key: photo.key, url: photo.url });
+      expect(photoSession).toBe(transaction);
+      expect(conversationModel.setPhoto).toHaveBeenCalledWith(
+        { conversationId: 'c1', photoId: String(NEW_PHOTO_ID), requesterId: ME },
+        transaction,
+      );
+      expect(photoModel.deleteById).not.toHaveBeenCalled();
+      expect(transaction.endSession).toHaveBeenCalled();
+    });
+
+    it('deletes the photo it replaced', async () => {
+      const { service, conversationModel, photoModel, transaction } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.setPhoto.mockResolvedValue({ changed: true, previousPhotoId: 'old-photo' });
+
+      await service.changePhoto(query);
+
+      expect(photoModel.deleteById).toHaveBeenCalledWith('old-photo', transaction);
+    });
+
+    it.each([
+      ['a missing conversation', null, NotFoundException],
+      ['a deleted conversation', { ...group, status: ConversationStatus.DELETED }, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, BadRequestException],
+    ])('refuses %s', async (_, conversation, exception) => {
+      const { service, conversationModel, photoModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.changePhoto(query)).rejects.toBeInstanceOf(exception);
+      expect(photoModel.createMany).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict and keeps the old photo when the caller stopped being an admin', async () => {
+      const { service, conversationModel, photoModel, transaction } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.setPhoto.mockResolvedValue({ changed: false, previousPhotoId: null });
+
+      await expect(service.changePhoto(query)).rejects.toBeInstanceOf(ConflictException);
+      expect(photoModel.deleteById).not.toHaveBeenCalled();
+      expect(transaction.endSession).toHaveBeenCalled();
     });
   });
 

@@ -25,6 +25,15 @@ export class PhotoModel {
     }
   }
 
+  async deleteById(photoId: string, session?: ClientSession) {
+    try {
+      await this.Photo.deleteOne({ _id: photoId }, { session });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   /**
    * Every message in the conversation that carries photos, newest first, with its photos and sender
    * resolved. Photos only link to a conversation through `message.photos`, so this runs on `message`.
