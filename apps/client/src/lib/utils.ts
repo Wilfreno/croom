@@ -44,12 +44,16 @@ export function getGroupAvatarMembers(conversation: Pick<Conversation, "members"
 export function getConversationName(conversation: Conversation, currentUserId?: string) {
   if (conversation.name) return conversation.name;
 
-  return conversation.members
+  const otherMemberNames = conversation.members
     .filter((member) => member.id !== currentUserId)
     .map(
       (member) => conversation.nicknames.find((nickname) => nickname.user === member.id)?.value || member.displayName,
-    )
-    .join(", ");
+    );
+
+  if (conversation.isGroupChat && otherMemberNames.length === 0) return "Only you";
+  if (conversation.isGroupChat && otherMemberNames.length === 1) return `You and ${otherMemberNames[0]}`;
+
+  return otherMemberNames.join(", ");
 }
 
 type NicknameNoticeInput = {

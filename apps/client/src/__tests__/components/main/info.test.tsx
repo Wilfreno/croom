@@ -156,6 +156,25 @@ describe('InfoSidebar', () => {
     expect(await screen.findByLabelText('and 1 more')).toHaveTextContent('+1');
   });
 
+  it("shows a group down to one other member as their avatar next to yours", async () => {
+    conversation = groupChat({ members: [bob] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByLabelText('and you')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
+  });
+
+  it('shows a group where only you are left as just your avatar', async () => {
+    conversation = groupChat({ name: '', members: [] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByText('Only you')).toBeInTheDocument();
+    expect(screen.queryByLabelText('and you')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
+  });
+
   it('shows admins and members only in a group chat', async () => {
     renderInfo(<InfoSidebar />);
 

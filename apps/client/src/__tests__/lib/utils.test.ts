@@ -128,8 +128,13 @@ describe('getConversationName', () => {
   const bob = { id: 'bob', displayName: 'Bob' };
   const me = { id: 'me', displayName: 'Me' };
 
-  function conversation(name: string, members: { id: string; displayName: string }[], nicknames: Conversation['nicknames'] = []) {
-    return { name, members, nicknames } as unknown as Conversation;
+  function conversation(
+    name: string,
+    members: { id: string; displayName: string }[],
+    nicknames: Conversation['nicknames'] = [],
+    isGroupChat = members.length > 2,
+  ) {
+    return { name, members, nicknames, isGroupChat } as unknown as Conversation;
   }
 
   it('uses the name when there is one', () => {
@@ -144,6 +149,25 @@ describe('getConversationName', () => {
     expect(getConversationName(conversation('', [ann, bob], [{ user: 'bob', value: 'Bobby' }]), 'me')).toBe(
       'Ann, Bobby',
     );
+  });
+
+  it('shows a group down to one other member as you and them, so it does not look like a direct chat', () => {
+    expect(getConversationName(conversation('', [me, bob], [], true), 'me')).toBe('You and Bob');
+    expect(getConversationName(conversation('', [me, bob], [{ user: 'bob', value: 'Bobby' }], true), 'me')).toBe(
+      'You and Bobby',
+    );
+  });
+
+  it('keeps just their name for a direct chat', () => {
+    expect(getConversationName(conversation('', [me, bob], [], false), 'me')).toBe('Bob');
+  });
+
+  it('shows a group where only you are left as only you', () => {
+    expect(getConversationName(conversation('', [me], [], true), 'me')).toBe('Only you');
+  });
+
+  it('keeps a custom name for a two-member group', () => {
+    expect(getConversationName(conversation('Duo', [me, bob], [], true), 'me')).toBe('Duo');
   });
 });
 
