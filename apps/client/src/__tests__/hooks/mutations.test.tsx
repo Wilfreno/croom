@@ -241,6 +241,33 @@ describe('useComposeMessage', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it('refreshes the conversation when the send is refused because it is blocked', async () => {
+    post.mockRejectedValue(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'this conversation is blocked', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('does not refresh the conversation for other failures', async () => {
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
   it('shows a muted copy in the existing conversation while sending', async () => {
     const existing = mockMessage();
     const me = mockUser();
