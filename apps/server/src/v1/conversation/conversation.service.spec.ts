@@ -597,6 +597,21 @@ describe('ConversationService', () => {
     const CONVO = '64b7f0c2a1b2c3d4e5f60710';
     const query = { conversationId: CONVO, user: ADA, value: 'Ace', userId: ME };
 
+    it('refuses a blocked conversation, whoever blocked it, and posts nothing', async () => {
+      const { service, conversationModel, messageModel, messageGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue({
+        isGroupChat: false,
+        members: [ME, ADA],
+        status: ConversationStatus.BLOCKED,
+        blocker: ME,
+      });
+
+      await expect(service.setNickname(query)).rejects.toMatchObject({ serverStatus: 'BLOCKED' });
+      expect(conversationModel.setNickname).not.toHaveBeenCalled();
+      expect(messageModel.createMessage).not.toHaveBeenCalled();
+      expect(messageGateway.emitToUsers).not.toHaveBeenCalled();
+    });
+
     it('sets the nickname and posts a notice from the caller in the same transaction', async () => {
       const { service, conversationModel, messageModel, transaction } = build();
 

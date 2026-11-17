@@ -18,6 +18,7 @@ import {
 import { hasGroupMemberCount } from '@repo/utils';
 import { ClientSession, Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
+import { ServerException } from 'src/common/exceptions/server-response.exception';
 import { CallGateway } from '../call/call.gateway';
 import { MessageGateway } from '../message/message.gateway';
 import { ConversationPhotoDto } from './dto/change-photo.dto';
@@ -423,6 +424,8 @@ export class ConversationService implements OnApplicationBootstrap {
 
     if (!conversation)
       throw new NotFoundException('conversation does not exist');
+    if (conversation.status === ConversationStatus.BLOCKED)
+      throw new ServerException('BLOCKED', 'this conversation is blocked');
 
     const session = await this.connection.startSession();
     let noticeId: Types.ObjectId | undefined;
