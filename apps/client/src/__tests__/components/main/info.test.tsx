@@ -358,6 +358,27 @@ describe('ManageMember', () => {
     await waitFor(() => expect(cached(queryClient).members.map((m) => m.id)).toEqual([carol.id]));
   });
 
+  it('updates the conversation lists too, leaving other conversations alone', async () => {
+    const other = { ...conversation, id: 'other' };
+    const { queryClient } = renderInfo(<ManageMember />);
+    queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation, other]);
+    queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
+    const dialog = await openDialog();
+
+    const bobRow = within(dialog).getByText('@bob').closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(bobRow).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])![0].members.map((m) => m.id),
+      ).toEqual([carol.id]),
+    );
+    expect(queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])![1]).toBe(other);
+    expect(
+      queryClient.getQueryData<Conversation[]>(['active', 'conversations', sessionUser.id])![0].members.map((m) => m.id),
+    ).toEqual([carol.id]);
+  });
+
   it('drops a removed admin from the admins and nicknames too', async () => {
     conversation = groupChat({ admins: [sessionUser as unknown as User, carol] });
     const { queryClient } = renderInfo(<ManageMember />);

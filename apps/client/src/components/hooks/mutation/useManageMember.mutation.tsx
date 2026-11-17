@@ -1,3 +1,4 @@
+import { useAuth } from '@/components/providers/AuthProvider';
 import { axiosInstance } from '@/lib/axios-instance';
 import { getServerErrorMessage } from '@/lib/utils';
 import type { Conversation, User } from '@repo/types';
@@ -6,7 +7,21 @@ import { toast } from 'sonner';
 
 export default function useManageMember(conversationId: string) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const queryKey = ['conversation', conversationId];
+
+  function updateEverywhere(update: (conversation: Conversation) => Conversation) {
+    const updateIfThisConversation = (conversation: Conversation) =>
+      conversation.id === conversationId ? update(conversation) : conversation;
+
+    queryClient.setQueryData<Conversation>(queryKey, (prev) => prev && update(prev));
+    queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) =>
+      prev?.map(updateIfThisConversation),
+    );
+    queryClient.setQueryData<Conversation[]>(['active', 'conversations', session.user?.id], (prev) =>
+      prev?.map(updateIfThisConversation),
+    );
+  }
 
   function onError(error: Error) {
     toast.error(getServerErrorMessage(error));
@@ -18,13 +33,13 @@ export default function useManageMember(conversationId: string) {
       await axiosInstance.post(`/conversation/${conversationId}/members`, { memberId: user.id });
     },
     onSuccess(_, user) {
-      queryClient.setQueryData<Conversation>(queryKey, (prev) => {
-        if (!prev || prev.members.some((member) => member.id === user.id)) return prev;
+      updateEverywhere((conversation) => {
+        if (conversation.members.some((member) => member.id === user.id)) return conversation;
 
         return {
-          ...prev,
-          members: [...prev.members, user],
-          nicknames: [...prev.nicknames, { user: user.id, value: '' }],
+          ...conversation,
+          members: [...conversation.members, user],
+          nicknames: [...conversation.nicknames, { user: user.id, value: '' }],
         };
       });
     },
@@ -36,16 +51,12 @@ export default function useManageMember(conversationId: string) {
       await axiosInstance.delete(`/conversation/${conversationId}/members/${memberId}`);
     },
     onSuccess(_, memberId) {
-      queryClient.setQueryData<Conversation>(
-        queryKey,
-        (prev) =>
-          prev && {
-            ...prev,
-            members: prev.members.filter((member) => member.id !== memberId),
-            admins: prev.admins.filter((admin) => admin.id !== memberId),
-            nicknames: prev.nicknames.filter((nickname) => nickname.user !== memberId),
-          },
-      );
+      updateEverywhere((conversation) => ({
+        ...conversation,
+        members: conversation.members.filter((member) => member.id !== memberId),
+        admins: conversation.admins.filter((admin) => admin.id !== memberId),
+        nicknames: conversation.nicknames.filter((nickname) => nickname.user !== memberId),
+      }));
     },
     onError,
   });
