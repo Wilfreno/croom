@@ -657,6 +657,14 @@ describe('ChangePhoto', () => {
     return dialog;
   }
 
+  it('is disabled for someone who is not an admin', () => {
+    conversation = groupChat({ admins: [bob] });
+
+    renderInfo(<ChangePhoto />);
+
+    expect(screen.getByRole('button', { name: 'Change photo' })).toBeDisabled();
+  });
+
   it('can only be confirmed once a photo is uploaded', async () => {
     renderInfo(<ChangePhoto />);
     await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));
@@ -668,6 +676,10 @@ describe('ChangePhoto', () => {
   });
 
   it('swaps the photo in every cached copy', async () => {
+    vi.mocked(PATCHRequest).mockResolvedValue({
+      ...OK,
+      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+    } as never);
     conversation = groupChat({ photo: mockPhoto({ url: 'https://utfs.io/old.png' }) });
     const { queryClient } = renderInfo(<ChangePhoto />);
     queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
@@ -675,23 +687,26 @@ describe('ChangePhoto', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photo: { url: UPLOADED_FILE.url } });
+    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photo: UPLOADED_FILE });
     await waitFor(() => expect(cached(queryClient).photo?.url).toBe(UPLOADED_FILE.url));
+    expect(cached(queryClient).photo?.id).toBe('new-photo');
     expect(queryClient.getQueryData<Conversation[]>(['active', 'conversations', sessionUser.id])![0].photo?.url).toBe(
       UPLOADED_FILE.url,
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('refetches a conversation that had no photo yet', async () => {
+  it('shows the new photo on a conversation that had none yet', async () => {
+    vi.mocked(PATCHRequest).mockResolvedValue({
+      ...OK,
+      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+    } as never);
     const { queryClient } = renderInfo(<ChangePhoto />);
-    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const dialog = await uploadInDialog();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] }));
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['active', 'conversations', sessionUser.id] });
+    await waitFor(() => expect(cached(queryClient).photo).toEqual({ id: 'new-photo', url: UPLOADED_FILE.url }));
   });
 
   it('keeps the dialog open when the photo cannot be saved', async () => {
