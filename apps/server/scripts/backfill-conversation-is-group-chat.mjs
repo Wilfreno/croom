@@ -31,6 +31,9 @@ const [summary] = await conversations
         total: { $sum: 1 },
         groups: { $sum: { $cond: [isGroupBySize, 1, 0] } },
         oneToOne: { $sum: { $cond: [isGroupBySize, 0, 1] } },
+        groupsWithGeneratedName: {
+          $sum: { $cond: [{ $and: [isGroupBySize, { $ne: [{ $ifNull: ['$name', ''] }, ''] }] }, 1, 0] },
+        },
         namedWithTwoOrFewerMembers: {
           $sum: { $cond: [{ $and: [{ $not: [isGroupBySize] }, { $ne: [{ $ifNull: ['$name', ''] }, ''] }] }, 1, 0] },
         },
@@ -42,7 +45,14 @@ const [summary] = await conversations
 report('conversations without isGroupChat', summary ?? { total: 0 });
 
 if (shouldWrite) {
-  const result = await conversations.updateMany(missingField, [{ $set: { isGroupChat: isGroupBySize } }]);
+  const result = await conversations.updateMany(missingField, [
+    {
+      $set: {
+        isGroupChat: isGroupBySize,
+        name: { $cond: [isGroupBySize, '', { $ifNull: ['$name', ''] }] },
+      },
+    },
+  ]);
   report('updated', result.modifiedCount);
 } else {
   report('dry run, pass --write to update');
