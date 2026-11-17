@@ -16,7 +16,6 @@ import { GetConversationMessageDto } from './dto/get-message.dto';
 export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
 
-  @NotBlocked({ param: 'conversationId' })
   @IsMember({ param: 'conversationId' })
   @Get('/:conversationId/messages')
   getConversationMessages(
@@ -40,7 +39,6 @@ export class ConversationController {
     );
   }
 
-  @NotBlocked({ param: 'conversationId' })
   @IsMember({ param: 'conversationId' })
   @Get('/:conversationId')
   getConversationById(@Param() { conversationId }: GetConversationByIdDto) {
