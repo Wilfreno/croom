@@ -1,4 +1,5 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConversationStatus } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { ClientSession, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +30,9 @@ function build() {
     createConversation: vi.fn(async (data: NewConversation, _session: ClientSession) => ({ _id: 'new', ...data })),
     findConversationByMembers: vi.fn().mockResolvedValue({ id: 'c1' }),
     findConversationPayloadById: vi.fn().mockResolvedValue({ id: 'c1' }),
+    findConversationById: vi.fn().mockResolvedValue({ members: [ME, ADA] }),
+    blockConversation: vi.fn().mockResolvedValue(true),
+    unblockConversation: vi.fn().mockResolvedValue(true),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -162,5 +166,75 @@ describe('ConversationService', () => {
     await service.getConversationMedia('c1');
 
     expect(photoModel.getPhotosByConversationId).toHaveBeenCalledWith('c1');
+  });
+
+  describe('blockConversation', () => {
+    const query = { conversationId: 'c1', userId: ME };
+
+    it('blocks a one-to-one conversation for the caller', async () => {
+      const { service, conversationModel } = build();
+
+      await service.blockConversation(query);
+
+      expect(conversationModel.findConversationById).toHaveBeenCalledWith('c1');
+      expect(conversationModel.blockConversation).toHaveBeenCalledWith(query);
+    });
+
+    it.each([
+      ['a missing conversation', null, NotFoundException],
+      ['a deleted conversation', { members: [ME, ADA], status: ConversationStatus.DELETED }, NotFoundException],
+      ['a group', { members: [ME, ADA, BOB] }, BadRequestException],
+      ['an already blocked conversation', { members: [ME, ADA], status: ConversationStatus.BLOCKED, blocker: ADA }, ConflictException],
+    ])('refuses %s', async (_, conversation, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.blockConversation(query)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.blockConversation).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the other member blocked first', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.blockConversation.mockResolvedValue(false);
+
+      await expect(service.blockConversation(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('unblockConversation', () => {
+    const query = { conversationId: 'c1', userId: ME };
+    const blockedBy = (blocker: string) => ({
+      members: [ME, ADA],
+      status: ConversationStatus.BLOCKED,
+      blocker: new Types.ObjectId(blocker),
+    });
+
+    it('lets the blocker unblock', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(blockedBy(ME));
+
+      await service.unblockConversation(query);
+
+      expect(conversationModel.unblockConversation).toHaveBeenCalledWith(query);
+    });
+
+    it('does not let the blocked member unblock themselves', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(blockedBy(ADA));
+
+      await expect(service.unblockConversation(query)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(conversationModel.unblockConversation).not.toHaveBeenCalled();
+    });
+
+    it('refuses a missing or unblocked conversation', async () => {
+      const { service, conversationModel } = build();
+
+      conversationModel.findConversationById.mockResolvedValue(null);
+      await expect(service.unblockConversation(query)).rejects.toBeInstanceOf(NotFoundException);
+
+      conversationModel.findConversationById.mockResolvedValue({ members: [ME, ADA] });
+      await expect(service.unblockConversation(query)).rejects.toBeInstanceOf(ConflictException);
+      expect(conversationModel.unblockConversation).not.toHaveBeenCalled();
+    });
   });
 });

@@ -8,7 +8,9 @@ import SettingsDeleteAccount from '@/components/page/settings/SecurityAndAccessi
 import SettingsChangeDisplayname from '@/components/page/settings/profile/SettingsChangeDisplayname';
 import SettingsChangePhoto from '@/components/page/settings/profile/SettingsChangePhoto';
 import SettingsChangeUserName from '@/components/page/settings/profile/SettingsChangeUserName';
+import { axiosInstance } from '@/lib/axios-instance';
 import { DELETERequest, GETRequest, PATCHRequest } from '@/lib/server/requests';
+import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import type { UserSession } from '@repo/types';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -16,6 +18,7 @@ import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), delete: vi.fn() } }));
 vi.mock('@/lib/server/requests', () => ({ GETRequest: vi.fn(), PATCHRequest: vi.fn(), DELETERequest: vi.fn() }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
@@ -217,48 +220,57 @@ describe('SettingsChangePhoto', () => {
 
 describe('SettingsBlockedUsers', () => {
   const blocked = (userName: string) => ({
-    id: `block-${userName}`,
+    id: `conversation-${userName}`,
     blockedUser: mockUser({ userName }),
     blocker: 'me',
-    conversation: 'c',
-    dateCreated: new Date(),
   });
+  const respondWith = (data: unknown) => vi.mocked(axiosInstance.get).mockResolvedValue({ data: { ...OK, data } });
 
   it('loads the list only when opened', async () => {
-    vi.mocked(GETRequest).mockResolvedValue({ ...OK, data: [blocked('@spammer')] } as never);
+    respondWith([blocked('@spammer')]);
     renderWithQuery(<SettingsBlockedUsers />);
-    expect(GETRequest).not.toHaveBeenCalled();
+    expect(axiosInstance.get).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'See list' }));
 
     expect(await screen.findByText('@spammer')).toBeInTheDocument();
-    expect(GETRequest).toHaveBeenCalledWith('/v1/user/blocked');
+    expect(axiosInstance.get).toHaveBeenCalledWith('/user/blocked');
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   });
 
-  it('unblocks someone', async () => {
-    vi.mocked(GETRequest).mockResolvedValue({ ...OK, data: [blocked('@a'), blocked('@b')] } as never);
+  it('says so when nobody is blocked', async () => {
+    respondWith([]);
+    renderWithQuery(<SettingsBlockedUsers />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'See list' }));
+
+    expect(await screen.findByText("You haven't blocked anyone.")).toBeInTheDocument();
+  });
+
+  it('unblocks the conversation of whoever you pick', async () => {
+    respondWith([blocked('@a'), blocked('@b')]);
+    vi.mocked(axiosInstance.delete).mockResolvedValue({});
     renderWithQuery(<SettingsBlockedUsers />);
     await userEvent.click(screen.getByRole('button', { name: 'See list' }));
 
     const row = (await screen.findByText('@b')).parentElement!;
     await userEvent.click(within(row).getByRole('button', { name: 'Unblock' }));
 
-    expect(DELETERequest).toHaveBeenCalledWith('/v1/block', { id: 'block-@b' });
+    expect(axiosInstance.delete).toHaveBeenCalledWith('/conversation/conversation-@b/block');
     await waitFor(() => expect(screen.queryByText('@b')).not.toBeInTheDocument());
     expect(screen.getByText('@a')).toBeInTheDocument();
     expect(toast).toHaveBeenCalledWith('user unblocked');
   });
 
   it('keeps someone the server would not unblock', async () => {
-    vi.mocked(GETRequest).mockResolvedValue({ ...OK, data: [blocked('@a')] } as never);
-    vi.mocked(DELETERequest).mockResolvedValue(refused('not found') as never);
+    respondWith([blocked('@a')]);
+    vi.mocked(axiosInstance.delete).mockRejectedValue(new Error('409'));
     renderWithQuery(<SettingsBlockedUsers />);
     await userEvent.click(screen.getByRole('button', { name: 'See list' }));
 
     await userEvent.click(await screen.findByRole('button', { name: 'Unblock' }));
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('not found'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
     expect(screen.getByText('@a')).toBeInTheDocument();
     expect(toast).not.toHaveBeenCalledWith('user unblocked');
   });

@@ -11,6 +11,8 @@ function build() {
     getConversationByMembersId: vi.fn().mockResolvedValue({ id: 'by-members' }),
     getConversationById: vi.fn().mockResolvedValue({ id: 'c1' }),
     getConversationMedia: vi.fn().mockResolvedValue(['media']),
+    blockConversation: vi.fn().mockResolvedValue(undefined),
+    unblockConversation: vi.fn().mockResolvedValue(undefined),
   };
   const controller = new ConversationController(conversationService as unknown as ConversationService);
   return { controller, conversationService };
@@ -49,5 +51,21 @@ describe('ConversationController', () => {
 
     await expect(controller.getConversationMedia({ conversationId: 'c1' })).resolves.toEqual(['media']);
     expect(conversationService.getConversationMedia).toHaveBeenCalledWith('c1');
+  });
+
+  it('blocks a conversation on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await controller.blockConversation(USER, { conversationId: 'c1' });
+
+    expect(conversationService.blockConversation).toHaveBeenCalledWith({ conversationId: 'c1', userId: 'me' });
+  });
+
+  it('unblocks a conversation on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await controller.unblockConversation(USER, { conversationId: 'c1' });
+
+    expect(conversationService.unblockConversation).toHaveBeenCalledWith({ conversationId: 'c1', userId: 'me' });
   });
 });

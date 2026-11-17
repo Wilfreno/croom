@@ -24,6 +24,7 @@ function build() {
       findOne: vi.fn(() => Object.assign(Promise.resolve(null), { populate })),
       distinct: vi.fn().mockResolvedValue([]),
       aggregate: vi.fn().mockResolvedValue([]),
+      updateOne: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
     },
   );
 
@@ -154,6 +155,75 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('blockConversation', () => {
+    it('only blocks a live one-to-one conversation the user is in, and records the blocker', async () => {
+      const { collection, model } = build();
+
+      await model.blockConversation({ conversationId: CONVERSATION_ID, userId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(filter.members.$size).toBe(2);
+      expect(filter.members.$all.map(String)).toEqual([USER_ID]);
+      expect(filter.status).toEqual({ $nin: [ConversationStatus.BLOCKED, ConversationStatus.DELETED] });
+      expect(update.$set.status).toBe(ConversationStatus.BLOCKED);
+      expect(String(update.$set.blocker)).toBe(USER_ID);
+      expect(update.$set.blocker).toBeInstanceOf(Types.ObjectId);
+    });
+
+    it('reports whether the conversation changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, userId: USER_ID };
+
+      await expect(model.blockConversation(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.blockConversation(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.blockConversation({ conversationId: CONVERSATION_ID, userId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('unblockConversation', () => {
+    it('only lifts a block placed by the user, clearing status and blocker', async () => {
+      const { collection, model } = build();
+
+      await model.unblockConversation({ conversationId: CONVERSATION_ID, userId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(filter.status).toBe(ConversationStatus.BLOCKED);
+      expect(String(filter.blocker)).toBe(USER_ID);
+      expect(update).toEqual({ $unset: { status: 1, blocker: 1 } });
+    });
+
+    it('reports whether the conversation changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, userId: USER_ID };
+
+      await expect(model.unblockConversation(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.unblockConversation(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.unblockConversation({ conversationId: CONVERSATION_ID, userId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('getCallMembersByConversationId', () => {
     it('returns the members of the matched conversation', async () => {
       const { collection, model } = build();
@@ -279,7 +349,24 @@ describe('ConversationModel', () => {
       expect(pipeline.find((stage: { $project?: object }) => stage.$project)?.$project).toHaveProperty('nicknames', 1);
     });
 
-    it.each(['getConversationsByUserId', 'getActiveConversationByUserId'] as const)(
+    it('lists only the conversations the user blocked, with the other member as blockedUser', async () => {
+      const { collection, model } = build();
+
+      await model.getBlockedConversationsByUserId(USER_ID);
+
+      const [pipeline] = collection.aggregate.mock.calls[0];
+      expect(pipeline[0].$match.status).toBe(ConversationStatus.BLOCKED);
+      expect(String(pipeline[0].$match.blocker)).toBe(USER_ID);
+      expect(String(pipeline[1].$lookup.pipeline[0].$match._id.$ne)).toBe(USER_ID);
+      expect(pipeline).toContainEqual({ $set: { blockedUser: { $first: '$members' } } });
+      expect(pipeline.find((stage: { $project?: object }) => stage.$project)?.$project).toEqual({
+        blockedUser: 1,
+        blocker: 1,
+        lastUpdated: 1,
+      });
+    });
+
+    it.each(['getConversationsByUserId', 'getActiveConversationByUserId', 'getBlockedConversationsByUserId'] as const)(
       '%s turns a driver failure into a 500',
       async (method) => {
         const { collection, model } = build();

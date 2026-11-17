@@ -1,12 +1,15 @@
 'use client';
+import useBlockConversation from '@/components/hooks/mutation/useBlockConversation.mutation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { DELETERequest, GETRequest } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
 import { cn } from '@/lib/utils';
 import { Block } from '@/types/block.types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { SOMETHING_WENT_WRONG } from '@repo/constants';
+import type { ServerResponse } from '@repo/types';
+import { useQuery } from '@tanstack/react-query';
 import { UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,44 +19,24 @@ export default function SettingsBlockedUsers() {
   const { session } = useAuth();
   const divRef = useRef<HTMLDivElement>(null);
 
-  const queryClient = useQueryClient();
+  const { unblockConversation } = useBlockConversation();
 
   const { data: blockedList } = useQuery({
     enabled: open,
     queryKey: [session.user!.id, 'blocked'],
-    queryFn: async () => {
-      try {
-        const { data, status, message } = await GETRequest<Block[]>('/v1/user/blocked');
+    async queryFn() {
+      const { data: response } = await axiosInstance.get<ServerResponse<Block[]>>('/user/blocked');
 
-        if (status !== 'OK') throw new Error(message);
-
-        return data;
-      } catch (error) {
-        throw error;
-      }
+      return response.data;
     },
   });
 
-  const unblock = useMutation<void, Error, { id: string; index: number }>({
-    mutationFn: async ({ id }) => {
-      try {
-        const { status, message } = await DELETERequest('/v1/block', { id });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
-    onSuccess: (_, { index }) => {
-      queryClient.setQueryData<Block[]>([session.user!.id, 'blocked'], (prev) => {
-        if (!prev) return [];
-
-        return prev.toSpliced(index, 1);
-      });
-      toast('user unblocked');
-    },
-  });
+  function unblock(conversationId: string) {
+    unblockConversation.mutate(conversationId, {
+      onSuccess: () => toast('user unblocked'),
+      onError: () => toast.error(SOMETHING_WENT_WRONG),
+    });
+  }
 
   useEffect(() => {
     if (open) divRef.current?.scrollIntoView();
@@ -69,9 +52,12 @@ export default function SettingsBlockedUsers() {
       </div>
       <ScrollArea ref={divRef} className={cn(open ? 'h-[40dvh] rounded-sm border ' : 'hidden')}>
         <div>
+          {blockedList?.length === 0 && (
+            <p className="p-4 text-sm text-muted-foreground">You haven&apos;t blocked anyone.</p>
+          )}
           {blockedList?.map(({ blockedUser, id }, index) => (
             <div
-              key={index}
+              key={id}
               className={cn('flex items-center gap-4 p-2 pr-4', index % 2 === 0 ? 'bg-muted/40' : 'bg-background')}
             >
               <Avatar>
@@ -84,7 +70,8 @@ export default function SettingsBlockedUsers() {
               <Button
                 variant="outline"
                 className="ml-auto text-destructive"
-                onClick={() => unblock.mutate({ id, index })}
+                disabled={unblockConversation.isPending && unblockConversation.variables === id}
+                onClick={() => unblock(id)}
               >
                 Unblock
               </Button>
