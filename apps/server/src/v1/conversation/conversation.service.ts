@@ -15,6 +15,7 @@ import {
   PhotoModel,
   UserModel,
 } from '@repo/models';
+import type { ConversationMembersChangedPayload } from '@repo/types';
 import { hasGroupMemberCount } from '@repo/utils';
 import { ClientSession, Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
@@ -243,6 +244,10 @@ export class ConversationService implements OnApplicationBootstrap {
         'the members of this conversation changed, try again',
       );
 
+    this.notifyMembersChanged([...memberIds, memberId], requesterId, {
+      conversationId,
+    });
+
     return { memberId };
   }
 
@@ -279,6 +284,10 @@ export class ConversationService implements OnApplicationBootstrap {
       memberId,
       'you were removed from this group',
     );
+    this.notifyMembersChanged(memberIds, requesterId, {
+      conversationId,
+      removedMemberId: memberId,
+    });
 
     return { memberId };
   }
@@ -320,6 +329,10 @@ export class ConversationService implements OnApplicationBootstrap {
       userId,
       'you left this group',
     );
+    this.notifyMembersChanged(otherMemberIds, userId, {
+      conversationId,
+      removedMemberId: userId,
+    });
 
     return { conversationId, newAdminId: newAdminId ?? null };
   }
@@ -397,6 +410,18 @@ export class ConversationService implements OnApplicationBootstrap {
       );
 
     return { name };
+  }
+
+  private notifyMembersChanged(
+    recipientIds: string[],
+    actorId: string,
+    payload: ConversationMembersChangedPayload,
+  ) {
+    this.messageGateway.emitToUsers(
+      recipientIds.filter((recipientId) => recipientId !== actorId),
+      'CONVERSATION_MEMBERS_CHANGED',
+      payload,
+    );
   }
 
   private async findGroup(conversationId: string) {

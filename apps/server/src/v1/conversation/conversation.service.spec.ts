@@ -472,6 +472,17 @@ describe('ConversationService', () => {
 
       await expect(service.addMember(query)).rejects.toBeInstanceOf(ConflictException);
     });
+
+    it('tells every member, the new one included, except the admin who added them', async () => {
+      const { service, conversationModel, messageGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA], admins: [ME] });
+
+      await service.addMember({ conversationId: 'c1', memberId: BOB, requesterId: ME });
+
+      expect(messageGateway.emitToUsers).toHaveBeenCalledWith([ADA, BOB], 'CONVERSATION_MEMBERS_CHANGED', {
+        conversationId: 'c1',
+      });
+    });
   });
 
   describe('removeMember', () => {
@@ -517,6 +528,19 @@ describe('ConversationService', () => {
       expect(callGateway.removeFromCall).toHaveBeenCalledWith('c1', BOB, 'you were removed from this group');
     });
 
+    it('tells the removed member and everyone else, except the admin who removed them', async () => {
+      const { service, conversationModel, messageGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await service.removeMember(query);
+
+      expect(messageGateway.emitToUsers).toHaveBeenCalledWith(
+        [ADA, BOB, 'someone-else'],
+        'CONVERSATION_MEMBERS_CHANGED',
+        { conversationId: 'c1', removedMemberId: BOB },
+      );
+    });
+
     it('reports a conflict when the members changed in the meantime', async () => {
       const { service, conversationModel, callGateway } = build();
       conversationModel.findConversationById.mockResolvedValue(group);
@@ -550,6 +574,18 @@ describe('ConversationService', () => {
       await service.leaveConversation(query);
 
       expect(callGateway.removeFromCall).toHaveBeenCalledWith('c1', ME, 'you left this group');
+    });
+
+    it('tells the members who stay', async () => {
+      const { service, conversationModel, messageGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, ADA] });
+
+      await service.leaveConversation(query);
+
+      expect(messageGateway.emitToUsers).toHaveBeenCalledWith([ADA, BOB], 'CONVERSATION_MEMBERS_CHANGED', {
+        conversationId: 'c1',
+        removedMemberId: ME,
+      });
     });
 
     it('makes the other member admin when the only admin leaves a group of two', async () => {
