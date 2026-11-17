@@ -48,6 +48,7 @@ export type CallContextType = {
 /** One row in the participants side panel. */
 export type ParticipantListItem = {
   key: string;
+  userId: string;
   displayName: string;
   photoUrl: string | null;
   isMuted: boolean;

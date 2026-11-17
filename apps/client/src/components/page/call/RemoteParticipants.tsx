@@ -1,5 +1,6 @@
 'use client';
 import useCallParticipants, { useIsSelfInGrid, useSelfParticipant } from '@/components/hooks/useCallParticipants';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { cn } from '@/lib/utils';
 import { CallParticipant } from '@/types/call.types';
 import { CALL_MAX_VISIBLE_TILES, CALL_OVERFLOW_AVATAR_COUNT, CALL_TILE_GAP } from '@repo/constants';
@@ -12,6 +13,7 @@ export default function RemoteParticipants() {
   const { status, error, participants, members } = useCallParticipants();
   const isSelfInGrid = useIsSelfInGrid();
   const self = useSelfParticipant();
+  const { session } = useAuth();
 
   if (status === 'error') return <CallMessage>{error ?? 'Could not join the call'}</CallMessage>;
   if (status === 'connecting') return <CallMessage>Joining the call…</CallMessage>;
@@ -39,7 +41,11 @@ export default function RemoteParticipants() {
       <div className="flex h-full w-full flex-wrap content-center justify-center" style={{ gap: CALL_TILE_GAP }}>
         {isSelfInGrid && (
           <div style={tileSize}>
-            <ParticipantTile participant={self.participant} member={self.member} isSelf />
+            <ParticipantTile
+              participant={self.participant}
+              member={{ ...self.member, displayName: session.user?.displayName ?? self.member.displayName }}
+              isSelf
+            />
           </div>
         )}
         {visibleParticipants.map((participant) => (
@@ -91,6 +97,7 @@ function OverflowTile({
         const member = members.get(participant.userId);
         return {
           key: participant.peerId,
+          userId: participant.userId,
           displayName: member?.displayName ?? 'Unknown',
           photoUrl: member?.photoUrl ?? null,
           isMuted: participant.isAudioPaused,
@@ -107,6 +114,8 @@ function OverflowTile({
             {hiddenParticipants.slice(0, CALL_OVERFLOW_AVATAR_COUNT).map((participant) => (
               <MemberAvatar
                 key={participant.peerId}
+                name={members.get(participant.userId)?.displayName}
+                colorKey={participant.userId}
                 photoUrl={members.get(participant.userId)?.photoUrl}
                 className="h-14 w-14 border-2 border-slate-800"
               />
@@ -150,11 +159,16 @@ function ParticipantTile({
         )}
       />
       {!showVideo && (
-        <MemberAvatar photoUrl={member?.photoUrl} className="h-20 w-20" />
+        <MemberAvatar
+          name={member?.displayName}
+          colorKey={participant.userId}
+          photoUrl={member?.photoUrl}
+          className="h-20 w-20"
+        />
       )}
       <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-sm text-white">
         {participant.isAudioPaused && <MicOff className="h-4 w-4" aria-label="Muted" />}
-        {member?.displayName ?? 'Unknown'}
+        {isSelf ? 'You' : (member?.displayName ?? 'Unknown')}
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ export default function ParticipantsButton() {
   const items: ParticipantListItem[] = [
     {
       key: 'you',
+      userId: session.user?.id ?? 'you',
       displayName: session.user?.displayName ?? 'You',
       photoUrl: session.user?.photo?.url ?? null,
       isMuted: !isMicOn,
@@ -29,6 +30,7 @@ export default function ParticipantsButton() {
       const member = members.get(participant.userId);
       return {
         key: participant.peerId,
+        userId: participant.userId,
         displayName: member?.displayName ?? 'Unknown',
         photoUrl: member?.photoUrl ?? null,
         isMuted: participant.isAudioPaused,

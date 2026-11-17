@@ -1,10 +1,11 @@
 'use client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ParticipantListItem } from '@/types/call.types';
-import { MicOff, UserRound, VideoOff } from 'lucide-react';
+import { MicOff, VideoOff } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /** Side panel listing call participants, opened by whatever element is passed as `trigger`. */
@@ -31,7 +32,7 @@ export default function ParticipantsSheet({
           <ul className="grid gap-1">
             {items.map((item) => (
               <li key={item.key} className="flex items-center gap-3 rounded-md p-2 hover:bg-muted">
-                <MemberAvatar photoUrl={item.photoUrl} />
+                <MemberAvatar name={item.displayName} colorKey={item.userId} photoUrl={item.photoUrl} />
                 <span className="grow truncate text-sm font-medium">
                   {item.displayName}
                   {item.isYou && <span className="text-muted-foreground"> (You)</span>}
@@ -47,13 +48,21 @@ export default function ParticipantsSheet({
   );
 }
 
-export function MemberAvatar({ photoUrl, className }: { photoUrl?: string | null; className?: string }) {
+export function MemberAvatar({
+  name,
+  colorKey,
+  photoUrl,
+  className,
+}: {
+  name?: string;
+  colorKey?: string;
+  photoUrl?: string | null;
+  className?: string;
+}) {
   return (
     <Avatar className={cn(className)}>
       <AvatarImage src={photoUrl ?? undefined} />
-      <AvatarFallback>
-        <UserRound className="h-1/2 w-auto" />
-      </AvatarFallback>
+      <InitialsFallback name={name} colorKey={colorKey} />
     </Avatar>
   );
 }

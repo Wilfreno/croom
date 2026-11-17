@@ -230,8 +230,8 @@ describe('ParticipantsSheet', () => {
         description="2 people"
         trigger={<button>open</button>}
         items={[
-          { key: 'you', displayName: 'Me', photoUrl: null, isMuted: true, isCameraOff: false, isYou: true },
-          { key: 'b', displayName: 'Bob', photoUrl: null, isMuted: false, isCameraOff: true },
+          { key: 'you', userId: 'me', displayName: 'Me', photoUrl: null, isMuted: true, isCameraOff: false, isYou: true },
+          { key: 'b', userId: 'bob', displayName: 'Bob', photoUrl: null, isMuted: false, isCameraOff: true },
         ]}
       />,
     );
@@ -260,7 +260,7 @@ describe('ParticipantsButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show 3 people' }));
 
     const items = within(await screen.findByRole('dialog')).getAllByRole('listitem');
-    expect(items.map((item) => item.textContent)).toEqual(['Me (You)', 'Person 1', 'Person 2']);
+    expect(items.map((item) => item.textContent)).toEqual(['MEMe (You)', 'P1Person 1', 'P2Person 2']);
     expect(within(items[0]).getByLabelText('Muted')).toBeInTheDocument();
     expect(within(items[2]).getByLabelText('Camera off')).toBeInTheDocument();
     expect(within(items[2]).getByLabelText('Muted')).toBeInTheDocument();
