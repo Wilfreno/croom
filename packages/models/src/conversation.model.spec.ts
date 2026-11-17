@@ -250,6 +250,45 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('setNickname', () => {
+    it("sets the value on the member's own nickname entry, inside the given session", async () => {
+      const { collection, model } = build();
+
+      await model.setNickname({ conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' }, session);
+
+      const [filter, update, options] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.members)).toBe(OTHER_ID);
+      expect(filter.members).toBeInstanceOf(Types.ObjectId);
+      expect(String(filter['nicknames.user'])).toBe(OTHER_ID);
+      expect(update).toEqual({ $set: { 'nicknames.$.value': 'Ace' } });
+      expect(options).toEqual({ session });
+    });
+
+    it('reports whether the member was found and whether the nickname changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' };
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 0, modifiedCount: 0 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: false, changed: false });
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 0 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: true, changed: false });
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: true, changed: true });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setNickname({ conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('getCallMembersByConversationId', () => {
     it('returns the members of the matched conversation', async () => {
       const { collection, model } = build();

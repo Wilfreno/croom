@@ -104,6 +104,25 @@ export class ConversationModel {
     }
   }
 
+  async setNickname(
+    { conversationId, userId, value }: { conversationId: string; userId: string; value: string },
+    session?: ClientSession,
+  ) {
+    const userObjectId = new Types.ObjectId(userId);
+
+    try {
+      const result = await this.Conversation.updateOne(
+        { _id: conversationId, members: userObjectId, "nicknames.user": userObjectId },
+        { $set: { "nicknames.$.value": value } },
+        { session },
+      );
+      return { found: result.matchedCount > 0, changed: result.modifiedCount > 0 };
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async getBlockedConversationsByUserId(userId: string) {
     const userObjectId = new Types.ObjectId(userId);
 

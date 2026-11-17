@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ConversationStatus } from '@repo/enums';
+import { ConversationStatus, MessageNoticeType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
-import { ClientSession, Types } from 'mongoose';
+import { ClientSession, Connection, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CallGateway } from '../call/call.gateway';
+import { MessageGateway } from '../message/message.gateway';
 import { ConversationService } from './conversation.service';
 
 const ME = '64b7f0c2a1b2c3d4e5f60701';
@@ -17,6 +18,9 @@ const users = {
 };
 
 const session = { id: 'session' } as unknown as ClientSession;
+
+const NOTICE_ID = new Types.ObjectId('64b7f0c2a1b2c3d4e5f60799');
+const NOTICE_PAYLOAD = { id: String(NOTICE_ID), notice: { type: 'NICKNAME', user: ADA, value: 'Ace' } };
 
 type NewConversation = {
   name: string;
@@ -34,14 +38,25 @@ function build() {
     findConversationById: vi.fn().mockResolvedValue({ members: [ME, ADA] }),
     blockConversation: vi.fn().mockResolvedValue(true),
     unblockConversation: vi.fn().mockResolvedValue(true),
+    setNickname: vi.fn().mockResolvedValue({ found: true, changed: true }),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
   };
-  const messageModel = { getMessagesByConversationId: vi.fn().mockResolvedValue([]) };
+  const messageModel = {
+    getMessagesByConversationId: vi.fn().mockResolvedValue([]),
+    createMessage: vi.fn().mockResolvedValue({ _id: NOTICE_ID }),
+    findMessagePayloadById: vi.fn().mockResolvedValue(NOTICE_PAYLOAD),
+  };
   const photoModel = { getPhotosByConversationId: vi.fn().mockResolvedValue([]) };
 
   const callGateway = { endCall: vi.fn().mockResolvedValue(undefined) };
+  const messageGateway = { emitToUsers: vi.fn() };
+  const transaction = {
+    withTransaction: vi.fn(async (work: () => Promise<void>) => work()),
+    endSession: vi.fn().mockResolvedValue(undefined),
+  };
+  const connection = { startSession: vi.fn().mockResolvedValue(transaction) };
 
   const service = new ConversationService(
     conversationModel as unknown as ConversationModel,
@@ -49,9 +64,20 @@ function build() {
     messageModel as unknown as MessageModel,
     photoModel as unknown as PhotoModel,
     callGateway as unknown as CallGateway,
+    connection as unknown as Connection,
+    messageGateway as unknown as MessageGateway,
   );
 
-  return { service, conversationModel, userModel, messageModel, photoModel, callGateway };
+  return {
+    service,
+    conversationModel,
+    userModel,
+    messageModel,
+    photoModel,
+    callGateway,
+    messageGateway,
+    transaction,
+  };
 }
 
 const ids = (values: unknown[]) => values.map(String);
@@ -212,6 +238,65 @@ describe('ConversationService', () => {
       conversationModel.blockConversation.mockResolvedValue(false);
 
       await expect(service.blockConversation(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('setNickname', () => {
+    const CONVO = '64b7f0c2a1b2c3d4e5f60710';
+    const query = { conversationId: CONVO, user: ADA, value: 'Ace', userId: ME };
+
+    it('sets the nickname and posts a notice from the caller in the same transaction', async () => {
+      const { service, conversationModel, messageModel, transaction } = build();
+
+      await service.setNickname(query);
+
+      expect(conversationModel.setNickname).toHaveBeenCalledWith(
+        { conversationId: CONVO, userId: ADA, value: 'Ace' },
+        transaction,
+      );
+      const [notice, noticeSession] = messageModel.createMessage.mock.calls[0];
+      expect(noticeSession).toBe(transaction);
+      expect(String(notice.conversation)).toBe(CONVO);
+      expect(String(notice.sender)).toBe(ME);
+      expect(notice.notice.type).toBe(MessageNoticeType.NICKNAME);
+      expect(String(notice.notice.user)).toBe(ADA);
+      expect(notice.notice.value).toBe('Ace');
+      expect(transaction.endSession).toHaveBeenCalled();
+    });
+
+    it('sends the notice to everyone else in the conversation and returns it', async () => {
+      const { service, messageModel, messageGateway } = build();
+
+      await expect(service.setNickname(query)).resolves.toEqual({ user: ADA, value: 'Ace', message: NOTICE_PAYLOAD });
+      expect(messageModel.findMessagePayloadById).toHaveBeenCalledWith(NOTICE_ID);
+      expect(messageGateway.emitToUsers).toHaveBeenCalledWith([ADA], 'MESSAGE', NOTICE_PAYLOAD);
+    });
+
+    it('posts no notice when the nickname did not change', async () => {
+      const { service, conversationModel, messageModel, messageGateway } = build();
+      conversationModel.setNickname.mockResolvedValue({ found: true, changed: false });
+
+      await expect(service.setNickname(query)).resolves.toEqual({ user: ADA, value: 'Ace', message: null });
+      expect(messageModel.createMessage).not.toHaveBeenCalled();
+      expect(messageGateway.emitToUsers).not.toHaveBeenCalled();
+    });
+
+    it('refuses someone who is not in the conversation', async () => {
+      const { service, conversationModel, messageModel, transaction } = build();
+      conversationModel.setNickname.mockResolvedValue({ found: false, changed: false });
+
+      await expect(service.setNickname({ ...query, user: BOB })).rejects.toBeInstanceOf(NotFoundException);
+      expect(messageModel.createMessage).not.toHaveBeenCalled();
+      expect(transaction.endSession).toHaveBeenCalled();
+    });
+
+    it('refuses a missing conversation', async () => {
+      const { service, conversationModel, messageGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue(null);
+
+      await expect(service.setNickname(query)).rejects.toBeInstanceOf(NotFoundException);
+      expect(conversationModel.setNickname).not.toHaveBeenCalled();
+      expect(messageGateway.emitToUsers).not.toHaveBeenCalled();
     });
   });
 

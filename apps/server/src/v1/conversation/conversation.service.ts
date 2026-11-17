@@ -5,7 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConversationStatus } from '@repo/enums';
+import { InjectConnection } from '@nestjs/mongoose';
+import { ConversationStatus, MessageNoticeType } from '@repo/enums';
 import {
   ConversationModel,
   MessageModel,
@@ -13,12 +14,14 @@ import {
   UserModel,
 } from '@repo/models';
 import { hasGroupMemberCount } from '@repo/utils';
-import { ClientSession, Types } from 'mongoose';
+import { ClientSession, Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CallGateway } from '../call/call.gateway';
+import { MessageGateway } from '../message/message.gateway';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { GetConversationByIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
+import { SetNicknameDto } from './dto/set-nickname.dto';
 
 @Injectable()
 export class ConversationService {
@@ -28,6 +31,8 @@ export class ConversationService {
     private readonly messageModel: MessageModel,
     private readonly photoModel: PhotoModel,
     private readonly callGateway: CallGateway,
+    @InjectConnection() private readonly connection: Connection,
+    private readonly messageGateway: MessageGateway,
   ) {}
 
   /**
@@ -136,6 +141,69 @@ export class ConversationService {
       conversationId,
       'this conversation was blocked',
     );
+  }
+
+  async setNickname({
+    conversationId,
+    user,
+    value,
+    userId,
+  }: SetNicknameDto & { conversationId: string; userId: string }) {
+    const conversation =
+      await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation)
+      throw new NotFoundException('conversation does not exist');
+
+    const session = await this.connection.startSession();
+    let noticeId: Types.ObjectId | undefined;
+
+    try {
+      await session.withTransaction(async () => {
+        noticeId = undefined;
+        const { found, changed } = await this.conversationModel.setNickname(
+          { conversationId, userId: user, value },
+          session,
+        );
+
+        if (!found)
+          throw new NotFoundException(
+            'user is not a member of this conversation',
+          );
+        if (!changed) return;
+
+        const notice = await this.messageModel.createMessage(
+          {
+            conversation: new Types.ObjectId(conversationId),
+            sender: new Types.ObjectId(userId),
+            notice: {
+              type: MessageNoticeType.NICKNAME,
+              user: new Types.ObjectId(user),
+              value,
+            },
+          },
+          session,
+        );
+        noticeId = notice._id;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (!noticeId) return { user, value, message: null };
+
+    const message = await this.messageModel.findMessagePayloadById(noticeId);
+
+    if (message)
+      this.messageGateway.emitToUsers(
+        conversation.members
+          .map((member) => String(member))
+          .filter((memberId) => memberId !== userId),
+        'MESSAGE',
+        message,
+      );
+
+    return { user, value, message };
   }
 
   async unblockConversation({

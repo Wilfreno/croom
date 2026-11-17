@@ -1,4 +1,13 @@
-import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { IsMember, NotBlocked } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
@@ -11,6 +20,7 @@ import {
 import { BlockConversationDto } from './dto/block-conversation.dto';
 import { GetConversationMediaDto } from './dto/get-media.dto';
 import { GetConversationMessageDto } from './dto/get-message.dto';
+import { SetNicknameDto, SetNicknameParamDto } from './dto/set-nickname.dto';
 
 @Controller({ path: 'conversation', version: '1' })
 export class ConversationController {
@@ -50,6 +60,22 @@ export class ConversationController {
   @Get('/:conversationId/media')
   getConversationMedia(@Param() { conversationId }: GetConversationMediaDto) {
     return this.conversationService.getConversationMedia(conversationId);
+  }
+
+  @NotBlocked({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Patch('/:conversationId/nicknames')
+  setNickname(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId }: SetNicknameParamDto,
+    @Body() { user, value }: SetNicknameDto,
+  ) {
+    return this.conversationService.setNickname({
+      conversationId,
+      user,
+      value,
+      userId: currentUser.id,
+    });
   }
 
   @IsMember({ param: 'conversationId' })

@@ -4,6 +4,7 @@ import {
   Photo as PhotoType,
   User as UserType,
 } from '@repo/schemas';
+import type { MessageNoticeType } from '@repo/enums';
 import { AuthenticatedUser } from './auth.types';
 
 export interface UserSession extends Omit<AuthenticatedUser, 'photo'> {
@@ -29,8 +30,15 @@ export interface Conversation extends Omit<ConversationType, 'members' | 'photo'
   messages: (Omit<Message, 'seenBy'> & { seenBy: { id: string }[] })[];
 }
 
-export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation'> {
+export interface MessageNotice {
+  type: MessageNoticeType;
+  user: string;
+  value: string;
+}
+
+export interface Message extends Omit<MessageType, 'sender' | 'photos' | 'conversation' | 'notice'> {
   id: string;
+  notice?: MessageNotice | null;
   conversation: string; // the conversation's id; message lists don't include the full conversation
   sender: User;
   photos: Photo[];

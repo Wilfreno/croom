@@ -15,6 +15,7 @@ function build() {
     getConversationMedia: vi.fn().mockResolvedValue(['media']),
     blockConversation: vi.fn().mockResolvedValue(undefined),
     unblockConversation: vi.fn().mockResolvedValue(undefined),
+    setNickname: vi.fn().mockResolvedValue({ user: 'ada', value: 'Ace' }),
   };
   const controller = new ConversationController(conversationService as unknown as ConversationService);
   return { controller, conversationService };
@@ -55,6 +56,21 @@ describe('ConversationController', () => {
     expect(conversationService.getConversationMedia).toHaveBeenCalledWith('c1');
   });
 
+  it('sets a nickname on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.setNickname(USER, { conversationId: 'c1' }, { user: 'ada', value: 'Ace' })).resolves.toEqual({
+      user: 'ada',
+      value: 'Ace',
+    });
+    expect(conversationService.setNickname).toHaveBeenCalledWith({
+      conversationId: 'c1',
+      user: 'ada',
+      value: 'Ace',
+      userId: 'me',
+    });
+  });
+
   it('blocks a conversation on behalf of the caller', async () => {
     const { controller, conversationService } = build();
 
@@ -81,8 +97,8 @@ describe('ConversationController', () => {
       expect(isBlockGuarded(name)).toBe(false);
     });
 
-    it('is still kept out of the shared media', () => {
-      expect(isBlockGuarded('getConversationMedia')).toBe(true);
+    it.each(['getConversationMedia', 'setNickname'] as const)('is still kept out of %s', (name) => {
+      expect(isBlockGuarded(name)).toBe(true);
     });
 
     it.each(['blockConversation', 'unblockConversation'] as const)(

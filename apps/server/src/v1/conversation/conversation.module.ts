@@ -12,12 +12,14 @@ import {
   UserSchema,
 } from '@repo/schemas';
 import { CallModule } from '../call/call.module';
+import { MessageGatewayModule } from '../message/message-gateway.module';
 import { ConversationService } from './conversation.service';
 import { ConversationController } from './conversation.controller';
 
 @Module({
   imports: [
     CallModule,
+    MessageGatewayModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },

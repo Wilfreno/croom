@@ -16,15 +16,12 @@ import {
 } from '@repo/guards';
 import { MessageService } from './message.service';
 import { MessageController } from './message.controller';
-import { MessageGateway } from './message.gateway';
-import { AuthModule } from '../auth/auth.module';
-import { UserModule } from '../user/user.module';
+import { MessageGatewayModule } from './message-gateway.module';
 import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
   imports: [
-    AuthModule,
-    UserModule,
+    MessageGatewayModule,
     ConversationModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
@@ -35,7 +32,6 @@ import { ConversationModule } from '../conversation/conversation.module';
   controllers: [MessageController],
   providers: [
     MessageService,
-    MessageGateway,
     ConversationModel,
     MessageModel,
     PhotoModel,
