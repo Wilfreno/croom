@@ -45,14 +45,16 @@ export function getGroupAvatarMembers(conversation: Pick<Conversation, "members"
   return { shown, remainingCount: Math.max(others.length - 1, 0) };
 }
 
+export function getMemberNickname(conversation: Pick<Conversation, "nicknames"> | undefined, userId: string) {
+  return conversation?.nicknames.find((nickname) => nickname.user === userId)?.value || undefined;
+}
+
 export function getConversationName(conversation: Conversation, currentUserId?: string) {
   if (conversation.name) return conversation.name;
 
   const otherMemberNames = conversation.members
     .filter((member) => member.id !== currentUserId)
-    .map(
-      (member) => conversation.nicknames.find((nickname) => nickname.user === member.id)?.value || member.displayName,
-    );
+    .map((member) => getMemberNickname(conversation, member.id) || member.displayName);
 
   if (conversation.isGroupChat && otherMemberNames.length === 0) return "Only you";
   if (conversation.isGroupChat && otherMemberNames.length === 1) return `You and ${otherMemberNames[0]}`;
@@ -216,6 +218,10 @@ export function getTileSize(tileCount: number) {
 
 export function peopleLabel(count: number) {
   return `${count} ${count === 1 ? "person" : "people"}`;
+}
+
+export function unreadMessagesLabel(count: number) {
+  return `${count} unread ${count === 1 ? "message" : "messages"}`;
 }
 
 export function othersLabel(count: number) {

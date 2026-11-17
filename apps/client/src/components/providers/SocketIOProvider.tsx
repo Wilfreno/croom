@@ -44,7 +44,10 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     if (message.notice)
       setCachedNicknames(queryClient, { conversationId, userId: session.user?.id }, () => message.conversation.nicknames);
 
-    if (pathname.startsWith('/conversation/' + conversationId)) {
+    const isViewingConversation =
+      pathname.startsWith('/conversation/' + conversationId) || pathname.startsWith('/call/' + conversationId);
+
+    if (isViewingConversation) {
       const newMessage: Message = { ...message, conversation: conversationId };
 
       queryClient.setQueryData<MessagePages>(

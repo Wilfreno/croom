@@ -1,6 +1,8 @@
 import { mockStream, mockTrack } from '@/__tests__/mocks/mock-media';
 import { mockSession } from '@/__tests__/mocks/mock-entities';
 import CallPage from '@/app/(call)/call/[id]/page';
+import ChatButton from '@/components/page/call/ChatButton';
+import ChatPanel from '@/components/page/call/ChatPanel';
 import Controls from '@/components/page/call/Controls';
 import IncomingCallToast from '@/components/page/call/IncomingCallToast';
 import ParticipantsButton from '@/components/page/call/ParticipantsButton';
@@ -10,12 +12,12 @@ import CurrentUserCam from '@/components/page/call/camera/CurrentUserCam';
 import OpenCamera from '@/components/page/call/camera/OpenCamera';
 import SelectCamera from '@/components/page/call/camera/SelectCamera';
 import SelectMicrophone from '@/components/page/call/microphone/SelectMicrophone';
-import ParticipantsPanelProvider from '@/components/providers/ParticipantsPanelProvider';
+import CallSidePanelProvider from '@/components/providers/CallSidePanelProvider';
 import PinnedParticipantsProvider from '@/components/providers/PinnedParticipantsProvider';
 import type { CallContextType, CallParticipant, LocalMediaContextType } from '@/types/call.types';
 import { CALL_MAX_VISIBLE_TILES, CALL_PINNED_SIDE_MAX_TILES } from '@repo/constants';
-import type { CallMember, UserSession } from '@repo/types';
-import { render, screen, within } from '@testing-library/react';
+import type { CallMember, Conversation, MessagePayload, UserSession } from '@repo/types';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,6 +64,33 @@ vi.mock('@/components/hooks/useCallParticipants', () => ({
   }),
 }));
 vi.mock('sonner', () => ({ toast: { dismiss: vi.fn() } }));
+vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'c1' }) }));
+vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => socket }));
+vi.mock('@/components/hooks/queries/useConversation', () => ({ default: () => ({ data: conversation }) }));
+vi.mock('@/components/page/main/conversation/ConversationMessages', () => ({
+  default: () => <div data-testid="conversation-messages" />,
+}));
+vi.mock('@/components/page/main/conversation/ConversationMessageInput', () => ({
+  default: () => <div data-testid="conversation-message-input" />,
+}));
+
+let conversation: Partial<Conversation> | undefined;
+let messageHandlers = new Set<(message: MessagePayload) => void>();
+const socket = {
+  on: (_event: string, handler: (message: MessagePayload) => void) => messageHandlers.add(handler),
+  off: (_event: string, handler: (message: MessagePayload) => void) => messageHandlers.delete(handler),
+};
+
+function receiveMessage({
+  conversationId = 'c1',
+  senderId = 'someone-else',
+  notice = null,
+}: { conversationId?: string; senderId?: string; notice?: MessagePayload['notice'] } = {}) {
+  const message = { conversation: { id: conversationId }, sender: { id: senderId }, notice } as MessagePayload;
+  act(() => {
+    for (const handler of messageHandlers) handler(message);
+  });
+}
 
 beforeAll(() => {
   // jsdom has no WebRTC; the tiles only wrap tracks in a stream for <video>/<audio>.
@@ -91,12 +120,12 @@ function participant(userId: string, overrides: Partial<CallParticipant> = {}): 
 
 function renderWithParticipantsPanel(ui: React.ReactNode) {
   return render(
-    <ParticipantsPanelProvider>
+    <CallSidePanelProvider>
       <PinnedParticipantsProvider>
         {ui}
         <ParticipantsPanel />
       </PinnedParticipantsProvider>
-    </ParticipantsPanelProvider>,
+    </CallSidePanelProvider>,
   );
 }
 
@@ -134,6 +163,7 @@ beforeEach(() => {
     toggleMic: vi.fn(),
   };
   sessionUser = mockSession({ displayName: 'Me' });
+  conversation = undefined;
   participantsState = { status: 'connected', error: null, participants: [], members: new Map() };
   isSelfInGrid = false;
 });
@@ -296,11 +326,28 @@ describe('ParticipantsButton and ParticipantsPanel', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
     await userEvent.click(screen.getByRole('button', { name: 'Hide 1 person' }));
-    expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument());
 
     await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
     await userEvent.click(screen.getByRole('button', { name: 'Close people in the call' }));
-    expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument());
+  });
+
+  it('shows nicknames under the names of the people who have one', async () => {
+    connectedWith(2);
+    conversation = {
+      id: 'c1',
+      nicknames: [
+        { user: sessionUser?.id ?? '', value: 'Captain' },
+        { user: 'u2', value: 'Shorty' },
+      ],
+    } as Partial<Conversation>;
+    renderWithParticipantsPanel(<ParticipantsButton />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show 3 people' }));
+
+    const items = within(screen.getByRole('complementary', { name: 'People in the call' })).getAllByRole('listitem');
+    expect(items.map((item) => item.textContent)).toEqual(['MEMe (You)Captain', 'P1Person 1', 'P2Person 2Shorty']);
   });
 
   it('names someone who is not a known member "Unknown"', async () => {
@@ -322,7 +369,114 @@ describe('ParticipantsButton and ParticipantsPanel', () => {
   });
 });
 
+describe('ChatButton and ChatPanel', () => {
+  function renderWithSidePanels() {
+    return render(
+      <CallSidePanelProvider>
+        <ChatButton />
+        <ParticipantsButton />
+        <ParticipantsPanel />
+        <ChatPanel />
+      </CallSidePanelProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    messageHandlers = new Set();
+    conversation = { id: 'c1', name: 'Weekend trip', members: [], nicknames: [] };
+  });
+
+  it("titles the chat with the conversation's name", async () => {
+    renderWithSidePanels();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+
+    expect(within(screen.getByRole('complementary', { name: 'Chat' })).getByRole('heading')).toHaveTextContent(
+      'Weekend trip',
+    );
+  });
+
+  it('titles the chat "Chat" while the conversation is loading', async () => {
+    conversation = undefined;
+    renderWithSidePanels();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+
+    expect(within(screen.getByRole('complementary', { name: 'Chat' })).getByRole('heading')).toHaveTextContent('Chat');
+  });
+
+  it('opens and closes the chat from the button or its close button', async () => {
+    renderWithSidePanels();
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Chat' })).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+    const panel = screen.getByRole('complementary', { name: 'Chat' });
+    expect(within(panel).getByTestId('conversation-messages')).toBeInTheDocument();
+    expect(within(panel).getByTestId('conversation-message-input')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide chat' })).toHaveAttribute('aria-expanded', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hide chat' }));
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Chat' })).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close chat' }));
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Chat' })).not.toBeInTheDocument());
+  });
+
+  it('shows one side panel at a time', async () => {
+    renderWithSidePanels();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat' }));
+    expect(screen.getByRole('complementary', { name: 'Chat' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
+    expect(screen.getByRole('complementary', { name: 'People in the call' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Chat' })).not.toBeInTheDocument());
+  });
+
+  it('counts messages from others in this call while the chat is closed', async () => {
+    renderWithSidePanels();
+
+    receiveMessage();
+    receiveMessage();
+    receiveMessage({ senderId: sessionUser?.id });
+    receiveMessage({ conversationId: 'other' });
+    receiveMessage({ notice: { user: 'someone-else' } as MessagePayload['notice'] });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show chat, 2 unread messages' }));
+    receiveMessage();
+    expect(screen.getByRole('button', { name: 'Hide chat' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hide chat' }));
+    expect(screen.getByRole('button', { name: 'Show chat' })).toBeInTheDocument();
+    receiveMessage();
+    expect(screen.getByRole('button', { name: 'Show chat, 1 unread message' })).toHaveTextContent('1');
+  });
+});
+
 describe('RemoteParticipants', () => {
+  it('adds nicknames in parentheses to the tile names', () => {
+    connectedWith(2);
+    isSelfInGrid = true;
+    conversation = {
+      id: 'c1',
+      nicknames: [
+        { user: sessionUser?.id ?? '', value: 'Captain' },
+        { user: 'u1', value: 'Shorty' },
+      ],
+    } as Partial<Conversation>;
+
+    renderWithParticipantsPanel(<RemoteParticipants />);
+
+    expect(screen.getByText('You').parentElement).toHaveTextContent(/^You\(Captain\)$/);
+    expect(screen.getByText('Person 1').parentElement).toHaveTextContent(/^Person 1\(Shorty\)$/);
+    expect(screen.getByText('Person 2').parentElement).toHaveTextContent(/^Person 2$/);
+    expect(screen.getByText('Shorty')).toHaveClass('truncate');
+    expect(screen.getByText('Person 1')).toHaveClass('truncate');
+  });
+
   it('says it is joining while connecting', () => {
     participantsState.status = 'connecting';
 
@@ -586,5 +740,6 @@ describe('CallPage', () => {
     expect(screen.getByTestId('local-media-provider')).toContainElement(provider);
     expect(within(provider).getByRole('button', { name: 'Leave call' })).toBeInTheDocument();
     expect(within(provider).getByRole('button', { name: 'Show 1 person' })).toBeInTheDocument();
+    expect(within(provider).getByRole('button', { name: 'Show chat' })).toBeInTheDocument();
   });
 });

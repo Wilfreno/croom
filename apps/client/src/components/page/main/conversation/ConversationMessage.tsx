@@ -191,7 +191,7 @@ export default function ConversationMessage({
   }, [markSeen, isLastMessage, message.pending, message.failed]);
 
   return (
-    <span className="grid gap-3">
+    <span className="grid grid-cols-[minmax(0,1fr)] gap-3">
       {showTimeInterval && (
         <div key={message.id + 'time_interval'} className="mt-6 text-center text-xs text-muted-foreground font-medium">
           {timeIntervalText}
@@ -212,7 +212,7 @@ export default function ConversationMessage({
         ref={divRef}
         className={cn(
           'gap-2 w-full grid',
-          message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
+          message.sender.id === session.user?.id ? 'ml-auto grid-cols-[minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)] items-end',
         )}
       >
         {message.sender.id !== session.user?.id && (
@@ -223,7 +223,7 @@ export default function ConversationMessage({
         )}
         <div
           className={cn(
-            'grid transition-opacity duration-300',
+            'grid min-w-0 grid-cols-[minmax(0,1fr)] transition-opacity duration-300',
             (message.pending || message.failed) && 'opacity-50',
             message.failed && onRetry && 'cursor-pointer',
           )}

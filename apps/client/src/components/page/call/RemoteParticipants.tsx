@@ -1,7 +1,8 @@
 'use client';
+import useCallMemberNickname from '@/components/hooks/useCallMemberNickname';
 import useCallParticipants, { useIsSelfInGrid, useSelfParticipant } from '@/components/hooks/useCallParticipants';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useParticipantsPanel } from '@/components/providers/ParticipantsPanelProvider';
+import { useCallSidePanel } from '@/components/providers/CallSidePanelProvider';
 import { usePinnedParticipants } from '@/components/providers/PinnedParticipantsProvider';
 import { cn, getTileSize, othersLabel } from '@/lib/utils';
 import { CallParticipant } from '@/types/call.types';
@@ -154,13 +155,13 @@ function PinnedLayout({
 }
 
 function RemainingCountTile({ count }: { count: number }) {
-  const { setIsOpen } = useParticipantsPanel();
+  const { setOpenPanel } = useCallSidePanel();
 
   return (
     <button
       type="button"
       aria-label={`Show ${othersLabel(count)} in the call`}
-      onClick={() => setIsOpen(true)}
+      onClick={() => setOpenPanel('participants')}
       className="grid h-full w-full place-items-center rounded-lg bg-slate-800 text-lg font-semibold text-white transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       +{count}
@@ -185,7 +186,7 @@ function OverflowTile({
   hiddenParticipants: CallParticipant[];
   members: Map<string, CallMember>;
 }) {
-  const { setIsOpen } = useParticipantsPanel();
+  const { setOpenPanel } = useCallSidePanel();
   const hiddenCount = hiddenParticipants.length;
   const countLabel = othersLabel(hiddenCount);
 
@@ -193,7 +194,7 @@ function OverflowTile({
     <button
       type="button"
       aria-label={`Show ${countLabel} in the call`}
-      onClick={() => setIsOpen(true)}
+      onClick={() => setOpenPanel('participants')}
       className="grid h-full w-full place-content-center justify-items-center gap-3 rounded-lg bg-slate-800 transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex -space-x-4">
@@ -226,6 +227,8 @@ function ParticipantTile({
   isCompact?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const nickname = useCallMemberNickname(participant.userId);
+  const name = isSelf ? 'You' : (member?.displayName ?? 'Unknown');
   const showVideo = Boolean(participant.videoTrack) && !participant.isVideoPaused;
 
   useEffect(() => {
@@ -262,7 +265,12 @@ function ParticipantTile({
       >
         {isPinned && <Pin className="h-4 w-4 shrink-0" aria-label="Pinned" />}
         {participant.isAudioPaused && <MicOff className="h-4 w-4 shrink-0" aria-label="Muted" />}
-        <span className="truncate">{isSelf ? 'You' : (member?.displayName ?? 'Unknown')}</span>
+        <span className="truncate">{name}</span>
+        {nickname && (
+          <span className="flex min-w-0">
+            (<span className="truncate">{nickname}</span>)
+          </span>
+        )}
       </div>
     </div>
   );

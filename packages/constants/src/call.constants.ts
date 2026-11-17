@@ -24,3 +24,5 @@ export const CALL_MEDIA_PREFERENCES_STORAGE_KEY = 'call:media-preferences';
 export const CALL_DEFAULT_MEDIA_PREFERENCES = { isCameraOn: false, isMicOn: true };
 // With someone pinned, the side column shows at most this many tiles; past it, the last tile counts the rest
 export const CALL_PINNED_SIDE_MAX_TILES = 5;
+export const CALL_SIDE_PANEL_DOCKED_MEDIA_QUERY = '(min-width: 640px)';
+export const CALL_SIDE_PANEL_TRANSITION_SECONDS = 0.25;

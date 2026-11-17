@@ -57,9 +57,12 @@ export type CallContextType = {
   leave: () => void;
 };
 
-export type ParticipantsPanelContextType = {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+export type CallSidePanel = 'participants' | 'chat';
+
+export type CallSidePanelContextType = {
+  openPanel: CallSidePanel | null;
+  setOpenPanel: (panel: CallSidePanel | null) => void;
+  togglePanel: (panel: CallSidePanel) => void;
 };
 
 export type PinnedParticipantsContextType = {
@@ -74,6 +77,7 @@ export type ParticipantListItem = {
   peerId?: string;
   userId: string;
   displayName: string;
+  nickname?: string;
   photoUrl: string | null;
   isMuted: boolean;
   isCameraOff: boolean;

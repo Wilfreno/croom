@@ -166,7 +166,7 @@ describe('ConversationMessage', () => {
     const { container } = renderWithQuery(<ConversationMessage message={message({ text: 'theirs' })} isLastMessage={false} />);
 
     expect(screen.getByText('theirs').parentElement).toHaveClass('bg-secondary', 'justify-self-start');
-    expect(container.querySelector('.grid-cols-\\[auto_1fr\\]')).toBeInTheDocument();
+    expect(container.querySelector('.grid-cols-\\[auto_minmax\\(0\\,1fr\\)\\]')).toBeInTheDocument();
   });
 
   it("shows the sender's initials when they have no photo", () => {
