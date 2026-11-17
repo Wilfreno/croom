@@ -57,9 +57,21 @@ export type CallContextType = {
   leave: () => void;
 };
 
+export type ParticipantsPanelContextType = {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+};
+
+export type PinnedParticipantsContextType = {
+  pinnedPeerId: string | null;
+  isPinned: (peerId: string) => boolean;
+  togglePin: (peerId: string) => void;
+};
+
 /** One row in the participants side panel. */
 export type ParticipantListItem = {
   key: string;
+  peerId?: string;
   userId: string;
   displayName: string;
   photoUrl: string | null;

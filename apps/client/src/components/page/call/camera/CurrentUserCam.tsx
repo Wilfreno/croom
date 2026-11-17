@@ -58,7 +58,7 @@ export default function CurrentUserCam() {
         onPointerDown={(event) => dragControls.start(event)}
         style={{ width: tileWidth }}
         className={cn(
-          'pointer-events-auto absolute right-4 bottom-4 aspect-video overflow-hidden rounded-lg',
+          'pointer-events-auto absolute right-4 bottom-40 sm:bottom-28 aspect-video overflow-hidden rounded-lg',
           'border border-muted bg-slate-800 shadow-lg',
           'cursor-grab touch-none select-none active:cursor-grabbing',
         )}

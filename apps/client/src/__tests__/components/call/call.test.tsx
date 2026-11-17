@@ -4,14 +4,16 @@ import CallPage from '@/app/(call)/call/[id]/page';
 import Controls from '@/components/page/call/Controls';
 import IncomingCallToast from '@/components/page/call/IncomingCallToast';
 import ParticipantsButton from '@/components/page/call/ParticipantsButton';
-import ParticipantsSheet from '@/components/page/call/ParticipantsSheet';
+import ParticipantsPanel from '@/components/page/call/ParticipantsPanel';
 import RemoteParticipants from '@/components/page/call/RemoteParticipants';
 import CurrentUserCam from '@/components/page/call/camera/CurrentUserCam';
 import OpenCamera from '@/components/page/call/camera/OpenCamera';
 import SelectCamera from '@/components/page/call/camera/SelectCamera';
 import SelectMicrophone from '@/components/page/call/microphone/SelectMicrophone';
+import ParticipantsPanelProvider from '@/components/providers/ParticipantsPanelProvider';
+import PinnedParticipantsProvider from '@/components/providers/PinnedParticipantsProvider';
 import type { CallContextType, CallParticipant, LocalMediaContextType } from '@/types/call.types';
-import { CALL_MAX_VISIBLE_TILES } from '@repo/constants';
+import { CALL_MAX_VISIBLE_TILES, CALL_PINNED_SIDE_MAX_TILES } from '@repo/constants';
 import type { CallMember, UserSession } from '@repo/types';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -87,6 +89,17 @@ function participant(userId: string, overrides: Partial<CallParticipant> = {}): 
   };
 }
 
+function renderWithParticipantsPanel(ui: React.ReactNode) {
+  return render(
+    <ParticipantsPanelProvider>
+      <PinnedParticipantsProvider>
+        {ui}
+        <ParticipantsPanel />
+      </PinnedParticipantsProvider>
+    </ParticipantsPanelProvider>,
+  );
+}
+
 /** N connected participants named "Person 1".."Person N". */
 function connectedWith(count: number) {
   const participants = Array.from({ length: count }, (_, i) => participant(`u${i + 1}`));
@@ -147,13 +160,12 @@ describe('Controls', () => {
     expect(call.leave).toHaveBeenCalledOnce();
   });
 
-  it('includes the microphone and camera controls and the participants button', () => {
+  it('includes the microphone and camera controls', () => {
     render(<Controls />);
 
     expect(screen.getByRole('button', { name: 'Choose microphone' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Turn camera off' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose camera' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show 1 person' })).toBeInTheDocument();
   });
 });
 
@@ -252,65 +264,61 @@ describe('IncomingCallToast', () => {
   });
 });
 
-describe('ParticipantsSheet', () => {
-  it('opens from its trigger and lists everyone with their state', async () => {
-    render(
-      <ParticipantsSheet
-        title="People"
-        description="2 people"
-        trigger={<button>open</button>}
-        items={[
-          { key: 'you', userId: 'me', displayName: 'Me', photoUrl: null, isMuted: true, isCameraOff: false, isYou: true },
-          { key: 'b', userId: 'bob', displayName: 'Bob', photoUrl: null, isMuted: false, isCameraOff: true },
-        ]}
-      />,
-    );
+describe('ParticipantsButton and ParticipantsPanel', () => {
+  it('shows nothing until the button is pressed', () => {
+    renderWithParticipantsPanel(<ParticipantsButton />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'open' }));
-
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('People')).toBeInTheDocument();
-    expect(within(dialog).getByText('2 people')).toBeInTheDocument();
-    const [you, bob] = within(dialog).getAllByRole('listitem');
-    expect(you).toHaveTextContent('Me (You)');
-    expect(within(you).getByLabelText('Muted')).toBeInTheDocument();
-    expect(within(you).queryByLabelText('Camera off')).not.toBeInTheDocument();
-    expect(within(bob).getByLabelText('Camera off')).toBeInTheDocument();
-    expect(within(bob).queryByLabelText('Muted')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show 1 person' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument();
   });
-});
 
-describe('ParticipantsButton', () => {
   it('counts you plus everyone else and lists you first', async () => {
     connectedWith(2);
     participantsState.participants[1] = { ...participantsState.participants[1], videoTrack: null, isAudioPaused: true };
     localMedia.isMicOn = false;
+    renderWithParticipantsPanel(<ParticipantsButton />);
 
-    render(<ParticipantsButton />);
     await userEvent.click(screen.getByRole('button', { name: 'Show 3 people' }));
 
-    const items = within(await screen.findByRole('dialog')).getAllByRole('listitem');
+    const panel = screen.getByRole('complementary', { name: 'People in the call' });
+    expect(within(panel).getByText('3 people')).toBeInTheDocument();
+    const items = within(panel).getAllByRole('listitem');
     expect(items.map((item) => item.textContent)).toEqual(['MEMe (You)', 'P1Person 1', 'P2Person 2']);
     expect(within(items[0]).getByLabelText('Muted')).toBeInTheDocument();
+    expect(within(items[0]).queryByLabelText('Camera off')).not.toBeInTheDocument();
+    expect(within(items[1]).queryByLabelText('Muted')).not.toBeInTheDocument();
     expect(within(items[2]).getByLabelText('Camera off')).toBeInTheDocument();
     expect(within(items[2]).getByLabelText('Muted')).toBeInTheDocument();
   });
 
-  it('names someone who is not a known member "Unknown"', async () => {
-    participantsState.participants = [participant('stranger')];
+  it('hides the panel from the button or its close button', async () => {
+    renderWithParticipantsPanel(<ParticipantsButton />);
 
-    render(<ParticipantsButton />);
-    await userEvent.click(screen.getByRole('button', { name: 'Show 2 people' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide 1 person' }));
+    expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument();
 
-    expect(within(await screen.findByRole('dialog')).getByText('Unknown')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close people in the call' }));
+    expect(screen.queryByRole('complementary', { name: 'People in the call' })).not.toBeInTheDocument();
   });
 
-  it('falls back to "You" without a session', () => {
+  it('names someone who is not a known member "Unknown"', async () => {
+    participantsState.participants = [participant('stranger')];
+    renderWithParticipantsPanel(<ParticipantsButton />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show 2 people' }));
+
+    expect(within(screen.getByRole('complementary')).getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('falls back to "You" without a session', async () => {
     sessionUser = null;
+    renderWithParticipantsPanel(<ParticipantsButton />);
 
-    render(<ParticipantsButton />);
+    await userEvent.click(screen.getByRole('button', { name: 'Show 1 person' }));
 
-    expect(screen.getByRole('button', { name: 'Show 1 person' })).toBeInTheDocument();
+    expect(within(screen.getByRole('complementary')).getByRole('listitem')).toHaveTextContent('You (You)');
   });
 });
 
@@ -318,7 +326,7 @@ describe('RemoteParticipants', () => {
   it('says it is joining while connecting', () => {
     participantsState.status = 'connecting';
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('Joining the call…')).toBeInTheDocument();
   });
@@ -326,7 +334,7 @@ describe('RemoteParticipants', () => {
   it('shows the error when the call failed', () => {
     participantsState = { ...participantsState, status: 'error', error: 'conversation not found' };
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('conversation not found')).toBeInTheDocument();
   });
@@ -334,13 +342,13 @@ describe('RemoteParticipants', () => {
   it('shows a generic error when none was given', () => {
     participantsState = { ...participantsState, status: 'error', error: null };
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('Could not join the call')).toBeInTheDocument();
   });
 
   it('waits for others when nobody else is there', () => {
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('Waiting for others to join…')).toBeInTheDocument();
   });
@@ -349,7 +357,7 @@ describe('RemoteParticipants', () => {
     connectedWith(2);
     participantsState.participants[0].isAudioPaused = true;
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('Person 1')).toBeInTheDocument();
     expect(screen.getByText('Person 2')).toBeInTheDocument();
@@ -360,7 +368,7 @@ describe('RemoteParticipants', () => {
     connectedWith(1);
     participantsState.participants[0].isVideoPaused = true;
 
-    const { container } = render(<RemoteParticipants />);
+    const { container } = renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(container.querySelector('video')).toHaveClass('hidden');
   });
@@ -368,7 +376,7 @@ describe('RemoteParticipants', () => {
   it('plays everyone’s audio, kept apart from the tiles', () => {
     connectedWith(3);
 
-    const { container } = render(<RemoteParticipants />);
+    const { container } = renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(container.querySelectorAll('audio')).toHaveLength(3);
   });
@@ -377,7 +385,7 @@ describe('RemoteParticipants', () => {
     connectedWith(2);
     isSelfInGrid = true;
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     expect(screen.getByText('You')).toBeInTheDocument();
   });
@@ -386,7 +394,7 @@ describe('RemoteParticipants', () => {
     const count = CALL_MAX_VISIBLE_TILES + 3;
     connectedWith(count);
 
-    const { container } = render(<RemoteParticipants />);
+    const { container } = renderWithParticipantsPanel(<RemoteParticipants />);
 
     // The last visible tile becomes the overflow tile, so 4 people are folded into it.
     const overflow = screen.getByRole('button', { name: 'Show 4 others in the call' });
@@ -394,19 +402,134 @@ describe('RemoteParticipants', () => {
     expect(container.querySelectorAll('audio')).toHaveLength(count);
 
     await userEvent.click(overflow);
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getAllByRole('listitem')).toHaveLength(4);
-    expect(within(dialog).getByText('4 others without a tile on screen')).toBeInTheDocument();
+    const panel = screen.getByRole('complementary', { name: 'People in the call' });
+    expect(within(panel).getAllByRole('listitem')).toHaveLength(count + 1);
   });
 
   it('leaves room for your own tile when counting the overflow', () => {
     connectedWith(CALL_MAX_VISIBLE_TILES);
     isSelfInGrid = true;
 
-    render(<RemoteParticipants />);
+    renderWithParticipantsPanel(<RemoteParticipants />);
 
     // 12 tiles: you + 10 people + one tile for the remaining 2.
     expect(screen.getByRole('button', { name: 'Show 2 others in the call' })).toBeInTheDocument();
+  });
+});
+
+describe('Pinning participants', () => {
+  async function openPanel() {
+    await userEvent.click(screen.getByRole('button', { name: /^Show \d+ (people|person)$/ }));
+    return screen.getByRole('complementary', { name: 'People in the call' });
+  }
+
+  it('offers a pin button for everyone but you', async () => {
+    connectedWith(2);
+    renderWithParticipantsPanel(<ParticipantsButton />);
+
+    const panel = await openPanel();
+
+    const [you, first, second] = within(panel).getAllByRole('listitem');
+    expect(within(you).queryByRole('button', { name: /Pin/ })).not.toBeInTheDocument();
+    expect(within(first).getByRole('button', { name: 'Pin Person 1' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(second).getByRole('button', { name: 'Pin Person 2' })).toBeInTheDocument();
+  });
+
+  it('moves pinned people to the main area and everyone else to a strip, until unpinned', async () => {
+    connectedWith(3);
+    isSelfInGrid = true;
+    renderWithParticipantsPanel(
+      <>
+        <ParticipantsButton />
+        <RemoteParticipants />
+      </>,
+    );
+    const panel = await openPanel();
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Pin Person 2' }));
+
+    expect(within(panel).getByRole('button', { name: 'Unpin Person 2' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Pinned').parentElement).toHaveTextContent('Person 2');
+    const strip = screen.getByRole('list', { name: 'Other people in the call' });
+    expect(within(strip).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'MEYou',
+      'Person 1',
+      'Person 3',
+    ]);
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Unpin Person 2' }));
+
+    expect(screen.queryByLabelText('Pinned')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Other people in the call' })).not.toBeInTheDocument();
+  });
+
+  it('pins one person at a time, the new pin replacing the old one', async () => {
+    connectedWith(3);
+    renderWithParticipantsPanel(
+      <>
+        <ParticipantsButton />
+        <RemoteParticipants />
+      </>,
+    );
+    const panel = await openPanel();
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Pin Person 1' }));
+    await userEvent.click(within(panel).getByRole('button', { name: 'Pin Person 3' }));
+
+    expect(within(panel).getByRole('button', { name: 'Pin Person 1' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(panel).getByRole('button', { name: 'Unpin Person 3' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByLabelText('Pinned')).toHaveLength(1);
+    expect(screen.getByLabelText('Pinned').parentElement).toHaveTextContent('Person 3');
+    const strip = screen.getByRole('list', { name: 'Other people in the call' });
+    expect(within(strip).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Person 1', 'Person 2']);
+  });
+});
+
+describe('Pinned layout side column', () => {
+  function renderCallWithPanel() {
+    return renderWithParticipantsPanel(
+      <>
+        <ParticipantsButton />
+        <RemoteParticipants />
+      </>,
+    );
+  }
+
+  async function pin(name: string) {
+    await userEvent.click(screen.getByRole('button', { name: /^Show \d+ (people|person)$/ }));
+    await userEvent.click(screen.getByRole('button', { name: `Pin ${name}` }));
+  }
+
+  it(`shows everyone when they fit in ${CALL_PINNED_SIDE_MAX_TILES} tiles`, async () => {
+    connectedWith(CALL_PINNED_SIDE_MAX_TILES);
+    isSelfInGrid = true;
+    renderCallWithPanel();
+
+    await pin('Person 1');
+
+    const side = screen.getByRole('list', { name: 'Other people in the call' });
+    expect(within(side).getAllByRole('listitem')).toHaveLength(CALL_PINNED_SIDE_MAX_TILES);
+    expect(within(side).queryByRole('button', { name: /others? in the call/ })).not.toBeInTheDocument();
+  });
+
+  it('turns the last tile into a count of everyone left over, which opens the panel', async () => {
+    connectedWith(CALL_PINNED_SIDE_MAX_TILES + 3);
+    isSelfInGrid = true;
+    renderCallWithPanel();
+
+    await pin('Person 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Close people in the call' }));
+
+    const side = screen.getByRole('list', { name: 'Other people in the call' });
+    const tiles = within(side).getAllByRole('listitem');
+    expect(tiles).toHaveLength(CALL_PINNED_SIDE_MAX_TILES);
+    expect(tiles[0]).toHaveTextContent('You');
+    const remaining = within(side).getByRole('button', { name: 'Show 4 others in the call' });
+    expect(remaining).toHaveTextContent('+4');
+
+    await userEvent.click(remaining);
+
+    expect(screen.getByRole('complementary', { name: 'People in the call' })).toBeInTheDocument();
   });
 });
 
@@ -462,5 +585,6 @@ describe('CallPage', () => {
     expect(provider).toHaveAttribute('data-conversation', 'c1');
     expect(screen.getByTestId('local-media-provider')).toContainElement(provider);
     expect(within(provider).getByRole('button', { name: 'Leave call' })).toBeInTheDocument();
+    expect(within(provider).getByRole('button', { name: 'Show 1 person' })).toBeInTheDocument();
   });
 });

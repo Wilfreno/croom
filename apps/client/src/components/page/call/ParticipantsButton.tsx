@@ -1,55 +1,29 @@
 'use client';
 import useCallParticipants from '@/components/hooks/useCallParticipants';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
+import { useParticipantsPanel } from '@/components/providers/ParticipantsPanelProvider';
 import { Button } from '@/components/ui/button';
-import { Users } from 'lucide-react';
-import { ParticipantListItem } from '@/types/call.types';
 import { peopleLabel } from '@/lib/utils';
-import ParticipantsSheet from './ParticipantsSheet';
+import { Users } from 'lucide-react';
 
-/** Controls button that opens a list of everyone in the call, you first. */
 export default function ParticipantsButton() {
-  const { session } = useAuth();
-  const { isCameraOn, isMicOn } = useLocalMedia();
-  const { participants, members } = useCallParticipants();
-
-  const items: ParticipantListItem[] = [
-    {
-      key: 'you',
-      userId: session.user?.id ?? 'you',
-      displayName: session.user?.displayName ?? 'You',
-      photoUrl: session.user?.photo?.url ?? null,
-      isMuted: !isMicOn,
-      isCameraOff: !isCameraOn,
-      isYou: true,
-    },
-    ...participants.map((participant) => {
-      const member = members.get(participant.userId);
-      return {
-        key: participant.peerId,
-        userId: participant.userId,
-        displayName: member?.displayName ?? 'Unknown',
-        photoUrl: member?.photoUrl ?? null,
-        isMuted: participant.isAudioPaused,
-        isCameraOff: participant.isVideoPaused || !participant.videoTrack,
-      };
-    }),
-  ];
+  const { isOpen, setIsOpen } = useParticipantsPanel();
+  const { participants } = useCallParticipants();
+  const peopleCount = participants.length + 1;
 
   return (
-    <ParticipantsSheet
-      title="People in the call"
-      description={peopleLabel(items.length)}
-      items={items}
-      trigger={
-        <Button variant="outline" className="relative rounded-full" aria-label={`Show ${peopleLabel(items.length)}`}>
-          <Users />
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
-            {items.length}
-          </span>
-        </Button>
-      }
-    />
+    <div className="absolute bottom-24 right-4 p-2 sm:bottom-10">
+      <Button
+        variant="ghost"
+        className="relative rounded-full text-white"
+        aria-label={`${isOpen ? 'Hide' : 'Show'} ${peopleLabel(peopleCount)}`}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Users />
+        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-xs font-medium text-primary-foreground">
+          {peopleCount}
+        </span>
+      </Button>
+    </div>
   );
 }

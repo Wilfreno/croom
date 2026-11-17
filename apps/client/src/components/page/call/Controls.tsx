@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Phone } from 'lucide-react';
 import CameraControl from './camera/CameraControls';
 import MicrophoneControl from './microphone/MicrophoneControls';
-import ParticipantsButton from './ParticipantsButton';
 
 export default function Controls() {
   const { leave } = useCall();
@@ -14,7 +13,6 @@ export default function Controls() {
       <div className="flex items-center gap-4 sm:gap-10">
         <MicrophoneControl />
         <CameraControl />
-        <ParticipantsButton />
       </div>
       <Button variant="destructive" className="rounded-full" aria-label="Leave call" onClick={leave}>
         <Phone />

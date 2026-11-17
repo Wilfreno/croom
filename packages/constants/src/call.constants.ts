@@ -22,3 +22,5 @@ export const CALL_VIDEO_MAX_BITRATE = 500_000;
 // Browser storage entry that remembers the camera, microphone and on/off choices between visits
 export const CALL_MEDIA_PREFERENCES_STORAGE_KEY = 'call:media-preferences';
 export const CALL_DEFAULT_MEDIA_PREFERENCES = { isCameraOn: false, isMicOn: true };
+// With someone pinned, the side column shows at most this many tiles; past it, the last tile counts the rest
+export const CALL_PINNED_SIDE_MAX_TILES = 5;
