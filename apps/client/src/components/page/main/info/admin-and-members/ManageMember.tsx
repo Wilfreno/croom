@@ -80,8 +80,12 @@ export default function ManageMember() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary" disabled={!isAdmin}>
-          <UserRoundPlus className="h-4 w-auto text-primary" />
+        <Button
+          variant="secondary"
+          className={cn(isAdmin ? 'w-full p-2 font-medium text-primary' : 'hidden')}
+          disabled={!isAdmin}
+        >
+          <UserRoundPlus className="h-4 w-auto" />
           <span>Manage Members</span>
         </Button>
       </DialogTrigger>
