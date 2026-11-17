@@ -136,11 +136,21 @@ export default function useMediasoupCall({
       );
     }
 
+    function onCallEnded({ reason }: { reason: string }) {
+      isCancelled = true;
+      if (session) closeSession(session);
+      session = null;
+      sessionRef.current = null;
+      setStatus('error');
+      setError(reason);
+    }
+
     socket.on('CALL_PEER_JOINED', onPeerJoined);
     socket.on('CALL_PEER_LEFT', onPeerLeft);
     socket.on('CALL_NEW_PRODUCER', onNewProducer);
     socket.on('CALL_PRODUCER_CLOSED', onProducerClosed);
     socket.on('CALL_PRODUCER_PAUSED', onProducerPaused);
+    socket.on('CALL_ENDED', onCallEnded);
 
     async function join(socket: TypedSocket) {
       const joined = await emitSocketEventAndWaitForServerReply(socket, 'CALL_JOIN', { conversationId });
@@ -208,6 +218,7 @@ export default function useMediasoupCall({
       socket.off('CALL_NEW_PRODUCER', onNewProducer);
       socket.off('CALL_PRODUCER_CLOSED', onProducerClosed);
       socket.off('CALL_PRODUCER_PAUSED', onProducerPaused);
+      socket.off('CALL_ENDED', onCallEnded);
       socket.emit('CALL_LEAVE');
       if (session) closeSession(session);
       sessionRef.current = null;

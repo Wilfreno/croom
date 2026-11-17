@@ -449,8 +449,23 @@ describe('useMediasoupCall', () => {
         'CALL_NEW_PRODUCER',
         'CALL_PRODUCER_CLOSED',
         'CALL_PRODUCER_PAUSED',
+        'CALL_ENDED',
       ])
         expect(server.listenerCount(event)).toBe(0);
+    });
+
+    it('closes the call and says why when the server ends it', async () => {
+      const server = callServer();
+      const { result } = renderCall(server);
+      await waitFor(() => expect(result.current.status).toBe('connected'));
+      const { sendTransport, recvTransport } = currentDevice();
+
+      act(() => server.serverEmit('CALL_ENDED', { reason: 'this conversation was blocked' }));
+
+      expect(result.current.status).toBe('error');
+      expect(result.current.error).toBe('this conversation was blocked');
+      expect(sendTransport.close).toHaveBeenCalled();
+      expect(recvTransport.close).toHaveBeenCalled();
     });
 
     it('closes a session that finishes setting up after leaving', async () => {
