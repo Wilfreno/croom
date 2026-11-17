@@ -635,6 +635,20 @@ describe('ChangeName', () => {
     expect(toast.success).toHaveBeenCalledWith('name changed');
   });
 
+  it('sends and caches the name without surrounding spaces', async () => {
+    const { queryClient } = renderInfo(<ChangeName />);
+    await userEvent.click(screen.getByRole('button', { name: 'Change chat name' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Team' }));
+    const input = within(dialog).getByPlaceholderText('Change name');
+    await userEvent.clear(input);
+    await userEvent.type(input, '  Squad  {Enter}');
+
+    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/name', { name: 'Squad' });
+    await waitFor(() => expect(cached(queryClient).name).toBe('Squad'));
+  });
+
   it('keeps the name when the server refuses', async () => {
     vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'nope', data: null } as never);
     const { queryClient } = renderInfo(<ChangeName />);
