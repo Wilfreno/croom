@@ -30,7 +30,7 @@ export default function Members() {
           {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="ml-8 grid gap-2 border-l py-2 pl-3">
+      <CollapsibleContent className="ml-8 grid gap-2 border-l py-2 pl-3 data-[state=closed]:hidden">
         <ManageMember />
         <ScrollArea className="max-h-[30dvh] [&>[data-radix-scroll-area-viewport]]:max-h-[30dvh]">
           <div className="grid gap-2">
