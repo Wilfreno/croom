@@ -12,6 +12,7 @@ import type { Message, MessagePayload, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -246,6 +247,28 @@ describe('ConversationMessage', () => {
     );
   });
 
+  it('does not mark the last message as seen when told not to', async () => {
+    renderWithQuery(<ConversationMessage message={message()} isLastMessage markSeen={false} />);
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the conversation when marking seen is refused because you were blocked', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValueOnce(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'you are blocked in this conversation', data: null },
+      } as never),
+    );
+    const msg = message({ conversation: 'c1' });
+
+    const { queryClient } = renderWithQuery(<ConversationMessage message={msg} isLastMessage />);
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] }));
+  });
+
   it('does not mark earlier messages as seen', () => {
     renderWithQuery(<ConversationMessage message={message()} isLastMessage={false} />);
 
@@ -355,6 +378,27 @@ describe('ConversationMessages', () => {
     expect(screen.getByText('third')).toBeInTheDocument();
     await waitFor(() => expect(axiosInstance.patch).toHaveBeenCalledTimes(1));
     expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${third.id}/seenBy`, expect.anything());
+  });
+
+  it('does not mark the last message as seen for the member who was blocked', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    messagePages = { pages: [{ pageParam: 1, result: [mockMessage({ text: 'before the block' })] }] };
+
+    renderWithQuery(<ConversationMessages conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />);
+
+    expect(screen.getByText('before the block')).toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('still marks the last message as seen for the member who did the blocking', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const last = mockMessage({ text: 'before the block' });
+    messagePages = { pages: [{ pageParam: 1, result: [last] }] };
+
+    renderWithQuery(<ConversationMessages conversation={mockConversation({ status: 'BLOCKED', blocker: sessionUser.id })} />);
+
+    await waitFor(() => expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${last.id}/seenBy`, expect.anything()));
   });
 
   it('resends a failed message with its text and photos in place of the failed copy', async () => {

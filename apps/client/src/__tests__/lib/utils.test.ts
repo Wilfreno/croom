@@ -5,6 +5,7 @@ import {
   getConversationName,
   getGroupAvatarMembers,
   isBlockedError,
+  isBlockedMember,
   isConversationOnline,
   getMediaErrorMessage,
   getSecondsInterval,
@@ -15,7 +16,7 @@ import {
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
 import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
-import { UserStatus } from '@repo/enums';
+import { ConversationStatus, UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
 import { AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,6 +74,23 @@ describe('isBlockedError', () => {
     ['a non-error', 'BLOCKED'],
   ])('is false for %s', (_, error) => {
     expect(isBlockedError(error)).toBe(false);
+  });
+});
+
+describe('isBlockedMember', () => {
+  const blocked = (blocker: string) => ({ status: ConversationStatus.BLOCKED, blocker }) as unknown as Conversation;
+
+  it('is true when someone else blocked the conversation', () => {
+    expect(isBlockedMember(blocked('them'), 'me')).toBe(true);
+  });
+
+  it('is false for the member who did the blocking', () => {
+    expect(isBlockedMember(blocked('me'), 'me')).toBe(false);
+  });
+
+  it('is false for a conversation that is not blocked, or not loaded yet', () => {
+    expect(isBlockedMember({ status: undefined } as unknown as Conversation, 'me')).toBe(false);
+    expect(isBlockedMember(undefined, 'me')).toBe(false);
   });
 });
 

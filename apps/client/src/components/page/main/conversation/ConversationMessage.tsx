@@ -3,7 +3,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
+import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError } from '@/lib/utils';
 import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { Message } from '@repo/types';
@@ -17,12 +17,14 @@ export default function ConversationMessage({
   prevMessage,
   nextMessage,
   isLastMessage,
+  markSeen = true,
   onRetry,
 }: {
   message: CachedMessage;
   prevMessage?: Message;
   nextMessage?: Message;
   isLastMessage: boolean;
+  markSeen?: boolean;
   onRetry?: (message: CachedMessage) => void;
 }) {
   const { session } = useAuth();
@@ -168,6 +170,9 @@ export default function ConversationMessage({
         queryKey: [session.user?.id, 'conversations'],
       });
     },
+    onError(error) {
+      if (isBlockedError(error)) queryClient.invalidateQueries({ queryKey: ['conversation', message.conversation] });
+    },
   });
 
   useEffect(() => {
@@ -176,9 +181,9 @@ export default function ConversationMessage({
   }, [isLastMessage, message.pending, message.failed]);
 
   useEffect(() => {
-    if (!isLastMessage || message.pending || message.failed) return;
+    if (!markSeen || !isLastMessage || message.pending || message.failed) return;
     seen.mutate();
-  }, [isLastMessage, message.pending, message.failed]);
+  }, [markSeen, isLastMessage, message.pending, message.failed]);
 
   return (
     <span className="grid gap-3">

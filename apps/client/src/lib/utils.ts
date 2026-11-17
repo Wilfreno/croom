@@ -2,7 +2,7 @@ import type { CallSession } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
 import { SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS } from "@repo/constants";
-import { UserStatus } from "@repo/enums";
+import { ConversationStatus, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
 import type { Photo, ServerResponse, User } from "@repo/types";
@@ -16,6 +16,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function isGroupChat(conversation: Pick<Conversation, "members">, currentUserId?: string) {
   return conversation.members.filter((member) => member.id !== currentUserId).length > 1;
+}
+
+export function isBlockedMember(conversation: Pick<Conversation, "status" | "blocker"> | undefined, currentUserId?: string) {
+  return conversation?.status === ConversationStatus.BLOCKED && conversation.blocker !== currentUserId;
 }
 
 export function isBlockedError(error: unknown) {

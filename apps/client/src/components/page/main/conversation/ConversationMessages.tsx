@@ -1,6 +1,7 @@
 import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation';
 import useMessages from '@/components/hooks/queries/useMessages';
-import { toPhotoInputs } from '@/lib/utils';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { isBlockedMember, toPhotoInputs } from '@/lib/utils';
 import type { CachedMessage } from '@/types/message.types';
 import ConversationMessage from './ConversationMessage';
 import { Conversation } from "@repo/types";
@@ -8,6 +9,8 @@ import { Conversation } from "@repo/types";
 export default function ConversationMessages({ conversation }: { conversation?: Conversation }) {
   const { foundMessages } = useMessages([conversation!]);
   const { sendMessage } = useSendMessage('');
+  const { session } = useAuth();
+  const markSeen = !isBlockedMember(conversation, session.user?.id);
 
   function retry(message: CachedMessage) {
     sendMessage.mutate({
@@ -30,6 +33,7 @@ export default function ConversationMessages({ conversation }: { conversation?: 
                 prevMessage={page.result[messageIndex - 1]}
                 nextMessage={page.result[messageIndex + 1]}
                 isLastMessage={pagesIndex === foundMessages.pages.length - 1 && messageIndex === page.result.length - 1}
+                markSeen={markSeen}
                 onRetry={retry}
               />
             )),
