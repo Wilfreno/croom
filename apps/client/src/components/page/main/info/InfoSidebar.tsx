@@ -41,7 +41,7 @@ export default function InfoSidebar() {
   }, [conversation, session.user]);
 
   return (
-    <SidebarContent className={cn("relative w-full shrink-0 md:w-72 xl:w-80", !isOpen && "hidden")}>
+    <SidebarContent className={cn("relative w-full shrink-0 md:w-72 lg:w-80 xl:w-[24rem]", !isOpen && "hidden")}>
       <Button variant="ghost" className="md:hidden absolute top-2 left-0" onClick={() => setIsOpen(false)}>
         <ArrowLeft className="h-6 w-auto" />
       </Button>
