@@ -59,6 +59,10 @@ export class CallService {
     return { members, caller };
   }
 
+  isConversationBlocked(conversationId: string) {
+    return this.conversationModel.isConversationBlocked(conversationId);
+  }
+
   getPeer(peerId: string) {
     return this.peers.get(peerId);
   }

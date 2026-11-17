@@ -92,6 +92,15 @@ describe('CallService', () => {
     });
   });
 
+  describe('isConversationBlocked', () => {
+    it.each([true, false])('answers %s from the conversation', async (blocked) => {
+      const { service, conversationModel } = build({ isBlocked: blocked });
+
+      await expect(service.isConversationBlocked(CONVERSATION_ID)).resolves.toBe(blocked);
+      expect(conversationModel.isConversationBlocked).toHaveBeenCalledWith(CONVERSATION_ID);
+    });
+  });
+
   describe('peers and rooms', () => {
     it('adds a peer with empty producer and consumer maps', () => {
       const { service } = build();

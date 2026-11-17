@@ -111,6 +111,11 @@ export class CallGateway implements OnGatewayDisconnect {
         .emit('CALL_PEER_JOINED', { peerId: client.id, userId });
       await client.join(callRoom(conversationId));
 
+      if (await this.callService.isConversationBlocked(conversationId)) {
+        await this.leave(client);
+        return { error: 'you cannot call this conversation' };
+      }
+
       return {
         // Every router of a call has the same codecs, so any of them answers this.
         rtpCapabilities: routerEntry.router.rtpCapabilities,

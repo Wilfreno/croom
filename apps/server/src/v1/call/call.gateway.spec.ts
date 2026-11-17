@@ -224,6 +224,20 @@ describe('CallGateway', () => {
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
     });
 
+    it('backs out of a call whose conversation was blocked while joining', async () => {
+      const { gateway, callService, conversationModel, mediasoup, roomEmit } = build();
+      conversationModel.isConversationBlocked.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      const { client, spies } = fakeClient('alice');
+
+      const result = await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ error: 'you cannot call this conversation' });
+      expect(callService.getPeer(client.id)).toBeUndefined();
+      expect(mediasoup.releaseRouter).toHaveBeenCalledWith(CONVERSATION_ID, expect.anything());
+      expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
     it('answers with a generic error when something breaks', async () => {
       const { gateway, mediasoup } = build();
       mediasoup.assignRouter.mockRejectedValue(new Error('no workers'));
