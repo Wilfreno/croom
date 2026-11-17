@@ -1,3 +1,5 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { CONVERSATION_BLOCKED_SOURCE_KEY, ConversationBlockedGuard } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConversationController } from './conversation.controller';
@@ -67,5 +69,27 @@ describe('ConversationController', () => {
     await controller.unblockConversation(USER, { conversationId: 'c1' });
 
     expect(conversationService.unblockConversation).toHaveBeenCalledWith({ conversationId: 'c1', userId: 'me' });
+  });
+
+  describe('blocked members', () => {
+    const route = (name: keyof ConversationController) => ConversationController.prototype[name] as object;
+    const isBlockGuarded = (name: keyof ConversationController) =>
+      Boolean(Reflect.getMetadata(GUARDS_METADATA, route(name))?.includes(ConversationBlockedGuard)) &&
+      Reflect.getMetadata(CONVERSATION_BLOCKED_SOURCE_KEY, route(name)) !== undefined;
+
+    it.each(['getConversationById', 'getConversationMessages'] as const)('can still read through %s', (name) => {
+      expect(isBlockGuarded(name)).toBe(false);
+    });
+
+    it('is still kept out of the shared media', () => {
+      expect(isBlockGuarded('getConversationMedia')).toBe(true);
+    });
+
+    it.each(['blockConversation', 'unblockConversation'] as const)(
+      'reaches %s, where the service decides who may act',
+      (name) => {
+        expect(isBlockGuarded(name)).toBe(false);
+      },
+    );
   });
 });

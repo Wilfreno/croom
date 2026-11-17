@@ -115,7 +115,7 @@ export class ConversationService {
 
     if (!conversation || conversation.status === ConversationStatus.DELETED)
       throw new NotFoundException('conversation does not exist');
-    if (isGroupChat(conversation.members))
+    if (conversation.members.length !== 2)
       throw new BadRequestException(
         'only one-to-one conversations can be blocked',
       );

@@ -184,6 +184,7 @@ describe('ConversationService', () => {
       ['a missing conversation', null, NotFoundException],
       ['a deleted conversation', { members: [ME, ADA], status: ConversationStatus.DELETED }, NotFoundException],
       ['a group', { members: [ME, ADA, BOB] }, BadRequestException],
+      ['a conversation left with only one member', { members: [ME] }, BadRequestException],
       ['an already blocked conversation', { members: [ME, ADA], status: ConversationStatus.BLOCKED, blocker: ADA }, ConflictException],
     ])('refuses %s', async (_, conversation, exception) => {
       const { service, conversationModel } = build();
