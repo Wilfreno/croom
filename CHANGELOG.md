@@ -1,3 +1,43 @@
+## [1.4.0](https://github.com/Wilfreno/croom/compare/v1.3.0...v1.4.0) (2026-11-17)
+
+### Features
+
+* block and unblock one-to-one conversations ([46c2a16](https://github.com/Wilfreno/croom/commit/46c2a16e12dfad8289c3516359dcffce2e3614c0))
+
+## [1.3.0](https://github.com/Wilfreno/croom/compare/v1.2.4...v1.3.0) (2026-11-17)
+
+### Features
+
+* **client:** add ConversationAvatar and use group photos ([9397f00](https://github.com/Wilfreno/croom/commit/9397f0091187f7020c37b65ddaed80561a75deeb))
+* **client:** send messages optimistically with retry and resending state ([bfdc95c](https://github.com/Wilfreno/croom/commit/bfdc95c47018dde0f997276f2952a1823c5b835a))
+* **client:** show group chats as a compact avatar group ([be7288a](https://github.com/Wilfreno/croom/commit/be7288af3f6badb8424f7010333774162ab2d5de))
+
+### Bug Fixes
+
+* **client:** make the auth pages responsive ([3b689e7](https://github.com/Wilfreno/croom/commit/3b689e7e74f0052fc02ac4c808e0988f4239ce1e))
+* **client:** make the main app responsive ([af1dff7](https://github.com/Wilfreno/croom/commit/af1dff7c559582fc71dd2f237057e518d3d950d6))
+* **client:** name conversations and show online status consistently ([3a8dc70](https://github.com/Wilfreno/croom/commit/3a8dc70f4f55e88a784affb7767ca1c81f5e0585))
+* **client:** stop treating one-to-one chats as groups on the conversation page ([a72df2b](https://github.com/Wilfreno/croom/commit/a72df2b0e68aabcdd60f1735438254ec4aa1cf83))
+* **server:** populate members when finding conversations by members ([2c26226](https://github.com/Wilfreno/croom/commit/2c2622629bdca10ad71525743b39c29228e3e28a))
+
+## [1.2.4](https://github.com/Wilfreno/croom/compare/v1.2.3...v1.2.4) (2026-11-14)
+
+### Bug Fixes
+
+* **server:** authenticate sockets in handshake middleware ([5bf205c](https://github.com/Wilfreno/croom/commit/5bf205c8dec42af2b6968b9e6a792e1a524c5279))
+
+## [1.2.3](https://github.com/Wilfreno/croom/compare/v1.2.2...v1.2.3) (2026-11-14)
+
+### Bug Fixes
+
+* **client:** stop redirecting the domain root to the base path ([26408ae](https://github.com/Wilfreno/croom/commit/26408aea3b139f580db904b807dc1ea712d47bd4))
+
+## [1.2.2](https://github.com/Wilfreno/croom/compare/v1.2.1...v1.2.2) (2026-11-13)
+
+### Bug Fixes
+
+* **ci:** build the shared packages explicitly on deploy ([f6c2402](https://github.com/Wilfreno/croom/commit/f6c24026acc688b96ec832cdc587cd87e58fa277))
+
 ## [1.2.1](https://github.com/Wilfreno/croom/compare/v1.2.0...v1.2.1) (2026-11-13)
 
 ### Bug Fixes
