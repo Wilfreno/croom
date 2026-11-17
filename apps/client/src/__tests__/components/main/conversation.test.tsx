@@ -489,6 +489,34 @@ describe('ConversationMessages', () => {
     await waitFor(() => expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${last.id}/seenBy`, expect.anything()));
   });
 
+  it.each([
+    ['offers the nickname pen in a conversation that is not blocked', false, true],
+    ['hides the nickname pen from whoever did the blocking, since the server refuses the change', true, false],
+  ])('%s', (_, blockedByMe, hasPen) => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const ada = mockUser({ displayName: 'Ada' });
+    const conversation = mockConversation({
+      members: [ada, sessionUser as unknown as User],
+      nicknames: [
+        { user: ada.id, value: '' },
+        { user: sessionUser.id, value: 'Ace' },
+      ],
+      ...(blockedByMe ? { status: 'BLOCKED', blocker: sessionUser.id } : {}),
+    });
+    messagePages = {
+      pages: [
+        {
+          pageParam: 1,
+          result: [mockMessage({ text: '', notice: { type: MessageNoticeType.NICKNAME, user: sessionUser.id, value: 'Ace' } })],
+        },
+      ],
+    };
+
+    renderWithQuery(<ConversationMessages conversation={conversation} />);
+
+    expect(Boolean(screen.queryByRole('button', { name: 'Edit nickname' }))).toBe(hasPen);
+  });
+
   it('resends a failed message with its text and photos in place of the failed copy', async () => {
     const photo = mockPhoto({ key: 'k1', url: 'https://utfs.io/a.png', width: 10, height: 20 });
     const failed = { ...mockMessage({ text: 'lost', conversation: 'c1', photos: [photo] }), failed: true };

@@ -220,6 +220,14 @@ describe('InfoCustomization', () => {
     expect(screen.getByRole('button', { name: 'Add nicknames' })).toBeInTheDocument();
   });
 
+  it('offers nothing to customize in a blocked chat, even to whoever blocked it', () => {
+    conversation = oneToOne({ status: ConversationStatus.BLOCKED, blocker: sessionUser.id });
+
+    renderInfo(<InfoCustomization />);
+
+    expect(screen.queryByRole('button', { name: 'Customization' })).not.toBeInTheDocument();
+  });
+
   it('offers only nicknames for a one-to-one chat', async () => {
     conversation = oneToOne();
     renderInfo(<InfoCustomization />);
