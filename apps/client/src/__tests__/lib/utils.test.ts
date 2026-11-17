@@ -4,6 +4,7 @@ import {
   emitSocketEventAndWaitForServerReply,
   getConversationName,
   getGroupAvatarMembers,
+  isBlockedError,
   isConversationOnline,
   getMediaErrorMessage,
   getSecondsInterval,
@@ -16,6 +17,7 @@ import type { TypedSocket } from '@/types/socket.types';
 import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
+import { AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const NOW = new Date('2026-11-13T15:30:00');
@@ -53,6 +55,24 @@ describe('isGroupChat', () => {
   it('leaves out the current user, so a one-to-one conversation that includes them is not a group', () => {
     expect(isGroupChat(conversation(2), '0')).toBe(false);
     expect(isGroupChat(conversation(3), '0')).toBe(true);
+  });
+});
+
+describe('isBlockedError', () => {
+  const responseError = (status: number, body: unknown) =>
+    new AxiosError(String(status), undefined, undefined, undefined, { status, data: body } as never);
+
+  it('is true for a BLOCKED server response', () => {
+    expect(isBlockedError(responseError(423, { status: 'BLOCKED', message: '', data: null }))).toBe(true);
+  });
+
+  it.each([
+    ['another server status', responseError(404, { status: 'NOT FOUND', message: '', data: null })],
+    ['an axios error without a response', new AxiosError('network')],
+    ['a plain error', new Error('boom')],
+    ['a non-error', 'BLOCKED'],
+  ])('is false for %s', (_, error) => {
+    expect(isBlockedError(error)).toBe(false);
   });
 });
 

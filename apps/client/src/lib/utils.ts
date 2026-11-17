@@ -5,7 +5,8 @@ import { SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_T
 import { UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
-import type { Photo, User } from "@repo/types";
+import type { Photo, ServerResponse, User } from "@repo/types";
+import { isAxiosError } from "axios";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -15,6 +16,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function isGroupChat(conversation: Pick<Conversation, "members">, currentUserId?: string) {
   return conversation.members.filter((member) => member.id !== currentUserId).length > 1;
+}
+
+export function isBlockedError(error: unknown) {
+  return isAxiosError<ServerResponse>(error) && error.response?.data?.status === "BLOCKED";
 }
 
 export function isConversationOnline(conversation: Pick<Conversation, "members">, currentUserId?: string) {

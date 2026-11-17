@@ -8,6 +8,7 @@ import type { Message, MessagePayload } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { CachedMessage } from '@/types/message.types';
 import { act, waitFor } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn() } }));
@@ -165,6 +166,33 @@ describe('useSendMessage', () => {
     act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
 
     await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+  });
+
+  it('refreshes the conversation when the send is refused because you were blocked', async () => {
+    post.mockRejectedValue(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'you are blocked in this conversation', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('does not refresh the conversation for other failures', async () => {
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });
 

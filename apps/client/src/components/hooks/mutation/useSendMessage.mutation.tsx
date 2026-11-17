@@ -1,8 +1,15 @@
-import { axiosInstance } from '@/lib/axios-instance';
-import { appendMessage, createPendingMessage, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
-import type { CachedMessage, MessagePages, PhotoInput } from '@/types/message.types';
-import { MessagePayload, ServerResponse, User } from '@repo/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { axiosInstance } from "@/lib/axios-instance";
+import {
+  appendMessage,
+  createPendingMessage,
+  isBlockedError,
+  markMessageFailed,
+  removeMessage,
+  replaceMessage,
+} from "@/lib/utils";
+import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
+import { MessagePayload, ServerResponse, User } from "@repo/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function useSendMessage(textInput: string) {
   const queryClient = useQueryClient();
@@ -19,7 +26,7 @@ export default function useSendMessage(textInput: string) {
     { pendingId?: string }
   >({
     async mutationFn({ text, photoInput, conversationId }) {
-      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>('/message', {
+      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>("/message", {
         conversationId,
         text: text ? text : textInput,
         photos: photoInput,
@@ -28,8 +35,8 @@ export default function useSendMessage(textInput: string) {
       return response.data;
     },
     async onMutate({ text, photoInput, conversationId, retryId }) {
-      const queryKey = ['conversation', 'messages', conversationId];
-      const sender = queryClient.getQueryData<User>(['user', 'session']);
+      const queryKey = ["conversation", "messages", conversationId];
+      const sender = queryClient.getQueryData<User>(["user", "session"]);
       if (!sender || !queryClient.getQueryData(queryKey)) return {};
 
       await queryClient.cancelQueries({ queryKey });
@@ -53,16 +60,19 @@ export default function useSendMessage(textInput: string) {
       if (context?.pendingId) newMessage.clientKey = context.pendingId;
 
       queryClient.setQueryData<MessagePages>(
-        ['conversation', 'messages', conversationId],
+        ["conversation", "messages", conversationId],
         (prev) => prev && replaceMessage(prev, context?.pendingId, newMessage),
       );
     },
-    onError: (_error, { conversationId }, context) => {
+    onError: (error, { conversationId }, context) => {
+      if (isBlockedError(error)) {
+        queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+      }
       if (!context?.pendingId) return;
       const { pendingId } = context;
 
       queryClient.setQueryData<MessagePages>(
-        ['conversation', 'messages', conversationId],
+        ["conversation", "messages", conversationId],
         (prev) => prev && markMessageFailed(prev, pendingId),
       );
     },
