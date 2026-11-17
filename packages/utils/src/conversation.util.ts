@@ -1,3 +1,3 @@
-export function isGroupChat(members: readonly unknown[]) {
+export function hasGroupMemberCount(members: readonly unknown[]) {
   return members.length > 2;
 }

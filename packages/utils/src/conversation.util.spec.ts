@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { isGroupChat } from './conversation.util';
+import { hasGroupMemberCount } from './conversation.util';
 
-describe('isGroupChat', () => {
+describe('hasGroupMemberCount', () => {
   it.each([
     [0, false],
     [1, false],
@@ -9,6 +9,6 @@ describe('isGroupChat', () => {
     [3, true],
     [10, true],
   ])('with %i members is %s', (count, expected) => {
-    expect(isGroupChat(Array.from({ length: count }))).toBe(expected);
+    expect(hasGroupMemberCount(Array.from({ length: count }))).toBe(expected);
   });
 });

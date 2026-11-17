@@ -12,7 +12,7 @@ import {
   PhotoModel,
   UserModel,
 } from '@repo/models';
-import { isGroupChat } from '@repo/utils';
+import { hasGroupMemberCount } from '@repo/utils';
 import { ClientSession, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -52,7 +52,7 @@ export class ConversationService {
     }
 
     const memberIds = members.map((id) => new Types.ObjectId(id));
-    const isGroup = isGroupChat(members);
+    const isGroup = hasGroupMemberCount(members);
 
     return await this.conversationModel.createConversation(
       {
