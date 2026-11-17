@@ -23,6 +23,10 @@ export function isBlockedError(error: unknown) {
   return isAxiosError<ServerResponse>(error) && error.response?.data?.status === "BLOCKED";
 }
 
+export function isForbiddenError(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 403;
+}
+
 export function getServerErrorMessage(error: unknown) {
   if (isAxiosError<ServerResponse>(error) && error.response && error.response.status < 500 && error.response.data?.message)
     return error.response.data.message;

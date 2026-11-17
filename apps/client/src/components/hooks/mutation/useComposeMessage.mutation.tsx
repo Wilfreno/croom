@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { appendMessage, createPendingMessage, isBlockedError, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
+import { appendMessage, createPendingMessage, isBlockedError, isForbiddenError, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
 import type { CachedMessage, MessagePages, PhotoInput } from '@/types/message.types';
 import { MessagePayload, ServerResponse, User } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -59,7 +59,7 @@ export default function useComposeMessage() {
       router.push(`/conversation/${conversationId ? conversationId : messagePayload.conversation.id}`);
     },
     onError: (error, { conversationId }, context) => {
-      if (conversationId && isBlockedError(error)) {
+      if (conversationId && (isBlockedError(error) || isForbiddenError(error))) {
         queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
       }
       if (!context?.pendingId) return;

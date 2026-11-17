@@ -184,6 +184,22 @@ describe('useSendMessage', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
   });
 
+  it('refreshes the conversation when the send is refused because you are no longer a member', async () => {
+    post.mockRejectedValue(
+      new AxiosError('403', undefined, undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'you are not a member of this conversation', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
   it('does not refresh the conversation for other failures', async () => {
     post.mockRejectedValue(new Error('network'));
 
@@ -255,6 +271,22 @@ describe('useComposeMessage', () => {
       new AxiosError('423', undefined, undefined, undefined, {
         status: 423,
         data: { status: 'BLOCKED', message: 'this conversation is blocked', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('refreshes the conversation when the send is refused because you are no longer a member', async () => {
+    post.mockRejectedValue(
+      new AxiosError('403', undefined, undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'you are not a member of this conversation', data: null },
       } as never),
     );
 

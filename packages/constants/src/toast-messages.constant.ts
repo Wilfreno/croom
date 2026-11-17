@@ -3,3 +3,4 @@ export const USER_BLOCKED = 'user has been blocked';
 export const USER_UNBLOCKED = 'user unblocked';
 export const USER_REPORTED = 'User reported';
 export const LEFT_GROUP_CHAT = 'You left the group chat';
+export const REMOVED_FROM_GROUP_CHAT = 'You were removed from a group chat';

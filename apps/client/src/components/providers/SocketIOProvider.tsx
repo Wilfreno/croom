@@ -1,9 +1,11 @@
 'use client';
 import { appendMessage, getNicknameNoticeText, setCachedNicknames } from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
-import { CALL_RING_DURATION_MS } from '@repo/constants';
+import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import type {
   ClientToServerEvents,
+  Conversation,
+  ConversationMembersChangedPayload,
   IncomingCallPayload,
   Message,
   MessagePayload,
@@ -88,6 +90,28 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
       },
     );
   }
+  function onMembersChanged({ conversationId, removedMemberId }: ConversationMembersChangedPayload) {
+    const userId = session.user?.id;
+    const listKeys = [
+      [userId, 'conversations'],
+      ['active', 'conversations', userId],
+    ];
+
+    if (removedMemberId === userId) {
+      toast(REMOVED_FROM_GROUP_CHAT);
+      for (const queryKey of listKeys)
+        queryClient.setQueryData<Conversation[]>(queryKey, (prev) =>
+          prev?.filter((conversation) => conversation.id !== conversationId),
+        );
+      if (pathname.startsWith('/conversation/' + conversationId)) router.push('/');
+      queryClient.removeQueries({ queryKey: ['conversation', conversationId] });
+      queryClient.removeQueries({ queryKey: ['conversation', 'messages', conversationId] });
+      return;
+    }
+
+    queryClient.invalidateQueries({ exact: true, queryKey: ['conversation', conversationId] });
+    for (const queryKey of listKeys) queryClient.invalidateQueries({ queryKey });
+  }
   function onError(error: string) {
     toast(error);
   }
@@ -109,12 +133,14 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
 
     socket.on('connect_error', onConnectError);
     socket.on('INCOMING_CALL', onIncomingCall);
+    socket.on('CONVERSATION_MEMBERS_CHANGED', onMembersChanged);
 
     return () => {
       socket?.off('USER_STATUS', onUserStatus);
       socket?.off('ERROR', onError);
       socket?.off('connect_error', onConnectError);
       socket?.off('INCOMING_CALL', onIncomingCall);
+      socket?.off('CONVERSATION_MEMBERS_CHANGED', onMembersChanged);
       socket?.off('MESSAGE', onMessage);
       socket?.disconnect();
     };
