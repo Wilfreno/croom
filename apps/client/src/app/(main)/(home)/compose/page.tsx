@@ -19,6 +19,11 @@ export default function Page() {
     queryClient.removeQueries({ queryKey: COMPOSE_SELECTED_USERS_QUERY_KEY, exact: true });
   }, [queryClient]);
 
+  useEffect(
+    () => () => queryClient.removeQueries({ queryKey: ['conversation', 'messages', undefined], exact: true }),
+    [queryClient, selectedUsers],
+  );
+
   return (
     <MainContent className="grid grid-rows-[auto_1fr_auto]">
       <ComposeTo selectedUsers={selectedUsers} setSelectedUsers={setSelectedUsers} />

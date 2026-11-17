@@ -78,7 +78,7 @@ export default function ResetPasswordForm({ email }: { email: string }) {
 
   return (
     <form
-      className="grid gap-8 w-96"
+      className="grid gap-8 w-full"
       onSubmit={(e) => {
         e.preventDefault();
         changePassword.mutate();

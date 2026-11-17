@@ -31,15 +31,15 @@ export default function AccountRecoverForm({
       }}
     >
       <Label htmlFor="recover-search-your-email">Search your email</Label>
-      <div className="flex items-start gap-2">
-        <div className="grid gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+        <div className="grid gap-1 grow">
           <div className="relative">
             <Input
               id="recover-search-your-email"
               placeholder="Search your email"
               value={email}
               onChange={(e) => setEmail(e.currentTarget.value)}
-              className={cn('w-96', createOTPMutation.isError && 'border-destructive focus-visible:ring-destructive')}
+              className={cn('w-full', createOTPMutation.isError && 'border-destructive focus-visible:ring-destructive')}
             />
           </div>
         </div>

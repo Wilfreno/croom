@@ -19,7 +19,7 @@ export default function Page() {
   }
   return (
     <Suspense>
-      <section className="grid gap-10">
+      <section className="grid gap-10 w-full max-w-md">
         <AnimatePresence custom={direction} initial={false} mode="popLayout">
           {pageNumber === 0 ? (
             <AccountRecoverForm navigateTo={navigateTo} email={email} setEmail={setEmail} />

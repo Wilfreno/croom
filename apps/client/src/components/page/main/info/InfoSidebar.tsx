@@ -1,23 +1,23 @@
-'use client';
-import useConversation from '@/components/hooks/queries/useConversation';
-import useConversationInfo from '@/components/hooks/queries/useConversationInfo';
-import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-import { UserStatus } from '@repo/enums';
-import { ArrowLeft, UserRound } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
-import SidebarContent from '../SidebarContent';
-import InfoCustomization from './InfoCustomization';
-import InfoMedia from './InfoMedia';
-import InfoPrivacyAndSupport from './InfoPrivacyAndSupport';
+"use client";
+import useConversation from "@/components/hooks/queries/useConversation";
+import useConversationInfo from "@/components/hooks/queries/useConversationInfo";
+import useInfoSidebarOpen from "@/components/hooks/queries/useInfoSidebarOpen";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
+import { useMemo } from "react";
+import ConversationAvatar from "../ConversationAvatar";
+import SidebarContent from "../SidebarContent";
+import UserAvatar from "../UserAvatar";
+import InfoCustomization from "./InfoCustomization";
+import InfoMedia from "./InfoMedia";
+import InfoPrivacyAndSupport from "./InfoPrivacyAndSupport";
 
-const InfoAdminsAndMembers = dynamic(() => import('./InfoAdminsAndMembers'), {
+const InfoAdminsAndMembers = dynamic(() => import("./InfoAdminsAndMembers"), {
   ssr: false,
 });
 
@@ -33,7 +33,7 @@ export default function InfoSidebar() {
   const hide = useMemo(() => {
     if (!conversation || !session.user) return true;
 
-    if (conversation.status === 'BLOCKED') {
+    if (conversation.status === "BLOCKED") {
       return session.user.id !== conversation.blocker;
     }
 
@@ -41,24 +41,23 @@ export default function InfoSidebar() {
   }, [conversation, session.user]);
 
   return (
-    <SidebarContent className={cn(!isOpen && 'hidden', 'relative')}>
+    <SidebarContent className={cn("relative w-full shrink-0 md:w-72 xl:w-80", !isOpen && "hidden")}>
       <Button variant="ghost" className="md:hidden absolute top-2 left-0" onClick={() => setIsOpen(false)}>
         <ArrowLeft className="h-6 w-auto" />
       </Button>
       <div className="flex flex-col items-center gap-4 my-10">
-        <span className="relative">
-          <Avatar className="aspect-square h-28 w-auto">
-            <AvatarImage src={conversationInfo?.photoUrl} />
-            <AvatarFallback>
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
-          </Avatar>
-          {conversationInfo?.status === UserStatus.ONLINE && (
-            <div className="bg-green-500 aspect-square h-8 border-2 border-background w-auto rounded-full absolute bottom-1 right-0"></div>
-          )}
-        </span>
+        {conversation ? (
+          <ConversationAvatar
+            conversation={conversation}
+            currentUserId={session.user?.id}
+            className="h-28 w-auto border"
+            size="lg"
+          />
+        ) : (
+          <UserAvatar isOnline={false} className="h-28 w-auto border" />
+        )}
         <div className="text-center">
-          <p className="font-medium text-lg truncate max-w-72">{conversationInfo?.conversationName}</p>
+          <p className="font-medium text-lg truncate max-w-64">{conversationInfo?.conversationName}</p>
           {Boolean(conversationInfo?.lastOnline) && (
             <p className="text-xs font-medium text-muted-foreground">Online {conversationInfo?.lastOnline}</p>
           )}

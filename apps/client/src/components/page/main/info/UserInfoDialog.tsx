@@ -22,7 +22,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
     try {
       const { data } = await GETRequest<Conversation[]>('/v1/conversation?members=' + session.user?.id + ',' + user.id);
 
-      if (!!data.length) {
+      if (Boolean(data.length)) {
         router.push('/conversation/' + data[0].id);
       } else {
         queryClient.setQueryData<string[][]>(COMPOSE_SELECTED_USERS_QUERY_KEY, [[user.id, user.displayName]]);

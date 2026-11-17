@@ -140,6 +140,12 @@ describe('InfoSidebar', () => {
     expect(await screen.findByText('Online 2 hour(s) ago')).toBeInTheDocument();
   });
 
+  it("shows a group chat's avatar as one member plus how many others", async () => {
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByLabelText('and 1 more')).toHaveTextContent('+1');
+  });
+
   it('shows admins and members only in a group chat', async () => {
     renderInfo(<InfoSidebar />);
 

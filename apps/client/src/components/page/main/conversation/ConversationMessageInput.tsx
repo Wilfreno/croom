@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { Textarea } from '@/components/ui/textarea';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn, withBasePath } from '@/lib/utils';
+import type { PhotoInput } from '@/types/message.types';
 import { Conversation } from '@repo/types';
 import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -25,9 +26,9 @@ export default function ConversationMessageInput({ conversation }: { conversatio
     textareaProps,
   } = useMessageTextarea({
     onSubmit: () => send(''),
-    canSubmit: (value) => !!value.trim() || !!photoInput.length,
+    canSubmit: (value) => Boolean(value.trim()) || Boolean(photoInput.length),
   });
-  const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
+  const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const params = useParams<{ id: string }>();
@@ -78,8 +79,8 @@ export default function ConversationMessageInput({ conversation }: { conversatio
     setUploadingImage(false);
   }
 
-  async function send(text: string) {
-    await sendMessage.mutateAsync({ conversationId: params.id, photoInput, text });
+  function send(text: string) {
+    sendMessage.mutate({ conversationId: params.id, photoInput, text: text || textInput });
     setUploadingImage(false);
     setPhotoInput([]);
     setTextInput('');
@@ -115,7 +116,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
         }}
       >
         <div className="w-full">
-          {uploadingImage || !!photoInput.length ? (
+          {uploadingImage || Boolean(photoInput.length) ? (
             <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
               <UploadThingButton
                 endpoint="multipleImage"
@@ -189,10 +190,10 @@ export default function ConversationMessageInput({ conversation }: { conversatio
             </DropdownMenu>
           </div>
         </div>
-        {!!textInput || !!photoInput.length ? (
+        {Boolean(textInput) || Boolean(photoInput.length) ? (
           <Button
             variant="ghost"
-            disabled={(!textInput && !photoInput.length) || sendMessage.isPending || uploadingImage}
+            disabled={(!textInput && !photoInput.length) || uploadingImage}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => send('')}

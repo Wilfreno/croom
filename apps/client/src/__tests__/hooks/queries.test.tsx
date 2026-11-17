@@ -161,6 +161,7 @@ describe('useConversationInfo', () => {
         photoUrl: 'https://utfs.io/team',
         conversationName: 'Team',
         status: null,
+        isOnline: true,
         lastOnline: '',
       }),
     );
@@ -177,7 +178,7 @@ describe('useConversationInfo', () => {
   });
 
   it('falls back to their display name when they have no nickname', async () => {
-    const conversation = mockConversation({ members: [mockUser({ displayName: 'Bob' })] });
+    const conversation = mockConversation({ members: [mockUser({ displayName: 'Bob', userName: 'bob' })] });
 
     const { result } = renderHookWithQuery(() => useConversationInfo(conversation));
 

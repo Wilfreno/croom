@@ -61,7 +61,7 @@ export default function HomeConversations() {
           onChange={(e) => setSearchText(e.currentTarget.value)}
         />
       </div>
-      <ScrollArea className="h-[60dvh]">
+      <ScrollArea className="h-[60dvh] [&_[data-radix-scroll-area-viewport]>div]:!block">
         <div className="grid gap-1">
           {conversationToDisplay?.map((conversation) => (
             <HomeConversation key={conversation.id} conversation={conversation} />

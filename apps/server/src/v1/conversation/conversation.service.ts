@@ -76,10 +76,10 @@ export class ConversationService {
   }
 
   async getConversationByMembersId(members: string[], userId: string) {
-    return await this.conversationModel.findConversationByMembers([
-      ...members,
+    return await this.conversationModel.findConversationByMembers(
+      [...members, userId],
       userId,
-    ]);
+    );
   }
 
   async getConversationById(

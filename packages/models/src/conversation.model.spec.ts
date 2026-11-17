@@ -12,7 +12,6 @@ const THIRD_ID = '64b7f0c2a1b2c3d4e5f6071b';
 
 function build() {
   const save = vi.fn().mockResolvedValue(undefined);
-  const lean = vi.fn().mockResolvedValue([]);
   const populate = vi.fn().mockResolvedValue(null);
 
   // `createConversation` calls `new this.Conversation(data)`, so the mock must be constructible.
@@ -23,7 +22,6 @@ function build() {
     {
       exists: vi.fn().mockResolvedValue(null),
       findOne: vi.fn(() => Object.assign(Promise.resolve(null), { populate })),
-      find: vi.fn((_filter: { members: { $size: number; $all: Types.ObjectId[] } }) => ({ lean })),
       distinct: vi.fn().mockResolvedValue([]),
       aggregate: vi.fn().mockResolvedValue([]),
     },
@@ -32,7 +30,6 @@ function build() {
   return {
     collection,
     save,
-    lean,
     populate,
     model: new ConversationModel(collection as unknown as Model<Conversation>),
   };
@@ -216,23 +213,27 @@ describe('ConversationModel', () => {
   });
 
   describe('findConversationByMembers', () => {
-    it('finds conversations with exactly those members as plain objects', async () => {
-      const { collection, lean, model } = build();
-      const found = [{ _id: CONVERSATION_ID }];
-      lean.mockResolvedValue(found);
+    it('matches conversations with exactly those members and populates them', async () => {
+      const { collection, model } = build();
+      const found = [{ _id: CONVERSATION_ID, members: [] }];
+      collection.aggregate.mockResolvedValue(found);
 
-      await expect(model.findConversationByMembers([USER_ID, OTHER_ID])).resolves.toBe(found);
+      await expect(model.findConversationByMembers([USER_ID, OTHER_ID], USER_ID)).resolves.toBe(found);
 
-      const [filter] = collection.find.mock.calls[0];
-      expect(filter.members.$size).toBe(2);
-      expect(filter.members.$all.map(String)).toEqual([USER_ID, OTHER_ID]);
+      const [pipeline] = collection.aggregate.mock.calls[0];
+      const { members } = pipeline[0].$match;
+      expect(members.$size).toBe(2);
+      expect(members.$all.map(String)).toEqual([USER_ID, OTHER_ID]);
+      expect(members.$all[0]).toBeInstanceOf(Types.ObjectId);
+      expect(pipeline[1].$lookup).toMatchObject({ from: 'user', localField: 'members', as: 'members' });
+      expect(String(pipeline[1].$lookup.pipeline[0].$match._id.$ne)).toBe(USER_ID);
     });
 
     it('turns a driver failure into a 500', async () => {
-      const { lean, model } = build();
-      lean.mockRejectedValue(new Error('connection lost'));
+      const { collection, model } = build();
+      collection.aggregate.mockRejectedValue(new Error('connection lost'));
 
-      await expect(model.findConversationByMembers([USER_ID])).rejects.toBeInstanceOf(InternalServerErrorException);
+      await expect(model.findConversationByMembers([USER_ID], USER_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 
@@ -273,8 +274,9 @@ describe('ConversationModel', () => {
       await model.getActiveConversationByUserId(USER_ID);
 
       const [pipeline] = collection.aggregate.mock.calls[0];
-      expect(String(pipeline[0].$match.members)).toBe(USER_ID);
+      expect(pipeline[0].$match.members.$in.map(String)).toEqual([USER_ID]);
       expect(pipeline[0].$match.status).toEqual({ $ne: ConversationStatus.BLOCKED });
+      expect(pipeline.find((stage: { $project?: object }) => stage.$project)?.$project).toHaveProperty('nicknames', 1);
     });
 
     it.each(['getConversationsByUserId', 'getActiveConversationByUserId'] as const)(

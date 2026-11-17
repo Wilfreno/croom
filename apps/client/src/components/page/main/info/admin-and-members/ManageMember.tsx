@@ -117,7 +117,7 @@ export default function ManageMember() {
           <span>Manage Members</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[40dvw] ">
+      <DialogContent className="md:w-[40dvw]">
         <DialogHeader>
           <DialogTitle></DialogTitle>
         </DialogHeader>
@@ -138,7 +138,7 @@ export default function ManageMember() {
                 onFocus={() => setOpen(true)}
                 onChange={(e) => setValue(e.target.value)}
               />
-              {!!value && (
+              {Boolean(value) && (
                 <Button
                   variant="ghost"
                   className="absolute top-1/2 right-2 -translate-y-1/2 aspect-square h-fit w-auto rounded-full p-1"

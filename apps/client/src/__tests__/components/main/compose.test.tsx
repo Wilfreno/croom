@@ -46,10 +46,7 @@ vi.mock('@/components/hooks/queries/useMessages', () => ({
 }));
 
 const sendMessage = { mutate: vi.fn(), isPending: false };
-const composeSpy = vi.fn((_options: unknown) => ({ sendMessage }));
-vi.mock('@/components/hooks/mutation/useComposeMessage.mutation', () => ({
-  default: (options: unknown) => composeSpy(options),
-}));
+vi.mock('@/components/hooks/mutation/useComposeMessage.mutation', () => ({ default: () => ({ sendMessage }) }));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -167,7 +164,7 @@ describe('ComposeTo', () => {
     expect(screen.getByText('2 group chat(s)')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'see list' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Team' }));
+    await userEvent.click(screen.getByRole('button', { name: /Team/ }));
 
     expect(push).toHaveBeenCalledWith(`/conversation/${foundConversations[0].id}`);
   });
@@ -193,7 +190,7 @@ describe('ComposeMessageInput', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Aa'), 'hello{Enter}');
 
-    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: undefined, text: 'hello', members: ['u1', 'u2'] });
+    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: undefined, text: 'hello', members: ['u1', 'u2'], photos: [] });
     expect(screen.getByPlaceholderText('Aa')).toHaveValue('');
   });
 
@@ -203,7 +200,7 @@ describe('ComposeMessageInput', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Aa'), 'hi{Enter}');
 
-    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: 'existing', text: 'hi', members: ['u1'] });
+    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: 'existing', text: 'hi', members: ['u1'], photos: [] });
   });
 
   it('sends a thumbs-up with nothing typed', async () => {
@@ -241,9 +238,12 @@ describe('ComposeMessageInput', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
 
     expect(await screen.findByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_FILE.url);
-    await waitFor(() =>
-      expect(composeSpy).toHaveBeenLastCalledWith({ photos: [{ ...UPLOADED_FILE, width: 640, height: 480 }] }),
+    await userEvent.type(screen.getByPlaceholderText('Aa'), 'look{Enter}');
+
+    expect(sendMessage.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ photos: [{ ...UPLOADED_FILE, width: 640, height: 480 }] }),
     );
+    expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument();
   });
 
   it('removes an attached photo', async () => {
@@ -293,6 +293,22 @@ describe('ComposeFoundMessages', () => {
     expect(screen.getByText('earlier chat')).toBeInTheDocument();
   });
 
+  it('resends a failed message to the selected people', async () => {
+    const failed = { ...mockMessage({ text: 'lost' }), failed: true };
+    messagePages = { pages: [{ pageParam: 1, result: [failed] }] };
+
+    renderWithQuery(<ComposeFoundMessages selectedUsers={selection(2)} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(sendMessage.mutate).toHaveBeenCalledWith({
+      conversationId: undefined,
+      text: 'lost',
+      members: ['u1', 'u2'],
+      photos: [],
+      retryId: failed.id,
+    });
+  });
+
   it('offers a reload when messages cannot be loaded', () => {
     messagesError = true;
 
@@ -315,7 +331,7 @@ describe('Compose page', () => {
     await userEvent.click(screen.getByRole('button', { name: /Bob @bob/ }));
     await userEvent.type(screen.getByPlaceholderText('Aa'), 'hi{Enter}');
 
-    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: undefined, text: 'hi', members: [bob.id] });
+    expect(sendMessage.mutate).toHaveBeenCalledWith({ conversationId: undefined, text: 'hi', members: [bob.id], photos: [] });
   });
 
   it('starts with recipients handed over by another screen, only once', () => {
@@ -330,5 +346,18 @@ describe('Compose page', () => {
     first.unmount();
     renderWithQuery(<ComposePage />, queryClient);
     expect(screen.queryByText('Zoe')).not.toBeInTheDocument();
+  });
+
+  it("clears a first message that wasn't sent when leaving compose", () => {
+    const queryClient = makeQueryClient();
+    queryClient.setQueryDefaults(['conversation', 'messages'], { gcTime: Infinity });
+    const draftKey = ['conversation', 'messages', undefined];
+    queryClient.setQueryData(draftKey, { pages: [{ pageParam: 1, result: [mockMessage()] }], pageParams: [1] });
+
+    const { unmount } = renderWithQuery(<ComposePage />, queryClient);
+    expect(queryClient.getQueryData(draftKey)).toBeDefined();
+
+    unmount();
+    expect(queryClient.getQueryData(draftKey)).toBeUndefined();
   });
 });

@@ -85,7 +85,7 @@ export default function InfoPrivacyAndSupport() {
     <Collapsible
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (isOpen && conversation && !isGroupChat(conversation)) {
+        if (isOpen && conversation && !isGroupChat(conversation, session.user?.id)) {
           const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
 
           setToReportUser({ id: otherUser!.id, displayName: otherUser!.displayName });
@@ -108,7 +108,7 @@ export default function InfoPrivacyAndSupport() {
               <span>Report User</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="p-2 w-96 md:[30dvh]">
+          <DialogContent className="p-2 w-96">
             <DialogHeader>
               <DialogTitle></DialogTitle>
             </DialogHeader>
@@ -138,7 +138,7 @@ export default function InfoPrivacyAndSupport() {
                     <Button variant="secondary" className="place-self-end" onClick={() => setToReportUser(undefined)}>
                       cancel
                     </Button>
-                    {isGroupChat(conversation!) ? (
+                    {isGroupChat(conversation!, session.user?.id) ? (
                       <Button className="place-self-end">send</Button>
                     ) : (
                       <DialogClose asChild disabled={!reportReason} onClick={() => report.mutate()}>
@@ -190,7 +190,7 @@ export default function InfoPrivacyAndSupport() {
             )}
           </DialogContent>
         </Dialog>
-        {Boolean(conversation) && isGroupChat(conversation!) ? (
+        {Boolean(conversation) && isGroupChat(conversation!, session.user?.id) ? (
           <Button variant="ghost" className="w-full justify-start" onClick={() => leaveConversation.mutate()}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full">
               <LogOut className="h-4 w-auto stroke-2" />

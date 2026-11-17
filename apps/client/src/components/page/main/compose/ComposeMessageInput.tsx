@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { Textarea } from '@/components/ui/textarea';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn, withBasePath } from '@/lib/utils';
+import type { PhotoInput } from '@/types/message.types';
 import { ConversationStatus } from '@repo/enums';
 import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -20,7 +21,7 @@ import { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 
 export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
-  const [photoInput, setPhotoInput] = useState<{ key: string; url: string; width: number; height: number }[]>([]);
+  const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const {
     session: { user },
@@ -32,9 +33,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { data: conversation } = useConversation(foundConversations?.[0]?.id);
 
-  const { sendMessage } = useComposeMessage({
-    photos: photoInput,
-  });
+  const { sendMessage } = useComposeMessage();
 
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
     mutationFn: async ({ key }) => {
@@ -83,11 +82,13 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   function submit(text: string = textInput) {
     sendMessage.mutate({
-      conversationId: foundConversations?.[0]?.id as string,
+      conversationId: foundConversations?.[0]?.id,
       text,
       members: selectedUsers!.map((user) => user[0]),
+      photos: photoInput,
     });
-
+    setUploadingImage(false);
+    setPhotoInput([]);
     setTextInput('');
   }
 
@@ -132,7 +133,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
         }}
       >
         <div className="w-full">
-          {uploadingImage || !!photoInput.length ? (
+          {uploadingImage || Boolean(photoInput.length) ? (
             <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
               <UploadThingButton
                 endpoint="multipleImage"

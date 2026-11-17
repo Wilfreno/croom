@@ -1,5 +1,5 @@
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getSecondsInterval, isGroupChat } from '@/lib/utils';
+import { getConversationName, getSecondsInterval, isConversationOnline, isGroupChat } from '@/lib/utils';
 import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
@@ -14,21 +14,18 @@ export default function useConversationInfo(conversation?: Conversation) {
     queryFn() {
       let lastOnline = '';
       let photoUrl: string;
-      let conversationName = '';
+      const conversationName = getConversationName(conversation!, session.user?.id);
       let status: UserStatus | null = null;
+      const isOnline = isConversationOnline(conversation!, session.user?.id);
 
-      if (isGroupChat(conversation!)) {
+      if (isGroupChat(conversation!, session.user?.id)) {
         photoUrl = conversation!.photo?.url || '';
-        conversationName = conversation!.name;
       } else {
         const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);
-        if (!otherUser) return { photoUrl: '', conversationName: '', status: null, lastOnline };
+        if (!otherUser) return { photoUrl: '', conversationName: '', status: null, isOnline: false, lastOnline };
 
         status = otherUser.status;
         photoUrl = otherUser.photo?.url || '';
-
-        conversationName = conversation!.nicknames.find((nickname) => nickname.user === otherUser.id)?.value ?? '';
-        if (!conversationName) conversationName = otherUser.displayName;
 
         if (otherUser.status === UserStatus.OFFLINE) {
           const lastOnlineInSeconds = getSecondsInterval(new Date(), new Date(otherUser.lastOnline));
@@ -47,6 +44,7 @@ export default function useConversationInfo(conversation?: Conversation) {
         photoUrl,
         conversationName,
         status,
+        isOnline,
         lastOnline,
       };
     },
@@ -54,6 +52,7 @@ export default function useConversationInfo(conversation?: Conversation) {
       photoUrl: undefined!,
       conversationName: '',
       status: null,
+      isOnline: false,
       lastOnline: '',
     },
   });
