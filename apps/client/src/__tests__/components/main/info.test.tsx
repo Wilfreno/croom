@@ -704,8 +704,8 @@ describe('InfoPrivacyAndSupport', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Block User' }));
 
-    expect(axiosInstance.post).toHaveBeenCalledWith('/v1/block', { user: bob.id });
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('user as been blocked'));
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/block');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('user has been blocked'));
     expect(axiosInstance.get).toHaveBeenCalledWith('/conversation/c1');
   });
 
@@ -717,7 +717,7 @@ describe('InfoPrivacyAndSupport', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Unblock User' }));
 
-    expect(axiosInstance.delete).toHaveBeenCalledWith('/v1/block');
+    expect(axiosInstance.delete).toHaveBeenCalledWith('/conversation/c1/block');
     await waitFor(() => expect(toast).toHaveBeenCalledWith('user unblocked'));
   });
 

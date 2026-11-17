@@ -1,3 +1,4 @@
+import useBlockConversation from '@/components/hooks/mutation/useBlockConversation.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,7 +28,8 @@ export default function InfoPrivacyAndSupport() {
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
 
-  const { data: conversation, refetch } = useConversation(params.id);
+  const { data: conversation } = useConversation(params.id);
+  const { blockConversation, unblockConversation } = useBlockConversation();
 
   const report = useMutation({
     async mutationFn() {
@@ -53,33 +55,6 @@ export default function InfoPrivacyAndSupport() {
     },
   });
 
-  const blockUser = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.post('/v1/block', {
-        user: conversation?.members.find((member) => member.id !== session.user?.id)?.id,
-      });
-    },
-    async onSuccess() {
-      await refetch();
-      toast('user as been blocked');
-    },
-    onError() {
-      toast.error(SOMETHING_WENT_WRONG);
-    },
-  });
-
-  const unblockUser = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.delete('/v1/block');
-    },
-    onSuccess: async () => {
-      await refetch();
-      toast('user unblocked');
-    },
-    onError() {
-      toast.error(SOMETHING_WENT_WRONG);
-    },
-  });
 
   return (
     <Collapsible
@@ -201,7 +176,8 @@ export default function InfoPrivacyAndSupport() {
           <Button
             variant="secondary"
             className="w-full justify-start text-destructive"
-            onClick={() => unblockUser.mutate()}
+            disabled={unblockConversation.isPending}
+            onClick={() => unblockConversation.mutate(params.id)}
           >
             <span className="aspect-square h-fit w-auto p-2 rounded-full ">
               <ShieldMinus className="h-4 w-auto" />
@@ -209,7 +185,12 @@ export default function InfoPrivacyAndSupport() {
             <span>Unblock User</span>
           </Button>
         ) : (
-          <Button variant="ghost" className="w-full justify-start" onClick={() => blockUser.mutate()}>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            disabled={blockConversation.isPending}
+            onClick={() => blockConversation.mutate(params.id)}
+          >
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full text-destructive">
               <ShieldMinus className="h-4 w-auto" />
             </span>

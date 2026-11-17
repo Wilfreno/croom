@@ -2,8 +2,6 @@ import { User } from '@repo/types';
 
 export type Block = {
   id: string;
-  blockedUser: User;
+  blockedUser: Pick<User, 'id' | 'userName' | 'displayName' | 'photo'>;
   blocker: string;
-  conversation: string;
-  dateCreated: Date;
 };
