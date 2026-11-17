@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ConversationInfo } from '@/types/common.types';
+import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
 import { ArrowLeft, Ellipsis, Video } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -56,20 +57,22 @@ export default function ConversationHeader({
         </div>
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
-                aria-label="Start video call"
-                onClick={startCall}
-              >
-                <Video className="fill-primary" />
-              </Button>
-            </TooltipTrigger>
-          </Tooltip>
-        </TooltipProvider>
+        {conversation?.status !== ConversationStatus.BLOCKED && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
+                  aria-label="Start video call"
+                  onClick={startCall}
+                >
+                  <Video className="fill-primary" />
+                </Button>
+              </TooltipTrigger>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <Button
           variant="ghost"
           className="aspect-square h-fit w-auto rounded-full p-1 text-primary"

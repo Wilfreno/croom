@@ -91,6 +91,17 @@ describe('ConversationHeader', () => {
     expect(push).toHaveBeenCalledWith('/call/c1');
   });
 
+  it.each([
+    ['you blocked', () => sessionUser.id],
+    ['you were blocked', () => 'someone-else'],
+  ])('offers no video call in a conversation %s', (_, blocker) => {
+    renderWithQuery(
+      <ConversationHeader conversationInfo={info} conversation={mockConversation({ status: 'BLOCKED', blocker: blocker() })} />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
+  });
+
   it('toggles the info sidebar', async () => {
     renderWithQuery(<ConversationHeader conversationInfo={info} />);
     const buttons = screen.getAllByRole('button');
