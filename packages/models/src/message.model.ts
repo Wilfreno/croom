@@ -119,7 +119,7 @@ export class MessageModel {
             foreignField: '_id',
             as: 'sender',
             pipeline: [
-              { $project: { photo: 1 } },
+              { $project: { displayName: 1, photo: 1 } },
               {
                 $lookup: {
                   from: 'photo',
