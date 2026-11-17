@@ -16,6 +16,9 @@ export class Conversation {
   @Prop({ type: [Types.ObjectId], ref: 'User', required: true })
   members!: Types.ObjectId[];
 
+  @Prop({ type: Boolean, required: true })
+  isGroupChat!: boolean;
+
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   admins!: Types.ObjectId[];
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { isGroupChat } from '@/lib/utils';
 import { UserStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
 import GroupAvatar from './GroupAvatar';
@@ -12,12 +11,12 @@ export default function ConversationAvatar({
   className,
   size = 'default',
 }: {
-  conversation: Pick<Conversation, 'members' | 'photo'>;
+  conversation: Pick<Conversation, 'members' | 'photo' | 'isGroupChat'>;
   currentUserId?: string;
   className?: string;
   size?: 'default' | 'lg';
 }) {
-  if (isGroupChat(conversation, currentUserId))
+  if (conversation.isGroupChat)
     return <GroupAvatar conversation={conversation} currentUserId={currentUserId} className={className} size={size} />;
 
   const otherMember = conversation.members.find((member) => member.id !== currentUserId) ?? conversation.members[0];

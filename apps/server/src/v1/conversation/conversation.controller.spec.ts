@@ -1,5 +1,10 @@
 import { GUARDS_METADATA } from '@nestjs/common/constants';
-import { CONVERSATION_BLOCKED_SOURCE_KEY, ConversationBlockedGuard } from '@repo/guards';
+import {
+  CONVERSATION_ADMIN_SOURCE_KEY,
+  CONVERSATION_BLOCKED_SOURCE_KEY,
+  ConversationAdminGuard,
+  ConversationBlockedGuard,
+} from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConversationController } from './conversation.controller';
@@ -16,6 +21,10 @@ function build() {
     blockConversation: vi.fn().mockResolvedValue(undefined),
     unblockConversation: vi.fn().mockResolvedValue(undefined),
     setNickname: vi.fn().mockResolvedValue({ user: 'ada', value: 'Ace' }),
+    addAdmin: vi.fn().mockResolvedValue({ memberId: 'ada' }),
+    removeAdmin: vi.fn().mockResolvedValue({ memberId: 'ada' }),
+    addMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
+    removeMember: vi.fn().mockResolvedValue({ memberId: 'ada' }),
   };
   const controller = new ConversationController(conversationService as unknown as ConversationService);
   return { controller, conversationService };
@@ -71,6 +80,50 @@ describe('ConversationController', () => {
     });
   });
 
+  it('adds an admin on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.addAdmin(USER, { conversationId: 'c1' }, { memberId: 'ada' })).resolves.toEqual({
+      memberId: 'ada',
+    });
+    expect(conversationService.addAdmin).toHaveBeenCalledWith({ conversationId: 'c1', memberId: 'ada', requesterId: 'me' });
+  });
+
+  it('removes an admin on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.removeAdmin(USER, { conversationId: 'c1', memberId: 'ada' })).resolves.toEqual({
+      memberId: 'ada',
+    });
+    expect(conversationService.removeAdmin).toHaveBeenCalledWith({
+      conversationId: 'c1',
+      memberId: 'ada',
+      requesterId: 'me',
+    });
+  });
+
+  it('adds a member on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.addMember(USER, { conversationId: 'c1' }, { memberId: 'ada' })).resolves.toEqual({
+      memberId: 'ada',
+    });
+    expect(conversationService.addMember).toHaveBeenCalledWith({ conversationId: 'c1', memberId: 'ada', requesterId: 'me' });
+  });
+
+  it('removes a member on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.removeMember(USER, { conversationId: 'c1', memberId: 'ada' })).resolves.toEqual({
+      memberId: 'ada',
+    });
+    expect(conversationService.removeMember).toHaveBeenCalledWith({
+      conversationId: 'c1',
+      memberId: 'ada',
+      requesterId: 'me',
+    });
+  });
+
   it('blocks a conversation on behalf of the caller', async () => {
     const { controller, conversationService } = build();
 
@@ -107,5 +160,14 @@ describe('ConversationController', () => {
         expect(isBlockGuarded(name)).toBe(false);
       },
     );
+  });
+
+  describe('admin routes', () => {
+    const route = (name: keyof ConversationController) => ConversationController.prototype[name] as object;
+
+    it.each(['addAdmin', 'removeAdmin', 'addMember', 'removeMember'] as const)('only lets admins reach %s', (name) => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, route(name))).toContain(ConversationAdminGuard);
+      expect(Reflect.getMetadata(CONVERSATION_ADMIN_SOURCE_KEY, route(name))).toEqual({ param: 'conversationId' });
+    });
   });
 });

@@ -13,7 +13,6 @@ import {
   getNicknameNoticeText,
   getSecondsInterval,
   getTimeIntervalText,
-  isGroupChat,
   isSameSender,
   peopleLabel,
 } from '@/lib/utils';
@@ -42,24 +41,6 @@ describe('cn', () => {
 
   it('lets a later tailwind class override a conflicting earlier one', () => {
     expect(cn('p-2', 'p-4')).toBe('p-4');
-  });
-});
-
-describe('isGroupChat', () => {
-  const conversation = (members: number) =>
-    ({ members: Array.from({ length: members }, (_, i) => ({ id: String(i) })) }) as unknown as Conversation;
-
-  it('is false for a one-to-one conversation (the other member only)', () => {
-    expect(isGroupChat(conversation(1))).toBe(false);
-  });
-
-  it('is true for two or more other members', () => {
-    expect(isGroupChat(conversation(2))).toBe(true);
-  });
-
-  it('leaves out the current user, so a one-to-one conversation that includes them is not a group', () => {
-    expect(isGroupChat(conversation(2), '0')).toBe(false);
-    expect(isGroupChat(conversation(3), '0')).toBe(true);
   });
 });
 

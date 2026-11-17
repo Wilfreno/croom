@@ -59,15 +59,16 @@ export class ConversationService {
     }
 
     const memberIds = members.map((id) => new Types.ObjectId(id));
-    const isGroup = hasGroupMemberCount(members);
+    const isGroupChat = hasGroupMemberCount(members);
 
     return await this.conversationModel.createConversation(
       {
-        name: isGroup
+        name: isGroupChat
           ? foundUsers.map((user) => user.displayName).join(', ')
           : '',
+        isGroupChat,
         members: memberIds,
-        admins: isGroup ? [new Types.ObjectId(userId)] : memberIds,
+        admins: isGroupChat ? [new Types.ObjectId(userId)] : memberIds,
         nicknames: members.map((member) => ({
           user: new Types.ObjectId(member),
           value: '',
@@ -122,7 +123,7 @@ export class ConversationService {
 
     if (!conversation || conversation.status === ConversationStatus.DELETED)
       throw new NotFoundException('conversation does not exist');
-    if (conversation.members.length !== 2)
+    if (conversation.isGroupChat)
       throw new BadRequestException(
         'only one-to-one conversations can be blocked',
       );
@@ -141,6 +142,143 @@ export class ConversationService {
       conversationId,
       'this conversation was blocked',
     );
+  }
+
+  async addAdmin({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const conversation = await this.findGroup(conversationId);
+    const memberIds = conversation.members.map(String);
+    const adminIds = conversation.admins.map(String);
+
+    if (!memberIds.includes(memberId))
+      throw new NotFoundException('user is not a member of this conversation');
+    if (adminIds.includes(memberId))
+      throw new ConflictException('user is already an admin');
+
+    const added = await this.conversationModel.addAdmin({
+      conversationId,
+      memberId,
+      requesterId,
+    });
+    if (!added)
+      throw new ConflictException(
+        'the admins of this conversation changed, try again',
+      );
+
+    return { memberId };
+  }
+
+  async removeAdmin({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const conversation = await this.findGroup(conversationId);
+    const adminIds = conversation.admins.map(String);
+
+    if (!adminIds.includes(memberId))
+      throw new ConflictException('user is not an admin');
+    if (adminIds.length < 2)
+      throw new ConflictException('a group needs at least one admin');
+
+    const removed = await this.conversationModel.removeAdmin({
+      conversationId,
+      memberId,
+      requesterId,
+    });
+    if (!removed)
+      throw new ConflictException(
+        'the admins of this conversation changed, try again',
+      );
+
+    return { memberId };
+  }
+
+  async addMember({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const conversation = await this.findGroup(conversationId);
+    const memberIds = conversation.members.map(String);
+
+    if (memberIds.includes(memberId))
+      throw new ConflictException('user is already a member');
+
+    const [user] = await this.userModel.getUsersByIds([memberId]);
+    if (!user) throw new NotFoundException('user does not exist');
+
+    const added = await this.conversationModel.addMember({
+      conversationId,
+      memberId,
+      requesterId,
+    });
+    if (!added)
+      throw new ConflictException(
+        'the members of this conversation changed, try again',
+      );
+
+    return { memberId };
+  }
+
+  async removeMember({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    if (memberId === requesterId)
+      throw new BadRequestException('you cannot remove yourself');
+
+    const conversation = await this.findGroup(conversationId);
+    const memberIds = conversation.members.map(String);
+
+    if (!memberIds.includes(memberId))
+      throw new NotFoundException('user is not a member of this conversation');
+
+    const removed = await this.conversationModel.removeMember({
+      conversationId,
+      memberId,
+      requesterId,
+    });
+    if (!removed)
+      throw new ConflictException(
+        'the members of this conversation changed, try again',
+      );
+
+    return { memberId };
+  }
+
+  private async findGroup(conversationId: string) {
+    const conversation =
+      await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation || conversation.status === ConversationStatus.DELETED)
+      throw new NotFoundException('conversation does not exist');
+    if (!conversation.isGroupChat)
+      throw new BadRequestException(
+        'only group conversations have admins and members to manage',
+      );
+
+    return conversation;
   }
 
   async setNickname({

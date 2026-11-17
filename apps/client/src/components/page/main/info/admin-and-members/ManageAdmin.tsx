@@ -1,3 +1,4 @@
+import useManageAdmin from '@/components/hooks/mutation/useManageAdmin.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
@@ -5,14 +6,10 @@ import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
-import { Conversation } from '@repo/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
-import { toast } from 'sonner';
 
 export default function ManageAdmin() {
   const { session } = useAuth();
@@ -20,43 +17,13 @@ export default function ManageAdmin() {
   const params = useParams<{ id: string }>();
   const { data: conversation } = useConversation(params.id);
 
-  const queryClient = useQueryClient();
+  const { addAdmin, removeAdmin } = useManageAdmin(params.id);
+  const isPending = addAdmin.isPending || removeAdmin.isPending;
 
   const isAdmin = useMemo(() => {
     if (!conversation || !session) return false;
     return conversation.admins.some((user) => user.id === session.user?.id);
   }, [session.user, conversation]);
-
-  const manageAdmin = useMutation<void, Error, { admin: string; adminAction: 'ADD' | 'REMOVE' }>({
-    mutationFn: async ({ admin, adminAction }) => {
-      try {
-        const { message, status } = await PATCHRequest('/v1/conversation/' + params.id + '/admins', {
-          adminAction,
-          admin,
-        });
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
-    onSuccess: (_, { admin, adminAction }) => {
-      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => {
-        if (!prev) return;
-
-        switch (adminAction) {
-          case 'ADD': {
-            return {
-              ...prev,
-              admins: [...prev.admins, prev.members.find((user) => user.id === admin)!],
-            };
-          }
-          case 'REMOVE':
-            return { ...prev, admins: prev.admins.filter((user) => user.id !== admin) };
-        }
-      });
-    },
-  });
 
   return (
     <Dialog>
@@ -96,18 +63,18 @@ export default function ManageAdmin() {
                   <p className="text-xs font-semibold text-muted-foreground mr-4">You</p>
                 ) : conversation.admins.some((admin) => admin.id === user.id) ? (
                   <Button
-                    disabled={manageAdmin.isPending}
+                    disabled={isPending}
                     size="sm"
                     variant="destructive"
-                    onClick={() => manageAdmin.mutate({ admin: user.id, adminAction: 'REMOVE' })}
+                    onClick={() => removeAdmin.mutate(user.id)}
                   >
                     Remove
                   </Button>
                 ) : (
                   <Button
-                    disabled={manageAdmin.isPending}
+                    disabled={isPending}
                     size="sm"
-                    onClick={() => manageAdmin.mutate({ admin: user.id, adminAction: 'ADD' })}
+                    onClick={() => addAdmin.mutate(user.id)}
                   >
                     Add
                   </Button>

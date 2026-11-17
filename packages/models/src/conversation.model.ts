@@ -16,6 +16,7 @@ export class ConversationModel {
     try {
       return Boolean(
         await this.Conversation.exists({
+          isGroupChat: false,
           members: { $size: members.length, $all: members.map((member) => new Types.ObjectId(member)) },
         }),
       );
@@ -43,6 +44,15 @@ export class ConversationModel {
       return Boolean(
         await this.Conversation.exists({ _id: conversationId, members: { $in: [new Types.ObjectId(userId)] } }),
       );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async isConversationAdmin({ conversationId, userId }: { conversationId: string; userId: string }) {
+    try {
+      return Boolean(await this.Conversation.exists({ _id: conversationId, admins: new Types.ObjectId(userId) }));
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -79,7 +89,8 @@ export class ConversationModel {
       const result = await this.Conversation.updateOne(
         {
           _id: conversationId,
-          members: { $size: 2, $all: [new Types.ObjectId(userId)] },
+          isGroupChat: false,
+          members: new Types.ObjectId(userId),
           status: { $nin: [ConversationStatus.BLOCKED, ConversationStatus.DELETED] },
         },
         { $set: { status: ConversationStatus.BLOCKED, blocker: new Types.ObjectId(userId) } },
@@ -117,6 +128,129 @@ export class ConversationModel {
         { session },
       );
       return { found: result.matchedCount > 0, changed: result.modifiedCount > 0 };
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async addAdmin({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          $and: [{ admins: new Types.ObjectId(requesterId) }, { admins: { $ne: memberObjectId } }],
+          members: memberObjectId,
+          isGroupChat: true,
+        },
+        { $addToSet: { admins: memberObjectId } },
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async addMember({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          admins: new Types.ObjectId(requesterId),
+          members: { $ne: memberObjectId },
+          isGroupChat: true,
+          status: { $ne: ConversationStatus.DELETED },
+        },
+        {
+          $addToSet: { members: memberObjectId },
+          $push: { nicknames: { user: memberObjectId, value: "" } },
+        },
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async removeMember({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          admins: new Types.ObjectId(requesterId),
+          members: memberObjectId,
+          isGroupChat: true,
+          status: { $ne: ConversationStatus.DELETED },
+        },
+        {
+          $pull: {
+            members: memberObjectId,
+            admins: memberObjectId,
+            nicknames: { user: memberObjectId },
+          },
+        },
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async removeAdmin({
+    conversationId,
+    memberId,
+    requesterId,
+  }: {
+    conversationId: string;
+    memberId: string;
+    requesterId: string;
+  }) {
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          $and: [{ admins: new Types.ObjectId(requesterId) }, { admins: memberObjectId }],
+          "admins.1": { $exists: true },
+          isGroupChat: true,
+        },
+        { $pull: { admins: memberObjectId } },
+      );
+      return result.modifiedCount > 0;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -244,6 +378,7 @@ export class ConversationModel {
       return await this.Conversation.aggregate([
         {
           $match: {
+            isGroupChat: members.length > 2,
             members: {
               $size: members.length,
               $all: members.map((member) => new Types.ObjectId(member)),
@@ -390,7 +525,7 @@ export class ConversationModel {
           },
         },
         { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
-        { $project: { name: 1, photo: 1, members: 1, nicknames: 1, lastUpdated: 1 } },
+        { $project: { name: 1, isGroupChat: 1, photo: 1, members: 1, nicknames: 1, lastUpdated: 1 } },
         { $sort: { lastUpdated: -1 } },
       ]);
     } catch (error) {

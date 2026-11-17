@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import ReportUserDialog from '@/components/page/main/info/ReportUserDialog';
 import { axiosInstance } from '@/lib/axios-instance';
-import { isGroupChat } from '@/lib/utils';
 import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import { ConversationStatus } from "@repo/enums";
 import { useMutation } from '@tanstack/react-query';
@@ -42,7 +41,7 @@ export default function InfoPrivacyAndSupport() {
       </CollapsibleTrigger>
       <CollapsibleContent className="grid gap-2 p-2">
         {conversation ? <ReportUserDialog conversation={conversation} /> : null}
-        {Boolean(conversation) && isGroupChat(conversation!, session.user?.id) ? (
+        {Boolean(conversation) && conversation!.isGroupChat ? (
           <Button variant="ghost" className="w-full justify-start" onClick={() => leaveConversation.mutate()}>
             <span className="aspect-square h-fit w-auto p-2 bg-secondary rounded-full">
               <LogOut className="h-4 w-auto stroke-2" />

@@ -8,7 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { IsMember, NotBlocked } from '@repo/guards';
+import { IsAdmin, IsMember, NotBlocked } from '@repo/guards';
 import type { AuthenticatedUser } from '@repo/types';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -20,6 +20,16 @@ import {
 import { BlockConversationDto } from './dto/block-conversation.dto';
 import { GetConversationMediaDto } from './dto/get-media.dto';
 import { GetConversationMessageDto } from './dto/get-message.dto';
+import {
+  AddAdminDto,
+  AddAdminParamDto,
+  RemoveAdminParamDto,
+} from './dto/manage-admin.dto';
+import {
+  AddMemberDto,
+  AddMemberParamDto,
+  RemoveMemberParamDto,
+} from './dto/manage-member.dto';
 import { SetNicknameDto, SetNicknameParamDto } from './dto/set-nickname.dto';
 
 @Controller({ path: 'conversation', version: '1' })
@@ -75,6 +85,64 @@ export class ConversationController {
       user,
       value,
       userId: currentUser.id,
+    });
+  }
+
+  @IsAdmin({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Post('/:conversationId/admins')
+  addAdmin(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId }: AddAdminParamDto,
+    @Body() { memberId }: AddAdminDto,
+  ) {
+    return this.conversationService.addAdmin({
+      conversationId,
+      memberId,
+      requesterId: currentUser.id,
+    });
+  }
+
+  @IsAdmin({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Delete('/:conversationId/admins/:memberId')
+  removeAdmin(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId, memberId }: RemoveAdminParamDto,
+  ) {
+    return this.conversationService.removeAdmin({
+      conversationId,
+      memberId,
+      requesterId: currentUser.id,
+    });
+  }
+
+  @IsAdmin({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Post('/:conversationId/members')
+  addMember(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId }: AddMemberParamDto,
+    @Body() { memberId }: AddMemberDto,
+  ) {
+    return this.conversationService.addMember({
+      conversationId,
+      memberId,
+      requesterId: currentUser.id,
+    });
+  }
+
+  @IsAdmin({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Delete('/:conversationId/members/:memberId')
+  removeMember(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId, memberId }: RemoveMemberParamDto,
+  ) {
+    return this.conversationService.removeMember({
+      conversationId,
+      memberId,
+      requesterId: currentUser.id,
     });
   }
 

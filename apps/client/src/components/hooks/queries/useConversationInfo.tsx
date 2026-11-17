@@ -1,5 +1,5 @@
 import { useAuth } from '@/components/providers/AuthProvider';
-import { getConversationName, getSecondsInterval, isConversationOnline, isGroupChat } from '@/lib/utils';
+import { getConversationName, getSecondsInterval, isConversationOnline } from '@/lib/utils';
 import { SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
@@ -18,7 +18,7 @@ export default function useConversationInfo(conversation?: Conversation) {
       let status: UserStatus | null = null;
       const isOnline = isConversationOnline(conversation!, session.user?.id);
 
-      if (isGroupChat(conversation!, session.user?.id)) {
+      if (conversation!.isGroupChat) {
         photoUrl = conversation!.photo?.url || '';
       } else {
         const otherUser = conversation!.members.find((member) => member.id !== session.user?.id);

@@ -15,10 +15,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function isGroupChat(conversation: Pick<Conversation, "members">, currentUserId?: string) {
-  return conversation.members.filter((member) => member.id !== currentUserId).length > 1;
-}
-
 export function isBlockedMember(conversation: Pick<Conversation, "status" | "blocker"> | undefined, currentUserId?: string) {
   return conversation?.status === ConversationStatus.BLOCKED && conversation.blocker !== currentUserId;
 }

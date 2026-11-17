@@ -150,6 +150,7 @@ describe('useConversationInfo', () => {
   it('uses the group name and photo for a group chat', async () => {
     const conversation = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser(), mockUser()],
       photo: { id: 'p', url: 'https://utfs.io/team' } as never,
     });

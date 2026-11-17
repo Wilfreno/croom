@@ -156,8 +156,8 @@ describe('ComposeTo', () => {
 
   it('points out group chats these people already share', async () => {
     foundConversations = [
-      mockConversation({ name: 'Team', members: [mockUser(), mockUser()] }),
-      mockConversation({ name: 'Friends', members: [mockUser(), mockUser()] }),
+      mockConversation({ name: 'Team', isGroupChat: true, members: [mockUser(), mockUser()] }),
+      mockConversation({ name: 'Friends', isGroupChat: true, members: [mockUser(), mockUser()] }),
     ];
     renderWithQuery(<ComposeToHarness initial={selection(2)} />);
 

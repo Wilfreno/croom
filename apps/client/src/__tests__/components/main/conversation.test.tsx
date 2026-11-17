@@ -77,7 +77,7 @@ describe('ConversationHeader', () => {
   });
 
   it('shows a group chat as its first online member plus how many others', () => {
-    const conversation = mockConversation({ name: 'Team', members: [mockUser(), mockUser(), mockUser()] });
+    const conversation = mockConversation({ name: 'Team', isGroupChat: true, members: [mockUser(), mockUser(), mockUser()] });
 
     renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
 

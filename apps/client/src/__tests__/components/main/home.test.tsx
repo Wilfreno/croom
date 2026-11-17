@@ -123,6 +123,7 @@ describe('HomeConversation', () => {
 
   it('shows a group chat as its first online member plus how many others', () => {
     const conversation = chatWith();
+    conversation.isGroupChat = true;
     conversation.members = [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()];
 
     renderWithQuery(<HomeConversation conversation={conversation} />);
@@ -175,6 +176,7 @@ describe('HomeConversation', () => {
     const carol = mockUser({ displayName: 'Carol' });
     const conversation = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser(), carol],
       messages: [mockMessage({ sender: carol, text: 'standup?', seenBy: [] }) as never],
     });
@@ -300,6 +302,7 @@ describe('HomeActiveConversations', () => {
   it('shows a group chat as its first online member plus how many others', () => {
     const group = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()],
     });
     active.activeConversations = [group];

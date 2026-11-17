@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { cn, getConversationName, getNicknameNoticeText, getTimeIntervalText, isGroupChat } from "@/lib/utils";
+import { cn, getConversationName, getNicknameNoticeText, getTimeIntervalText } from "@/lib/utils";
 import { Conversation } from "@repo/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -57,7 +57,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
 
     // Name the sender when it isn't obvious: you anywhere, or anyone in a group chat.
     if (lastMessage.sender.id === session.user.id) name = "you";
-    else if (isGroupChat(conversation, session.user?.id)) {
+    else if (conversation.isGroupChat) {
       name = conversation.nicknames.find((nickname) => nickname.user === lastMessage.sender.id)?.value || "";
 
       if (!name) name = lastMessage.sender.displayName;

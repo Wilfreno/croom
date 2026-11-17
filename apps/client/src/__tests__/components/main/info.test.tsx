@@ -93,6 +93,7 @@ function groupChat(overrides: Partial<Conversation> = {}) {
   return mockConversation({
     id: 'c1',
     name: 'Team',
+    isGroupChat: true,
     members: [bob, carol],
     admins: [sessionUser as unknown as User],
     nicknames: [
@@ -230,6 +231,14 @@ describe('InfoAdminsAndMembers', () => {
     expect(screen.getByRole('button', { name: 'Bob' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Carol' })).toBeInTheDocument();
   });
+
+  it('still treats a group that shrank to one other member as a group', () => {
+    conversation = groupChat({ members: [bob] });
+
+    renderInfo(<InfoAdminsAndMembers />);
+
+    expect(screen.getByRole('button', { name: 'Admins & Members' })).toBeInTheDocument();
+  });
 });
 
 describe('Admins and Members lists', () => {
@@ -268,7 +277,7 @@ describe('ManageAdmin', () => {
     const bobRow = within(dialog).getByText('Bob').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(bobRow).getByRole('button', { name: 'Add' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/admins', { adminAction: 'ADD', admin: bob.id });
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/admins', { memberId: bob.id });
     await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).toContain(bob.id));
   });
 
@@ -281,12 +290,17 @@ describe('ManageAdmin', () => {
     const carolRow = within(dialog).getByText('Carol').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(carolRow).getByRole('button', { name: 'Remove' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/admins', { adminAction: 'REMOVE', admin: carol.id });
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/conversation/c1/admins/${carol.id}`);
     await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).not.toContain(carol.id));
   });
 
   it('leaves the admins unchanged when the server refuses', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'not allowed', data: null } as never);
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('403', '403', undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'not allowed', data: null },
+      } as never),
+    );
     const { queryClient } = renderInfo(<ManageAdmin />);
     await userEvent.click(screen.getByRole('button', { name: 'Manage admin' }));
     const dialog = await screen.findByRole('dialog');
@@ -320,15 +334,27 @@ describe('ManageMember', () => {
     const bobRow = within(dialog).getByText('@bob').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(bobRow).getByRole('button', { name: 'Remove' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/members', { member: bob.id, action: 'REMOVE' });
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/conversation/c1/members/${bob.id}`);
     await waitFor(() => expect(cached(queryClient).members.map((m) => m.id)).toEqual([carol.id]));
+  });
+
+  it('drops a removed admin from the admins and nicknames too', async () => {
+    conversation = groupChat({ admins: [sessionUser as unknown as User, carol] });
+    const { queryClient } = renderInfo(<ManageMember />);
+    const dialog = await openDialog();
+
+    const carolRow = within(dialog).getByText('@carol').closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(carolRow).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).not.toContain(carol.id));
+    expect(cached(queryClient).members.map((m) => m.id)).toEqual([bob.id]);
+    expect(cached(queryClient).nicknames.map((n) => n.user)).toEqual([bob.id]);
   });
 
   it('searches for people and adds one', async () => {
     const dave = mockUser({ displayName: 'Dave', userName: '@dave' });
-    vi.mocked(GETRequest).mockImplementation(async (path: string) =>
-      ({ status: 'OK', message: '', data: path.includes('/search/') ? [dave] : dave }) as never,
-    );
+    vi.mocked(GETRequest).mockResolvedValue({ status: 'OK', message: '', data: [dave] } as never);
+    vi.mocked(axiosInstance.post).mockResolvedValue({ data: OK });
     const { queryClient } = renderInfo(<ManageMember />);
     const dialog = await openDialog();
 
@@ -337,9 +363,29 @@ describe('ManageMember', () => {
     const daveRow = (await within(dialog).findByText('@dave')).closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(daveRow).getByRole('button', { name: 'Add' }));
 
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/members', { memberId: dave.id });
     await waitFor(() => expect(cached(queryClient).members.map((m) => m.id)).toContain(dave.id));
-    expect(GETRequest).toHaveBeenCalledWith('/v1/user/@dave');
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/members', { member: dave.id, action: 'ADD' });
+    expect(cached(queryClient).nicknames).toContainEqual({ user: dave.id, value: '' });
+  });
+
+  it('leaves the members unchanged when the server refuses an addition', async () => {
+    const dave = mockUser({ displayName: 'Dave', userName: '@dave' });
+    vi.mocked(GETRequest).mockResolvedValue({ status: 'OK', message: '', data: [dave] } as never);
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('409', '409', undefined, undefined, {
+        status: 409,
+        data: { status: 'CONFLICT', message: 'user is already a member', data: null },
+      } as never),
+    );
+    const { queryClient } = renderInfo(<ManageMember />);
+    const dialog = await openDialog();
+
+    await userEvent.type(within(dialog).getByPlaceholderText('Username'), 'dave');
+    const daveRow = (await within(dialog).findByText('@dave')).closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(daveRow).getByRole('button', { name: 'Add' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('user is already a member'));
+    expect(cached(queryClient).members.map((m) => m.id)).not.toContain(dave.id);
   });
 
   it('removes the right member when removing from the search results', async () => {
@@ -360,7 +406,12 @@ describe('ManageMember', () => {
   });
 
   it('shows why a change failed', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'admins only', data: null } as never);
+    vi.mocked(axiosInstance.delete).mockRejectedValue(
+      new AxiosError('403', '403', undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'admins only', data: null },
+      } as never),
+    );
     const { queryClient } = renderInfo(<ManageMember />);
     const dialog = await openDialog();
 

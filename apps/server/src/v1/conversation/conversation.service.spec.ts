@@ -24,6 +24,7 @@ const NOTICE_PAYLOAD = { id: String(NOTICE_ID), notice: { type: 'NICKNAME', user
 
 type NewConversation = {
   name: string;
+  isGroupChat: boolean;
   members: Types.ObjectId[];
   admins: Types.ObjectId[];
   nicknames: { user: Types.ObjectId; value: string }[];
@@ -35,10 +36,14 @@ function build() {
     createConversation: vi.fn(async (data: NewConversation, _session: ClientSession) => ({ _id: 'new', ...data })),
     findConversationByMembers: vi.fn().mockResolvedValue({ id: 'c1' }),
     findConversationPayloadById: vi.fn().mockResolvedValue({ id: 'c1' }),
-    findConversationById: vi.fn().mockResolvedValue({ members: [ME, ADA] }),
+    findConversationById: vi.fn().mockResolvedValue({ isGroupChat: false, members: [ME, ADA] }),
     blockConversation: vi.fn().mockResolvedValue(true),
     unblockConversation: vi.fn().mockResolvedValue(true),
     setNickname: vi.fn().mockResolvedValue({ found: true, changed: true }),
+    addAdmin: vi.fn().mockResolvedValue(true),
+    removeAdmin: vi.fn().mockResolvedValue(true),
+    addMember: vi.fn().mockResolvedValue(true),
+    removeMember: vi.fn().mockResolvedValue(true),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -123,6 +128,7 @@ describe('ConversationService', () => {
       const [data, passedSession] = conversationModel.createConversation.mock.calls[0];
       expect(passedSession).toBe(session);
       expect(data.name).toBe('');
+      expect(data.isGroupChat).toBe(false);
       expect(ids(data.members)).toEqual([ADA, ME]);
       expect(ids(data.admins)).toEqual([ADA, ME]);
       expect(data.members[0]).toBeInstanceOf(Types.ObjectId);
@@ -135,6 +141,7 @@ describe('ConversationService', () => {
 
       const [data] = conversationModel.createConversation.mock.calls[0];
       expect(data.name).toBe('Ada, Bob, Me');
+      expect(data.isGroupChat).toBe(true);
       expect(ids(data.admins)).toEqual([ME]);
     });
 
@@ -220,10 +227,14 @@ describe('ConversationService', () => {
 
     it.each([
       ['a missing conversation', null, NotFoundException],
-      ['a deleted conversation', { members: [ME, ADA], status: ConversationStatus.DELETED }, NotFoundException],
-      ['a group', { members: [ME, ADA, BOB] }, BadRequestException],
-      ['a conversation left with only one member', { members: [ME] }, BadRequestException],
-      ['an already blocked conversation', { members: [ME, ADA], status: ConversationStatus.BLOCKED, blocker: ADA }, ConflictException],
+      ['a deleted conversation', { isGroupChat: false, members: [ME, ADA], status: ConversationStatus.DELETED }, NotFoundException],
+      ['a group', { isGroupChat: true, members: [ME, ADA, BOB] }, BadRequestException],
+      ['a group that shrank to two members', { isGroupChat: true, members: [ME, ADA] }, BadRequestException],
+      [
+        'an already blocked conversation',
+        { isGroupChat: false, members: [ME, ADA], status: ConversationStatus.BLOCKED, blocker: ADA },
+        ConflictException,
+      ],
     ])('refuses %s', async (_, conversation, exception) => {
       const { service, conversationModel, callGateway } = build();
       conversationModel.findConversationById.mockResolvedValue(conversation);
@@ -238,6 +249,153 @@ describe('ConversationService', () => {
       conversationModel.blockConversation.mockResolvedValue(false);
 
       await expect(service.blockConversation(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('addAdmin', () => {
+    const query = { conversationId: 'c1', memberId: BOB, requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME] };
+
+    it('makes a group member an admin when the caller is an admin', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.addAdmin(query)).resolves.toEqual({ memberId: BOB });
+      expect(conversationModel.addAdmin).toHaveBeenCalledWith({ conversationId: 'c1', memberId: BOB, requesterId: ME });
+    });
+
+    it.each([
+      ['a missing conversation', null, query, NotFoundException],
+      ['a deleted conversation', { ...group, status: ConversationStatus.DELETED }, query, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, { ...query, memberId: ADA }, BadRequestException],
+      ['someone outside the group', { isGroupChat: true, members: [ME, ADA, 'someone-else'], admins: [ME] }, query, NotFoundException],
+      ['someone who is already an admin', { ...group, admins: [ME, BOB] }, query, ConflictException],
+    ])('refuses %s', async (_, conversation, input, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.addAdmin(input)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.addAdmin).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the admins changed in the meantime', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.addAdmin.mockResolvedValue(false);
+
+      await expect(service.addAdmin(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('removeAdmin', () => {
+    const query = { conversationId: 'c1', memberId: BOB, requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, BOB] };
+
+    it('removes another admin when the caller is an admin', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.removeAdmin(query)).resolves.toEqual({ memberId: BOB });
+      expect(conversationModel.removeAdmin).toHaveBeenCalledWith({ conversationId: 'c1', memberId: BOB, requesterId: ME });
+    });
+
+    it.each([
+      ['a missing conversation', null, query, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, { ...query, memberId: ADA }, BadRequestException],
+      ['someone who is not an admin', { ...group, admins: [ME] }, query, ConflictException],
+      ['the last admin', { ...group, admins: [ME] }, { ...query, memberId: ME }, ConflictException],
+    ])('refuses %s', async (_, conversation, input, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.removeAdmin(input)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.removeAdmin).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the admins changed in the meantime', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.removeAdmin.mockResolvedValue(false);
+
+      await expect(service.removeAdmin(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('addMember', () => {
+    const query = { conversationId: 'c1', memberId: BOB, requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, 'someone-else'], admins: [ME] };
+
+    it('adds an existing user to the group', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.addMember(query)).resolves.toEqual({ memberId: BOB });
+      expect(conversationModel.addMember).toHaveBeenCalledWith({ conversationId: 'c1', memberId: BOB, requesterId: ME });
+    });
+
+    it.each([
+      ['a missing conversation', null, query, NotFoundException],
+      ['a deleted conversation', { ...group, status: ConversationStatus.DELETED }, query, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, query, BadRequestException],
+      ['someone who is already a member', group, { ...query, memberId: ADA }, ConflictException],
+      ['a user that does not exist', group, { ...query, memberId: '64b7f0c2a1b2c3d4e5f607ff' }, NotFoundException],
+    ])('refuses %s', async (_, conversation, input, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.addMember(input)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.addMember).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the members changed in the meantime', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.addMember.mockResolvedValue(false);
+
+      await expect(service.addMember(query)).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('removeMember', () => {
+    const query = { conversationId: 'c1', memberId: BOB, requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, BOB, 'someone-else'], admins: [ME, BOB] };
+
+    it('removes a member, admin or not, when the caller is an admin', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.removeMember(query)).resolves.toEqual({ memberId: BOB });
+      expect(conversationModel.removeMember).toHaveBeenCalledWith({ conversationId: 'c1', memberId: BOB, requesterId: ME });
+    });
+
+    it('still treats the conversation as a group when only two members would remain', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue({ ...group, members: [ME, BOB] });
+
+      await expect(service.removeMember(query)).resolves.toEqual({ memberId: BOB });
+      expect(conversationModel.removeMember).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the caller themselves', group, { ...query, memberId: ME }, BadRequestException],
+      ['a missing conversation', null, query, NotFoundException],
+      ['a deleted conversation', { ...group, status: ConversationStatus.DELETED }, query, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, BOB], admins: [ME, BOB] }, query, BadRequestException],
+      ['someone outside the group', { ...group, members: [ME, ADA, 'x', 'y'] }, query, NotFoundException],
+    ])('refuses %s', async (_, conversation, input, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.removeMember(input)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.removeMember).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the members changed in the meantime', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.removeMember.mockResolvedValue(false);
+
+      await expect(service.removeMember(query)).rejects.toBeInstanceOf(ConflictException);
     });
   });
 

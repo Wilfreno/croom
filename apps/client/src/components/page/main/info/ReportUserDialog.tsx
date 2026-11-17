@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { cn, isGroupChat } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { REPORT_REASON_MAX_LENGTH } from '@repo/constants';
 import type { Conversation, User } from '@repo/types';
 import { Flag } from 'lucide-react';
@@ -22,7 +22,7 @@ export default function ReportUserDialog({ conversation }: { conversation: Conve
 
   const userId = session.user?.id;
   const others = conversation.members.filter((member) => member.id !== userId);
-  const groupChat = isGroupChat(conversation, userId);
+  const groupChat = conversation.isGroupChat;
   const reportedUser = groupChat ? selectedUser : others[0];
   const canSend = Boolean(reportedUser) && Boolean(reason.trim()) && !report.isPending;
 
@@ -100,7 +100,7 @@ export default function ReportUserDialog({ conversation }: { conversation: Conve
               <DialogTitle>Report user</DialogTitle>
               <DialogDescription>Choose who you want to report.</DialogDescription>
             </DialogHeader>
-            <ScrollArea className="max-h-[40dvh]">
+            <ScrollArea className="max-h-[40dvh] [&>[data-radix-scroll-area-viewport]]:max-h-[40dvh]">
               <section className="grid gap-2">
                 {others.map((member) => (
                   <div key={member.id} className="flex items-center gap-2">
