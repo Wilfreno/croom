@@ -20,7 +20,6 @@ export default function useComposeMessage() {
       const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>(
         '/message',
         conversationId ? { conversationId, text, photos } : { text, photos, members },
-        
       );
 
       return response.data;
