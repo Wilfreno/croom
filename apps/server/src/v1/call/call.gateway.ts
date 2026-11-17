@@ -111,9 +111,13 @@ export class CallGateway implements OnGatewayDisconnect {
         .emit('CALL_PEER_JOINED', { peerId: client.id, userId });
       await client.join(callRoom(conversationId));
 
-      if (await this.callService.isConversationBlocked(conversationId)) {
+      const accessAfterJoin = await this.callService.checkAccess(
+        conversationId,
+        userId,
+      );
+      if ('error' in accessAfterJoin) {
         await this.leave(client);
-        return { error: 'you cannot call this conversation' };
+        return accessAfterJoin;
       }
 
       return {

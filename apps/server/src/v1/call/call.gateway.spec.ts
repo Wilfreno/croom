@@ -238,6 +238,19 @@ describe('CallGateway', () => {
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
     });
 
+    it('backs out of a call when removed from the group while joining', async () => {
+      const { gateway, callService, conversationModel, roomEmit } = build();
+      conversationModel.getCallMembersByConversationId.mockResolvedValueOnce([alice, bob]).mockResolvedValueOnce([bob]);
+      const { client, spies } = fakeClient('alice');
+
+      const result = await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ error: 'you are not a member on this conversation' });
+      expect(callService.getPeer(client.id)).toBeUndefined();
+      expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
     it('answers with a generic error when something breaks', async () => {
       const { gateway, mediasoup } = build();
       mediasoup.assignRouter.mockRejectedValue(new Error('no workers'));
