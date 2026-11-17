@@ -17,7 +17,13 @@ import InfoSidebar from '@/components/page/main/info/InfoSidebar';
 import UserInfoDialog from '@/components/page/main/info/UserInfoDialog';
 import { axiosInstance } from '@/lib/axios-instance';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
-import { COMPOSE_SELECTED_USERS_QUERY_KEY, NICKNAME_MAX_LENGTH, SOMETHING_WENT_WRONG } from '@repo/constants';
+import {
+  COMPOSE_SELECTED_USERS_QUERY_KEY,
+  NICKNAME_MAX_LENGTH,
+  REPORT_REASON_MAX_LENGTH,
+  SOMETHING_WENT_WRONG,
+  USER_REPORTED,
+} from '@repo/constants';
 import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation, User, UserSession } from '@repo/types';
 import { act, screen, waitFor, within } from '@testing-library/react';
@@ -757,11 +763,42 @@ describe('InfoPrivacyAndSupport', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Bob')).toBeInTheDocument();
-    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), '  spam  ');
     await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
 
-    expect(axiosInstance.post).toHaveBeenCalledWith('/v1/user/report', { reportedUser: bob.id, reason: 'spam' });
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('User reported'));
+    expect(axiosInstance.post).toHaveBeenCalledWith('/report', { conversationId: 'c1', user: bob.id, reason: 'spam' });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(USER_REPORTED));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps send disabled until there is a reason', async () => {
+    conversation = oneToOne();
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    const send = within(dialog).getByRole('button', { name: 'send' });
+    expect(send).toBeDisabled();
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), '   ');
+    expect(send).toBeDisabled();
+    expect(within(dialog).getByText(`3/${REPORT_REASON_MAX_LENGTH}`)).toBeInTheDocument();
+  });
+
+  it('closes the one-to-one report on cancel and forgets the draft', async () => {
+    conversation = oneToOne();
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    let dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByPlaceholderText('Reason')).toHaveValue('');
   });
 
   it('lets you pick who to report in a group chat', async () => {
@@ -778,6 +815,22 @@ describe('InfoPrivacyAndSupport', () => {
     expect(within(dialog).getByText('Report user')).toBeInTheDocument();
   });
 
+  it('reports the picked member in a group chat', async () => {
+    vi.mocked(axiosInstance.post).mockResolvedValue({});
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    const carolRow = within(dialog).getByText('Carol').parentElement!;
+    await userEvent.click(within(carolRow).getByRole('button', { name: 'report' }));
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'harassment');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
+
+    expect(axiosInstance.post).toHaveBeenCalledWith('/report', { conversationId: 'c1', user: carol.id, reason: 'harassment' });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(USER_REPORTED));
+  });
+
   it('shows a generic error when reporting fails', async () => {
     conversation = oneToOne();
     vi.mocked(axiosInstance.post).mockRejectedValue(new Error('500'));
@@ -790,6 +843,26 @@ describe('InfoPrivacyAndSupport', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('shows why the server refused a report', async () => {
+    conversation = oneToOne();
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('429', '429', undefined, undefined, {
+        status: 429,
+        data: { status: 'TOO MANY REQUESTS', message: 'slow down', data: null },
+      } as never),
+    );
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('slow down'));
   });
 
   it('leaves a group chat', async () => {
