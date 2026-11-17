@@ -9,3 +9,4 @@ export * from './toast-messages.constant';
 export * from './query-keys.constants';
 export * from './server.constants';
 export * from './report.constants';
+export * from './avatar.constants';

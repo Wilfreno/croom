@@ -1,16 +1,20 @@
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { UserRound } from 'lucide-react';
+import InitialsFallback from './InitialsFallback';
 
 export default function UserAvatar({
   src,
+  name,
+  colorKey,
   isOnline,
   className,
   onlineClassName,
 }: {
   src?: string;
+  name?: string;
+  colorKey?: string;
   isOnline: boolean;
   className?: string;
   onlineClassName?: string;
@@ -19,9 +23,7 @@ export default function UserAvatar({
     <div className="relative h-fit w-fit">
       <Avatar className={cn('aspect-square', className)}>
         <AvatarImage src={src} />
-        <AvatarFallback className="bg-background">
-          <UserRound className="h-1/2 w-auto" />
-        </AvatarFallback>
+        <InitialsFallback name={name} colorKey={colorKey} />
       </Avatar>
       {isOnline && (
         <div

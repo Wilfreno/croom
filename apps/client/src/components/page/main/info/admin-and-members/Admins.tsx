@@ -37,7 +37,12 @@ export default function Admins() {
             {conversation?.admins.map((user) => (
               <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
-                  <UserAvatar isOnline={user.status === UserStatus.ONLINE} src={user.photo?.url} />
+                  <UserAvatar
+                    isOnline={user.status === UserStatus.ONLINE}
+                    src={user.photo?.url}
+                    name={user.displayName}
+                    colorKey={user.id}
+                  />
                   <p className="text-sm font-medium">{user.displayName}</p>
                 </Button>
               </UserInfoDialog>

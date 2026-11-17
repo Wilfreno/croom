@@ -106,6 +106,8 @@ export default function InfoMedia() {
                             <div className={cn(onMobile ? 'hidden' : 'flex items-center gap-2')}>
                               <UserAvatar
                                 src={messages[selectedPhoto!.messageIndex].sender.photo?.url}
+                                name={messages[selectedPhoto!.messageIndex].sender.displayName}
+                                colorKey={messages[selectedPhoto!.messageIndex].sender.id}
                                 isOnline={messages[selectedPhoto!.messageIndex].sender.status === UserStatus.ONLINE}
                               />
                               <div className="">

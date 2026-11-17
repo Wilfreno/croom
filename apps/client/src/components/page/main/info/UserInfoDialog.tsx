@@ -1,13 +1,14 @@
 'use client';
 import { UserStatus } from '@repo/enums';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GETRequest } from '@/lib/server/requests';
 import { Conversation, User } from '@repo/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AtSign, Mail, Send, UserRound, X } from 'lucide-react';
+import { AtSign, Mail, Send, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
@@ -63,9 +64,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
         <div className="flex items-start gap-8">
           <Avatar className="aspect-square h-28 w-auto">
             <AvatarImage src={userInfo?.photo?.url} />
-            <AvatarFallback>
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
+            <InitialsFallback name={userInfo?.displayName} colorKey={userInfo?.id} />
           </Avatar>
           <div className="grid gap-5">
             <div className="grid">

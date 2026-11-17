@@ -1,7 +1,7 @@
 import type { CallSession } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { AVATAR_FALLBACK_COLORS, SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
 import { ConversationStatus, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
@@ -155,6 +155,28 @@ export function getMediaErrorMessage(error: unknown) {
     if (error.name === "OverconstrainedError") return "That camera is no longer available";
   }
   return "Could not start the camera";
+}
+
+export function getInitials(name: string) {
+  const words = name.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length === 0) return "";
+
+  const letters =
+    words.length > 1
+      ? [Array.from(words[0])[0], Array.from(words[words.length - 1])[0]]
+      : Array.from(words[0]).slice(0, 2);
+
+  return letters.join("").toUpperCase();
+}
+
+export function getAvatarColor(key: string) {
+  let index = 0;
+  for (const char of key) {
+    const code = char.codePointAt(0) ?? 0;
+    index = (index * 31 + code) % AVATAR_FALLBACK_COLORS.length;
+  }
+
+  return AVATAR_FALLBACK_COLORS[index];
 }
 
 export function peopleLabel(count: number) {

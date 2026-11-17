@@ -1,10 +1,11 @@
 import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn, getTimeIntervalText } from '@/lib/utils';
 import { MessagePayload } from '@repo/types';
-import { SendHorizontal, ThumbsUp, UserRound, X } from 'lucide-react';
+import { SendHorizontal, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -28,9 +29,7 @@ export default function MessageToast({ message, toastId }: { message: MessagePay
         <div className="flex items-start gap-4">
           <Avatar>
             <AvatarImage src={message.sender.photo?.url} />
-            <AvatarFallback>
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
+            <InitialsFallback name={message.sender.displayName} colorKey={message.sender.id} />
           </Avatar>
           <div className="grid items-start w-full  overflow-y-auto">
             <p className="text-sm font-medium">{displayName}</p>

@@ -25,6 +25,8 @@ export default function ConversationAvatar({
   return (
     <UserAvatar
       src={otherMember?.photo?.url}
+      name={otherMember?.displayName}
+      colorKey={otherMember?.id}
       isOnline={otherMember?.status === UserStatus.ONLINE}
       className={className}
       onlineClassName={size === 'lg' ? 'h-8 bottom-1' : undefined}

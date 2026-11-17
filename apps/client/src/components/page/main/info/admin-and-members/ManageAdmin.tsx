@@ -1,6 +1,7 @@
 import useConversation from '@/components/hooks/queries/useConversation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,7 +9,7 @@ import { PATCHRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
 import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserRound, UserRoundPlus, X } from 'lucide-react';
+import { UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
@@ -87,9 +88,7 @@ export default function ManageAdmin() {
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar>
                     <AvatarImage src={user.photo?.url} />
-                    <AvatarFallback>
-                      <UserRound className="h-1/2 w-auto" />
-                    </AvatarFallback>
+                    <InitialsFallback name={user.displayName} colorKey={user.id} />
                   </Avatar>
                   <p className="truncate">{user.displayName}</p>
                 </div>

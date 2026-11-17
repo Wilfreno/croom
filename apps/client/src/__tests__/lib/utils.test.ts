@@ -2,8 +2,10 @@ import {
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
+  getAvatarColor,
   getConversationName,
   getGroupAvatarMembers,
+  getInitials,
   isBlockedError,
   isBlockedMember,
   isConversationOnline,
@@ -17,7 +19,7 @@ import {
 } from '@/lib/utils';
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
-import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
+import { AVATAR_FALLBACK_COLORS, SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
 import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
 import { AxiosError } from 'axios';
@@ -338,5 +340,40 @@ describe('isSameSender', () => {
 
     expect(isSameSender(notice, from('a'))).toBe(false);
     expect(isSameSender(from('a'), notice)).toBe(false);
+  });
+});
+
+describe('getInitials', () => {
+  it('takes the first letters of the first and last word', () => {
+    expect(getInitials('Ada Lovelace')).toBe('AL');
+    expect(getInitials('w.gayongan')).toBe('WG');
+    expect(getInitials('w.gayongan+1')).toBe('W1');
+    expect(getInitials('mary jane watson')).toBe('MW');
+  });
+
+  it('takes the first two letters of a single word', () => {
+    expect(getInitials('tr3onix101')).toBe('TR');
+    expect(getInitials('x')).toBe('X');
+  });
+
+  it('returns an empty string when there are no letters or digits', () => {
+    expect(getInitials('')).toBe('');
+    expect(getInitials(' .+ ')).toBe('');
+  });
+
+  it('keeps non-latin letters whole', () => {
+    expect(getInitials('élise ñuñez')).toBe('ÉÑ');
+  });
+});
+
+describe('getAvatarColor', () => {
+  it('always gives the same key the same palette color', () => {
+    expect(getAvatarColor('user-1')).toBe(getAvatarColor('user-1'));
+    expect(AVATAR_FALLBACK_COLORS).toContain(getAvatarColor('user-1'));
+  });
+
+  it('spreads different keys across the palette', () => {
+    const colors = new Set(Array.from({ length: 50 }, (_, index) => getAvatarColor(`user-${index}`)));
+    expect(colors.size).toBeGreaterThan(1);
   });
 });

@@ -34,6 +34,8 @@ export default function GroupAvatar({
     <div className="flex items-start h-fit w-fit">
       <UserAvatar
         src={shown?.photo?.url}
+        name={shown?.displayName}
+        colorKey={shown?.id}
         isOnline={shown?.status === UserStatus.ONLINE}
         className={className}
         onlineClassName={onlineClassName}

@@ -1,6 +1,7 @@
 import useReportUser from '@/components/hooks/mutation/useReportUser.mutation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn, isGroupChat } from '@/lib/utils';
 import { REPORT_REASON_MAX_LENGTH } from '@repo/constants';
 import type { Conversation, User } from '@repo/types';
-import { Flag, UserRound } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ReportUserDialog({ conversation }: { conversation: Conversation }) {
@@ -105,9 +106,7 @@ export default function ReportUserDialog({ conversation }: { conversation: Conve
                   <div key={member.id} className="flex items-center gap-2">
                     <Avatar>
                       <AvatarImage src={member.photo?.url} />
-                      <AvatarFallback>
-                        <UserRound className="h-1/2 w-auto" />
-                      </AvatarFallback>
+                      <InitialsFallback name={member.displayName} colorKey={member.id} />
                     </Avatar>
                     <span>{member.displayName}</span>
                     <Button variant="destructive" className="ml-auto" onClick={() => setSelectedUser(member)}>

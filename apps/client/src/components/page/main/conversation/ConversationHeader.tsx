@@ -46,7 +46,11 @@ export default function ConversationHeader({
           {conversation ? (
             <ConversationAvatar conversation={conversation} currentUserId={session.user?.id} />
           ) : (
-            <UserAvatar src={conversationInfo?.photoUrl} isOnline={Boolean(conversationInfo?.isOnline)} />
+            <UserAvatar
+              src={conversationInfo?.photoUrl}
+              name={conversationInfo?.conversationName}
+              isOnline={Boolean(conversationInfo?.isOnline)}
+            />
           )}
           <div className="min-w-0">
             <p className="font-medium truncate max-w-96">{conversationInfo?.conversationName}</p>

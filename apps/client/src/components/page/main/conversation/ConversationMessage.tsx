@@ -1,6 +1,7 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
 import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isSameSender } from '@/lib/utils';
@@ -8,7 +9,6 @@ import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { Conversation, Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserRound } from 'lucide-react';
 import Image from 'next/image';
 import NicknameNotice from './NicknameNotice';
 import { useEffect, useMemo, useRef } from 'react';
@@ -218,9 +218,7 @@ export default function ConversationMessage({
         {message.sender.id !== session.user?.id && (
           <Avatar className={cn(quickMessagePlacement && quickMessagePlacement !== 'LAST' && 'opacity-0')}>
             <AvatarImage src={message.sender.photo?.url} />
-            <AvatarFallback>
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
+            <InitialsFallback name={message.sender.displayName} colorKey={message.sender.id} />
           </Avatar>
         )}
         <div

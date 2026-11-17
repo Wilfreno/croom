@@ -77,6 +77,17 @@ describe('UserAvatar', () => {
     rerender(<UserAvatar isOnline={false} />);
     expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument();
   });
+
+  it('shows the initials of the name when there is no photo', () => {
+    render(<UserAvatar isOnline={false} name="Ada Lovelace" colorKey="user-1" />);
+    expect(screen.getByText('AL')).toBeInTheDocument();
+  });
+
+  it('falls back to the person icon when there is no name', () => {
+    const { container } = render(<UserAvatar isOnline={false} />);
+    expect(container.querySelector('text')).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
 });
 
 describe('layout wrappers', () => {

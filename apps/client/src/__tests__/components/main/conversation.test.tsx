@@ -169,6 +169,14 @@ describe('ConversationMessage', () => {
     expect(container.querySelector('.grid-cols-\\[auto_1fr\\]')).toBeInTheDocument();
   });
 
+  it("shows the sender's initials when they have no photo", () => {
+    renderWithQuery(
+      <ConversationMessage message={message({ sender: mockUser({ displayName: 'Bob Marley', photo: undefined }) })} isLastMessage={false} />,
+    );
+
+    expect(screen.getByText('BM')).toBeInTheDocument();
+  });
+
   it('only shows the avatar on the last of a quick run of messages', () => {
     const prev = message({ dateCreated: at(30) });
     const next = message({ dateCreated: at(5) });

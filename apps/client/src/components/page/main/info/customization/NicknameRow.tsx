@@ -8,6 +8,7 @@ import { useState } from 'react';
 import UserAvatar from '../../UserAvatar';
 
 type NicknameRowProps = {
+  userId: string;
   name: string;
   photoUrl?: string;
   isOnline: boolean;
@@ -21,6 +22,7 @@ type NicknameRowProps = {
 };
 
 export default function NicknameRow({
+  userId,
   name,
   photoUrl,
   isOnline,
@@ -32,7 +34,16 @@ export default function NicknameRow({
   onCancel,
   onSave,
 }: NicknameRowProps) {
-  const avatar = <UserAvatar src={photoUrl} isOnline={isOnline} className="h-10" onlineClassName="h-3" />;
+  const avatar = (
+    <UserAvatar
+      src={photoUrl}
+      name={name}
+      colorKey={userId}
+      isOnline={isOnline}
+      className="h-10"
+      onlineClassName="h-3"
+    />
+  );
   const youBadge = isSelf && (
     <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
       You

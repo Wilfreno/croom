@@ -218,7 +218,12 @@ export default function ComposeTo({
                     inputRef.current?.focus();
                   }}
                 >
-                  <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
+                  <UserAvatar
+                    src={user.photo?.url}
+                    name={user.displayName}
+                    colorKey={user.id}
+                    isOnline={user.status === UserStatus.ONLINE}
+                  />
                   <div>
                     <p className="font-semibold">{user.displayName}</p>
                     <p className="text-xs text-muted-foreground">{user.userName}</p>

@@ -1,7 +1,8 @@
 'use client';
 import useBlockConversation from '@/components/hooks/mutation/useBlockConversation.mutation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { axiosInstance } from '@/lib/axios-instance';
@@ -9,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { Block } from '@/types/block.types';
 import type { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
-import { UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function SettingsBlockedUsers() {
@@ -53,9 +53,7 @@ export default function SettingsBlockedUsers() {
             >
               <Avatar>
                 <AvatarImage src={blockedUser.photo?.url} />
-                <AvatarFallback>
-                  <UserRound className="h-1/2 w-auto" />
-                </AvatarFallback>
+                <InitialsFallback name={blockedUser.displayName} colorKey={blockedUser.id} />
               </Avatar>
               <span>{blockedUser.userName}</span>
               <Button

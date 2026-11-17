@@ -65,6 +65,7 @@ export default function NicknamesDialog({ trigger, editUserId }: { trigger: Reac
             return (
               <NicknameRow
                 key={id}
+                userId={id}
                 name={member?.displayName ?? (isSelf ? session.user?.displayName : undefined) ?? 'Unknown user'}
                 photoUrl={member?.photo?.url ?? (isSelf ? session.user?.photo?.url : undefined)}
                 isOnline={!isSelf && member?.status === UserStatus.ONLINE}
