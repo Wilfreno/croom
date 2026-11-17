@@ -127,4 +127,10 @@ export class CallService {
     await this.mediasoup.releaseRouter(peer.conversationId, peer.routerEntry);
     return peer;
   }
+
+  async endRoom(conversationId: string) {
+    const peerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const removed = await Promise.all(peerIds.map((peerId) => this.removePeer(peerId)));
+    return removed.filter((peer): peer is Peer => Boolean(peer));
+  }
 }

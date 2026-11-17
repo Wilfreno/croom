@@ -15,6 +15,7 @@ import {
 import { hasGroupMemberCount } from '@repo/utils';
 import { ClientSession, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
+import { CallGateway } from '../call/call.gateway';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { GetConversationByIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
@@ -26,6 +27,7 @@ export class ConversationService {
     private readonly userModel: UserModel,
     private readonly messageModel: MessageModel,
     private readonly photoModel: PhotoModel,
+    private readonly callGateway: CallGateway,
   ) {}
 
   /**
@@ -129,6 +131,11 @@ export class ConversationService {
       }))
     )
       throw new ConflictException('conversation is already blocked');
+
+    await this.callGateway.endCall(
+      conversationId,
+      'this conversation was blocked',
+    );
   }
 
   async unblockConversation({

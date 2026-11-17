@@ -82,6 +82,7 @@ export interface ServerToClientEvents {
   CALL_NEW_PRODUCER: (producer: CallProducerInfo) => void;
   CALL_PRODUCER_CLOSED: (payload: { producerId: string }) => void;
   CALL_PRODUCER_PAUSED: (payload: { producerId: string; paused: boolean }) => void;
+  CALL_ENDED: (payload: { reason: string }) => void;
 }
 
 export interface ClientToServerEvents {

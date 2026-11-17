@@ -97,10 +97,11 @@ function build({ members = [alice, bob] as CallMember[] | null, isBlocked = fals
   );
   const gateway = new CallGateway(callService, mediasoup as unknown as MediasoupService);
   const roomEmit = vi.fn();
-  const server = { to: vi.fn(() => ({ emit: roomEmit })) };
+  const socketsLeave = vi.fn();
+  const server = { to: vi.fn(() => ({ emit: roomEmit })), in: vi.fn(() => ({ socketsLeave })) };
   gateway.server = server as unknown as TypedServer;
 
-  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit };
+  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit, socketsLeave };
 }
 
 /** Joins `client` to the call and gives it both transports. */
@@ -477,6 +478,36 @@ describe('CallGateway', () => {
       (callService.getPeer(receiver.client.id)!.consumers.get(id)! as unknown as EventEmitter).emit('transportclose');
 
       expect(callService.getPeer(receiver.client.id)!.consumers.has(id)).toBe(false);
+    });
+  });
+
+  describe('ending a call', () => {
+    it('removes everyone in the call, tells them why and empties the room', async () => {
+      const { gateway, callService, server, roomEmit, socketsLeave } = build();
+      const alicesTab = fakeClient('alice').client;
+      const bobsTab = fakeClient('bob').client;
+      await joinWithTransports(gateway, alicesTab);
+      await joinWithTransports(gateway, bobsTab);
+      const transports = [alicesTab, bobsTab].map((client) => callService.getPeer(client.id)!.sendTransport!);
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(callService.getPeer(alicesTab.id)).toBeUndefined();
+      expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+      transports.forEach((transport) => expect(transport.close).toHaveBeenCalled());
+      expect(server.to).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'this conversation was blocked' });
+      expect(server.in).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(socketsLeave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+    });
+
+    it('does nothing when nobody is in the call', async () => {
+      const { gateway, roomEmit, socketsLeave } = build();
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(roomEmit).not.toHaveBeenCalled();
+      expect(socketsLeave).not.toHaveBeenCalled();
     });
   });
 

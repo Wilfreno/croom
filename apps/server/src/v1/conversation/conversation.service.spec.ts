@@ -3,6 +3,7 @@ import { ConversationStatus } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { ClientSession, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CallGateway } from '../call/call.gateway';
 import { ConversationService } from './conversation.service';
 
 const ME = '64b7f0c2a1b2c3d4e5f60701';
@@ -40,14 +41,17 @@ function build() {
   const messageModel = { getMessagesByConversationId: vi.fn().mockResolvedValue([]) };
   const photoModel = { getPhotosByConversationId: vi.fn().mockResolvedValue([]) };
 
+  const callGateway = { endCall: vi.fn().mockResolvedValue(undefined) };
+
   const service = new ConversationService(
     conversationModel as unknown as ConversationModel,
     userModel as unknown as UserModel,
     messageModel as unknown as MessageModel,
     photoModel as unknown as PhotoModel,
+    callGateway as unknown as CallGateway,
   );
 
-  return { service, conversationModel, userModel, messageModel, photoModel };
+  return { service, conversationModel, userModel, messageModel, photoModel, callGateway };
 }
 
 const ids = (values: unknown[]) => values.map(String);
@@ -180,6 +184,14 @@ describe('ConversationService', () => {
       expect(conversationModel.blockConversation).toHaveBeenCalledWith(query);
     });
 
+    it('ends a call that is still running in the conversation', async () => {
+      const { service, callGateway } = build();
+
+      await service.blockConversation(query);
+
+      expect(callGateway.endCall).toHaveBeenCalledWith('c1', 'this conversation was blocked');
+    });
+
     it.each([
       ['a missing conversation', null, NotFoundException],
       ['a deleted conversation', { members: [ME, ADA], status: ConversationStatus.DELETED }, NotFoundException],
@@ -187,11 +199,12 @@ describe('ConversationService', () => {
       ['a conversation left with only one member', { members: [ME] }, BadRequestException],
       ['an already blocked conversation', { members: [ME, ADA], status: ConversationStatus.BLOCKED, blocker: ADA }, ConflictException],
     ])('refuses %s', async (_, conversation, exception) => {
-      const { service, conversationModel } = build();
+      const { service, conversationModel, callGateway } = build();
       conversationModel.findConversationById.mockResolvedValue(conversation);
 
       await expect(service.blockConversation(query)).rejects.toBeInstanceOf(exception);
       expect(conversationModel.blockConversation).not.toHaveBeenCalled();
+      expect(callGateway.endCall).not.toHaveBeenCalled();
     });
 
     it('reports a conflict when the other member blocked first', async () => {

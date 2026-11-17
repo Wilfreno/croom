@@ -103,6 +103,28 @@ describe('CallService', () => {
       expect(service.getPeer('s1')).toBe(peer);
     });
 
+    it('ends a call by removing only the peers in that conversation', async () => {
+      const { service, mediasoup } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's2', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's3', userId: bob.id, conversationId: OTHER_CONVERSATION_ID, routerEntry });
+
+      const ended = await service.endRoom(CONVERSATION_ID);
+
+      expect(ended.map((peer) => peer.peerId)).toEqual(['s1', 's2']);
+      expect(service.getPeer('s1')).toBeUndefined();
+      expect(service.getPeer('s2')).toBeUndefined();
+      expect(service.getPeer('s3')).toBeDefined();
+      expect(service.otherPeers(CONVERSATION_ID, 'nobody')).toEqual([]);
+      expect(mediasoup.releaseRouter).toHaveBeenCalledTimes(2);
+    });
+
+    it('ends nothing for a call nobody joined', async () => {
+      const { service } = build();
+
+      await expect(service.endRoom(CONVERSATION_ID)).resolves.toEqual([]);
+    });
+
     it('lists the other peers in the same call only', () => {
       const { service } = build();
       service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });

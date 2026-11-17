@@ -285,6 +285,19 @@ export class CallGateway implements OnGatewayDisconnect {
     });
   }
 
+  async endCall(conversationId: string, reason: string) {
+    try {
+      const ended = await this.callService.endRoom(conversationId);
+      if (!ended.length) return;
+
+      const room = callRoom(conversationId);
+      this.server.to(room).emit('CALL_ENDED', { reason });
+      this.server.in(room).socketsLeave(room);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   @SubscribeMessage('CALL_LEAVE')
   async handleLeave(@ConnectedSocket() client: TypedSocket) {
     await this.leave(client);

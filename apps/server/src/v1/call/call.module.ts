@@ -13,5 +13,6 @@ import { MediasoupService } from './mediasoup.service';
     ]),
   ],
   providers: [CallGateway, CallService, MediasoupService, ConversationModel],
+  exports: [CallGateway],
 })
 export class CallModule {}
