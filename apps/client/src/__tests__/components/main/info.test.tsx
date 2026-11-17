@@ -175,6 +175,15 @@ describe('InfoSidebar', () => {
     expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
   });
 
+  it('keeps the sections for the last member of a group, so they can still leave or add people', async () => {
+    conversation = groupChat({ name: '', members: [] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByRole('button', { name: 'Privacy & Support' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Admins & Members' })).toBeInTheDocument();
+  });
+
   it('shows admins and members only in a group chat', async () => {
     renderInfo(<InfoSidebar />);
 

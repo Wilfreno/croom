@@ -37,7 +37,9 @@ export default function InfoSidebar() {
       return session.user.id !== conversation.blocker;
     }
 
-    return !conversation.members.some((member) => member.id !== session.user?.id);
+
+    const hasOtherMembers = conversation.members.some((member) => member.id !== session.user?.id);
+    return !conversation.isGroupChat && !hasOtherMembers;
   }, [conversation, session.user]);
 
   return (
