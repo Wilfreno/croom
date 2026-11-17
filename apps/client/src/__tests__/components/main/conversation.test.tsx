@@ -10,7 +10,7 @@ import { axiosInstance } from '@/lib/axios-instance';
 import { UserStatus } from '@repo/enums';
 import type { Message, MessagePayload, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,8 +18,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
 vi.mock('emoji-picker-react', async () => (await import('@/__tests__/mocks/mock-components')).emojiPickerModule);
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}) } }));
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), dismiss: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) } }));
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), dismiss: vi.fn() }) }));
 
 let sessionUser: UserSession;
 vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: sessionUser } }) }));
@@ -383,11 +383,59 @@ describe('ConversationMessages', () => {
 describe('ConversationMessageInput', () => {
   const user = () => userEvent.setup();
 
-  it('says you cannot reply in a blocked conversation', () => {
-    renderWithQuery(<ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED' })} />);
+  it('tells you when you have been blocked', () => {
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />);
 
-    expect(screen.getByText('You are unable to reply on this conversation')).toBeInTheDocument();
+    expect(screen.getByText('You have been blocked')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Aa')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Unblock' })).not.toBeInTheDocument();
+  });
+
+  describe('when you blocked them', () => {
+    const renderBlocked = () =>
+      renderWithQuery(
+        <ConversationMessageInput
+          conversation={mockConversation({ id: 'c1', status: 'BLOCKED', blocker: sessionUser.id })}
+        />,
+      );
+
+    it('says so and offers to unblock', () => {
+      renderBlocked();
+
+      expect(screen.getByText('You blocked this person')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Unblock' })).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Aa')).not.toBeInTheDocument();
+    });
+
+    it('asks for confirmation before unblocking', async () => {
+      renderBlocked();
+
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      expect(screen.getByRole('dialog', { name: 'Unblock this person?' })).toBeInTheDocument();
+      expect(axiosInstance.delete).not.toHaveBeenCalled();
+    });
+
+    it('unblocks once confirmed and closes the prompt', async () => {
+      renderBlocked();
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      await user().click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Unblock' }));
+
+      expect(axiosInstance.delete).toHaveBeenCalledWith('/conversation/c1/block');
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('user unblocked'));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('does nothing when the prompt is cancelled', async () => {
+      renderBlocked();
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      await user().click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(axiosInstance.delete).not.toHaveBeenCalled();
+    });
   });
 
   it('sends a thumbs-up when there is nothing typed', async () => {
