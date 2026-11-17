@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { appendMessage, createPendingMessage, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
+import { appendMessage, createPendingMessage, isBlockedError, isForbiddenError, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
 import type { CachedMessage, MessagePages, PhotoInput } from '@/types/message.types';
 import { MessagePayload, ServerResponse, User } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,12 +17,10 @@ export default function useComposeMessage() {
     { pendingId?: string }
   >({
     mutationFn: async ({ conversationId, text, members, photos }) => {
-      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>('/message', {
-        conversationId,
-        text,
-        photos,
-        members,
-      });
+      const { data: response } = await axiosInstance.post<ServerResponse<MessagePayload>>(
+        '/message',
+        conversationId ? { conversationId, text, photos } : { text, photos, members },
+      );
 
       return response.data;
     },
@@ -60,7 +58,10 @@ export default function useComposeMessage() {
       }
       router.push(`/conversation/${conversationId ? conversationId : messagePayload.conversation.id}`);
     },
-    onError: (_error, { conversationId }, context) => {
+    onError: (error, { conversationId }, context) => {
+      if (conversationId && (isBlockedError(error) || isForbiddenError(error))) {
+        queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      }
       if (!context?.pendingId) return;
       const { pendingId } = context;
 

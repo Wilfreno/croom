@@ -1,5 +1,6 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DELETERequest, GETRequest, PATCHRequest } from '@/lib/server/requests';
@@ -138,9 +139,7 @@ export default function SettingsChangePhoto() {
       <div className="flex items-center justify-center md:justify-start">
         <Avatar className={cn('aspect-square h-36 w-auto shadow-md border', uploading && 'animate-pulse')}>
           <AvatarImage src={user?.photo?.url} />
-          <AvatarFallback>
-            <UserRound className="h-1/2 w-auto" />
-          </AvatarFallback>
+          <InitialsFallback name={user?.displayName} colorKey={user?.id} />
         </Avatar>
         <div className="hidden md:grid gap-2 p-2 pl-10 ">
           <div className="flex items-center gap-2">

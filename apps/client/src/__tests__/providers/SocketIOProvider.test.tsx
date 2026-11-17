@@ -1,9 +1,10 @@
-import { mockMessage, mockSession } from '@/__tests__/mocks/mock-entities';
+import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import SocketIOProvider, { useSocketIO } from '@/components/providers/SocketIOProvider';
-import { CALL_RING_DURATION_MS } from '@repo/constants';
-import type { Message, MessagePayload, UserSession } from '@repo/types';
+import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
+import { MessageNoticeType } from '@repo/enums';
+import type { Conversation, Message, MessagePayload, UserSession } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -110,6 +111,50 @@ describe('SocketIOProvider', () => {
       });
     });
 
+    describe('nickname notices', () => {
+      function noticeIn(conversationId: string, user: string, value = 'Ace'): MessagePayload {
+        return {
+          ...mockMessage({ text: '', sender: mockUser({ displayName: 'Ada' }) }),
+          notice: { type: MessageNoticeType.NICKNAME, user, value },
+          conversation: { id: conversationId, nicknames: [{ user, value }] },
+        } as MessagePayload;
+      }
+
+      it('updates the cached nicknames everywhere', () => {
+        const { queryClient } = renderProvider();
+        const conversation = mockConversation({ id: 'c2', nicknames: [{ user: sessionUser!.id, value: '' }] });
+        queryClient.setQueryData(['conversation', 'c2'], conversation);
+        queryClient.setQueryData([sessionUser!.id, 'conversations'], [conversation]);
+        queryClient.setQueryData(['active', 'conversations', sessionUser!.id], [conversation]);
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', sessionUser!.id)));
+
+        const expected = [{ user: sessionUser!.id, value: 'Ace' }];
+        expect(queryClient.getQueryData<Conversation>(['conversation', 'c2'])!.nicknames).toEqual(expected);
+        for (const key of [[sessionUser!.id, 'conversations'], ['active', 'conversations', sessionUser!.id]])
+          expect(queryClient.getQueryData<Conversation[]>(key)![0].nicknames).toEqual(expected);
+      });
+
+      it('tells you when someone changed your nickname elsewhere, without a reply toast', () => {
+        pathname = '/conversation/c1';
+        renderProvider();
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', sessionUser!.id)));
+
+        expect(toast).toHaveBeenCalledWith('Ada set your nickname to Ace');
+        expect(toast.custom).not.toHaveBeenCalled();
+      });
+
+      it("stays quiet about someone else's nickname in another conversation", () => {
+        renderProvider();
+
+        act(() => server.serverEmit('MESSAGE', noticeIn('c2', 'someone-else')));
+
+        expect(toast).not.toHaveBeenCalled();
+        expect(toast.custom).not.toHaveBeenCalled();
+      });
+    });
+
     it('puts the toast at the top on mobile', () => {
       onMobile = true;
       renderProvider();
@@ -149,6 +194,57 @@ describe('SocketIOProvider', () => {
     expect(push).toHaveBeenCalledWith('/call/c1');
   });
 
+  describe('CONVERSATION_MEMBERS_CHANGED', () => {
+    function seedLists(queryClient: ReturnType<typeof renderProvider>['queryClient']) {
+      const group = mockConversation({ id: 'c1' });
+      const other = mockConversation({ id: 'c2' });
+      queryClient.setQueryData([sessionUser!.id, 'conversations'], [group, other]);
+      queryClient.setQueryData(['active', 'conversations', sessionUser!.id], [group]);
+      queryClient.setQueryData(['conversation', 'c1'], group);
+      queryClient.setQueryData(['conversation', 'messages', 'c1'], { pages: [], pageParams: [] });
+      return { other };
+    }
+
+    it('drops the group and leaves its page when you were removed', () => {
+      pathname = '/conversation/c1';
+      const { queryClient } = renderProvider();
+      const { other } = seedLists(queryClient);
+
+      act(() => server.serverEmit('CONVERSATION_MEMBERS_CHANGED', { conversationId: 'c1', removedMemberId: sessionUser!.id }));
+
+      expect(toast).toHaveBeenCalledWith(REMOVED_FROM_GROUP_CHAT);
+      expect(queryClient.getQueryData([sessionUser!.id, 'conversations'])).toEqual([other]);
+      expect(queryClient.getQueryData(['active', 'conversations', sessionUser!.id])).toEqual([]);
+      expect(queryClient.getQueryData(['conversation', 'c1'])).toBeUndefined();
+      expect(queryClient.getQueryData(['conversation', 'messages', 'c1'])).toBeUndefined();
+      expect(push).toHaveBeenCalledWith('/');
+    });
+
+    it('stays on another page when you were removed from a group you do not have open', () => {
+      pathname = '/conversation/c2';
+      const { queryClient } = renderProvider();
+      seedLists(queryClient);
+
+      act(() => server.serverEmit('CONVERSATION_MEMBERS_CHANGED', { conversationId: 'c1', removedMemberId: sessionUser!.id }));
+
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('refreshes the group and both lists when someone else joined or left', () => {
+      const { queryClient } = renderProvider();
+      seedLists(queryClient);
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+      act(() => server.serverEmit('CONVERSATION_MEMBERS_CHANGED', { conversationId: 'c1', removedMemberId: 'someone-else' }));
+
+      expect(invalidate).toHaveBeenCalledWith({ exact: true, queryKey: ['conversation', 'c1'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: [sessionUser!.id, 'conversations'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['active', 'conversations', sessionUser!.id] });
+      expect(toast).not.toHaveBeenCalled();
+      expect(queryClient.getQueryData(['conversation', 'c1'])).toBeDefined();
+    });
+  });
+
   it('shows server errors as a toast', () => {
     renderProvider();
 
@@ -162,7 +258,7 @@ describe('SocketIOProvider', () => {
 
     unmount();
 
-    for (const event of ['MESSAGE', 'USER_STATUS', 'ERROR', 'INCOMING_CALL'])
+    for (const event of ['MESSAGE', 'USER_STATUS', 'ERROR', 'INCOMING_CALL', 'CONVERSATION_MEMBERS_CHANGED'])
       expect(server.listenerCount(event)).toBe(0);
     expect(server.spies.disconnect).toHaveBeenCalled();
   });

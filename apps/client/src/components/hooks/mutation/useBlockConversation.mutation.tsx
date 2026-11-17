@@ -1,13 +1,10 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { axiosInstance } from '@/lib/axios-instance';
 import { Block } from '@/types/block.types';
+import { SOMETHING_WENT_WRONG, USER_BLOCKED, USER_UNBLOCKED } from '@repo/constants';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
-/**
- * Block and unblock a one-to-one conversation. Both refresh every cached view
- * that depends on the block: the conversation itself, the conversation lists
- * and the blocked-users list in settings.
- */
 export default function useBlockConversation() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -26,7 +23,14 @@ export default function useBlockConversation() {
     async mutationFn(conversationId) {
       await axiosInstance.post(`/conversation/${conversationId}/block`);
     },
-    onSuccess: (_, conversationId) => refresh(conversationId),
+    async onSuccess(_, conversationId) {
+      toast(USER_BLOCKED);
+      await refresh(conversationId);
+    },
+    async onError(_, conversationId) {
+      toast.error(SOMETHING_WENT_WRONG);
+      await refresh(conversationId);
+    },
   });
 
   const unblockConversation = useMutation<void, Error, string>({
@@ -34,10 +38,15 @@ export default function useBlockConversation() {
       await axiosInstance.delete(`/conversation/${conversationId}/block`);
     },
     async onSuccess(_, conversationId) {
+      toast(USER_UNBLOCKED);
       queryClient.setQueryData<Block[]>([userId, 'blocked'], (prev) =>
         prev?.filter((block) => block.id !== conversationId),
       );
       await refresh(conversationId, { skipBlockedList: true });
+    },
+    async onError(_, conversationId) {
+      toast.error(SOMETHING_WENT_WRONG);
+      await refresh(conversationId);
     },
   });
 

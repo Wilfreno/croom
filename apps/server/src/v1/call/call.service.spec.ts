@@ -20,7 +20,7 @@ const routerEntry = {} as CallRouterEntry;
 function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
-    isUserBlockedInConversation: vi.fn().mockResolvedValue(isBlocked),
+    isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
   };
   const mediasoup = { releaseRouter: vi.fn().mockResolvedValue(undefined) };
 
@@ -60,18 +60,19 @@ describe('CallService', () => {
         members: [alice, bob],
         caller: bob,
       });
-      expect(conversationModel.isUserBlockedInConversation).toHaveBeenCalledWith({
-        conversationId: CONVERSATION_ID,
-        userId: bob.id,
-      });
+      expect(conversationModel.isConversationBlocked).toHaveBeenCalledWith(CONVERSATION_ID);
     });
 
-    it('refuses a user who is blocked in the conversation', async () => {
-      const { service } = build({ isBlocked: true });
+    it.each([
+      ['the member who blocked it', alice.id],
+      ['the member who was blocked', bob.id],
+    ])('refuses a blocked conversation, even for %s', async (_, userId) => {
+      const { service, conversationModel } = build({ isBlocked: true });
 
-      await expect(service.checkAccess(CONVERSATION_ID, alice.id)).resolves.toEqual({
+      await expect(service.checkAccess(CONVERSATION_ID, userId)).resolves.toEqual({
         error: 'you cannot call this conversation',
       });
+      expect(conversationModel.isConversationBlocked).toHaveBeenCalledWith(CONVERSATION_ID);
     });
 
     it('reports a conversation that does not exist', async () => {
@@ -100,6 +101,53 @@ describe('CallService', () => {
       expect(peer.producers.size).toBe(0);
       expect(peer.consumers.size).toBe(0);
       expect(service.getPeer('s1')).toBe(peer);
+    });
+
+    it('ends a call by removing only the peers in that conversation', async () => {
+      const { service, mediasoup } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's2', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's3', userId: bob.id, conversationId: OTHER_CONVERSATION_ID, routerEntry });
+
+      const ended = await service.endRoom(CONVERSATION_ID);
+
+      expect(ended.map((peer) => peer.peerId)).toEqual(['s1', 's2']);
+      expect(service.getPeer('s1')).toBeUndefined();
+      expect(service.getPeer('s2')).toBeUndefined();
+      expect(service.getPeer('s3')).toBeDefined();
+      expect(service.otherPeers(CONVERSATION_ID, 'nobody')).toEqual([]);
+      expect(mediasoup.releaseRouter).toHaveBeenCalledTimes(2);
+    });
+
+    it("removes only one user's peers from one call", async () => {
+      const { service, mediasoup } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's2', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's3', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's4', userId: bob.id, conversationId: OTHER_CONVERSATION_ID, routerEntry });
+
+      const removed = await service.removeUserFromRoom(CONVERSATION_ID, bob.id);
+
+      expect(removed.map((peer) => peer.peerId)).toEqual(['s2', 's3']);
+      expect(service.getPeer('s1')).toBeDefined();
+      expect(service.getPeer('s2')).toBeUndefined();
+      expect(service.getPeer('s3')).toBeUndefined();
+      expect(service.getPeer('s4')).toBeDefined();
+      expect(mediasoup.releaseRouter).toHaveBeenCalledTimes(2);
+    });
+
+    it('removes nobody when the user is not in the call', async () => {
+      const { service } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+
+      await expect(service.removeUserFromRoom(CONVERSATION_ID, bob.id)).resolves.toEqual([]);
+      expect(service.getPeer('s1')).toBeDefined();
+    });
+
+    it('ends nothing for a call nobody joined', async () => {
+      const { service } = build();
+
+      await expect(service.endRoom(CONVERSATION_ID)).resolves.toEqual([]);
     });
 
     it('lists the other peers in the same call only', () => {

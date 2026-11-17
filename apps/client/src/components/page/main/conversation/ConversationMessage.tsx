@@ -1,15 +1,16 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getSecondsInterval, getTimeIntervalText } from '@/lib/utils';
+import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isSameSender } from '@/lib/utils';
 import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
-import { Message } from '@repo/types';
+import { Conversation, Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserRound } from 'lucide-react';
 import Image from 'next/image';
+import NicknameNotice from './NicknameNotice';
 import { useEffect, useMemo, useRef } from 'react';
 
 export default function ConversationMessage({
@@ -17,13 +18,19 @@ export default function ConversationMessage({
   prevMessage,
   nextMessage,
   isLastMessage,
+  markSeen = true,
   onRetry,
+  conversation,
+  canEditNicknames = true,
 }: {
   message: CachedMessage;
   prevMessage?: Message;
   nextMessage?: Message;
   isLastMessage: boolean;
+  markSeen?: boolean;
   onRetry?: (message: CachedMessage) => void;
+  conversation?: Conversation;
+  canEditNicknames?: boolean;
 }) {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -35,11 +42,11 @@ export default function ConversationMessage({
     let showTimeInterval = false;
     let timeIntervalText = '';
 
-    if (nextMessage && nextMessage.sender.id === message.sender.id) {
+    if (isSameSender(nextMessage, message)) {
       const nextMessageDateSent = new Date(nextMessage.dateCreated);
       const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
       if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
-        if (prevMessage && prevMessage.sender.id === message.sender.id) {
+        if (isSameSender(prevMessage, message)) {
           const prevMessageDateSent = new Date(prevMessage.dateCreated);
           const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
           if (prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
@@ -55,8 +62,8 @@ export default function ConversationMessage({
       const prevMessageDateSent = new Date(prevMessage!.dateCreated);
       const prevMessageDateSentInSeconds = getSecondsInterval(dateSent, prevMessageDateSent);
 
-      if (prevMessage!.sender.id === message.sender.id && prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
-        if (nextMessage && nextMessage.sender.id === message.sender.id) {
+      if (isSameSender(prevMessage, message) && prevMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
+        if (isSameSender(nextMessage, message)) {
           const nextMessageDateSent = new Date(nextMessage.dateCreated);
           const nextMessageDateSentInSeconds = getSecondsInterval(nextMessageDateSent, dateSent);
           if (nextMessageDateSentInSeconds < SECONDS_IN_MINUTE) {
@@ -168,6 +175,9 @@ export default function ConversationMessage({
         queryKey: [session.user?.id, 'conversations'],
       });
     },
+    onError(error) {
+      if (isBlockedError(error)) queryClient.invalidateQueries({ queryKey: ['conversation', message.conversation] });
+    },
   });
 
   useEffect(() => {
@@ -176,9 +186,9 @@ export default function ConversationMessage({
   }, [isLastMessage, message.pending, message.failed]);
 
   useEffect(() => {
-    if (!isLastMessage || message.pending || message.failed) return;
+    if (!markSeen || !isLastMessage || message.pending || message.failed) return;
     seen.mutate();
-  }, [isLastMessage, message.pending, message.failed]);
+  }, [markSeen, isLastMessage, message.pending, message.failed]);
 
   return (
     <span className="grid gap-3">
@@ -187,6 +197,16 @@ export default function ConversationMessage({
           {timeIntervalText}
         </div>
       )}
+      {message.notice ? (
+        <div key={message.id} ref={divRef}>
+          <NicknameNotice
+            message={message}
+            notice={message.notice}
+            conversation={conversation}
+            canEdit={canEditNicknames}
+          />
+        </div>
+      ) : (
       <div
         key={message.id}
         ref={divRef}
@@ -198,9 +218,7 @@ export default function ConversationMessage({
         {message.sender.id !== session.user?.id && (
           <Avatar className={cn(quickMessagePlacement && quickMessagePlacement !== 'LAST' && 'opacity-0')}>
             <AvatarImage src={message.sender.photo?.url} />
-            <AvatarFallback>
-              <UserRound className="h-1/2 w-auto" />
-            </AvatarFallback>
+            <InitialsFallback name={message.sender.displayName} colorKey={message.sender.id} />
           </Avatar>
         )}
         <div
@@ -254,6 +272,7 @@ export default function ConversationMessage({
           </div>
         )}
       </div>
+      )}
     </span>
   );
 }

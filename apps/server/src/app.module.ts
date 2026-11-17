@@ -15,6 +15,7 @@ import { OtpModule } from './v1/otp/otp.module';
 import { ConversationModule } from './v1/conversation/conversation.module';
 import { MessageModule } from './v1/message/message.module';
 import { CallModule } from './v1/call/call.module';
+import { ReportModule } from './v1/report/report.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { CallModule } from './v1/call/call.module';
     ConversationModule,
     MessageModule,
     CallModule,
+    ReportModule,
   ],
   controllers: [AppController],
   providers: [

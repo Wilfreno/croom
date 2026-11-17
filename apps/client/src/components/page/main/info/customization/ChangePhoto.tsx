@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PATCHRequest, ServerResponse } from '@/lib/server/requests';
 import { cn, withBasePath } from '@/lib/utils';
-import { Conversation } from '@repo/types';
+import { ChangeConversationPhotoResult } from '@/types/conversation-photo.types';
+import { Conversation, Photo } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ImageIcon, UserRound } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 
@@ -23,6 +24,12 @@ export default function ChangePhoto() {
   const { session } = useAuth();
   const params = useParams<{ id: string }>();
   const { data: conversation } = useConversation(params.id);
+
+  const isAdmin = useMemo(() => {
+    if (!session || !conversation) return false;
+
+    return conversation.admins.some((user) => user.id === session.user?.id);
+  }, [session, conversation]);
 
   const queryClient = useQueryClient();
 
@@ -54,34 +61,28 @@ export default function ChangePhoto() {
   const setNewPhotoMutation = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest('/v1/conversation/' + params.id + '/photo', {
-          photo: { url: newPhoto?.url },
-        });
+        const { status, message, data } = await PATCHRequest<ChangeConversationPhotoResult>(
+          '/v1/conversation/' + params.id + '/photo',
+          { photo: newPhoto },
+        );
 
         if (status !== 'OK') throw new Error(message);
+        return data.photo;
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
-    onSuccess: () => {
-      const queryKeys = [
-        ['conversation', params.id],
-        [session.user?.id, 'conversations'],
-        ['active', 'conversations', session.user?.id],
-      ];
+    onSuccess: (savedPhoto) => {
+      const photo = savedPhoto as Photo;
+      const withNewPhoto = (convo: Conversation): Conversation =>
+        convo.id === params.id ? { ...convo, photo } : convo;
 
-      if (!conversation?.photo) {
-        queryKeys.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
-      } else {
-        const photo = { ...conversation.photo, url: newPhoto!.url };
-        const withNewPhoto = (convo: Conversation): Conversation =>
-          convo.id === params.id ? { ...convo, photo } : convo;
-
-        queryClient.setQueryData<Conversation>(queryKeys[0], (prev) => prev && withNewPhoto(prev));
-        queryClient.setQueryData<Conversation[]>(queryKeys[1], (prev) => prev?.map(withNewPhoto) ?? []);
-        queryClient.setQueryData<Conversation[]>(queryKeys[2], (prev) => prev?.map(withNewPhoto) ?? []);
-      }
+      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => prev && withNewPhoto(prev));
+      queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => prev?.map(withNewPhoto));
+      queryClient.setQueryData<Conversation[]>(['active', 'conversations', session.user?.id], (prev) =>
+        prev?.map(withNewPhoto),
+      );
       setNewPhoto(undefined);
       setOpen(false);
     },
@@ -109,7 +110,12 @@ export default function ChangePhoto() {
   return (
     <Dialog open={open}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start" onClick={() => setOpen((prev) => !prev)}>
+        <Button
+          variant="ghost"
+          disabled={!isAdmin}
+          className="w-full justify-start"
+          onClick={() => setOpen((prev) => !prev)}
+        >
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary text-primary">
             <ImageIcon className="h-4 w-auto" />
           </span>

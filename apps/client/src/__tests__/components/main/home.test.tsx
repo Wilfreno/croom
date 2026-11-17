@@ -11,7 +11,7 @@ import SideBar from '@/components/page/main/SideBar/SideBar';
 import UserSideBar from '@/components/page/main/SideBar/UserSidebar';
 import SidebarContent from '@/components/page/main/SidebarContent';
 import UserAvatar from '@/components/page/main/UserAvatar';
-import { UserStatus } from '@repo/enums';
+import { MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation, UserSession } from '@repo/types';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -77,6 +77,17 @@ describe('UserAvatar', () => {
     rerender(<UserAvatar isOnline={false} />);
     expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument();
   });
+
+  it('shows the initials of the name when there is no photo', () => {
+    render(<UserAvatar isOnline={false} name="Ada Lovelace" colorKey="user-1" />);
+    expect(screen.getByText('AL')).toBeInTheDocument();
+  });
+
+  it('falls back to the person icon when there is no name', () => {
+    const { container } = render(<UserAvatar isOnline={false} />);
+    expect(container.querySelector('text')).not.toBeInTheDocument();
+    expect(container.querySelector('svg')).toBeInTheDocument();
+  });
 });
 
 describe('layout wrappers', () => {
@@ -112,6 +123,7 @@ describe('HomeConversation', () => {
 
   it('shows a group chat as its first online member plus how many others', () => {
     const conversation = chatWith();
+    conversation.isGroupChat = true;
     conversation.members = [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()];
 
     renderWithQuery(<HomeConversation conversation={conversation} />);
@@ -135,10 +147,36 @@ describe('HomeConversation', () => {
     expect(screen.getByText('you: bye')).toBeInTheDocument();
   });
 
+  it('previews a nickname notice as a sentence', () => {
+    const bob = mockUser({ displayName: 'Bob' });
+    const conversation = chatWith(bob, {
+      text: '',
+      notice: { type: MessageNoticeType.NICKNAME, user: sessionUser!.id, value: 'Ace' },
+    });
+
+    renderWithQuery(<HomeConversation conversation={conversation} />);
+
+    expect(screen.getByText('Bob set your nickname to Ace')).toBeInTheDocument();
+  });
+
+  it("previews your own nickname change for someone else", () => {
+    const bob = mockUser({ displayName: 'Bob' });
+    const conversation = chatWith(bob, {
+      sender: sessionUser as never,
+      text: '',
+      notice: { type: MessageNoticeType.NICKNAME, user: bob.id, value: '' },
+    });
+
+    renderWithQuery(<HomeConversation conversation={conversation} />);
+
+    expect(screen.getByText("You cleared Bob's nickname")).toBeInTheDocument();
+  });
+
   it('names the sender in a group chat', () => {
     const carol = mockUser({ displayName: 'Carol' });
     const conversation = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser(), carol],
       messages: [mockMessage({ sender: carol, text: 'standup?', seenBy: [] }) as never],
     });
@@ -264,6 +302,7 @@ describe('HomeActiveConversations', () => {
   it('shows a group chat as its first online member plus how many others', () => {
     const group = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser({ status: UserStatus.OFFLINE }), mockUser({ status: UserStatus.ONLINE }), mockUser()],
     });
     active.activeConversations = [group];

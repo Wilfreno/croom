@@ -2,20 +2,26 @@ import {
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
+  getAvatarColor,
   getConversationName,
   getGroupAvatarMembers,
+  getInitials,
+  isBlockedError,
+  isBlockedMember,
   isConversationOnline,
   getMediaErrorMessage,
+  getNicknameNoticeText,
   getSecondsInterval,
   getTimeIntervalText,
-  isGroupChat,
+  isSameSender,
   peopleLabel,
 } from '@/lib/utils';
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
-import { SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
-import { UserStatus } from '@repo/enums';
+import { AVATAR_FALLBACK_COLORS, SECONDS_IN_DAY, SOCKET_SERVER_REPLY_TIMEOUT_MS } from '@repo/constants';
+import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation } from '@repo/types';
+import { AxiosError } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const NOW = new Date('2026-11-13T15:30:00');
@@ -38,21 +44,38 @@ describe('cn', () => {
   });
 });
 
-describe('isGroupChat', () => {
-  const conversation = (members: number) =>
-    ({ members: Array.from({ length: members }, (_, i) => ({ id: String(i) })) }) as unknown as Conversation;
+describe('isBlockedError', () => {
+  const responseError = (status: number, body: unknown) =>
+    new AxiosError(String(status), undefined, undefined, undefined, { status, data: body } as never);
 
-  it('is false for a one-to-one conversation (the other member only)', () => {
-    expect(isGroupChat(conversation(1))).toBe(false);
+  it('is true for a BLOCKED server response', () => {
+    expect(isBlockedError(responseError(423, { status: 'BLOCKED', message: '', data: null }))).toBe(true);
   });
 
-  it('is true for two or more other members', () => {
-    expect(isGroupChat(conversation(2))).toBe(true);
+  it.each([
+    ['another server status', responseError(404, { status: 'NOT FOUND', message: '', data: null })],
+    ['an axios error without a response', new AxiosError('network')],
+    ['a plain error', new Error('boom')],
+    ['a non-error', 'BLOCKED'],
+  ])('is false for %s', (_, error) => {
+    expect(isBlockedError(error)).toBe(false);
+  });
+});
+
+describe('isBlockedMember', () => {
+  const blocked = (blocker: string) => ({ status: ConversationStatus.BLOCKED, blocker }) as unknown as Conversation;
+
+  it('is true when someone else blocked the conversation', () => {
+    expect(isBlockedMember(blocked('them'), 'me')).toBe(true);
   });
 
-  it('leaves out the current user, so a one-to-one conversation that includes them is not a group', () => {
-    expect(isGroupChat(conversation(2), '0')).toBe(false);
-    expect(isGroupChat(conversation(3), '0')).toBe(true);
+  it('is false for the member who did the blocking', () => {
+    expect(isBlockedMember(blocked('me'), 'me')).toBe(false);
+  });
+
+  it('is false for a conversation that is not blocked, or not loaded yet', () => {
+    expect(isBlockedMember({ status: undefined } as unknown as Conversation, 'me')).toBe(false);
+    expect(isBlockedMember(undefined, 'me')).toBe(false);
   });
 });
 
@@ -105,8 +128,13 @@ describe('getConversationName', () => {
   const bob = { id: 'bob', displayName: 'Bob' };
   const me = { id: 'me', displayName: 'Me' };
 
-  function conversation(name: string, members: { id: string; displayName: string }[], nicknames: Conversation['nicknames'] = []) {
-    return { name, members, nicknames } as unknown as Conversation;
+  function conversation(
+    name: string,
+    members: { id: string; displayName: string }[],
+    nicknames: Conversation['nicknames'] = [],
+    isGroupChat = members.length > 2,
+  ) {
+    return { name, members, nicknames, isGroupChat } as unknown as Conversation;
   }
 
   it('uses the name when there is one', () => {
@@ -121,6 +149,25 @@ describe('getConversationName', () => {
     expect(getConversationName(conversation('', [ann, bob], [{ user: 'bob', value: 'Bobby' }]), 'me')).toBe(
       'Ann, Bobby',
     );
+  });
+
+  it('shows a group down to one other member as you and them, so it does not look like a direct chat', () => {
+    expect(getConversationName(conversation('', [me, bob], [], true), 'me')).toBe('You and Bob');
+    expect(getConversationName(conversation('', [me, bob], [{ user: 'bob', value: 'Bobby' }], true), 'me')).toBe(
+      'You and Bobby',
+    );
+  });
+
+  it('keeps just their name for a direct chat', () => {
+    expect(getConversationName(conversation('', [me, bob], [], false), 'me')).toBe('Bob');
+  });
+
+  it('shows a group where only you are left as only you', () => {
+    expect(getConversationName(conversation('', [me], [], true), 'me')).toBe('Only you');
+  });
+
+  it('keeps a custom name for a two-member group', () => {
+    expect(getConversationName(conversation('Duo', [me, bob], [], true), 'me')).toBe('Duo');
   });
 });
 
@@ -263,5 +310,75 @@ describe('peopleLabel', () => {
 
   it.each([0, 2, 10])('uses the plural for %i', (count) => {
     expect(peopleLabel(count)).toBe(`${count} people`);
+  });
+});
+
+describe('getNicknameNoticeText', () => {
+  const notice = (user: string, value = 'Ace') => ({ type: MessageNoticeType.NICKNAME, user, value });
+  const text = (user: string, actorId: string, value?: string) =>
+    getNicknameNoticeText({ notice: notice(user, value), actorId, actorName: 'Ada', targetName: 'Bob', currentUserId: 'me' });
+
+  it.each([
+    ['someone else set your nickname', 'me', 'ada', undefined, 'Ada set your nickname to Ace'],
+    ["you set someone else's nickname", 'bob', 'me', undefined, "You set Bob's nickname to Ace"],
+    ['you set your own nickname', 'me', 'me', undefined, 'You set your nickname to Ace'],
+    ['someone set their own nickname', 'ada', 'ada', undefined, 'Ada set their own nickname to Ace'],
+    ["someone set a third person's nickname", 'bob', 'ada', undefined, "Ada set Bob's nickname to Ace"],
+    ['someone cleared your nickname', 'me', 'ada', '', 'Ada cleared your nickname'],
+    ["you cleared someone else's nickname", 'bob', 'me', '', "You cleared Bob's nickname"],
+  ])('reads naturally when %s', (_, user, actorId, value, expected) => {
+    expect(text(user, actorId, value)).toBe(expected);
+  });
+});
+
+describe('isSameSender', () => {
+  const from = (id: string, notice: object | null = null) => ({ sender: { id }, notice }) as never;
+
+  it('groups consecutive messages from the same person', () => {
+    expect(isSameSender(from('a'), from('a'))).toBe(true);
+    expect(isSameSender(from('a'), from('b'))).toBe(false);
+    expect(isSameSender(undefined, from('a'))).toBe(false);
+  });
+
+  it('never groups a message with a notice', () => {
+    const notice = from('a', { type: MessageNoticeType.NICKNAME, user: 'b', value: 'x' });
+
+    expect(isSameSender(notice, from('a'))).toBe(false);
+    expect(isSameSender(from('a'), notice)).toBe(false);
+  });
+});
+
+describe('getInitials', () => {
+  it('takes the first letters of the first and last word', () => {
+    expect(getInitials('Ada Lovelace')).toBe('AL');
+    expect(getInitials('w.gayongan')).toBe('WG');
+    expect(getInitials('w.gayongan+1')).toBe('W1');
+    expect(getInitials('mary jane watson')).toBe('MW');
+  });
+
+  it('takes the first two letters of a single word', () => {
+    expect(getInitials('tr3onix101')).toBe('TR');
+    expect(getInitials('x')).toBe('X');
+  });
+
+  it('returns an empty string when there are no letters or digits', () => {
+    expect(getInitials('')).toBe('');
+    expect(getInitials(' .+ ')).toBe('');
+  });
+
+  it('keeps non-latin letters whole', () => {
+    expect(getInitials('élise ñuñez')).toBe('ÉÑ');
+  });
+});
+
+describe('getAvatarColor', () => {
+  it('always gives the same key the same palette color', () => {
+    expect(getAvatarColor('user-1')).toBe(getAvatarColor('user-1'));
+    expect(AVATAR_FALLBACK_COLORS).toContain(getAvatarColor('user-1'));
+  });
+
+  it('spreads different keys across the palette', () => {
+    const colors = new Set(Array.from({ length: 50 }, (_, index) => getAvatarColor(`user-${index}`)));
+    expect(colors.size).toBeGreaterThan(1);
   });
 });

@@ -8,7 +8,7 @@ import { toEntity } from './pipeline';
 const CONVERSATION_ID = '64b7f0c2a1b2c3d4e5f60718';
 
 function build() {
-  const photos = { create: vi.fn() };
+  const photos = { create: vi.fn(), deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }) };
   const messages = { aggregate: vi.fn().mockResolvedValue([]) };
   return {
     photos,
@@ -42,6 +42,23 @@ describe('PhotoModel', () => {
       photos.create.mockRejectedValue(new Error('connection lost'));
 
       await expect(model.createMany([{ url: 'a' }], session)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('deleteById', () => {
+    it('deletes the photo inside the session', async () => {
+      const { photos, model } = build();
+
+      await model.deleteById('p1', session);
+
+      expect(photos.deleteOne).toHaveBeenCalledWith({ _id: 'p1' }, { session });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { photos, model } = build();
+      photos.deleteOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.deleteById('p1')).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 

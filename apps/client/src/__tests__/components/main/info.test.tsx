@@ -17,10 +17,18 @@ import InfoSidebar from '@/components/page/main/info/InfoSidebar';
 import UserInfoDialog from '@/components/page/main/info/UserInfoDialog';
 import { axiosInstance } from '@/lib/axios-instance';
 import { GETRequest, PATCHRequest } from '@/lib/server/requests';
-import { COMPOSE_SELECTED_USERS_QUERY_KEY, SOMETHING_WENT_WRONG } from '@repo/constants';
-import { ConversationStatus, UserStatus } from '@repo/enums';
+import {
+  COMPOSE_SELECTED_USERS_QUERY_KEY,
+  LEFT_GROUP_CHAT,
+  NICKNAME_MAX_LENGTH,
+  REPORT_REASON_MAX_LENGTH,
+  SOMETHING_WENT_WRONG,
+  USER_REPORTED,
+} from '@repo/constants';
+import { ConversationStatus, MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Conversation, User, UserSession } from '@repo/types';
 import { act, screen, waitFor, within } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { toast } from 'sonner';
@@ -43,7 +51,7 @@ vi.mock('next/dynamic', async () => {
     },
   };
 });
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn(), delete: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 vi.mock('@/lib/server/requests', () => ({ GETRequest: vi.fn(), PATCHRequest: vi.fn() }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
@@ -86,6 +94,7 @@ function groupChat(overrides: Partial<Conversation> = {}) {
   return mockConversation({
     id: 'c1',
     name: 'Team',
+    isGroupChat: true,
     members: [bob, carol],
     admins: [sessionUser as unknown as User],
     nicknames: [
@@ -115,6 +124,7 @@ beforeEach(() => {
   onMobile = false;
   vi.mocked(axiosInstance.get).mockImplementation(async () => ({ data: { data: conversation } }));
   vi.mocked(PATCHRequest).mockResolvedValue(OK as never);
+  vi.mocked(axiosInstance.patch).mockResolvedValue({ data: OK });
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -144,6 +154,34 @@ describe('InfoSidebar', () => {
     renderInfo(<InfoSidebar />);
 
     expect(await screen.findByLabelText('and 1 more')).toHaveTextContent('+1');
+  });
+
+  it("shows a group down to one other member as their avatar next to yours", async () => {
+    conversation = groupChat({ members: [bob] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByLabelText('and you')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
+  });
+
+  it('shows a group where only you are left as just your avatar', async () => {
+    conversation = groupChat({ name: '', members: [] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByText('Only you')).toBeInTheDocument();
+    expect(screen.queryByLabelText('and you')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/more$/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the sections for the last member of a group, so they can still leave or add people', async () => {
+    conversation = groupChat({ name: '', members: [] });
+
+    renderInfo(<InfoSidebar />);
+
+    expect(await screen.findByRole('button', { name: 'Privacy & Support' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Admins & Members' })).toBeInTheDocument();
   });
 
   it('shows admins and members only in a group chat', async () => {
@@ -191,6 +229,14 @@ describe('InfoCustomization', () => {
     expect(screen.getByRole('button', { name: 'Add nicknames' })).toBeInTheDocument();
   });
 
+  it('offers nothing to customize in a blocked chat, even to whoever blocked it', () => {
+    conversation = oneToOne({ status: ConversationStatus.BLOCKED, blocker: sessionUser.id });
+
+    renderInfo(<InfoCustomization />);
+
+    expect(screen.queryByRole('button', { name: 'Customization' })).not.toBeInTheDocument();
+  });
+
   it('offers only nicknames for a one-to-one chat', async () => {
     conversation = oneToOne();
     renderInfo(<InfoCustomization />);
@@ -221,6 +267,14 @@ describe('InfoAdminsAndMembers', () => {
     expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bob' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Carol' })).toBeInTheDocument();
+  });
+
+  it('still treats a group that shrank to one other member as a group', () => {
+    conversation = groupChat({ members: [bob] });
+
+    renderInfo(<InfoAdminsAndMembers />);
+
+    expect(screen.getByRole('button', { name: 'Admins & Members' })).toBeInTheDocument();
   });
 });
 
@@ -260,7 +314,7 @@ describe('ManageAdmin', () => {
     const bobRow = within(dialog).getByText('Bob').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(bobRow).getByRole('button', { name: 'Add' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/admins', { adminAction: 'ADD', admin: bob.id });
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/admins', { memberId: bob.id });
     await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).toContain(bob.id));
   });
 
@@ -273,12 +327,17 @@ describe('ManageAdmin', () => {
     const carolRow = within(dialog).getByText('Carol').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(carolRow).getByRole('button', { name: 'Remove' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/admins', { adminAction: 'REMOVE', admin: carol.id });
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/conversation/c1/admins/${carol.id}`);
     await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).not.toContain(carol.id));
   });
 
   it('leaves the admins unchanged when the server refuses', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'not allowed', data: null } as never);
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('403', '403', undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'not allowed', data: null },
+      } as never),
+    );
     const { queryClient } = renderInfo(<ManageAdmin />);
     await userEvent.click(screen.getByRole('button', { name: 'Manage admin' }));
     const dialog = await screen.findByRole('dialog');
@@ -312,15 +371,48 @@ describe('ManageMember', () => {
     const bobRow = within(dialog).getByText('@bob').closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(bobRow).getByRole('button', { name: 'Remove' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/members', { member: bob.id, action: 'REMOVE' });
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/conversation/c1/members/${bob.id}`);
     await waitFor(() => expect(cached(queryClient).members.map((m) => m.id)).toEqual([carol.id]));
+  });
+
+  it('updates the conversation lists too, leaving other conversations alone', async () => {
+    const other = { ...conversation, id: 'other' };
+    const { queryClient } = renderInfo(<ManageMember />);
+    queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation, other]);
+    queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
+    const dialog = await openDialog();
+
+    const bobRow = within(dialog).getByText('@bob').closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(bobRow).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])![0].members.map((m) => m.id),
+      ).toEqual([carol.id]),
+    );
+    expect(queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])![1]).toBe(other);
+    expect(
+      queryClient.getQueryData<Conversation[]>(['active', 'conversations', sessionUser.id])![0].members.map((m) => m.id),
+    ).toEqual([carol.id]);
+  });
+
+  it('drops a removed admin from the admins and nicknames too', async () => {
+    conversation = groupChat({ admins: [sessionUser as unknown as User, carol] });
+    const { queryClient } = renderInfo(<ManageMember />);
+    const dialog = await openDialog();
+
+    const carolRow = within(dialog).getByText('@carol').closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(carolRow).getByRole('button', { name: 'Remove' }));
+
+    await waitFor(() => expect(cached(queryClient).admins.map((a) => a.id)).not.toContain(carol.id));
+    expect(cached(queryClient).members.map((m) => m.id)).toEqual([bob.id]);
+    expect(cached(queryClient).nicknames.map((n) => n.user)).toEqual([bob.id]);
   });
 
   it('searches for people and adds one', async () => {
     const dave = mockUser({ displayName: 'Dave', userName: '@dave' });
-    vi.mocked(GETRequest).mockImplementation(async (path: string) =>
-      ({ status: 'OK', message: '', data: path.includes('/search/') ? [dave] : dave }) as never,
-    );
+    vi.mocked(GETRequest).mockResolvedValue({ status: 'OK', message: '', data: [dave] } as never);
+    vi.mocked(axiosInstance.post).mockResolvedValue({ data: OK });
     const { queryClient } = renderInfo(<ManageMember />);
     const dialog = await openDialog();
 
@@ -329,9 +421,29 @@ describe('ManageMember', () => {
     const daveRow = (await within(dialog).findByText('@dave')).closest('div.justify-between') as HTMLElement;
     await userEvent.click(within(daveRow).getByRole('button', { name: 'Add' }));
 
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/members', { memberId: dave.id });
     await waitFor(() => expect(cached(queryClient).members.map((m) => m.id)).toContain(dave.id));
-    expect(GETRequest).toHaveBeenCalledWith('/v1/user/@dave');
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/members', { member: dave.id, action: 'ADD' });
+    expect(cached(queryClient).nicknames).toContainEqual({ user: dave.id, value: '' });
+  });
+
+  it('leaves the members unchanged when the server refuses an addition', async () => {
+    const dave = mockUser({ displayName: 'Dave', userName: '@dave' });
+    vi.mocked(GETRequest).mockResolvedValue({ status: 'OK', message: '', data: [dave] } as never);
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('409', '409', undefined, undefined, {
+        status: 409,
+        data: { status: 'CONFLICT', message: 'user is already a member', data: null },
+      } as never),
+    );
+    const { queryClient } = renderInfo(<ManageMember />);
+    const dialog = await openDialog();
+
+    await userEvent.type(within(dialog).getByPlaceholderText('Username'), 'dave');
+    const daveRow = (await within(dialog).findByText('@dave')).closest('div.justify-between') as HTMLElement;
+    await userEvent.click(within(daveRow).getByRole('button', { name: 'Add' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('user is already a member'));
+    expect(cached(queryClient).members.map((m) => m.id)).not.toContain(dave.id);
   });
 
   it('removes the right member when removing from the search results', async () => {
@@ -352,7 +464,12 @@ describe('ManageMember', () => {
   });
 
   it('shows why a change failed', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'admins only', data: null } as never);
+    vi.mocked(axiosInstance.delete).mockRejectedValue(
+      new AxiosError('403', '403', undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'admins only', data: null },
+      } as never),
+    );
     const { queryClient } = renderInfo(<ManageMember />);
     const dialog = await openDialog();
 
@@ -389,16 +506,41 @@ describe('AddNickname', () => {
   it('saves a new nickname everywhere it is cached', async () => {
     const { queryClient } = renderInfo(<AddNickname />);
     queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation]);
+    queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
     await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
     const dialog = await screen.findByRole('dialog');
 
     await userEvent.click(within(dialog).getByText('Set nickname'));
+    await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), ' Bobby {Enter}');
+
+    expect(axiosInstance.patch).toHaveBeenCalledWith('/conversation/c1/nicknames', { user: bob.id, value: ' Bobby ' });
+    await waitFor(() => expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: 'Bobby' }));
+    for (const key of [[sessionUser.id, 'conversations'], ['active', 'conversations', sessionUser.id]])
+      expect(queryClient.getQueryData<Conversation[]>(key)![0].nicknames).toContainEqual({ user: bob.id, value: 'Bobby' });
+    expect(await within(dialog).findByText('Bobby')).toBeInTheDocument();
+  });
+
+  it('adds the notice the server posted to the open chat', async () => {
+    const notice = {
+      ...mockMessage({ text: '', sender: sessionUser as unknown as User }),
+      notice: { type: MessageNoticeType.NICKNAME, user: bob.id, value: 'Bobby' },
+      conversation: { id: 'c1', nicknames: [] },
+    };
+    vi.mocked(axiosInstance.patch).mockResolvedValue({
+      data: { ...OK, data: { user: bob.id, value: 'Bobby', message: notice } },
+    });
+    const { queryClient } = renderInfo(<AddNickname />);
+    queryClient.setQueryData(['conversation', 'messages', 'c1'], { pages: [{ pageParam: 1, result: [] }], pageParams: [1] });
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByText('Set nickname'));
     await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'Bobby{Enter}');
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/nicknames', { nickname: { user: bob.id, value: 'Bobby' } });
-    await waitFor(() => expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: 'Bobby' }));
-    const list = queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])!;
-    expect(list[0].nicknames).toContainEqual({ user: bob.id, value: 'Bobby' });
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData<{ pages: { result: unknown[] }[] }>(['conversation', 'messages', 'c1'])!.pages[0].result,
+      ).toEqual([{ ...notice, conversation: 'c1' }]),
+    );
   });
 
   it('edits an existing nickname, starting from its value', async () => {
@@ -411,9 +553,14 @@ describe('AddNickname', () => {
     expect(within(dialog).getByPlaceholderText('Set nickname')).toHaveValue('Caz');
   });
 
-  it('shows why a nickname could not be saved', async () => {
-    vi.mocked(PATCHRequest).mockResolvedValue({ status: 'BAD REQUEST', message: 'too long', data: null } as never);
-    renderInfo(<AddNickname />);
+  it('shows why a nickname could not be saved and keeps the old one', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(
+      new AxiosError('bad request', '400', undefined, undefined, {
+        status: 400,
+        data: { status: 'BAD REQUEST', message: 'too long', data: null },
+      } as never),
+    );
+    const { queryClient } = renderInfo(<AddNickname />);
     await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
     const dialog = await screen.findByRole('dialog');
 
@@ -421,6 +568,80 @@ describe('AddNickname', () => {
     await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'x{Enter}');
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('too long'));
+    expect(cached(queryClient).nicknames).toContainEqual({ user: bob.id, value: '' });
+  });
+
+  async function openNicknames() {
+    await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
+    return screen.findByRole('dialog');
+  }
+
+  it('explains who sees the nicknames and marks your own row', async () => {
+    conversation = groupChat({ nicknames: [{ user: sessionUser.id, value: '' }, { user: bob.id, value: '' }] });
+    renderInfo(<AddNickname />);
+
+    const dialog = await openNicknames();
+
+    expect(within(dialog).getByText('Everyone in this chat will see the nicknames you set.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Edit nickname for Me' })).toHaveTextContent('You');
+    expect(within(dialog).getByRole('button', { name: 'Edit nickname for Bob' })).not.toHaveTextContent('You');
+  });
+
+  it('only saves once the nickname has changed, and counts its length', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(within(dialog).getByText(`3/${NICKNAME_MAX_LENGTH}`)).toBeInTheDocument();
+
+    await userEvent.type(within(dialog).getByLabelText('Nickname for Carol'), 'z');
+
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(within(dialog).getByText(`4/${NICKNAME_MAX_LENGTH}`)).toBeInTheDocument();
+  });
+
+  it('removes a nickname by clearing it', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Clear nickname' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
+
+    expect(axiosInstance.patch).toHaveBeenCalledWith('/conversation/c1/nicknames', { user: carol.id, value: '' });
+    expect(await within(dialog).findByRole('button', { name: 'Edit nickname for Carol' })).toHaveTextContent('Set nickname');
+  });
+
+  it('cancels an edit without saving, by button or Escape, and keeps the dialog open', async () => {
+    renderInfo(<AddNickname />);
+    const dialog = await openNicknames();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Carol' }));
+    await userEvent.type(within(dialog).getByLabelText('Nickname for Carol'), 'zzz');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(within(dialog).getByText('Caz')).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Edit nickname for Bob' }));
+    await userEvent.keyboard('{Escape}');
+
+    expect(within(dialog).queryByLabelText('Nickname for Bob')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a generic message when the server fails', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValue(new Error('network down'));
+    renderInfo(<AddNickname />);
+    await userEvent.click(screen.getByRole('button', { name: 'Add nicknames' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByText('Set nickname'));
+    await userEvent.type(within(dialog).getByPlaceholderText('Set nickname'), 'x{Enter}');
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
   });
 });
 
@@ -452,6 +673,20 @@ describe('ChangeName', () => {
     expect(toast.success).toHaveBeenCalledWith('name changed');
   });
 
+  it('sends and caches the name without surrounding spaces', async () => {
+    const { queryClient } = renderInfo(<ChangeName />);
+    await userEvent.click(screen.getByRole('button', { name: 'Change chat name' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Team' }));
+    const input = within(dialog).getByPlaceholderText('Change name');
+    await userEvent.clear(input);
+    await userEvent.type(input, '  Squad  {Enter}');
+
+    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/name', { name: 'Squad' });
+    await waitFor(() => expect(cached(queryClient).name).toBe('Squad'));
+  });
+
   it('keeps the name when the server refuses', async () => {
     vi.mocked(PATCHRequest).mockResolvedValue({ status: 'FORBIDDEN', message: 'nope', data: null } as never);
     const { queryClient } = renderInfo(<ChangeName />);
@@ -474,6 +709,14 @@ describe('ChangePhoto', () => {
     return dialog;
   }
 
+  it('is disabled for someone who is not an admin', () => {
+    conversation = groupChat({ admins: [bob] });
+
+    renderInfo(<ChangePhoto />);
+
+    expect(screen.getByRole('button', { name: 'Change photo' })).toBeDisabled();
+  });
+
   it('can only be confirmed once a photo is uploaded', async () => {
     renderInfo(<ChangePhoto />);
     await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));
@@ -485,6 +728,10 @@ describe('ChangePhoto', () => {
   });
 
   it('swaps the photo in every cached copy', async () => {
+    vi.mocked(PATCHRequest).mockResolvedValue({
+      ...OK,
+      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+    } as never);
     conversation = groupChat({ photo: mockPhoto({ url: 'https://utfs.io/old.png' }) });
     const { queryClient } = renderInfo(<ChangePhoto />);
     queryClient.setQueryData(['active', 'conversations', sessionUser.id], [conversation]);
@@ -492,23 +739,26 @@ describe('ChangePhoto', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photo: { url: UPLOADED_FILE.url } });
+    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photo: UPLOADED_FILE });
     await waitFor(() => expect(cached(queryClient).photo?.url).toBe(UPLOADED_FILE.url));
+    expect(cached(queryClient).photo?.id).toBe('new-photo');
     expect(queryClient.getQueryData<Conversation[]>(['active', 'conversations', sessionUser.id])![0].photo?.url).toBe(
       UPLOADED_FILE.url,
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('refetches a conversation that had no photo yet', async () => {
+  it('shows the new photo on a conversation that had none yet', async () => {
+    vi.mocked(PATCHRequest).mockResolvedValue({
+      ...OK,
+      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+    } as never);
     const { queryClient } = renderInfo(<ChangePhoto />);
-    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const dialog = await uploadInDialog();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] }));
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['active', 'conversations', sessionUser.id] });
+    await waitFor(() => expect(cached(queryClient).photo).toEqual({ id: 'new-photo', url: UPLOADED_FILE.url }));
   });
 
   it('keeps the dialog open when the photo cannot be saved', async () => {
@@ -651,11 +901,42 @@ describe('InfoPrivacyAndSupport', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Bob')).toBeInTheDocument();
-    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), '  spam  ');
     await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
 
-    expect(axiosInstance.post).toHaveBeenCalledWith('/v1/user/report', { reportedUser: bob.id, reason: 'spam' });
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('User reported'));
+    expect(axiosInstance.post).toHaveBeenCalledWith('/report', { conversationId: 'c1', user: bob.id, reason: 'spam' });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(USER_REPORTED));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps send disabled until there is a reason', async () => {
+    conversation = oneToOne();
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    const send = within(dialog).getByRole('button', { name: 'send' });
+    expect(send).toBeDisabled();
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), '   ');
+    expect(send).toBeDisabled();
+    expect(within(dialog).getByText(`3/${REPORT_REASON_MAX_LENGTH}`)).toBeInTheDocument();
+  });
+
+  it('closes the one-to-one report on cancel and forgets the draft', async () => {
+    conversation = oneToOne();
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    let dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByPlaceholderText('Reason')).toHaveValue('');
   });
 
   it('lets you pick who to report in a group chat', async () => {
@@ -672,6 +953,22 @@ describe('InfoPrivacyAndSupport', () => {
     expect(within(dialog).getByText('Report user')).toBeInTheDocument();
   });
 
+  it('reports the picked member in a group chat', async () => {
+    vi.mocked(axiosInstance.post).mockResolvedValue({});
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    const carolRow = within(dialog).getByText('Carol').parentElement!;
+    await userEvent.click(within(carolRow).getByRole('button', { name: 'report' }));
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'harassment');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
+
+    expect(axiosInstance.post).toHaveBeenCalledWith('/report', { conversationId: 'c1', user: carol.id, reason: 'harassment' });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(USER_REPORTED));
+  });
+
   it('shows a generic error when reporting fails', async () => {
     conversation = oneToOne();
     vi.mocked(axiosInstance.post).mockRejectedValue(new Error('500'));
@@ -684,16 +981,103 @@ describe('InfoPrivacyAndSupport', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('leaves a group chat', async () => {
-    vi.mocked(axiosInstance.post).mockResolvedValue({});
+  it('shows why the server refused a report', async () => {
+    conversation = oneToOne();
+    vi.mocked(axiosInstance.post).mockRejectedValue(
+      new AxiosError('429', '429', undefined, undefined, {
+        status: 429,
+        data: { status: 'TOO MANY REQUESTS', message: 'slow down', data: null },
+      } as never),
+    );
     renderInfo(<InfoPrivacyAndSupport />);
     await open();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Leave group chat' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Report User' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByPlaceholderText('Reason'), 'spam');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'send' }));
 
-    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('slow down'));
+  });
+
+  describe('leaving a group chat', () => {
+    async function openLeaveDialog() {
+      await open();
+      await userEvent.click(screen.getByRole('button', { name: 'Leave group chat' }));
+      return screen.findByRole('dialog');
+    }
+
+    it('leaves after confirming, drops the chat from the list and goes home', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      vi.mocked(axiosInstance.post).mockResolvedValue({});
+      const { queryClient } = renderInfo(<InfoPrivacyAndSupport />);
+      queryClient.setQueryData([sessionUser.id, 'conversations'], [conversation, mockConversation({ id: 'c2' })]);
+      const dialog = await openLeaveDialog();
+
+      expect(axiosInstance.post).not.toHaveBeenCalled();
+      expect(within(dialog).getByText(/stop getting messages from this group/)).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(LEFT_GROUP_CHAT));
+      expect(push).toHaveBeenCalledWith('/');
+      expect(queryClient.getQueryData<Conversation[]>([sessionUser.id, 'conversations'])!.map((c) => c.id)).toEqual(['c2']);
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('stays in the group when cancelled', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      expect(axiosInstance.post).not.toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('asks the only admin to make someone else admin first', async () => {
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      expect(within(dialog).getByText(/only admin\. Make another member an admin/)).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: 'Leave' })).toBeDisabled();
+    });
+
+    it('tells the only admin of a two-person group that the other member takes over', async () => {
+      conversation = groupChat({ members: [bob] });
+      vi.mocked(axiosInstance.post).mockResolvedValue({});
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      expect(within(dialog).getByText('Bob will become the admin of this group.')).toBeInTheDocument();
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      expect(axiosInstance.post).toHaveBeenCalledWith('/conversation/c1/leave');
+    });
+
+    it('shows why the server refused and stays put', async () => {
+      conversation = groupChat({ admins: [sessionUser as unknown as User, bob] });
+      vi.mocked(axiosInstance.post).mockRejectedValue(
+        new AxiosError('409', '409', undefined, undefined, {
+          status: 409,
+          data: { status: 'CONFLICT', message: 'make another member an admin before leaving the group', data: null },
+        } as never),
+      );
+      renderInfo(<InfoPrivacyAndSupport />);
+      const dialog = await openLeaveDialog();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Leave' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('make another member an admin before leaving the group'),
+      );
+      expect(push).not.toHaveBeenCalled();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
   });
 
   it('blocks the other person in a one-to-one chat and refreshes', async () => {
@@ -730,6 +1114,30 @@ describe('InfoPrivacyAndSupport', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Block User' }));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+  });
+
+  it('refreshes the conversation when blocking is refused, so a stale view catches up', async () => {
+    conversation = oneToOne();
+    vi.mocked(axiosInstance.post).mockRejectedValue(new Error('409'));
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Block User' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    await waitFor(() => expect(axiosInstance.get).toHaveBeenCalledWith('/conversation/c1'));
+  });
+
+  it('refreshes the conversation when unblocking is refused', async () => {
+    conversation = oneToOne({ status: ConversationStatus.BLOCKED, blocker: sessionUser.id });
+    vi.mocked(axiosInstance.delete).mockRejectedValue(new Error('409'));
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Unblock User' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    await waitFor(() => expect(axiosInstance.get).toHaveBeenCalledWith('/conversation/c1'));
   });
 });
 

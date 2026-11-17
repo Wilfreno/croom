@@ -1,5 +1,13 @@
 import { axiosInstance } from '@/lib/axios-instance';
-import { appendMessage, createPendingMessage, markMessageFailed, removeMessage, replaceMessage } from '@/lib/utils';
+import {
+  appendMessage,
+  createPendingMessage,
+  isBlockedError,
+  isForbiddenError,
+  markMessageFailed,
+  removeMessage,
+  replaceMessage,
+} from '@/lib/utils';
 import type { CachedMessage, MessagePages, PhotoInput } from '@/types/message.types';
 import { MessagePayload, ServerResponse, User } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -57,7 +65,10 @@ export default function useSendMessage(textInput: string) {
         (prev) => prev && replaceMessage(prev, context?.pendingId, newMessage),
       );
     },
-    onError: (_error, { conversationId }, context) => {
+    onError: (error, { conversationId }, context) => {
+      if (isBlockedError(error) || isForbiddenError(error)) {
+        queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] });
+      }
       if (!context?.pendingId) return;
       const { pendingId } = context;
 

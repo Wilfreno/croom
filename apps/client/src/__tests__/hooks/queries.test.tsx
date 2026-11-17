@@ -150,6 +150,7 @@ describe('useConversationInfo', () => {
   it('uses the group name and photo for a group chat', async () => {
     const conversation = mockConversation({
       name: 'Team',
+      isGroupChat: true,
       members: [mockUser(), mockUser()],
       photo: { id: 'p', url: 'https://utfs.io/team' } as never,
     });
@@ -165,6 +166,24 @@ describe('useConversationInfo', () => {
         lastOnline: '',
       }),
     );
+  });
+
+  it('follows the conversation as it changes, with no stale copy', () => {
+    const bob = mockUser({ displayName: 'Bob' });
+    const carol = mockUser({ displayName: 'Carol' });
+    const group = mockConversation({ name: '', isGroupChat: true, members: [bob, carol] });
+
+    const { result, rerender } = renderHookWithQuery((conversation: typeof group) => useConversationInfo(conversation), {
+      initialProps: group,
+    });
+    expect(result.current.data.conversationName).toBe('Bob, Carol');
+
+    rerender({ ...group, members: [bob] });
+    expect(result.current.data.conversationName).toBe('You and Bob');
+
+    rerender({ ...group, members: [bob], name: 'Squad', photo: { id: 'p', url: 'https://utfs.io/squad' } as never });
+    expect(result.current.data.conversationName).toBe('Squad');
+    expect(result.current.data.photoUrl).toBe('https://utfs.io/squad');
   });
 
   it("uses the other person's nickname in a one-to-one chat", async () => {

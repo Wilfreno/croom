@@ -5,10 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { PhotoType } from '@repo/enums';
+import { ConversationStatus, PhotoType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel } from '@repo/models';
 import { Message } from '@repo/schemas';
 import { Connection, Types, UpdateQuery } from 'mongoose';
+import { ServerException } from 'src/common/exceptions/server-response.exception';
 import { respond } from 'src/common/utils/server-response.util';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { SeenByDto } from './dto/seenby.dto';
@@ -39,6 +40,8 @@ export class MessageService {
 
     if (conversationId && !foundConversation)
       throw new NotFoundException('Conversation does not exist');
+    if (foundConversation?.status === ConversationStatus.BLOCKED)
+      throw new ServerException('BLOCKED', 'this conversation is blocked');
 
     const session = await this.connection.startSession();
     let newMessage: Awaited<ReturnType<MessageModel['createMessage']>>;

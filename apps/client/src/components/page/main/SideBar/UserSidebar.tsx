@@ -1,7 +1,8 @@
 'use client';
 
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, UserRound } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function UserSideBar() {
@@ -23,9 +24,7 @@ export default function UserSideBar() {
       <DropdownMenuTrigger className="rounded-full">
         <Avatar className="border border-muted aspect-square h-full w-12">
           <AvatarImage src={session.user?.photo?.url} />
-          <AvatarFallback className="bg-background">
-            <UserRound className="h-1/2 w-auto" />
-          </AvatarFallback>
+          <InitialsFallback name={session.user?.displayName} colorKey={session.user?.id} className="bg-background" />
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="right" align="end" sideOffset={14}>
@@ -33,9 +32,11 @@ export default function UserSideBar() {
           <div className="flex items-start gap-2 p-2 py-4 w-72">
             <Avatar>
               <AvatarImage src={session.user?.photo?.url} />
-              <AvatarFallback className="bg-background">
-                <UserRound className="h-1/2 w-auto" />
-              </AvatarFallback>
+              <InitialsFallback
+                name={session.user?.displayName}
+                colorKey={session.user?.id}
+                className="bg-background"
+              />
             </Avatar>
             <div className="grid text-start">
               <p className="font-medium max-w-64 truncate">{session.user?.displayName}</p>

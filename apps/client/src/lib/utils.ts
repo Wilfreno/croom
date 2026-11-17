@@ -1,11 +1,13 @@
 import type { CallSession } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS } from "@repo/constants";
-import { UserStatus } from "@repo/enums";
+import { AVATAR_FALLBACK_COLORS, SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { ConversationStatus, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
-import type { Photo, User } from "@repo/types";
+import type { Message, MessageNotice, Photo, ServerResponse, User } from "@repo/types";
+import type { QueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -13,8 +15,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function isGroupChat(conversation: Pick<Conversation, "members">, currentUserId?: string) {
-  return conversation.members.filter((member) => member.id !== currentUserId).length > 1;
+export function isBlockedMember(conversation: Pick<Conversation, "status" | "blocker"> | undefined, currentUserId?: string) {
+  return conversation?.status === ConversationStatus.BLOCKED && conversation.blocker !== currentUserId;
+}
+
+export function isBlockedError(error: unknown) {
+  return isAxiosError<ServerResponse>(error) && error.response?.data?.status === "BLOCKED";
+}
+
+export function isForbiddenError(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 403;
+}
+
+export function getServerErrorMessage(error: unknown) {
+  if (isAxiosError<ServerResponse>(error) && error.response && error.response.status < 500 && error.response.data?.message)
+    return error.response.data.message;
+
+  return SOMETHING_WENT_WRONG;
 }
 
 export function isConversationOnline(conversation: Pick<Conversation, "members">, currentUserId?: string) {
@@ -31,12 +48,60 @@ export function getGroupAvatarMembers(conversation: Pick<Conversation, "members"
 export function getConversationName(conversation: Conversation, currentUserId?: string) {
   if (conversation.name) return conversation.name;
 
-  return conversation.members
+  const otherMemberNames = conversation.members
     .filter((member) => member.id !== currentUserId)
     .map(
       (member) => conversation.nicknames.find((nickname) => nickname.user === member.id)?.value || member.displayName,
-    )
-    .join(", ");
+    );
+
+  if (conversation.isGroupChat && otherMemberNames.length === 0) return "Only you";
+  if (conversation.isGroupChat && otherMemberNames.length === 1) return `You and ${otherMemberNames[0]}`;
+
+  return otherMemberNames.join(", ");
+}
+
+type NicknameNoticeInput = {
+  notice: MessageNotice;
+  actorId: string;
+  actorName: string;
+  targetName: string;
+  currentUserId?: string;
+};
+
+export function getNicknameNoticeParts({ notice, actorId, actorName, targetName, currentUserId }: NicknameNoticeInput) {
+  const actor = actorId === currentUserId ? "You" : actorName;
+  let target = `${targetName}'s`;
+  if (notice.user === currentUserId) target = "your";
+  else if (notice.user === actorId) target = "their own";
+
+  return { actor, target, value: notice.value };
+}
+
+export function getNicknameNoticeText(input: NicknameNoticeInput) {
+  const { actor, target, value } = getNicknameNoticeParts(input);
+
+  return value ? `${actor} set ${target} nickname to ${value}` : `${actor} cleared ${target} nickname`;
+}
+
+export function isSameSender<T extends Pick<Message, "sender" | "notice">>(
+  message: T | undefined,
+  other?: Pick<Message, "sender" | "notice">,
+): message is T {
+  return Boolean(message && other && !message.notice && !other.notice && message.sender.id === other.sender.id);
+}
+
+export function setCachedNicknames(
+  queryClient: QueryClient,
+  { conversationId, userId }: { conversationId: string; userId?: string },
+  update: (nicknames: Conversation["nicknames"]) => Conversation["nicknames"],
+) {
+  function apply<T extends Pick<Conversation, "id" | "nicknames">>(conversation: T): T {
+    return conversation.id === conversationId ? { ...conversation, nicknames: update(conversation.nicknames) } : conversation;
+  }
+
+  queryClient.setQueryData<Conversation>(["conversation", conversationId], (prev) => prev && apply(prev));
+  queryClient.setQueryData<Conversation[]>([userId, "conversations"], (prev) => prev?.map(apply));
+  queryClient.setQueryData<Conversation[]>(["active", "conversations", userId], (prev) => prev?.map(apply));
 }
 
 export function getTimeIntervalText(dateCreated: Date) {
@@ -94,6 +159,28 @@ export function getMediaErrorMessage(error: unknown) {
     if (error.name === "OverconstrainedError") return "That camera is no longer available";
   }
   return "Could not start the camera";
+}
+
+export function getInitials(name: string) {
+  const words = name.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length === 0) return "";
+
+  const letters =
+    words.length > 1
+      ? [Array.from(words[0])[0], Array.from(words[words.length - 1])[0]]
+      : Array.from(words[0]).slice(0, 2);
+
+  return letters.join("").toUpperCase();
+}
+
+export function getAvatarColor(key: string) {
+  let index = 0;
+  for (const char of key) {
+    const code = char.codePointAt(0) ?? 0;
+    index = (index * 31 + code) % AVATAR_FALLBACK_COLORS.length;
+  }
+
+  return AVATAR_FALLBACK_COLORS[index];
 }
 
 export function peopleLabel(count: number) {

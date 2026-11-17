@@ -7,6 +7,11 @@ export interface UserStatusPayload {
   lastOnline: string;
 }
 
+export interface ConversationMembersChangedPayload {
+  conversationId: string;
+  removedMemberId?: string;
+}
+
 export interface CallPayload {
   conversationId: string;
 }
@@ -77,11 +82,13 @@ export interface ServerToClientEvents {
   MESSAGE: (message: MessagePayload) => void;
   USER_STATUS: (payload: UserStatusPayload) => void;
   INCOMING_CALL: (payload: IncomingCallPayload) => void;
+  CONVERSATION_MEMBERS_CHANGED: (payload: ConversationMembersChangedPayload) => void;
   CALL_PEER_JOINED: (peer: CallPeer) => void;
   CALL_PEER_LEFT: (payload: { peerId: string }) => void;
   CALL_NEW_PRODUCER: (producer: CallProducerInfo) => void;
   CALL_PRODUCER_CLOSED: (payload: { producerId: string }) => void;
   CALL_PRODUCER_PAUSED: (payload: { producerId: string; paused: boolean }) => void;
+  CALL_ENDED: (payload: { reason: string }) => void;
 }
 
 export interface ClientToServerEvents {

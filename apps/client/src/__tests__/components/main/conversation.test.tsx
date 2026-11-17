@@ -1,5 +1,6 @@
 import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
+import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import ConversationHeader from '@/components/page/main/conversation/ConversationHeader';
 import ConversationMessage from '@/components/page/main/conversation/ConversationMessage';
@@ -7,19 +8,21 @@ import ConversationMessageInput from '@/components/page/main/conversation/Conver
 import ConversationMessages from '@/components/page/main/conversation/ConversationMessages';
 import MessageToast from '@/components/page/main/conversation/MessageToast';
 import { axiosInstance } from '@/lib/axios-instance';
-import { UserStatus } from '@repo/enums';
-import type { Message, MessagePayload, UserSession } from '@repo/types';
+import { MessageNoticeType, UserStatus } from '@repo/enums';
+import type { Message, MessagePayload, User, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { AxiosError } from 'axios';
 import { toast } from 'sonner';
+import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
 vi.mock('emoji-picker-react', async () => (await import('@/__tests__/mocks/mock-components')).emojiPickerModule);
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}) } }));
-vi.mock('sonner', () => ({ toast: { error: vi.fn(), dismiss: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) } }));
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), dismiss: vi.fn() }) }));
 
 let sessionUser: UserSession;
 vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: sessionUser } }) }));
@@ -74,7 +77,7 @@ describe('ConversationHeader', () => {
   });
 
   it('shows a group chat as its first online member plus how many others', () => {
-    const conversation = mockConversation({ name: 'Team', members: [mockUser(), mockUser(), mockUser()] });
+    const conversation = mockConversation({ name: 'Team', isGroupChat: true, members: [mockUser(), mockUser(), mockUser()] });
 
     renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
 
@@ -88,6 +91,17 @@ describe('ConversationHeader', () => {
 
     expect(socket.emit).toHaveBeenCalledWith('CALL', { conversationId: 'c1' });
     expect(push).toHaveBeenCalledWith('/call/c1');
+  });
+
+  it.each([
+    ['you blocked', () => sessionUser.id],
+    ['you were blocked', () => 'someone-else'],
+  ])('offers no video call in a conversation %s', (_, blocker) => {
+    renderWithQuery(
+      <ConversationHeader conversationInfo={info} conversation={mockConversation({ status: 'BLOCKED', blocker: blocker() })} />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
   });
 
   it('toggles the info sidebar', async () => {
@@ -155,6 +169,14 @@ describe('ConversationMessage', () => {
     expect(container.querySelector('.grid-cols-\\[auto_1fr\\]')).toBeInTheDocument();
   });
 
+  it("shows the sender's initials when they have no photo", () => {
+    renderWithQuery(
+      <ConversationMessage message={message({ sender: mockUser({ displayName: 'Bob Marley', photo: undefined }) })} isLastMessage={false} />,
+    );
+
+    expect(screen.getByText('BM')).toBeInTheDocument();
+  });
+
   it('only shows the avatar on the last of a quick run of messages', () => {
     const prev = message({ dateCreated: at(30) });
     const next = message({ dateCreated: at(5) });
@@ -164,6 +186,73 @@ describe('ConversationMessage', () => {
     );
 
     expect(container.querySelector('.opacity-0')).toBeInTheDocument();
+  });
+
+  describe('nickname notices', () => {
+    function withConversation(ui: React.ReactElement) {
+      const queryClient = makeQueryClient();
+      queryClient.setDefaultOptions({ queries: { staleTime: Infinity, gcTime: Infinity } });
+      const conversation = mockConversation({
+        id: 'c1',
+        members: [other, sessionUser as unknown as User],
+        nicknames: [
+          { user: other.id, value: '' },
+          { user: sessionUser.id, value: 'Ace' },
+        ],
+      });
+      queryClient.setQueryData(['conversation', 'c1'], conversation);
+      return { ...renderWithQuery(React.cloneElement(ui, { conversation } as never), queryClient), conversation };
+    }
+
+    const notice = (user: string, value = 'Ace') =>
+      message({ text: '', notice: { type: MessageNoticeType.NICKNAME, user, value } });
+
+    it('reads as a centered sentence instead of a bubble', () => {
+      const { container } = withConversation(
+        <ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />,
+      );
+
+      expect(screen.getByText((_, element) => element?.textContent === 'Bob set your nickname to Ace' && element.tagName === 'SPAN')).toBeInTheDocument();
+      expect(container.querySelector('.border')).not.toBeInTheDocument();
+      expect(container.querySelector('.grid-cols-\\[auto_1fr\\]')).not.toBeInTheDocument();
+    });
+
+    it('highlights who made the change and the new nickname', () => {
+      withConversation(<ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />);
+
+      expect(screen.getByText('Bob')).toHaveClass('font-medium', 'text-foreground');
+      expect(screen.getByText('Ace')).toHaveClass('font-medium', 'text-foreground');
+    });
+
+    it("opens the nickname editor on that person's nickname from the pen", async () => {
+      withConversation(<ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Edit nickname' }));
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByLabelText(`Nickname for ${sessionUser.displayName}`)).toHaveValue('Ace');
+    });
+
+    it('has no pen when you cannot change nicknames', () => {
+      withConversation(
+        <ConversationMessage message={notice(sessionUser.id)} isLastMessage={false} canEditNicknames={false} />,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Edit nickname' })).not.toBeInTheDocument();
+    });
+
+    it('does not fold the next message from the same person into the notice', () => {
+      const { container } = renderWithQuery(
+        <ConversationMessage
+          message={message({ dateCreated: at(20) })}
+          prevMessage={notice(sessionUser.id)}
+          nextMessage={notice(other.id)}
+          isLastMessage={false}
+        />,
+      );
+
+      expect(container.querySelector('.opacity-0')).not.toBeInTheDocument();
+    });
   });
 
   it('shows a message that is a single emoji big, without a bubble', () => {
@@ -244,6 +333,28 @@ describe('ConversationMessage', () => {
     await waitFor(() =>
       expect(invalidate).toHaveBeenCalledWith({ exact: true, queryKey: [sessionUser.id, 'conversations'] }),
     );
+  });
+
+  it('does not mark the last message as seen when told not to', async () => {
+    renderWithQuery(<ConversationMessage message={message()} isLastMessage markSeen={false} />);
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the conversation when marking seen is refused because you were blocked', async () => {
+    vi.mocked(axiosInstance.patch).mockRejectedValueOnce(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'you are blocked in this conversation', data: null },
+      } as never),
+    );
+    const msg = message({ conversation: 'c1' });
+
+    const { queryClient } = renderWithQuery(<ConversationMessage message={msg} isLastMessage />);
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] }));
   });
 
   it('does not mark earlier messages as seen', () => {
@@ -357,6 +468,55 @@ describe('ConversationMessages', () => {
     expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${third.id}/seenBy`, expect.anything());
   });
 
+  it('does not mark the last message as seen for the member who was blocked', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    messagePages = { pages: [{ pageParam: 1, result: [mockMessage({ text: 'before the block' })] }] };
+
+    renderWithQuery(<ConversationMessages conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />);
+
+    expect(screen.getByText('before the block')).toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)));
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('still marks the last message as seen for the member who did the blocking', async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const last = mockMessage({ text: 'before the block' });
+    messagePages = { pages: [{ pageParam: 1, result: [last] }] };
+
+    renderWithQuery(<ConversationMessages conversation={mockConversation({ status: 'BLOCKED', blocker: sessionUser.id })} />);
+
+    await waitFor(() => expect(axiosInstance.patch).toHaveBeenCalledWith(`/message/${last.id}/seenBy`, expect.anything()));
+  });
+
+  it.each([
+    ['offers the nickname pen in a conversation that is not blocked', false, true],
+    ['hides the nickname pen from whoever did the blocking, since the server refuses the change', true, false],
+  ])('%s', (_, blockedByMe, hasPen) => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const ada = mockUser({ displayName: 'Ada' });
+    const conversation = mockConversation({
+      members: [ada, sessionUser as unknown as User],
+      nicknames: [
+        { user: ada.id, value: '' },
+        { user: sessionUser.id, value: 'Ace' },
+      ],
+      ...(blockedByMe ? { status: 'BLOCKED', blocker: sessionUser.id } : {}),
+    });
+    messagePages = {
+      pages: [
+        {
+          pageParam: 1,
+          result: [mockMessage({ text: '', notice: { type: MessageNoticeType.NICKNAME, user: sessionUser.id, value: 'Ace' } })],
+        },
+      ],
+    };
+
+    renderWithQuery(<ConversationMessages conversation={conversation} />);
+
+    expect(Boolean(screen.queryByRole('button', { name: 'Edit nickname' }))).toBe(hasPen);
+  });
+
   it('resends a failed message with its text and photos in place of the failed copy', async () => {
     const photo = mockPhoto({ key: 'k1', url: 'https://utfs.io/a.png', width: 10, height: 20 });
     const failed = { ...mockMessage({ text: 'lost', conversation: 'c1', photos: [photo] }), failed: true };
@@ -383,11 +543,69 @@ describe('ConversationMessages', () => {
 describe('ConversationMessageInput', () => {
   const user = () => userEvent.setup();
 
-  it('says you cannot reply in a blocked conversation', () => {
-    renderWithQuery(<ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED' })} />);
+  it('tells you when you have been blocked', () => {
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />);
 
-    expect(screen.getByText('You are unable to reply on this conversation')).toBeInTheDocument();
+    expect(screen.getByText('You have been blocked')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Aa')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Unblock' })).not.toBeInTheDocument();
+  });
+
+  it('shows no blocked banner until the session has loaded', () => {
+    sessionUser = undefined as never;
+
+    const { container } = renderWithQuery(
+      <ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  describe('when you blocked them', () => {
+    const renderBlocked = () =>
+      renderWithQuery(
+        <ConversationMessageInput
+          conversation={mockConversation({ id: 'c1', status: 'BLOCKED', blocker: sessionUser.id })}
+        />,
+      );
+
+    it('says so and offers to unblock', () => {
+      renderBlocked();
+
+      expect(screen.getByText('You blocked this person')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Unblock' })).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Aa')).not.toBeInTheDocument();
+    });
+
+    it('asks for confirmation before unblocking', async () => {
+      renderBlocked();
+
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      expect(screen.getByRole('dialog', { name: 'Unblock this person?' })).toBeInTheDocument();
+      expect(axiosInstance.delete).not.toHaveBeenCalled();
+    });
+
+    it('unblocks once confirmed and closes the prompt', async () => {
+      renderBlocked();
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      await user().click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Unblock' }));
+
+      expect(axiosInstance.delete).toHaveBeenCalledWith('/conversation/c1/block');
+      await waitFor(() => expect(toast).toHaveBeenCalledWith('user unblocked'));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('does nothing when the prompt is cancelled', async () => {
+      renderBlocked();
+      await user().click(screen.getByRole('button', { name: 'Unblock' }));
+
+      await user().click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(axiosInstance.delete).not.toHaveBeenCalled();
+    });
   });
 
   it('sends a thumbs-up when there is nothing typed', async () => {

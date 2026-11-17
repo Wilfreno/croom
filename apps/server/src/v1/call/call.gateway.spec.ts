@@ -82,7 +82,7 @@ function fakeClient(userId: string | undefined, id = nextId('socket')) {
 function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
-    isUserBlockedInConversation: vi.fn().mockResolvedValue(isBlocked),
+    isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
   };
   const routerEntry = fakeRouterEntry();
   const mediasoup = {
@@ -97,10 +97,11 @@ function build({ members = [alice, bob] as CallMember[] | null, isBlocked = fals
   );
   const gateway = new CallGateway(callService, mediasoup as unknown as MediasoupService);
   const roomEmit = vi.fn();
-  const server = { to: vi.fn(() => ({ emit: roomEmit })) };
+  const socketsLeave = vi.fn();
+  const server = { to: vi.fn(() => ({ emit: roomEmit })), in: vi.fn(() => ({ socketsLeave })) };
   gateway.server = server as unknown as TypedServer;
 
-  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit };
+  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit, socketsLeave };
 }
 
 /** Joins `client` to the call and gives it both transports. */
@@ -220,6 +221,33 @@ describe('CallGateway', () => {
       expect(mediasoup.releaseRouter).toHaveBeenCalledWith(OTHER_CONVERSATION_ID, expect.anything());
       expect(spies.leave).toHaveBeenCalledWith(`call:${OTHER_CONVERSATION_ID}`);
       expect(server.to).toHaveBeenCalledWith(`call:${OTHER_CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
+    it('backs out of a call whose conversation was blocked while joining', async () => {
+      const { gateway, callService, conversationModel, mediasoup, roomEmit } = build();
+      conversationModel.isConversationBlocked.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      const { client, spies } = fakeClient('alice');
+
+      const result = await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ error: 'you cannot call this conversation' });
+      expect(callService.getPeer(client.id)).toBeUndefined();
+      expect(mediasoup.releaseRouter).toHaveBeenCalledWith(CONVERSATION_ID, expect.anything());
+      expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
+    it('backs out of a call when removed from the group while joining', async () => {
+      const { gateway, callService, conversationModel, roomEmit } = build();
+      conversationModel.getCallMembersByConversationId.mockResolvedValueOnce([alice, bob]).mockResolvedValueOnce([bob]);
+      const { client, spies } = fakeClient('alice');
+
+      const result = await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ error: 'you are not a member on this conversation' });
+      expect(callService.getPeer(client.id)).toBeUndefined();
+      expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
     });
 
@@ -477,6 +505,79 @@ describe('CallGateway', () => {
       (callService.getPeer(receiver.client.id)!.consumers.get(id)! as unknown as EventEmitter).emit('transportclose');
 
       expect(callService.getPeer(receiver.client.id)!.consumers.has(id)).toBe(false);
+    });
+  });
+
+  describe('ending a call', () => {
+    it('removes everyone in the call, tells them why and empties the room', async () => {
+      const { gateway, callService, server, roomEmit, socketsLeave } = build();
+      const alicesTab = fakeClient('alice').client;
+      const bobsTab = fakeClient('bob').client;
+      await joinWithTransports(gateway, alicesTab);
+      await joinWithTransports(gateway, bobsTab);
+      const transports = [alicesTab, bobsTab].map((client) => callService.getPeer(client.id)!.sendTransport!);
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(callService.getPeer(alicesTab.id)).toBeUndefined();
+      expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+      transports.forEach((transport) => expect(transport.close).toHaveBeenCalled());
+      expect(server.to).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'this conversation was blocked' });
+      expect(server.in).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(socketsLeave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+    });
+
+    it('does nothing when nobody is in the call', async () => {
+      const { gateway, roomEmit, socketsLeave } = build();
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(roomEmit).not.toHaveBeenCalled();
+      expect(socketsLeave).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('removing someone from a call', () => {
+    it('ends the call for every tab of that user and tells the others they left', async () => {
+      const { gateway, callService, server, roomEmit, socketsLeave } = build({ members: [alice, bob, carol] });
+      const alicesTab = fakeClient('alice').client;
+      const bobsTab = fakeClient('bob').client;
+      const bobsOtherTab = fakeClient('bob').client;
+      await joinWithTransports(gateway, alicesTab);
+      await joinWithTransports(gateway, bobsTab);
+      await joinWithTransports(gateway, bobsOtherTab);
+      vi.clearAllMocks();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(callService.getPeer(alicesTab.id)).toBeDefined();
+      expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+      expect(callService.getPeer(bobsOtherTab.id)).toBeUndefined();
+      expect(server.to).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'you were removed from this group' });
+      expect(server.in).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
+      expect(socketsLeave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: bobsTab.id });
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: bobsOtherTab.id });
+    });
+
+    it('does nothing when that user is not in the call', async () => {
+      const { gateway, server } = build();
+      await joinWithTransports(gateway, fakeClient('alice').client);
+      vi.clearAllMocks();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(server.to).not.toHaveBeenCalled();
+    });
+
+    it('swallows a failure, so the member change still succeeds', async () => {
+      const { gateway, mediasoup } = build();
+      await joinWithTransports(gateway, fakeClient('bob').client);
+      mediasoup.releaseRouter.mockRejectedValue(new Error('router gone'));
+
+      await expect(gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you left this group')).resolves.toBeUndefined();
     });
   });
 

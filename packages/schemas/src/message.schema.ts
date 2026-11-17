@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { MessageStatus } from '@repo/enums';
 import { HydratedDocument, Types } from 'mongoose';
+import { MessageNotice, MessageNoticeSchema } from './message-notice.schema';
 
 export type MessageDocument = HydratedDocument<Message>;
 
@@ -23,6 +24,9 @@ export class Message {
 
   @Prop({ type: String, enum: MessageStatus, default: null })
   status!: string;
+
+  @Prop({ type: MessageNoticeSchema, default: null })
+  notice!: MessageNotice | null;
 
   @Prop({ type: [Types.ObjectId], ref: 'User', default: [] })
   seenBy!: Types.ObjectId[];

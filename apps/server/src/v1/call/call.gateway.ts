@@ -111,6 +111,15 @@ export class CallGateway implements OnGatewayDisconnect {
         .emit('CALL_PEER_JOINED', { peerId: client.id, userId });
       await client.join(callRoom(conversationId));
 
+      const accessAfterJoin = await this.callService.checkAccess(
+        conversationId,
+        userId,
+      );
+      if ('error' in accessAfterJoin) {
+        await this.leave(client);
+        return accessAfterJoin;
+      }
+
       return {
         // Every router of a call has the same codecs, so any of them answers this.
         rtpCapabilities: routerEntry.router.rtpCapabilities,
@@ -283,6 +292,38 @@ export class CallGateway implements OnGatewayDisconnect {
       await consumer.resume();
       return { ok: true };
     });
+  }
+
+  async endCall(conversationId: string, reason: string) {
+    try {
+      const ended = await this.callService.endRoom(conversationId);
+      if (!ended.length) return;
+
+      const room = callRoom(conversationId);
+      this.server.to(room).emit('CALL_ENDED', { reason });
+      this.server.in(room).socketsLeave(room);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  async removeFromCall(conversationId: string, userId: string, reason: string) {
+    try {
+      const removed = await this.callService.removeUserFromRoom(
+        conversationId,
+        userId,
+      );
+      if (!removed.length) return;
+
+      const room = callRoom(conversationId);
+      const peerIds = removed.map((peer) => peer.peerId);
+      this.server.to(peerIds).emit('CALL_ENDED', { reason });
+      this.server.in(peerIds).socketsLeave(room);
+      for (const peerId of peerIds)
+        this.server.to(room).emit('CALL_PEER_LEFT', { peerId });
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   @SubscribeMessage('CALL_LEAVE')

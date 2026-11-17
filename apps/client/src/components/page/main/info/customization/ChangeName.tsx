@@ -6,6 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { Input } from '@/components/ui/input';
 import { PATCHRequest } from '@/lib/server/requests';
 import { cn, getConversationName } from '@/lib/utils';
+import { CONVERSATION_NAME_MAX_LENGTH } from '@repo/constants';
 import { Conversation } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Pen, PenLine, X } from 'lucide-react';
@@ -34,28 +35,24 @@ export default function ChangeName() {
   const changeName = useMutation({
     mutationFn: async () => {
       try {
-        const { status, message } = await PATCHRequest('/v1/conversation/' + params.id + '/name', {
-          name: value,
-        });
+        const name = value.trim();
+        const { status, message } = await PATCHRequest('/v1/conversation/' + params.id + '/name', { name });
 
         if (status !== 'OK') throw new Error(message);
+        return name;
       } catch (error) {
         toast.error((error as Error).message);
         throw error;
       }
     },
-    onSuccess: async () => {
-      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => prev && { ...prev, name: value });
-      queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => {
-        if (!prev) return [];
+    onSuccess: (name) => {
+      const withNewName = (convo: Conversation): Conversation => (convo.id === params.id ? { ...convo, name } : convo);
 
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
-      });
-
-      queryClient.setQueryData<Conversation[]>(['active', 'conversations', session.user?.id], (prev) => {
-        if (!prev) return [];
-        return prev.map((convo) => (convo.id === params.id ? { ...convo, name: value } : convo));
-      });
+      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => prev && withNewName(prev));
+      queryClient.setQueryData<Conversation[]>([session.user?.id, 'conversations'], (prev) => prev?.map(withNewName));
+      queryClient.setQueryData<Conversation[]>(['active', 'conversations', session.user?.id], (prev) =>
+        prev?.map(withNewName),
+      );
       setOpen(false);
       toast.success('name changed');
     },
@@ -95,6 +92,7 @@ export default function ChangeName() {
                   placeholder="Change name"
                   autoComplete="off"
                   autoFocus
+                  maxLength={CONVERSATION_NAME_MAX_LENGTH}
                   value={value}
                   onChange={(e) => setValue(e.currentTarget.value)}
                 />

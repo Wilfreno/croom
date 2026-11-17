@@ -89,6 +89,17 @@ describe('MessageModel', () => {
       expect(pipeline.at(-1)).toEqual({ $sort: { dateCreated: 1 } });
     });
 
+    it("includes the sender's display name and photo", async () => {
+      const { collection, model } = build();
+
+      await model.getMessagesByConversationId({ conversationId: CONVERSATION_ID, skip: 0, limit: 10 });
+
+      const [pipeline] = collection.aggregate.mock.calls[0];
+      const senderLookup = pipeline.find((stage: { $lookup?: { as: string } }) => stage.$lookup?.as === 'sender');
+      const projection = senderLookup.$lookup.pipeline.find((stage: { $project?: object }) => stage.$project).$project;
+      expect(projection).toEqual({ displayName: 1, photo: 1 });
+    });
+
     it('turns a driver failure into a 500', async () => {
       const { collection, model } = build();
       collection.aggregate.mockRejectedValue(new Error('connection lost'));

@@ -6,9 +6,11 @@ import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import ConversationBlockedBanner from './ConversationBlockedBanner';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn, withBasePath } from '@/lib/utils';
 import type { PhotoInput } from '@/types/message.types';
+import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
 import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -86,12 +88,8 @@ export default function ConversationMessageInput({ conversation }: { conversatio
     setTextInput('');
   }
 
-  if (conversation && conversation.status === 'BLOCKED')
-    return (
-      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
-        <span>You are unable to reply on this conversation</span>
-      </div>
-    );
+  if (conversation?.status === ConversationStatus.BLOCKED) return <ConversationBlockedBanner conversation={conversation} />;
+
   return (
     <div className="h-full flex items-end p-2 bg-transparent">
       <UploadThingButton

@@ -1,18 +1,16 @@
 'use client';
 import useBlockConversation from '@/components/hooks/mutation/useBlockConversation.mutation';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { axiosInstance } from '@/lib/axios-instance';
 import { cn } from '@/lib/utils';
 import { Block } from '@/types/block.types';
-import { SOMETHING_WENT_WRONG } from '@repo/constants';
 import type { ServerResponse } from '@repo/types';
 import { useQuery } from '@tanstack/react-query';
-import { UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 export default function SettingsBlockedUsers() {
   const [open, setOpen] = useState(false);
@@ -30,13 +28,6 @@ export default function SettingsBlockedUsers() {
       return response.data;
     },
   });
-
-  function unblock(conversationId: string) {
-    unblockConversation.mutate(conversationId, {
-      onSuccess: () => toast('user unblocked'),
-      onError: () => toast.error(SOMETHING_WENT_WRONG),
-    });
-  }
 
   useEffect(() => {
     if (open) divRef.current?.scrollIntoView();
@@ -62,16 +53,14 @@ export default function SettingsBlockedUsers() {
             >
               <Avatar>
                 <AvatarImage src={blockedUser.photo?.url} />
-                <AvatarFallback>
-                  <UserRound className="h-1/2 w-auto" />
-                </AvatarFallback>
+                <InitialsFallback name={blockedUser.displayName} colorKey={blockedUser.id} />
               </Avatar>
               <span>{blockedUser.userName}</span>
               <Button
                 variant="outline"
                 className="ml-auto text-destructive"
                 disabled={unblockConversation.isPending && unblockConversation.variables === id}
-                onClick={() => unblock(id)}
+                onClick={() => unblockConversation.mutate(id)}
               >
                 Unblock
               </Button>

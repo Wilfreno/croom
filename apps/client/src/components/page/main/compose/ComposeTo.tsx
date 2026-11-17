@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, getConversationName, isGroupChat } from "@/lib/utils";
+import { cn, getConversationName } from "@/lib/utils";
 import { UserStatus } from "@repo/enums";
 import { ArrowLeft, ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -60,7 +60,7 @@ export default function ComposeTo({
       className={cn("w-full border-b flex items-center p-3 relative gap-4 z-50", Boolean(selectedUsers?.length) && "shadow")}
     >
       <AnimatePresence>
-        {openBanner && Boolean(foundConversations) && foundConversations?.some((conversation) => isGroupChat(conversation, session.user?.id)) && (
+        {openBanner && Boolean(foundConversations) && foundConversations?.some((conversation) => conversation.isGroupChat) && (
           <motion.div
             key="found-group-chats"
             initial={{ y: -10, opacity: 0 }}
@@ -218,7 +218,12 @@ export default function ComposeTo({
                     inputRef.current?.focus();
                   }}
                 >
-                  <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
+                  <UserAvatar
+                    src={user.photo?.url}
+                    name={user.displayName}
+                    colorKey={user.id}
+                    isOnline={user.status === UserStatus.ONLINE}
+                  />
                   <div>
                     <p className="font-semibold">{user.displayName}</p>
                     <p className="text-xs text-muted-foreground">{user.userName}</p>

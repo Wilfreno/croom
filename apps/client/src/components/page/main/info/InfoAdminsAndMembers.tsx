@@ -2,8 +2,6 @@
 import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { isGroupChat } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -15,9 +13,8 @@ export default function InfoAdminsAndMembers() {
 
   const params = useParams<{ id: string }>();
   const { data: conversation } = useConversation(params.id);
-  const { session } = useAuth();
 
-  if (!conversation || !isGroupChat(conversation, session.user?.id)) return null;
+  if (!conversation || !conversation.isGroupChat) return null;
 
   return (
     <Collapsible onOpenChange={(isOpen) => setIsOpen(isOpen)}>

@@ -47,10 +47,7 @@ export class CallService {
 
     const [members, isBlocked] = await Promise.all([
       this.conversationModel.getCallMembersByConversationId(conversationId),
-      this.conversationModel.isUserBlockedInConversation({
-        conversationId,
-        userId,
-      }),
+      this.conversationModel.isConversationBlocked(conversationId),
     ]);
 
     if (isBlocked) return { error: 'you cannot call this conversation' };
@@ -129,5 +126,22 @@ export class CallService {
 
     await this.mediasoup.releaseRouter(peer.conversationId, peer.routerEntry);
     return peer;
+  }
+
+  async removeUserFromRoom(conversationId: string, userId: string) {
+    const roomPeerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const userPeerIds = roomPeerIds.filter(
+      (peerId) => this.peers.get(peerId)?.userId === userId,
+    );
+    const removed = await Promise.all(
+      userPeerIds.map((peerId) => this.removePeer(peerId)),
+    );
+    return removed.filter((peer): peer is Peer => Boolean(peer));
+  }
+
+  async endRoom(conversationId: string) {
+    const peerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const removed = await Promise.all(peerIds.map((peerId) => this.removePeer(peerId)));
+    return removed.filter((peer): peer is Peer => Boolean(peer));
   }
 }

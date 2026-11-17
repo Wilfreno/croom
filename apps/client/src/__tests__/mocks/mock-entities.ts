@@ -59,6 +59,7 @@ export function mockConversation(overrides: Partial<Conversation> = {}): Convers
   return {
     id: objectId(),
     name: '',
+    isGroupChat: false,
     members: [mockUser()],
     admins: [],
     nicknames: [],

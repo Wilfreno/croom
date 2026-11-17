@@ -8,6 +8,7 @@ import type { Message, MessagePayload } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { CachedMessage } from '@/types/message.types';
 import { act, waitFor } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn() } }));
@@ -166,6 +167,49 @@ describe('useSendMessage', () => {
 
     await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
   });
+
+  it('refreshes the conversation when the send is refused because you were blocked', async () => {
+    post.mockRejectedValue(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'you are blocked in this conversation', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('refreshes the conversation when the send is refused because you are no longer a member', async () => {
+    post.mockRejectedValue(
+      new AxiosError('403', undefined, undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'you are not a member of this conversation', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('does not refresh the conversation for other failures', async () => {
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useSendMessage(''));
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ text: 'x', photoInput: [], conversationId: 'c1' }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).not.toHaveBeenCalled();
+  });
 });
 
 describe('useComposeMessage', () => {
@@ -177,7 +221,16 @@ describe('useComposeMessage', () => {
     const { result } = renderHookWithQuery(() => useComposeMessage());
     await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'], photos }));
 
-    expect(post).toHaveBeenCalledWith('/message', { conversationId: '', text: 'hi', photos, members: ['u1'] });
+    expect(post).toHaveBeenCalledWith('/message', { text: 'hi', photos, members: ['u1'] });
+  });
+
+  it('posts only the conversation, not the members, into a conversation that already exists', async () => {
+    serverReturns(payloadFor('c1'));
+
+    const { result } = renderHookWithQuery(() => useComposeMessage());
+    await act(() => result.current.sendMessage.mutateAsync({ conversationId: 'c1', text: 'hi', members: ['u1'], photos: [] }));
+
+    expect(post).toHaveBeenCalledWith('/message', { conversationId: 'c1', text: 'hi', photos: [] });
   });
 
   it('navigates to the conversation the server created', async () => {
@@ -211,6 +264,49 @@ describe('useComposeMessage', () => {
 
     await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the conversation when the send is refused because it is blocked', async () => {
+    post.mockRejectedValue(
+      new AxiosError('423', undefined, undefined, undefined, {
+        status: 423,
+        data: { status: 'BLOCKED', message: 'this conversation is blocked', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('refreshes the conversation when the send is refused because you are no longer a member', async () => {
+    post.mockRejectedValue(
+      new AxiosError('403', undefined, undefined, undefined, {
+        status: 403,
+        data: { status: 'FORBIDDEN', message: 'you are not a member of this conversation', data: null },
+      } as never),
+    );
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['conversation', 'c1'] });
+  });
+
+  it('does not refresh the conversation for other failures', async () => {
+    post.mockRejectedValue(new Error('network'));
+
+    const { result, queryClient } = renderHookWithQuery(() => useComposeMessage());
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => result.current.sendMessage.mutate({ conversationId: 'c1', text: 'hi', members: [], photos: [] }));
+
+    await waitFor(() => expect(result.current.sendMessage.isError).toBe(true));
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   it('shows a muted copy in the existing conversation while sending', async () => {
@@ -302,7 +398,7 @@ describe('useComposeMessage', () => {
 });
 
 describe('useCreateConversation', () => {
-  it('creates the conversation, then sends the first message into it with the members', async () => {
+  it('creates the conversation, then sends the first message into it', async () => {
     const conversation = mockConversation();
     post
       .mockResolvedValueOnce({ data: { status: 'OK', message: '', data: conversation } })
@@ -317,7 +413,6 @@ describe('useCreateConversation', () => {
         conversationId: conversation.id,
         text: 'hello',
         photos: [],
-        members: ['u1', 'u2'],
       }),
     );
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/conversation/${conversation.id}`));

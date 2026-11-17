@@ -7,9 +7,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Settings, SquarePen, UserRound } from "lucide-react";
+import { LogOut, Menu, Settings, SquarePen } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import InitialsFallback from "@/components/page/main/InitialsFallback";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -34,9 +35,7 @@ export default function HomeSideBarMobileHeader() {
             <div className="flex flex-col items-center gap-4">
               <Avatar className="border aspect-square w-[40dvw] h-auto">
                 <AvatarImage src={session.user?.photo?.url} />
-                <AvatarFallback>
-                  <UserRound className="h-1/2 w-auto" />
-                </AvatarFallback>
+                <InitialsFallback name={session.user?.displayName} colorKey={session.user?.id} />
               </Avatar>
               <div className="flex flex-col items-center">
                 <span className="text-lg font-medium truncate max-w-64">

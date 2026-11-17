@@ -1,9 +1,8 @@
 'use client';
 import useConversation from '@/components/hooks/queries/useConversation';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { isGroupChat } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ConversationStatus } from '@repo/enums';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -15,7 +14,8 @@ export default function InfoCustomization() {
 
   const params = useParams<{ id: string }>();
   const { data: conversation } = useConversation(params.id);
-  const { session } = useAuth();
+
+  if (conversation?.status === ConversationStatus.BLOCKED) return null;
 
   return (
     <Collapsible onOpenChange={(isOpen) => setIsOpen(isOpen)}>
@@ -26,7 +26,7 @@ export default function InfoCustomization() {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 p-2">
-        {conversation && isGroupChat(conversation, session.user?.id) && (
+        {conversation && conversation.isGroupChat && (
           <>
             <ChangePhoto />
             <ChangeName />

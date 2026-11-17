@@ -30,14 +30,19 @@ export default function Admins() {
           {open ? <ChevronDown className="h-4 w-auto" /> : <ChevronRight className="h-4 w-auto" />}
         </Button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-2 p-2">
+      <CollapsibleContent className="ml-8 space-y-2 border-l py-2 pl-3">
         <ManageAdmin />
-        <ScrollArea className="h-[30dvh] ">
+        <ScrollArea className="max-h-[30dvh] [&>[data-radix-scroll-area-viewport]]:max-h-[30dvh]">
           <div className="grid gap-2">
             {conversation?.admins.map((user) => (
               <UserInfoDialog key={user.id} user={user}>
                 <Button variant="ghost" className="h-fit w-full p-1 justify-start">
-                  <UserAvatar isOnline={user.status === UserStatus.ONLINE} src={user.photo?.url} />
+                  <UserAvatar
+                    isOnline={user.status === UserStatus.ONLINE}
+                    src={user.photo?.url}
+                    name={user.displayName}
+                    colorKey={user.id}
+                  />
                   <p className="text-sm font-medium">{user.displayName}</p>
                 </Button>
               </UserInfoDialog>

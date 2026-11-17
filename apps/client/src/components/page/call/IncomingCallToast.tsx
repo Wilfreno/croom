@@ -1,8 +1,9 @@
 'use client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { IncomingCallPayload } from '@repo/types';
-import { Phone, PhoneOff, UserRound } from 'lucide-react';
+import { Phone, PhoneOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function IncomingCallToast({
@@ -18,9 +19,7 @@ export default function IncomingCallToast({
     <div className="flex w-full items-center gap-4 rounded-lg border bg-background p-3 shadow-lg">
       <Avatar>
         <AvatarImage src={call.caller.photoUrl ?? undefined} />
-        <AvatarFallback>
-          <UserRound className="h-1/2 w-auto" />
-        </AvatarFallback>
+        <InitialsFallback name={call.caller.displayName} colorKey={call.caller.id} />
       </Avatar>
       <div className="grid min-w-0 grow">
         <p className="truncate text-sm font-medium">{call.caller.displayName}</p>

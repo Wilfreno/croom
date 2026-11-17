@@ -25,6 +25,8 @@ function build() {
       distinct: vi.fn().mockResolvedValue([]),
       aggregate: vi.fn().mockResolvedValue([]),
       updateOne: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      updateMany: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+      findOneAndUpdate: vi.fn().mockResolvedValue(null),
     },
   );
 
@@ -48,6 +50,7 @@ describe('ConversationModel', () => {
       await model.checkConversationExistByMembers([USER_ID, OTHER_ID]);
 
       const [filter] = collection.exists.mock.calls[0];
+      expect(filter.isGroupChat).toBe(false);
       expect(filter.members.$size).toBe(2);
       expect(filter.members.$all.map(String)).toEqual([USER_ID, OTHER_ID]);
       expect(filter.members.$all[0]).toBeInstanceOf(Types.ObjectId);
@@ -122,6 +125,38 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('isConversationAdmin', () => {
+    it('looks the user up among the conversation admins', async () => {
+      const { collection, model } = build();
+
+      await model.isConversationAdmin({ conversationId: CONVERSATION_ID, userId: USER_ID });
+
+      const [filter] = collection.exists.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(filter.admins).toBeInstanceOf(Types.ObjectId);
+      expect(String(filter.admins)).toBe(USER_ID);
+    });
+
+    it('reflects whether a match was found', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, userId: USER_ID };
+
+      await expect(model.isConversationAdmin(query)).resolves.toBe(false);
+
+      collection.exists.mockResolvedValue({ _id: CONVERSATION_ID });
+      await expect(model.isConversationAdmin(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.exists.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.isConversationAdmin({ conversationId: CONVERSATION_ID, userId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('isUserBlockedInConversation', () => {
     it('only matches a blocked conversation the user did not block', async () => {
       const { collection, model } = build();
@@ -155,6 +190,32 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('isConversationBlocked', () => {
+    it('matches any blocked conversation, whoever blocked it', async () => {
+      const { collection, model } = build();
+
+      await model.isConversationBlocked(CONVERSATION_ID);
+
+      expect(collection.exists).toHaveBeenCalledWith({ _id: CONVERSATION_ID, status: ConversationStatus.BLOCKED });
+    });
+
+    it('reflects whether a match was found', async () => {
+      const { collection, model } = build();
+
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).resolves.toBe(false);
+
+      collection.exists.mockResolvedValue({ _id: CONVERSATION_ID });
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.exists.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('blockConversation', () => {
     it('only blocks a live one-to-one conversation the user is in, and records the blocker', async () => {
       const { collection, model } = build();
@@ -163,8 +224,9 @@ describe('ConversationModel', () => {
 
       const [filter, update] = collection.updateOne.mock.calls[0];
       expect(filter._id).toBe(CONVERSATION_ID);
-      expect(filter.members.$size).toBe(2);
-      expect(filter.members.$all.map(String)).toEqual([USER_ID]);
+      expect(filter.isGroupChat).toBe(false);
+      expect(filter.members).toBeInstanceOf(Types.ObjectId);
+      expect(String(filter.members)).toBe(USER_ID);
       expect(filter.status).toEqual({ $nin: [ConversationStatus.BLOCKED, ConversationStatus.DELETED] });
       expect(update.$set.status).toBe(ConversationStatus.BLOCKED);
       expect(String(update.$set.blocker)).toBe(USER_ID);
@@ -220,6 +282,370 @@ describe('ConversationModel', () => {
 
       await expect(
         model.unblockConversation({ conversationId: CONVERSATION_ID, userId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('setNickname', () => {
+    it("sets the value on the member's own nickname entry, inside the given session", async () => {
+      const { collection, model } = build();
+
+      await model.setNickname({ conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' }, session);
+
+      const [filter, update, options] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.members)).toBe(OTHER_ID);
+      expect(filter.members).toBeInstanceOf(Types.ObjectId);
+      expect(String(filter['nicknames.user'])).toBe(OTHER_ID);
+      expect(update).toEqual({ $set: { 'nicknames.$.value': 'Ace' } });
+      expect(options).toEqual({ session });
+    });
+
+    it('reports whether the member was found and whether the nickname changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' };
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 0, modifiedCount: 0 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: false, changed: false });
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 0 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: true, changed: false });
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+      await expect(model.setNickname(query)).resolves.toEqual({ found: true, changed: true });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setNickname({ conversationId: CONVERSATION_ID, userId: OTHER_ID, value: 'Ace' }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('setPhoto', () => {
+    const PHOTO_ID = '64b7f0c2a1b2c3d4e5f60720';
+    const OLD_PHOTO_ID = '64b7f0c2a1b2c3d4e5f60721';
+
+    it('points a live group at the new photo, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }, session);
+
+      const [filter, update, options] = collection.findOneAndUpdate.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(update.$set.photo).toBeInstanceOf(Types.ObjectId);
+      expect(String(update.$set.photo)).toBe(PHOTO_ID);
+      expect(options.session).toBe(session);
+    });
+
+    it('hands back the photo it replaced', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockResolvedValue({ photo: new Types.ObjectId(OLD_PHOTO_ID) });
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: true, previousPhotoId: OLD_PHOTO_ID });
+    });
+
+    it('reports no previous photo for a group that had none', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockResolvedValue({ photo: null });
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: true, previousPhotoId: null });
+    });
+
+    it('reports no change when nothing matched', async () => {
+      const { model } = build();
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).resolves.toEqual({ changed: false, previousPhotoId: null });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.findOneAndUpdate.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setPhoto({ conversationId: CONVERSATION_ID, photoId: PHOTO_ID, requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('backfillIsGroupChat', () => {
+    it('sets isGroupChat by size and clears generated group names, only where the field is missing', async () => {
+      const { collection, model } = build();
+      collection.updateMany.mockResolvedValue({ modifiedCount: 4 });
+
+      await expect(model.backfillIsGroupChat()).resolves.toBe(4);
+
+      const [filter, [stage]] = collection.updateMany.mock.calls[0];
+      const isGroupBySize = { $gt: [{ $size: '$members' }, 2] };
+      expect(filter).toEqual({ isGroupChat: { $exists: false } });
+      expect(stage.$set.isGroupChat).toEqual(isGroupBySize);
+      expect(stage.$set.name).toEqual({ $cond: [isGroupBySize, '', { $ifNull: ['$name', ''] }] });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateMany.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.backfillIsGroupChat()).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('setName', () => {
+    it('renames a live group, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.setName({ conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(update).toEqual({ $set: { name: 'Squad' } });
+    });
+
+    it('reports whether a group matched, even when the name stayed the same', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 0 });
+      await expect(model.setName(query)).resolves.toBe(true);
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 0, modifiedCount: 0 });
+      await expect(model.setName(query)).resolves.toBe(false);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setName({ conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('addAdmin', () => {
+    it('adds a group member who is not an admin yet, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.addAdmin({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.$and[0].admins)).toBe(USER_ID);
+      expect(String(filter.$and[1].admins.$ne)).toBe(OTHER_ID);
+      expect(String(filter.members)).toBe(OTHER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(update.$addToSet.admins).toBeInstanceOf(Types.ObjectId);
+      expect(String(update.$addToSet.admins)).toBe(OTHER_ID);
+    });
+
+    it('reports whether the admins changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.addAdmin(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.addAdmin(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.addAdmin({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('addMember', () => {
+    it('adds a non-member to a live group with an empty nickname, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.addMember({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(String(filter.members.$ne)).toBe(OTHER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(update.$addToSet.members).toBeInstanceOf(Types.ObjectId);
+      expect(String(update.$addToSet.members)).toBe(OTHER_ID);
+      expect(String(update.$push.nicknames.user)).toBe(OTHER_ID);
+      expect(update.$push.nicknames.value).toBe('');
+    });
+
+    it('reports whether the members changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.addMember(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.addMember(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.addMember({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('removeMember', () => {
+    it('pulls the member from members, admins and nicknames of a group', async () => {
+      const { collection, model } = build();
+
+      await model.removeMember({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(String(filter.members)).toBe(OTHER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(String(update.$pull.members)).toBe(OTHER_ID);
+      expect(String(update.$pull.admins)).toBe(OTHER_ID);
+      expect(String(update.$pull.nicknames.user)).toBe(OTHER_ID);
+    });
+
+    it('reports whether the members changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.removeMember(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.removeMember(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.removeMember({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('leaveConversation', () => {
+    const base = { conversationId: CONVERSATION_ID, memberId: USER_ID, isLastMember: false };
+
+    it('pulls the member everywhere, as long as another admin would remain', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation(base);
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(String(filter.members)).toBe(USER_ID);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(String(filter.$or[0].admins.$ne)).toBe(USER_ID);
+      expect(filter.$or[1]).toEqual({ 'admins.1': { $exists: true } });
+      expect(String(update.$pull.members)).toBe(USER_ID);
+      expect(String(update.$pull.admins)).toBe(USER_ID);
+      expect(String(update.$pull.nicknames.user)).toBe(USER_ID);
+      expect(update.$set).toBeUndefined();
+    });
+
+    it('hands the admin role to the other member when only two are left', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation({ ...base, newAdminId: OTHER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter.members.$size).toBe(2);
+      expect(filter.admins.map(String)).toEqual([USER_ID]);
+      expect(update.$set.admins.map(String)).toEqual([OTHER_ID]);
+      expect(update.$pull.admins).toBeUndefined();
+      expect(String(update.$pull.members)).toBe(USER_ID);
+    });
+
+    it('deletes the conversation when the last member leaves', async () => {
+      const { collection, model } = build();
+
+      await model.leaveConversation({ ...base, isLastMember: true });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter.members.$size).toBe(1);
+      expect(update.$set.status).toBe(ConversationStatus.DELETED);
+      expect(String(update.$pull.admins)).toBe(USER_ID);
+    });
+
+    it('reports whether the conversation changed', async () => {
+      const { collection, model } = build();
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.leaveConversation(base)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.leaveConversation(base)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.leaveConversation(base)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('removeAdmin', () => {
+    it('removes an admin only when the requester is an admin and another admin remains', async () => {
+      const { collection, model } = build();
+
+      await model.removeAdmin({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.$and[0].admins)).toBe(USER_ID);
+      expect(String(filter.$and[1].admins)).toBe(OTHER_ID);
+      expect(filter['admins.1']).toEqual({ $exists: true });
+      expect(filter.isGroupChat).toBe(true);
+      expect(String(update.$pull.admins)).toBe(OTHER_ID);
+    });
+
+    it('reports whether the admins changed', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 0 });
+      await expect(model.removeAdmin(query)).resolves.toBe(false);
+
+      collection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      await expect(model.removeAdmin(query)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.removeAdmin({ conversationId: CONVERSATION_ID, memberId: OTHER_ID, requesterId: USER_ID }),
       ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
@@ -283,6 +709,15 @@ describe('ConversationModel', () => {
   });
 
   describe('findConversationByMembers', () => {
+    it('only matches group chats when there are more than two members', async () => {
+      const { collection, model } = build();
+
+      await model.findConversationByMembers([USER_ID, OTHER_ID, THIRD_ID], USER_ID);
+
+      const [pipeline] = collection.aggregate.mock.calls[0];
+      expect(pipeline[0].$match.isGroupChat).toBe(true);
+    });
+
     it('matches conversations with exactly those members and populates them', async () => {
       const { collection, model } = build();
       const found = [{ _id: CONVERSATION_ID, members: [] }];
@@ -291,7 +726,8 @@ describe('ConversationModel', () => {
       await expect(model.findConversationByMembers([USER_ID, OTHER_ID], USER_ID)).resolves.toBe(found);
 
       const [pipeline] = collection.aggregate.mock.calls[0];
-      const { members } = pipeline[0].$match;
+      const { members, isGroupChat } = pipeline[0].$match;
+      expect(isGroupChat).toBe(false);
       expect(members.$size).toBe(2);
       expect(members.$all.map(String)).toEqual([USER_ID, OTHER_ID]);
       expect(members.$all[0]).toBeInstanceOf(Types.ObjectId);

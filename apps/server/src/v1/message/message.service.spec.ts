@@ -1,9 +1,10 @@
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { PhotoType } from '@repo/enums';
+import { ConversationStatus, PhotoType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel } from '@repo/models';
 import { RESPONSE_PAYLOAD } from '@repo/types';
 import { Connection, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ServerException } from 'src/common/exceptions/server-response.exception';
 import { ConversationService } from '../conversation/conversation.service';
 import { MessageGateway } from './message.gateway';
 import { MessageService } from './message.service';
@@ -83,6 +84,25 @@ describe('MessageService', () => {
 
       await expect(mocks.service.create(reply)).rejects.toBeInstanceOf(NotFoundException);
       expect(mocks.connection.startSession).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the member who blocked it', ME],
+      ['the member who was blocked', ADA],
+    ])('refuses to send into a blocked conversation, even for %s', async (_, blocker) => {
+      const mocks = build();
+      mocks.conversationModel.findConversationById.mockResolvedValue({
+        ...mocks.conversation,
+        status: ConversationStatus.BLOCKED,
+        blocker: new Types.ObjectId(blocker),
+      });
+
+      const sent = mocks.service.create(reply);
+
+      await expect(sent).rejects.toBeInstanceOf(ServerException);
+      await expect(sent).rejects.toMatchObject({ serverStatus: 'BLOCKED' });
+      expect(mocks.connection.startSession).not.toHaveBeenCalled();
+      expect(mocks.messageGateway.emitToUsers).not.toHaveBeenCalled();
     });
 
     it('saves the message in an existing conversation inside the transaction', async () => {

@@ -1,4 +1,5 @@
 'use client';
+import useManageMember from '@/components/hooks/mutation/useManageMember.mutation';
 import useConversation from '@/components/hooks/queries/useConversation';
 import useDebounce from '@/components/hooks/useDebounce';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -6,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GETRequest, PATCHRequest } from '@/lib/server/requests';
+import { GETRequest } from '@/lib/server/requests';
 import { cn } from '@/lib/utils';
 import { Conversation, User } from '@repo/types';
 import { UserStatus } from '@repo/enums';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Search, UserRoundPlus, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -26,7 +27,6 @@ export default function ManageMember() {
   const params = useParams<{ id: string }>();
   const divRef = useRef<HTMLDivElement>(null);
 
-  const queryClient = useQueryClient();
   const { data: conversation } = useConversation(params.id);
 
   const { data: result } = useQuery({
@@ -49,46 +49,14 @@ export default function ManageMember() {
     placeholderData: [],
   });
 
-  const members = useMutation<User, Error, { id: string; action: 'ADD' | 'REMOVE'; username: string }>({
-    mutationFn: async ({ id, action, username }) => {
-      try {
-        let user: User;
-        if (action === 'ADD') {
-          const { data, status: getStatus, message: getMessage } = await GETRequest<User>('/v1/user/' + username);
-          if (getStatus !== 'OK') throw new Error(getMessage);
-          user = data;
-        }
+  const { addMember, removeMember } = useManageMember(params.id);
 
-        const { status: patchStatus, message: patchMessage } = await PATCHRequest(
-          '/v1/conversation/' + params.id + '/members',
-          {
-            member: id,
-            action,
-          },
-        );
-
-        if (patchStatus !== 'OK') throw new Error(patchMessage);
-
-        return user!;
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
-    onSuccess: (user, { action, id }) => {
-      queryClient.setQueryData<Conversation>(['conversation', params.id], (prev) => {
-        if (!prev) return;
-        switch (action) {
-          case 'ADD': {
-            return { ...prev, members: [...prev.members, user] };
-          }
-          case 'REMOVE': {
-            return { ...prev, members: prev.members.filter((member) => member.id !== id) };
-          }
-        }
-      });
-    },
-  });
+  function isChanging(userId: string) {
+    return (
+      (addMember.isPending && addMember.variables.id === userId) ||
+      (removeMember.isPending && removeMember.variables === userId)
+    );
+  }
 
   const isAdmin = useMemo(() => {
     if (!session || !conversation) return false;
@@ -112,8 +80,12 @@ export default function ManageMember() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary" disabled={!isAdmin}>
-          <UserRoundPlus className="h-4 w-auto text-primary" />
+        <Button
+          variant="secondary"
+          className={cn(isAdmin ? 'w-full p-2 font-medium text-primary' : 'hidden')}
+          disabled={!isAdmin}
+        >
+          <UserRoundPlus className="h-4 w-auto" />
           <span>Manage Members</span>
         </Button>
       </DialogTrigger>
@@ -159,7 +131,12 @@ export default function ManageMember() {
                     {result?.map((user) => (
                       <div key={user.id} className="flex items-center justify-between">
                         <div className="flex items-start gap-2">
-                          <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
+                          <UserAvatar
+                            src={user.photo?.url}
+                            name={user.displayName}
+                            colorKey={user.id}
+                            isOnline={user.status === UserStatus.ONLINE}
+                          />
                           <div>
                             <p className="font-semibold">{user.displayName}</p>
                             <p className="text-xs text-muted-foreground">{user.userName}</p>
@@ -167,29 +144,19 @@ export default function ManageMember() {
                         </div>
                         {(conversation as Conversation).members.some((member) => member.id === user.id) ? (
                           <Button
-                            disabled={members.isPending && members.variables.id === user.id}
+                            disabled={isChanging(user.id)}
+                            size="sm"
                             variant="destructive"
-                            onClick={() =>
-                              members.mutate({
-                                action: 'REMOVE',
-                                id: user.id,
-                                username: user.userName,
-                              })
-                            }
+                            onClick={() => removeMember.mutate(user.id)}
                           >
                             Remove
                           </Button>
                         ) : (
                           <Button
-                            disabled={members.isPending && members.variables.id === user.id}
+                            disabled={isChanging(user.id)}
+                            size="sm"
                             variant="secondary"
-                            onClick={() =>
-                              members.mutate({
-                                action: 'ADD',
-                                id: user.id,
-                                username: user.userName,
-                              })
-                            }
+                            onClick={() => addMember.mutate(user)}
                           >
                             Add
                           </Button>
@@ -208,7 +175,12 @@ export default function ManageMember() {
                 {(conversation as Conversation).members.map((user) => (
                   <div key={user.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <UserAvatar src={user.photo?.url} isOnline={user.status === UserStatus.ONLINE} />
+                      <UserAvatar
+                        src={user.photo?.url}
+                        name={user.displayName}
+                        colorKey={user.id}
+                        isOnline={user.status === UserStatus.ONLINE}
+                      />
                       <div>
                         <p className="font-semibold">{user.displayName}</p>
                         <p className="text-xs text-muted-foreground">{user.userName}</p>
@@ -218,15 +190,10 @@ export default function ManageMember() {
                       <span className="text-muted-foreground font-medium px-8">You</span>
                     ) : (
                       <Button
-                        disabled={members.isPending && members.variables.id === user.id}
+                        disabled={isChanging(user.id)}
+                        size="sm"
                         variant="destructive"
-                        onClick={() =>
-                          members.mutate({
-                            action: 'REMOVE',
-                            id: user.id,
-                            username: user.userName,
-                          })
-                        }
+                        onClick={() => removeMember.mutate(user.id)}
                       >
                         Remove
                       </Button>

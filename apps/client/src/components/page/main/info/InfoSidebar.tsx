@@ -37,11 +37,13 @@ export default function InfoSidebar() {
       return session.user.id !== conversation.blocker;
     }
 
-    return !conversation.members.some((member) => member.id !== session.user?.id);
+
+    const hasOtherMembers = conversation.members.some((member) => member.id !== session.user?.id);
+    return !conversation.isGroupChat && !hasOtherMembers;
   }, [conversation, session.user]);
 
   return (
-    <SidebarContent className={cn("relative w-full shrink-0 md:w-72 xl:w-80", !isOpen && "hidden")}>
+    <SidebarContent className={cn("relative w-full shrink-0 md:w-72 lg:w-80 xl:w-[24rem]", !isOpen && "hidden")}>
       <Button variant="ghost" className="md:hidden absolute top-2 left-0" onClick={() => setIsOpen(false)}>
         <ArrowLeft className="h-6 w-auto" />
       </Button>

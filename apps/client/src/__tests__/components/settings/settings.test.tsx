@@ -273,6 +273,7 @@ describe('SettingsBlockedUsers', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
     expect(screen.getByText('@a')).toBeInTheDocument();
     expect(toast).not.toHaveBeenCalledWith('user unblocked');
+    await waitFor(() => expect(axiosInstance.get).toHaveBeenCalledTimes(2));
   });
 });
 
