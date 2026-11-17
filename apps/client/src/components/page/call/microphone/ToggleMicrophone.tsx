@@ -1,10 +1,10 @@
 'use client';
-import { useCall } from '@/components/providers/CallProvider';
+import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff } from 'lucide-react';
 
 export default function ToggleMicrophone() {
-  const { isMicOn, toggleMic } = useCall();
+  const { isMicOn, toggleMic } = useLocalMedia();
 
   return (
     <Button

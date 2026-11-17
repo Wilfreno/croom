@@ -53,7 +53,7 @@ vi.mock('@/components/hooks/useCallParticipants', () => ({
       userId: sessionUser?.id ?? 'self',
       audioTrack: null,
       videoTrack: null,
-      isAudioPaused: !call.isMicOn,
+      isAudioPaused: !localMedia.isMicOn,
       isVideoPaused: !localMedia.isCameraOn,
     },
     member: { id: 'self', displayName: 'You', photoUrl: null },
@@ -105,8 +105,6 @@ beforeEach(() => {
     error: null,
     members: new Map(),
     participants: [],
-    isMicOn: true,
-    toggleMic: vi.fn(),
     leave: vi.fn(),
   };
   localMedia = {
@@ -119,6 +117,8 @@ beforeEach(() => {
     selectMicrophone: vi.fn(),
     isCameraOn: true,
     toggleCamera: vi.fn(),
+    isMicOn: true,
+    toggleMic: vi.fn(),
   };
   sessionUser = mockSession({ displayName: 'Me' });
   participantsState = { status: 'connected', error: null, participants: [], members: new Map() };
@@ -132,9 +132,9 @@ describe('Controls', () => {
     const { rerender } = render(<Controls />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Mute microphone' }));
-    expect(call.toggleMic).toHaveBeenCalledOnce();
+    expect(localMedia.toggleMic).toHaveBeenCalledOnce();
 
-    call.isMicOn = false;
+    localMedia.isMicOn = false;
     rerender(<Controls />);
     expect(screen.getByRole('button', { name: 'Unmute microphone' })).toHaveAttribute('aria-pressed', 'true');
   });
@@ -284,7 +284,7 @@ describe('ParticipantsButton', () => {
   it('counts you plus everyone else and lists you first', async () => {
     connectedWith(2);
     participantsState.participants[1] = { ...participantsState.participants[1], videoTrack: null, isAudioPaused: true };
-    call.isMicOn = false;
+    localMedia.isMicOn = false;
 
     render(<ParticipantsButton />);
     await userEvent.click(screen.getByRole('button', { name: 'Show 3 people' }));

@@ -8,12 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const stream = mockStream();
 const socket = { id: 'socket' };
 const push = vi.fn();
-const toggleMic = vi.fn();
 
 vi.mock('@/components/hooks/useMediasoupCall', () => ({ default: vi.fn() }));
 vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => socket }));
 vi.mock('@/components/providers/LocalMediaProvider', () => ({
-  useLocalMedia: () => ({ localMedia: { status: 'ready', stream, error: null }, isCameraOn: false }),
+  useLocalMedia: () => ({ localMedia: { status: 'ready', stream, error: null }, isCameraOn: false, isMicOn: true }),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 
@@ -28,8 +27,6 @@ beforeEach(() => {
     error: null,
     members: new Map(),
     participants: [],
-    isMicOn: true,
-    toggleMic,
   });
 });
 
@@ -50,13 +47,14 @@ describe('CallProvider', () => {
       conversationId: 'c1',
       localStream: stream,
       isCameraOn: false,
+      isMicOn: true,
     });
   });
 
   it('exposes the call state', () => {
     const { result } = renderHook(() => useCall(), { wrapper });
 
-    expect(result.current).toMatchObject({ status: 'connected', isMicOn: true, toggleMic });
+    expect(result.current).toMatchObject({ status: 'connected' });
   });
 
   it('leaves by going back to the conversation', () => {

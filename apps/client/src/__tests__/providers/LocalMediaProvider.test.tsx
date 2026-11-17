@@ -2,6 +2,7 @@ import { installMediaDevices, mockStream, mockTrack } from '@/__tests__/mocks/mo
 import LocalMediaProvider, { useLocalMedia } from '@/components/providers/LocalMediaProvider';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
+import { CALL_MEDIA_PREFERENCES_STORAGE_KEY } from '@repo/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <LocalMediaProvider>{children}</LocalMediaProvider>;
@@ -9,6 +10,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => <LocalMediaProv
 let mediaDevices: ReturnType<typeof installMediaDevices>;
 
 beforeEach(() => {
+  localStorage.clear();
   mediaDevices = installMediaDevices({
     stream: mockStream([mockTrack('video', 'cam-1'), mockTrack('audio', 'mic-1')]),
     devices: [
@@ -29,6 +31,8 @@ describe('useLocalMedia', () => {
 });
 
 describe('LocalMediaProvider', () => {
+  beforeEach(() => localStorage.setItem(CALL_MEDIA_PREFERENCES_STORAGE_KEY, JSON.stringify({ isCameraOn: true, isMicOn: true })));
+
   it('opens the camera and lists the cameras available', async () => {
     const { result } = renderHook(() => useLocalMedia(), { wrapper });
 
@@ -86,5 +90,59 @@ describe('LocalMediaProvider', () => {
     await waitFor(() =>
       expect(mediaDevices.getUserMedia).toHaveBeenLastCalledWith({ video: { deviceId: { exact: 'cam-1' } }, audio: true }),
     );
+  });
+});
+
+describe('LocalMediaProvider remembering choices', () => {
+  const savedPreferences = () => JSON.parse(localStorage.getItem(CALL_MEDIA_PREFERENCES_STORAGE_KEY) ?? 'null');
+
+  it('starts with the camera and microphone that were chosen last time, camera off and muted', async () => {
+    localStorage.setItem(
+      CALL_MEDIA_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ cameraId: 'cam-2', microphoneId: 'mic-2', isCameraOn: false, isMicOn: false }),
+    );
+
+    const { result } = renderHook(() => useLocalMedia(), { wrapper });
+
+    await waitFor(() => expect(result.current.localMedia.status).toBe('ready'));
+    expect(mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+    expect(mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: false, audio: { deviceId: { exact: 'mic-2' } } });
+    expect(result.current).toMatchObject({
+      isCameraOn: false,
+      isMicOn: false,
+      activeCameraId: 'cam-2',
+      activeMicrophoneId: 'mic-2',
+    });
+  });
+
+  it('saves every choice as it is made', async () => {
+    const { result } = renderHook(() => useLocalMedia(), { wrapper });
+    await waitFor(() => expect(result.current.localMedia.status).toBe('ready'));
+
+    act(() => result.current.selectCamera('cam-2'));
+    act(() => result.current.selectMicrophone('mic-2'));
+    act(() => result.current.toggleMic());
+    act(() => result.current.toggleCamera());
+
+    expect(savedPreferences()).toEqual({ cameraId: 'cam-2', microphoneId: 'mic-2', isCameraOn: true, isMicOn: false });
+  });
+
+  it('starts with the camera off and the microphone on the first time', async () => {
+    const { result } = renderHook(() => useLocalMedia(), { wrapper });
+
+    await waitFor(() => expect(result.current.localMedia.status).toBe('ready'));
+    expect(result.current).toMatchObject({ isCameraOn: false, isMicOn: true });
+    expect(mediaDevices.getUserMedia).toHaveBeenCalledOnce();
+    expect(mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: false, audio: true });
+  });
+
+  it('starts with the camera off and the microphone on when nothing usable was saved', async () => {
+    localStorage.setItem(CALL_MEDIA_PREFERENCES_STORAGE_KEY, 'not json');
+
+    const { result } = renderHook(() => useLocalMedia(), { wrapper });
+
+    await waitFor(() => expect(result.current.localMedia.status).toBe('ready'));
+    expect(result.current).toMatchObject({ isCameraOn: false, isMicOn: true });
+    expect(mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: false, audio: true });
   });
 });

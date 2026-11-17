@@ -24,8 +24,7 @@ export function useIsSelfInGrid() {
 /** You, in the same shape as a remote participant, so the grid can draw your tile like anyone else's. */
 export function useSelfParticipant(): { participant: CallParticipant; member: CallMember } {
   const { session } = useAuth();
-  const { isMicOn } = useCall();
-  const { localMedia, isCameraOn } = useLocalMedia();
+  const { localMedia, isCameraOn, isMicOn } = useLocalMedia();
   const userId = session.user?.id ?? 'self';
 
   return {

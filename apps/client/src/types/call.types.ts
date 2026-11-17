@@ -13,6 +13,14 @@ export type LocalMediaOptions = {
   microphoneDeviceId?: string;
   video?: boolean;
   audio?: boolean;
+  enabled?: boolean;
+};
+
+export type CallMediaPreferences = {
+  cameraId?: string;
+  microphoneId?: string;
+  isCameraOn: boolean;
+  isMicOn: boolean;
 };
 
 export type LocalMediaContextType = {
@@ -25,6 +33,8 @@ export type LocalMediaContextType = {
   selectMicrophone: (microphoneDeviceId: string) => void;
   isCameraOn: boolean;
   toggleCamera: () => void;
+  isMicOn: boolean;
+  toggleMic: () => void;
 };
 
 export type CallStatus = 'connecting' | 'connected' | 'error';
@@ -44,8 +54,6 @@ export type CallContextType = {
   error: string | null;
   members: Map<string, CallMember>;
   participants: CallParticipant[];
-  isMicOn: boolean;
-  toggleMic: () => void;
   leave: () => void;
 };
 

@@ -18,8 +18,8 @@ export function useCall() {
 export default function CallProvider({ conversationId, children }: { conversationId: string; children: React.ReactNode }) {
   const socket = useSocketIO();
   const router = useRouter();
-  const { localMedia, isCameraOn } = useLocalMedia();
-  const call = useMediasoupCall({ socket, conversationId, localStream: localMedia.stream, isCameraOn });
+  const { localMedia, isCameraOn, isMicOn } = useLocalMedia();
+  const call = useMediasoupCall({ socket, conversationId, localStream: localMedia.stream, isCameraOn, isMicOn });
 
   function leave() {
     router.push(`/conversation/${conversationId}`);

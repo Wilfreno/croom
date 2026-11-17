@@ -1,7 +1,6 @@
 'use client';
 import useCallParticipants from '@/components/hooks/useCallParticipants';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useCall } from '@/components/providers/CallProvider';
 import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
 import { Button } from '@/components/ui/button';
 import { Users } from 'lucide-react';
@@ -12,8 +11,7 @@ import ParticipantsSheet from './ParticipantsSheet';
 /** Controls button that opens a list of everyone in the call, you first. */
 export default function ParticipantsButton() {
   const { session } = useAuth();
-  const { isMicOn } = useCall();
-  const { isCameraOn } = useLocalMedia();
+  const { isCameraOn, isMicOn } = useLocalMedia();
   const { participants, members } = useCallParticipants();
 
   const items: ParticipantListItem[] = [

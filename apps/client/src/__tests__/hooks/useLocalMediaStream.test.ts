@@ -35,6 +35,26 @@ describe('useLocalMediaStream', () => {
     );
   });
 
+  it('waits without asking the browser while not enabled', async () => {
+    const mediaDevices = installMediaDevices();
+
+    const { result } = renderHook(() => useLocalMediaStream({ enabled: false }));
+
+    expect(result.current.status).toBe('loading');
+    expect(mediaDevices.getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it('falls back to any camera and microphone when the chosen ones are gone', async () => {
+    const stream = mockStream();
+    const mediaDevices = installMediaDevices({ stream });
+    mediaDevices.getUserMedia.mockRejectedValueOnce(new DOMException('gone', 'OverconstrainedError'));
+
+    const { result } = renderHook(() => useLocalMediaStream({ cameraDeviceId: 'cam-old', microphoneDeviceId: 'mic-old' }));
+
+    await waitFor(() => expect(result.current).toEqual({ status: 'ready', stream, error: null }));
+    expect(mediaDevices.getUserMedia).toHaveBeenLastCalledWith({ video: true, audio: true });
+  });
+
   it('asks for audio only when the camera is off', async () => {
     const mediaDevices = installMediaDevices();
 

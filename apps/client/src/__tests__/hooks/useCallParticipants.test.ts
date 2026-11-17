@@ -26,8 +26,6 @@ beforeEach(() => {
     error: null,
     members: new Map(),
     participants: [],
-    isMicOn: true,
-    toggleMic: vi.fn(),
     leave: vi.fn(),
   };
   localMedia = {
@@ -38,6 +36,8 @@ beforeEach(() => {
     selectMicrophone: vi.fn(),
     isCameraOn: true,
     toggleCamera: vi.fn(),
+    isMicOn: true,
+    toggleMic: vi.fn(),
   };
   session = { user: { id: 'me', photo: { url: 'https://utfs.io/me' } } };
   searchParams = new URLSearchParams();
@@ -138,7 +138,7 @@ describe('useSelfParticipant', () => {
   });
 
   it('reflects a muted microphone and a camera that is off', () => {
-    call.isMicOn = false;
+    localMedia.isMicOn = false;
     localMedia.isCameraOn = false;
 
     const { participant } = renderHook(() => useSelfParticipant()).result.current;

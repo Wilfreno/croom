@@ -19,3 +19,6 @@ export const SOCKET_SERVER_REPLY_TIMEOUT_MS = 10_000;
 export const CALL_TILE_GAP = '0.5rem';
 // Upper limit on the video each person sends (bits per second); keeps server CPU and upload bandwidth down
 export const CALL_VIDEO_MAX_BITRATE = 500_000;
+// Browser storage entry that remembers the camera, microphone and on/off choices between visits
+export const CALL_MEDIA_PREFERENCES_STORAGE_KEY = 'call:media-preferences';
+export const CALL_DEFAULT_MEDIA_PREFERENCES = { isCameraOn: false, isMicOn: true };

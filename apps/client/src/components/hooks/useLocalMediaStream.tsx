@@ -9,6 +9,7 @@ export default function useLocalMediaStream({
   microphoneDeviceId,
   video = true,
   audio = true,
+  enabled = true,
 }: LocalMediaOptions = {}) {
   const [mediaState, setMediaState] = useState<LocalMediaState>({ status: 'loading', stream: null, error: null });
 
@@ -17,16 +18,27 @@ export default function useLocalMediaStream({
     let openedStream: MediaStream | null = null;
 
     
+    if (!enabled) {
+      setMediaState({ status: 'loading', stream: null, error: null });
+      return;
+    }
+
     if (!video && !audio) {
       setMediaState({ status: 'off', stream: null, error: null });
       return;
     }
 
     setMediaState({ status: 'loading', stream: null, error: null });
+    const hasChosenDevice = Boolean(cameraDeviceId || microphoneDeviceId);
     navigator.mediaDevices
       .getUserMedia({
         video: video && (cameraDeviceId ? { deviceId: { exact: cameraDeviceId } } : true),
         audio: audio && (microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true),
+      })
+      .catch((error: unknown) => {
+        const isChosenDeviceGone = error instanceof DOMException && error.name === 'OverconstrainedError';
+        if (hasChosenDevice && isChosenDeviceGone) return navigator.mediaDevices.getUserMedia({ video, audio });
+        throw error;
       })
       .then((stream) => {
         if (isCancelled) {
@@ -45,7 +57,7 @@ export default function useLocalMediaStream({
       isCancelled = true;
       openedStream?.getTracks().forEach((track) => track.stop());
     };
-  }, [cameraDeviceId, microphoneDeviceId, video, audio]);
+  }, [cameraDeviceId, microphoneDeviceId, video, audio, enabled]);
 
   return mediaState;
 }

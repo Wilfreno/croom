@@ -132,6 +132,7 @@ function renderCall(server: ReturnType<typeof callServer> | null, overrides: Par
       conversationId: CONVERSATION_ID,
       localStream: null,
       isCameraOn: true,
+      isMicOn: true,
       ...overrides,
     },
   });
@@ -385,28 +386,28 @@ describe('useMediasoupCall', () => {
       await waitFor(() => expect(currentDevice().sendTransport.produced).toHaveLength(1));
       const { producer } = currentDevice().sendTransport.produced[0];
 
-      rerender({ socket: server.socket, conversationId: CONVERSATION_ID, localStream: stream, isCameraOn: false });
+      rerender({ socket: server.socket, conversationId: CONVERSATION_ID, localStream: stream, isCameraOn: false, isMicOn: true });
       await waitFor(() =>
         expect(server.emitWithAck).toHaveBeenCalledWith('CALL_SET_PRODUCER_PAUSED', { producerId: producer.id, paused: true }),
       );
       expect(producer.pause).toHaveBeenCalled();
 
-      rerender({ socket: server.socket, conversationId: CONVERSATION_ID, localStream: stream, isCameraOn: true });
+      rerender({ socket: server.socket, conversationId: CONVERSATION_ID, localStream: stream, isCameraOn: true, isMicOn: true });
       await waitFor(() =>
         expect(server.emitWithAck).toHaveBeenCalledWith('CALL_SET_PRODUCER_PAUSED', { producerId: producer.id, paused: false }),
       );
       expect(producer.resume).toHaveBeenCalled();
     });
 
-    it('mutes and unmutes the microphone with toggleMic', async () => {
+    it('pauses the audio when the microphone is muted, telling the server', async () => {
+      const stream = mockStream([mockTrack('audio')]);
       const server = callServer();
-      const { result } = renderCall(server, { localStream: mockStream([mockTrack('audio')]) });
+      const { rerender } = renderCall(server, { localStream: stream });
       await waitFor(() => expect(currentDevice().sendTransport.produced).toHaveLength(1));
       const { producer } = currentDevice().sendTransport.produced[0];
 
-      act(() => result.current.toggleMic());
+      rerender({ socket: server.socket, conversationId: CONVERSATION_ID, localStream: stream, isCameraOn: true, isMicOn: false });
 
-      expect(result.current.isMicOn).toBe(false);
       await waitFor(() =>
         expect(server.emitWithAck).toHaveBeenCalledWith('CALL_SET_PRODUCER_PAUSED', { producerId: producer.id, paused: true }),
       );
@@ -424,6 +425,7 @@ describe('useMediasoupCall', () => {
         conversationId: CONVERSATION_ID,
         localStream: mockStream([newTrack]),
         isCameraOn: true,
+        isMicOn: true,
       });
 
       await waitFor(() => expect(producer.replaceTrack).toHaveBeenCalledWith({ track: newTrack }));
