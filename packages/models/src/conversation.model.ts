@@ -65,6 +65,75 @@ export class ConversationModel {
     }
   }
 
+  async blockConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          members: { $size: 2, $all: [new Types.ObjectId(userId)] },
+          status: { $nin: [ConversationStatus.BLOCKED, ConversationStatus.DELETED] },
+        },
+        { $set: { status: ConversationStatus.BLOCKED, blocker: new Types.ObjectId(userId) } },
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async unblockConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
+    try {
+      const result = await this.Conversation.updateOne(
+        { _id: conversationId, status: ConversationStatus.BLOCKED, blocker: new Types.ObjectId(userId) },
+        { $unset: { status: 1, blocker: 1 } },
+      );
+      return result.modifiedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getBlockedConversationsByUserId(userId: string) {
+    const userObjectId = new Types.ObjectId(userId);
+
+    try {
+      return await this.Conversation.aggregate([
+        { $match: { status: ConversationStatus.BLOCKED, blocker: userObjectId } },
+        {
+          $lookup: {
+            from: "user",
+            localField: "members",
+            foreignField: "_id",
+            as: "members",
+            pipeline: [
+              { $match: { _id: { $ne: userObjectId } } },
+              {
+                $lookup: {
+                  from: "photo",
+                  localField: "photo",
+                  foreignField: "_id",
+                  as: "photo",
+                  pipeline: [{ $project: { url: 1 } }],
+                },
+              },
+              { $set: { photo: { $ifNull: [{ $first: "$photo" }, null] } } },
+              { $project: { userName: 1, displayName: 1, photo: 1 } },
+            ],
+          },
+        },
+        { $set: { blockedUser: { $first: "$members" } } },
+        { $match: { blockedUser: { $ne: null } } },
+        { $project: { blockedUser: 1, blocker: 1, lastUpdated: 1 } },
+        { $sort: { lastUpdated: -1 } },
+      ]);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async findConversationById(conversationId: string) {
     try {
       return await this.Conversation.findOne({ _id: conversationId });

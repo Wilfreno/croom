@@ -177,6 +177,10 @@ export class UserService {
     return await this.conversationModel.getConversationsByUserId(userId);
   }
 
+  async getUserBlockedConversations(userId: string) {
+    return await this.conversationModel.getBlockedConversationsByUserId(userId);
+  }
+
   async getUserActiveConversation(userId: string){
     return await this.conversationModel.getActiveConversationByUserId(userId);
   }

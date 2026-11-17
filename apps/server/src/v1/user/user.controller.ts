@@ -39,6 +39,10 @@ export class UserController {
     return this.userService.getUserConversations(user.id);
   }
 
+  @Get('/blocked')
+  getUserBlockedConversations(@CurrentUser() user: AuthenticatedUser) {
+    return this.userService.getUserBlockedConversations(user.id);
+  }
 
   @Get("/active-conversation")
   getUserActiveConversation(

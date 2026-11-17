@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConversationStatus } from '@repo/enums';
 import {
   ConversationModel,
   MessageModel,
@@ -98,5 +101,59 @@ export class ConversationService {
 
   async getConversationMedia(conversationId: string) {
     return await this.photoModel.getPhotosByConversationId(conversationId);
+  }
+
+  async blockConversation({
+    conversationId,
+    userId,
+  }: {
+    conversationId: string;
+    userId: string;
+  }) {
+    const conversation =
+      await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation || conversation.status === ConversationStatus.DELETED)
+      throw new NotFoundException('conversation does not exist');
+    if (isGroupChat(conversation.members))
+      throw new BadRequestException(
+        'only one-to-one conversations can be blocked',
+      );
+    if (conversation.status === ConversationStatus.BLOCKED)
+      throw new ConflictException('conversation is already blocked');
+
+    if (
+      !(await this.conversationModel.blockConversation({
+        conversationId,
+        userId,
+      }))
+    )
+      throw new ConflictException('conversation is already blocked');
+  }
+
+  async unblockConversation({
+    conversationId,
+    userId,
+  }: {
+    conversationId: string;
+    userId: string;
+  }) {
+    const conversation =
+      await this.conversationModel.findConversationById(conversationId);
+
+    if (!conversation)
+      throw new NotFoundException('conversation does not exist');
+    if (conversation.status !== ConversationStatus.BLOCKED)
+      throw new ConflictException('conversation is not blocked');
+    if (String(conversation.blocker) !== userId)
+      throw new ForbiddenException('only the user who blocked can unblock');
+
+    if (
+      !(await this.conversationModel.unblockConversation({
+        conversationId,
+        userId,
+      }))
+    )
+      throw new ConflictException('conversation is not blocked');
   }
 }
