@@ -303,6 +303,25 @@ export class CallGateway implements OnGatewayDisconnect {
     }
   }
 
+  async removeFromCall(conversationId: string, userId: string, reason: string) {
+    try {
+      const removed = await this.callService.removeUserFromRoom(
+        conversationId,
+        userId,
+      );
+      if (!removed.length) return;
+
+      const room = callRoom(conversationId);
+      const peerIds = removed.map((peer) => peer.peerId);
+      this.server.to(peerIds).emit('CALL_ENDED', { reason });
+      this.server.in(peerIds).socketsLeave(room);
+      for (const peerId of peerIds)
+        this.server.to(room).emit('CALL_PEER_LEFT', { peerId });
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   @SubscribeMessage('CALL_LEAVE')
   async handleLeave(@ConnectedSocket() client: TypedSocket) {
     await this.leave(client);

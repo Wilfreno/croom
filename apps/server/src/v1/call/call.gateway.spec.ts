@@ -525,6 +525,49 @@ describe('CallGateway', () => {
     });
   });
 
+  describe('removing someone from a call', () => {
+    it('ends the call for every tab of that user and tells the others they left', async () => {
+      const { gateway, callService, server, roomEmit, socketsLeave } = build({ members: [alice, bob, carol] });
+      const alicesTab = fakeClient('alice').client;
+      const bobsTab = fakeClient('bob').client;
+      const bobsOtherTab = fakeClient('bob').client;
+      await joinWithTransports(gateway, alicesTab);
+      await joinWithTransports(gateway, bobsTab);
+      await joinWithTransports(gateway, bobsOtherTab);
+      vi.clearAllMocks();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(callService.getPeer(alicesTab.id)).toBeDefined();
+      expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+      expect(callService.getPeer(bobsOtherTab.id)).toBeUndefined();
+      expect(server.to).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'you were removed from this group' });
+      expect(server.in).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
+      expect(socketsLeave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: bobsTab.id });
+      expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: bobsOtherTab.id });
+    });
+
+    it('does nothing when that user is not in the call', async () => {
+      const { gateway, server } = build();
+      await joinWithTransports(gateway, fakeClient('alice').client);
+      vi.clearAllMocks();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(server.to).not.toHaveBeenCalled();
+    });
+
+    it('swallows a failure, so the member change still succeeds', async () => {
+      const { gateway, mediasoup } = build();
+      await joinWithTransports(gateway, fakeClient('bob').client);
+      mediasoup.releaseRouter.mockRejectedValue(new Error('router gone'));
+
+      await expect(gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you left this group')).resolves.toBeUndefined();
+    });
+  });
+
   describe('leaving', () => {
     it.each([
       ['CALL_LEAVE', (gateway: CallGateway, client: TypedSocket) => gateway.handleLeave(client)],

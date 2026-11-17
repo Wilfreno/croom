@@ -132,6 +132,17 @@ export class CallService {
     return peer;
   }
 
+  async removeUserFromRoom(conversationId: string, userId: string) {
+    const roomPeerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const userPeerIds = roomPeerIds.filter(
+      (peerId) => this.peers.get(peerId)?.userId === userId,
+    );
+    const removed = await Promise.all(
+      userPeerIds.map((peerId) => this.removePeer(peerId)),
+    );
+    return removed.filter((peer): peer is Peer => Boolean(peer));
+  }
+
   async endRoom(conversationId: string) {
     const peerIds = [...(this.rooms.get(conversationId) ?? [])];
     const removed = await Promise.all(peerIds.map((peerId) => this.removePeer(peerId)));

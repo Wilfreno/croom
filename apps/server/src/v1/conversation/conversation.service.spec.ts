@@ -63,7 +63,7 @@ function build() {
     deleteById: vi.fn().mockResolvedValue(undefined),
   };
 
-  const callGateway = { endCall: vi.fn().mockResolvedValue(undefined) };
+  const callGateway = { endCall: vi.fn().mockResolvedValue(undefined), removeFromCall: vi.fn().mockResolvedValue(undefined) };
   const messageGateway = { emitToUsers: vi.fn() };
   const transaction = {
     withTransaction: vi.fn(async (work: () => Promise<void>) => work()),
@@ -496,12 +496,22 @@ describe('ConversationService', () => {
       expect(conversationModel.removeMember).not.toHaveBeenCalled();
     });
 
+    it('takes the removed member out of a running call', async () => {
+      const { service, conversationModel, callGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await service.removeMember(query);
+
+      expect(callGateway.removeFromCall).toHaveBeenCalledWith('c1', BOB, 'you were removed from this group');
+    });
+
     it('reports a conflict when the members changed in the meantime', async () => {
-      const { service, conversationModel } = build();
+      const { service, conversationModel, callGateway } = build();
       conversationModel.findConversationById.mockResolvedValue(group);
       conversationModel.removeMember.mockResolvedValue(false);
 
       await expect(service.removeMember(query)).rejects.toBeInstanceOf(ConflictException);
+      expect(callGateway.removeFromCall).not.toHaveBeenCalled();
     });
   });
 
@@ -519,6 +529,15 @@ describe('ConversationService', () => {
         newAdminId: undefined,
         isLastMember: false,
       });
+    });
+
+    it('takes the member who left out of a running call', async () => {
+      const { service, conversationModel, callGateway } = build();
+      conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, ADA] });
+
+      await service.leaveConversation(query);
+
+      expect(callGateway.removeFromCall).toHaveBeenCalledWith('c1', ME, 'you left this group');
     });
 
     it('makes the other member admin when the only admin leaves a group of two', async () => {
@@ -553,11 +572,12 @@ describe('ConversationService', () => {
     });
 
     it('reports a conflict when the members changed in the meantime', async () => {
-      const { service, conversationModel } = build();
+      const { service, conversationModel, callGateway } = build();
       conversationModel.findConversationById.mockResolvedValue({ isGroupChat: true, members: [ME, ADA, BOB], admins: [ME, ADA] });
       conversationModel.leaveConversation.mockResolvedValue(false);
 
       await expect(service.leaveConversation(query)).rejects.toBeInstanceOf(ConflictException);
+      expect(callGateway.removeFromCall).not.toHaveBeenCalled();
     });
   });
 

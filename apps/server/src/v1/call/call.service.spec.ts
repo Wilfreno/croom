@@ -128,6 +128,31 @@ describe('CallService', () => {
       expect(mediasoup.releaseRouter).toHaveBeenCalledTimes(2);
     });
 
+    it("removes only one user's peers from one call", async () => {
+      const { service, mediasoup } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's2', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's3', userId: bob.id, conversationId: CONVERSATION_ID, routerEntry });
+      service.addPeer({ peerId: 's4', userId: bob.id, conversationId: OTHER_CONVERSATION_ID, routerEntry });
+
+      const removed = await service.removeUserFromRoom(CONVERSATION_ID, bob.id);
+
+      expect(removed.map((peer) => peer.peerId)).toEqual(['s2', 's3']);
+      expect(service.getPeer('s1')).toBeDefined();
+      expect(service.getPeer('s2')).toBeUndefined();
+      expect(service.getPeer('s3')).toBeUndefined();
+      expect(service.getPeer('s4')).toBeDefined();
+      expect(mediasoup.releaseRouter).toHaveBeenCalledTimes(2);
+    });
+
+    it('removes nobody when the user is not in the call', async () => {
+      const { service } = build();
+      service.addPeer({ peerId: 's1', userId: alice.id, conversationId: CONVERSATION_ID, routerEntry });
+
+      await expect(service.removeUserFromRoom(CONVERSATION_ID, bob.id)).resolves.toEqual([]);
+      expect(service.getPeer('s1')).toBeDefined();
+    });
+
     it('ends nothing for a call nobody joined', async () => {
       const { service } = build();
 

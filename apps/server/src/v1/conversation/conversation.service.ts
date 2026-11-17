@@ -263,6 +263,12 @@ export class ConversationService {
         'the members of this conversation changed, try again',
       );
 
+    await this.callGateway.removeFromCall(
+      conversationId,
+      memberId,
+      'you were removed from this group',
+    );
+
     return { memberId };
   }
 
@@ -297,6 +303,12 @@ export class ConversationService {
       throw new ConflictException(
         'the members of this conversation changed, try again',
       );
+
+    await this.callGateway.removeFromCall(
+      conversationId,
+      userId,
+      'you left this group',
+    );
 
     return { conversationId, newAdminId: newAdminId ?? null };
   }
