@@ -18,6 +18,7 @@ import {
   GetConversationByMembersIdDto,
 } from './dto/get-conversation';
 import { BlockConversationDto } from './dto/block-conversation.dto';
+import { ChangeNameDto, ChangeNameParamDto } from './dto/change-name.dto';
 import { ChangePhotoDto, ChangePhotoParamDto } from './dto/change-photo.dto';
 import { LeaveConversationDto } from './dto/leave-conversation.dto';
 import { GetConversationMediaDto } from './dto/get-media.dto';
@@ -101,6 +102,21 @@ export class ConversationController {
     return this.conversationService.changePhoto({
       conversationId,
       photo,
+      requesterId: currentUser.id,
+    });
+  }
+
+  @IsAdmin({ param: 'conversationId' })
+  @IsMember({ param: 'conversationId' })
+  @Patch('/:conversationId/name')
+  changeName(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param() { conversationId }: ChangeNameParamDto,
+    @Body() { name }: ChangeNameDto,
+  ) {
+    return this.conversationService.changeName({
+      conversationId,
+      name,
       requesterId: currentUser.id,
     });
   }

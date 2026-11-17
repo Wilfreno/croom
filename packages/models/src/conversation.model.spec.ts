@@ -379,6 +379,41 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('setName', () => {
+    it('renames a live group, only when the requester is an admin', async () => {
+      const { collection, model } = build();
+
+      await model.setName({ conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID });
+
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe(CONVERSATION_ID);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(update).toEqual({ $set: { name: 'Squad' } });
+    });
+
+    it('reports whether a group matched, even when the name stayed the same', async () => {
+      const { collection, model } = build();
+      const query = { conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID };
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 0 });
+      await expect(model.setName(query)).resolves.toBe(true);
+
+      collection.updateOne.mockResolvedValue({ matchedCount: 0, modifiedCount: 0 });
+      await expect(model.setName(query)).resolves.toBe(false);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(
+        model.setName({ conversationId: CONVERSATION_ID, name: 'Squad', requesterId: USER_ID }),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('addAdmin', () => {
     it('adds a group member who is not an admin yet, only when the requester is an admin', async () => {
       const { collection, model } = build();

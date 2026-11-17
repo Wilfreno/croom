@@ -1,1 +1,2 @@
 export const NICKNAME_MAX_LENGTH = 50;
+export const CONVERSATION_NAME_MAX_LENGTH = 100;

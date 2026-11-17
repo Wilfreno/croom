@@ -352,6 +352,30 @@ export class ConversationService {
     return { photo: { id: newPhotoId, url: photo.url } };
   }
 
+  async changeName({
+    conversationId,
+    name,
+    requesterId,
+  }: {
+    conversationId: string;
+    name: string;
+    requesterId: string;
+  }) {
+    await this.findGroup(conversationId);
+
+    const changed = await this.conversationModel.setName({
+      conversationId,
+      name,
+      requesterId,
+    });
+    if (!changed)
+      throw new ConflictException(
+        'the admins of this conversation changed, try again',
+      );
+
+    return { name };
+  }
+
   private async findGroup(conversationId: string) {
     const conversation =
       await this.conversationModel.findConversationById(conversationId);

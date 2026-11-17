@@ -325,6 +325,24 @@ export class ConversationModel {
     }
   }
 
+  async setName({ conversationId, name, requesterId }: { conversationId: string; name: string; requesterId: string }) {
+    try {
+      const result = await this.Conversation.updateOne(
+        {
+          _id: conversationId,
+          admins: new Types.ObjectId(requesterId),
+          isGroupChat: true,
+          status: { $ne: ConversationStatus.DELETED },
+        },
+        { $set: { name } },
+      );
+      return result.matchedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async getBlockedConversationsByUserId(userId: string) {
     const userObjectId = new Types.ObjectId(userId);
 

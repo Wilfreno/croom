@@ -47,6 +47,7 @@ function build() {
     removeMember: vi.fn().mockResolvedValue(true),
     leaveConversation: vi.fn().mockResolvedValue(true),
     setPhoto: vi.fn().mockResolvedValue({ changed: true, previousPhotoId: null }),
+    setName: vi.fn().mockResolvedValue(true),
   };
   const userModel = {
     getUsersByIds: vi.fn(async (ids: string[]) => ids.filter((id) => id in users).map((id) => users[id])),
@@ -349,6 +350,46 @@ describe('ConversationService', () => {
       await expect(service.changePhoto(query)).rejects.toBeInstanceOf(ConflictException);
       expect(photoModel.deleteById).not.toHaveBeenCalled();
       expect(transaction.endSession).toHaveBeenCalled();
+    });
+  });
+
+  describe('changeName', () => {
+    const query = { conversationId: 'c1', name: 'Squad', requesterId: ME };
+    const group = { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME] };
+
+    it('renames the group as the admin who asked', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.changeName(query)).resolves.toEqual({ name: 'Squad' });
+      expect(conversationModel.setName).toHaveBeenCalledWith({ conversationId: 'c1', name: 'Squad', requesterId: ME });
+    });
+
+    it('clears the name so the group falls back to its member names', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+
+      await expect(service.changeName({ ...query, name: '' })).resolves.toEqual({ name: '' });
+    });
+
+    it.each([
+      ['a missing conversation', null, NotFoundException],
+      ['a deleted conversation', { ...group, status: ConversationStatus.DELETED }, NotFoundException],
+      ['a one-to-one conversation', { isGroupChat: false, members: [ME, ADA], admins: [ME, ADA] }, BadRequestException],
+    ])('refuses %s', async (_, conversation, exception) => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(conversation);
+
+      await expect(service.changeName(query)).rejects.toBeInstanceOf(exception);
+      expect(conversationModel.setName).not.toHaveBeenCalled();
+    });
+
+    it('reports a conflict when the caller stopped being an admin', async () => {
+      const { service, conversationModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      conversationModel.setName.mockResolvedValue(false);
+
+      await expect(service.changeName(query)).rejects.toBeInstanceOf(ConflictException);
     });
   });
 
