@@ -3,7 +3,6 @@ import useComposeMessage from '@/components/hooks/mutation/useComposeMessage.mut
 import useConversation from '@/components/hooks/queries/useConversation';
 import useSearchConversationsByMembers from '@/components/hooks/queries/useSearchConversationsByMember';
 import useMessageTextarea from '@/components/hooks/useMessageTextarea';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,13 +18,11 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
+import ConversationBlockedBanner from '../conversation/ConversationBlockedBanner';
 
 export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
   const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const {
-    session: { user },
-  } = useAuth();
 
   const { value: textInput, setValue: setTextInput, textareaProps } = useMessageTextarea({ onSubmit: submit });
 
@@ -93,21 +90,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   }
 
   if (!selectedUsers || !selectedUsers.length) return null;
-  if (conversation?.status === ConversationStatus.BLOCKED) {
-    if (conversation.blocker?.toString() === user?.id.toString()) {
-      return (
-        <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
-          <span>You have blocked this user, neither of you can reply on this conversation</span>
-        </div>
-      );
-    } else {
-      return (
-        <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
-          <span>You are unable to reply on this conversation</span>
-        </div>
-      );
-    }
-  }
+  if (conversation?.status === ConversationStatus.BLOCKED) return <ConversationBlockedBanner conversation={conversation} />;
 
   return (
     <div className="flex items-end p-2 bg-transparent">

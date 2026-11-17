@@ -731,6 +731,30 @@ describe('InfoPrivacyAndSupport', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
   });
+
+  it('refreshes the conversation when blocking is refused, so a stale view catches up', async () => {
+    conversation = oneToOne();
+    vi.mocked(axiosInstance.post).mockRejectedValue(new Error('409'));
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Block User' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    await waitFor(() => expect(axiosInstance.get).toHaveBeenCalledWith('/conversation/c1'));
+  });
+
+  it('refreshes the conversation when unblocking is refused', async () => {
+    conversation = oneToOne({ status: ConversationStatus.BLOCKED, blocker: sessionUser.id });
+    vi.mocked(axiosInstance.delete).mockRejectedValue(new Error('409'));
+    renderInfo(<InfoPrivacyAndSupport />);
+    await open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Unblock User' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    await waitFor(() => expect(axiosInstance.get).toHaveBeenCalledWith('/conversation/c1'));
+  });
 });
 
 describe('UserInfoDialog', () => {

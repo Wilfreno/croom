@@ -272,7 +272,8 @@ describe('ComposeMessageInput', () => {
 
     renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
 
-    expect(screen.getByText(/You have blocked this user/)).toBeInTheDocument();
+    expect(screen.getByText('You blocked this person')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unblock' })).toBeInTheDocument();
   });
 
   it('tells you when the other person blocked the conversation', () => {
@@ -280,7 +281,8 @@ describe('ComposeMessageInput', () => {
 
     renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
 
-    expect(screen.getByText('You are unable to reply on this conversation')).toBeInTheDocument();
+    expect(screen.getByText('You have been blocked')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Unblock' })).not.toBeInTheDocument();
   });
 });
 

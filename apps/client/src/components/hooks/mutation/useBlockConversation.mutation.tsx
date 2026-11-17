@@ -5,7 +5,6 @@ import { SOMETHING_WENT_WRONG, USER_BLOCKED, USER_UNBLOCKED } from '@repo/consta
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-
 export default function useBlockConversation() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -28,8 +27,9 @@ export default function useBlockConversation() {
       toast(USER_BLOCKED);
       await refresh(conversationId);
     },
-    onError() {
+    async onError(_, conversationId) {
       toast.error(SOMETHING_WENT_WRONG);
+      await refresh(conversationId);
     },
   });
 
@@ -44,8 +44,9 @@ export default function useBlockConversation() {
       );
       await refresh(conversationId, { skipBlockedList: true });
     },
-    onError() {
+    async onError(_, conversationId) {
       toast.error(SOMETHING_WENT_WRONG);
+      await refresh(conversationId);
     },
   });
 

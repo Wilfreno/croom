@@ -55,7 +55,6 @@ export default function InfoPrivacyAndSupport() {
     },
   });
 
-
   return (
     <Collapsible
       onOpenChange={(isOpen) => {

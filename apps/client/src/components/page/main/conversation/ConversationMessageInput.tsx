@@ -1,23 +1,12 @@
 'use client';
 
-import useBlockConversation from '@/components/hooks/mutation/useBlockConversation.mutation';
 import useSendMessage from '@/components/hooks/mutation/useSendMessage.mutation';
 import useMessageTextarea from '@/components/hooks/useMessageTextarea';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { UploadThingButton } from '@/components/page/UploadthingButton';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
+import ConversationBlockedBanner from './ConversationBlockedBanner';
 import { ServerResponse } from '@/lib/server/requests';
 import { cn, withBasePath } from '@/lib/utils';
 import type { PhotoInput } from '@/types/message.types';
@@ -43,13 +32,10 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   });
   const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [confirmUnblockOpen, setConfirmUnblockOpen] = useState(false);
 
   const params = useParams<{ id: string }>();
 
-  const { session } = useAuth();
   const { sendMessage } = useSendMessage(textInput);
-  const { unblockConversation } = useBlockConversation();
   const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
     mutationFn: async ({ key }) => {
       try {
@@ -102,46 +88,8 @@ export default function ConversationMessageInput({ conversation }: { conversatio
     setTextInput('');
   }
 
-  if (conversation?.status === ConversationStatus.BLOCKED) {
-    if (conversation.blocker === session.user?.id)
-      return (
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-primary/80 px-4 py-3 text-center font-medium text-accent rounded-b-md">
-          <span>You blocked this person</span>
-          <Dialog open={confirmUnblockOpen} onOpenChange={setConfirmUnblockOpen}>
-            <DialogTrigger asChild>
-              <Button variant="secondary" size="sm">
-                Unblock
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-96">
-              <DialogHeader>
-                <DialogTitle>Unblock this person?</DialogTitle>
-                <DialogDescription>You&apos;ll both be able to message each other in this conversation again.</DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="gap-2">
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button
-                  disabled={unblockConversation.isPending}
-                  onClick={() =>
-                    unblockConversation.mutate(conversation.id, { onSuccess: () => setConfirmUnblockOpen(false) })
-                  }
-                >
-                  Unblock
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      );
+  if (conversation?.status === ConversationStatus.BLOCKED) return <ConversationBlockedBanner conversation={conversation} />;
 
-    return (
-      <div className="bg-primary/80 py-4 text-center font-medium text-accent rounded-b-md">
-        <span>You have been blocked</span>
-      </div>
-    );
-  }
   return (
     <div className="h-full flex items-end p-2 bg-transparent">
       <UploadThingButton

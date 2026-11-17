@@ -435,6 +435,16 @@ describe('ConversationMessageInput', () => {
     expect(screen.queryByRole('button', { name: 'Unblock' })).not.toBeInTheDocument();
   });
 
+  it('shows no blocked banner until the session has loaded', () => {
+    sessionUser = undefined as never;
+
+    const { container } = renderWithQuery(
+      <ConversationMessageInput conversation={mockConversation({ status: 'BLOCKED', blocker: 'someone-else' })} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   describe('when you blocked them', () => {
     const renderBlocked = () =>
       renderWithQuery(
