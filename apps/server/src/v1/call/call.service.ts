@@ -47,10 +47,7 @@ export class CallService {
 
     const [members, isBlocked] = await Promise.all([
       this.conversationModel.getCallMembersByConversationId(conversationId),
-      this.conversationModel.isUserBlockedInConversation({
-        conversationId,
-        userId,
-      }),
+      this.conversationModel.isConversationBlocked(conversationId),
     ]);
 
     if (isBlocked) return { error: 'you cannot call this conversation' };

@@ -155,6 +155,32 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('isConversationBlocked', () => {
+    it('matches any blocked conversation, whoever blocked it', async () => {
+      const { collection, model } = build();
+
+      await model.isConversationBlocked(CONVERSATION_ID);
+
+      expect(collection.exists).toHaveBeenCalledWith({ _id: CONVERSATION_ID, status: ConversationStatus.BLOCKED });
+    });
+
+    it('reflects whether a match was found', async () => {
+      const { collection, model } = build();
+
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).resolves.toBe(false);
+
+      collection.exists.mockResolvedValue({ _id: CONVERSATION_ID });
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.exists.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.isConversationBlocked(CONVERSATION_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('blockConversation', () => {
     it('only blocks a live one-to-one conversation the user is in, and records the blocker', async () => {
       const { collection, model } = build();

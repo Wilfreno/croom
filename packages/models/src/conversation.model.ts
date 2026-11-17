@@ -65,6 +65,15 @@ export class ConversationModel {
     }
   }
 
+  async isConversationBlocked(conversationId: string) {
+    try {
+      return Boolean(await this.Conversation.exists({ _id: conversationId, status: ConversationStatus.BLOCKED }));
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async blockConversation({ conversationId, userId }: { conversationId: string; userId: string }) {
     try {
       const result = await this.Conversation.updateOne(

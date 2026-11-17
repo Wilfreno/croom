@@ -82,7 +82,7 @@ function fakeClient(userId: string | undefined, id = nextId('socket')) {
 function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
-    isUserBlockedInConversation: vi.fn().mockResolvedValue(isBlocked),
+    isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
   };
   const routerEntry = fakeRouterEntry();
   const mediasoup = {

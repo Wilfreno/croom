@@ -20,7 +20,7 @@ const routerEntry = {} as CallRouterEntry;
 function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
-    isUserBlockedInConversation: vi.fn().mockResolvedValue(isBlocked),
+    isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
   };
   const mediasoup = { releaseRouter: vi.fn().mockResolvedValue(undefined) };
 
@@ -60,18 +60,19 @@ describe('CallService', () => {
         members: [alice, bob],
         caller: bob,
       });
-      expect(conversationModel.isUserBlockedInConversation).toHaveBeenCalledWith({
-        conversationId: CONVERSATION_ID,
-        userId: bob.id,
-      });
+      expect(conversationModel.isConversationBlocked).toHaveBeenCalledWith(CONVERSATION_ID);
     });
 
-    it('refuses a user who is blocked in the conversation', async () => {
-      const { service } = build({ isBlocked: true });
+    it.each([
+      ['the member who blocked it', alice.id],
+      ['the member who was blocked', bob.id],
+    ])('refuses a blocked conversation, even for %s', async (_, userId) => {
+      const { service, conversationModel } = build({ isBlocked: true });
 
-      await expect(service.checkAccess(CONVERSATION_ID, alice.id)).resolves.toEqual({
+      await expect(service.checkAccess(CONVERSATION_ID, userId)).resolves.toEqual({
         error: 'you cannot call this conversation',
       });
+      expect(conversationModel.isConversationBlocked).toHaveBeenCalledWith(CONVERSATION_ID);
     });
 
     it('reports a conversation that does not exist', async () => {
