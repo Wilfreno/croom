@@ -135,13 +135,13 @@ describe('ConversationService', () => {
       expect(data.members[0]).toBeInstanceOf(Types.ObjectId);
     });
 
-    it("names a group after its members and makes only the creator an admin", async () => {
+    it('leaves a new group unnamed and makes only the creator an admin', async () => {
       const { service, conversationModel } = build();
 
       await service.create({ members: [ADA, BOB, ME], userId: ME }, session);
 
       const [data] = conversationModel.createConversation.mock.calls[0];
-      expect(data.name).toBe('Ada, Bob, Me');
+      expect(data.name).toBe('');
       expect(data.isGroupChat).toBe(true);
       expect(ids(data.admins)).toEqual([ME]);
     });

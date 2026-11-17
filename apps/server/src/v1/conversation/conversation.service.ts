@@ -63,9 +63,7 @@ export class ConversationService {
 
     return await this.conversationModel.createConversation(
       {
-        name: isGroupChat
-          ? foundUsers.map((user) => user.displayName).join(', ')
-          : '',
+        name: '',
         isGroupChat,
         members: memberIds,
         admins: isGroupChat ? [new Types.ObjectId(userId)] : memberIds,
