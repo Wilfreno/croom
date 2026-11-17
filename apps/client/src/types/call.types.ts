@@ -59,6 +59,8 @@ export type CallContextType = {
 
 export type CallSidePanel = 'participants' | 'chat';
 
+export type CallControlTone = 'neutral' | 'active' | 'off' | 'danger';
+
 export type CallSidePanelContextType = {
   openPanel: CallSidePanel | null;
   setOpenPanel: (panel: CallSidePanel | null) => void;

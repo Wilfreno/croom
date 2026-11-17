@@ -29,12 +29,12 @@ export default function SelectDevice({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         aria-label={`Choose ${lowerCaseLabel}`}
-        className="flex items-center rounded-full p-2 outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="flex h-11 w-9 items-center justify-center rounded-full text-white/80 outline-none transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/70 data-[state=open]:bg-white/10 data-[state=open]:text-white"
       >
         {open ? (
-          <ChevronDown className="aspect-square h-5 w-auto" />
+          <ChevronDown className="h-4 w-4" />
         ) : (
-          <ChevronUp className="aspect-square h-5 w-auto" />
+          <ChevronUp className="h-4 w-4" />
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent

@@ -1,7 +1,7 @@
 'use client';
 import { useCall } from '@/components/providers/CallProvider';
-import { Button } from '@/components/ui/button';
-import { Phone } from 'lucide-react';
+import { PhoneOff } from 'lucide-react';
+import CallControlButton from './CallControlButton';
 import CameraControl from './camera/CameraControls';
 import MicrophoneControl from './microphone/MicrophoneControls';
 
@@ -9,14 +9,16 @@ export default function Controls() {
   const { leave } = useCall();
 
   return (
-    <section className="bg-white/20 backdrop-blur-sm absolute bottom-6 sm:bottom-10 right-1/2 translate-x-1/2 border border-muted rounded-full flex items-center gap-8 sm:gap-20 p-2">
-      <div className="flex items-center gap-4 sm:gap-10">
-        <MicrophoneControl />
-        <CameraControl />
-      </div>
-      <Button variant="destructive" className="rounded-full" aria-label="Leave call" onClick={leave}>
-        <Phone />
-      </Button>
+    <section
+      aria-label="Call controls"
+      className="absolute bottom-6 right-1/2 flex translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-slate-900/80 p-2 shadow-lg backdrop-blur-md sm:bottom-10 sm:gap-3"
+    >
+      <MicrophoneControl />
+      <CameraControl />
+      <div aria-hidden className="mx-1 h-8 w-px bg-white/15" />
+      <CallControlButton label="Leave call" tone="danger" onClick={leave}>
+        <PhoneOff />
+      </CallControlButton>
     </section>
   );
 }

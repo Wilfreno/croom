@@ -3,7 +3,7 @@ import ToggleMicrophone from './ToggleMicrophone';
 
 export default function MicrophoneControl() {
   return (
-    <div className="flex items-center h-fit bg-muted-foreground rounded-full">
+    <div className="flex items-center rounded-full bg-white/10">
       <SelectMicrophone />
       <ToggleMicrophone />
     </div>

@@ -3,7 +3,7 @@ import SelectCamera from './SelectCamera';
 
 export default function CameraControl() {
   return (
-    <div className="flex items-center  h-fit bg-muted-foreground rounded-full">
+    <div className="flex items-center rounded-full bg-white/10">
       <SelectCamera />
       <OpenCamera />
     </div>

@@ -182,6 +182,14 @@ describe('Controls', () => {
     expect(screen.getByRole('button', { name: 'Unmute microphone' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('names each control in a tooltip on hover', async () => {
+    render(<Controls />);
+
+    await userEvent.hover(screen.getByRole('button', { name: 'Leave call' }));
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Leave call');
+  });
+
   it('leaves the call', async () => {
     render(<Controls />);
 

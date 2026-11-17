@@ -23,7 +23,7 @@ export default async function CallPage({ params }: { params: Promise<{ id: strin
                 <RemoteParticipants />
                 <CurrentUserCam />
                 <Controls />
-                <div className="absolute bottom-24 right-4 flex items-center gap-1 p-2 sm:bottom-10">
+                <div className="absolute bottom-24 right-4 flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/80 p-2 shadow-lg backdrop-blur-md sm:bottom-10">
                   <ChatButton />
                   <ParticipantsButton />
                 </div>

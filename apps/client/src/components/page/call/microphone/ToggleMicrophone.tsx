@@ -1,20 +1,19 @@
 'use client';
 import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
-import { Button } from '@/components/ui/button';
 import { Mic, MicOff } from 'lucide-react';
+import CallControlButton from '../CallControlButton';
 
 export default function ToggleMicrophone() {
   const { isMicOn, toggleMic } = useLocalMedia();
 
   return (
-    <Button
-      onClick={toggleMic}
-      variant={isMicOn ? 'default' : 'destructive'}
-      className="rounded-full"
-      aria-label={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
+    <CallControlButton
+      label={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
+      tone={isMicOn ? 'neutral' : 'off'}
       aria-pressed={!isMicOn}
+      onClick={toggleMic}
     >
       {isMicOn ? <Mic /> : <MicOff />}
-    </Button>
+    </CallControlButton>
   );
 }

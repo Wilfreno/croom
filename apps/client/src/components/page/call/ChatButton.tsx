@@ -1,10 +1,10 @@
 'use client';
 import useUnreadCallMessages from '@/components/hooks/useUnreadCallMessages';
 import { useCallSidePanel } from '@/components/providers/CallSidePanelProvider';
-import { Button } from '@/components/ui/button';
 import { unreadMessagesLabel } from '@/lib/utils';
 import { MessageSquare } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import CallControlButton from './CallControlButton';
 
 export default function ChatButton() {
   const { openPanel, togglePanel } = useCallSidePanel();
@@ -15,19 +15,18 @@ export default function ChatButton() {
   const label = `${isOpen ? 'Hide' : 'Show'} chat`;
 
   return (
-    <Button
-      variant="ghost"
-      className="relative rounded-full text-white"
-      aria-label={hasUnread ? `${label}, ${unreadMessagesLabel(unreadCount)}` : label}
+    <CallControlButton
+      label={hasUnread ? `${label}, ${unreadMessagesLabel(unreadCount)}` : label}
+      tone={isOpen ? 'active' : 'neutral'}
       aria-expanded={isOpen}
       onClick={() => togglePanel('chat')}
     >
       <MessageSquare />
       {hasUnread && (
-        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-destructive px-1 text-xs font-medium text-destructive-foreground">
+        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-medium text-white ring-2 ring-slate-900">
           {unreadCount}
         </span>
       )}
-    </Button>
+    </CallControlButton>
   );
 }

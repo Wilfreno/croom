@@ -1,20 +1,19 @@
 'use client';
 import { useLocalMedia } from '@/components/providers/LocalMediaProvider';
-import { Button } from '@/components/ui/button';
 import { Video, VideoOff } from 'lucide-react';
+import CallControlButton from '../CallControlButton';
 
 export default function OpenCamera() {
   const { isCameraOn, toggleCamera } = useLocalMedia();
 
   return (
-    <Button
-      onClick={toggleCamera}
-      variant={isCameraOn ? 'default' : 'destructive'}
-      className="rounded-full"
-      aria-label={isCameraOn ? 'Turn camera off' : 'Turn camera on'}
+    <CallControlButton
+      label={isCameraOn ? 'Turn camera off' : 'Turn camera on'}
+      tone={isCameraOn ? 'neutral' : 'off'}
       aria-pressed={!isCameraOn}
+      onClick={toggleCamera}
     >
       {isCameraOn ? <Video /> : <VideoOff />}
-    </Button>
+    </CallControlButton>
   );
 }
