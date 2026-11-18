@@ -38,3 +38,13 @@ export const OUTGOING_CALL_STATUS_TEXT = {
   declined: 'Call declined',
   unanswered: 'No answer',
 };
+export const CALL_SIDE_PANEL_DOCKED_MOTION = {
+  initial: { width: 0 },
+  animate: { width: 'auto' },
+  exit: { width: 0 },
+};
+export const CALL_SIDE_PANEL_OVERLAY_MOTION = {
+  initial: { x: '100%' },
+  animate: { x: 0 },
+  exit: { x: '100%' },
+};

@@ -296,20 +296,51 @@ describe('CallGateway', () => {
     });
 
     it('joins someone already calling instead of ringing over them', async () => {
-      const { gateway, server, callNotices, caller } = await ringing();
-      const { client, spies, broadcast } = fakeClient('bob');
+      const { gateway, server, roomEmit, callNotices, caller } = await ringing();
+      const { client } = fakeClient('bob');
 
       await expect(gateway.handleCall(client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
         isOngoing: true,
         ringingCount: 0,
       });
 
-      expect(server.to).not.toHaveBeenCalled();
+      expect(roomEmit).not.toHaveBeenCalledWith('INCOMING_CALL', expect.anything());
       expect(callNotices.post).not.toHaveBeenCalled();
-      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
-      expect(broadcast.emit).toHaveBeenCalledWith('CALL_ACCEPTED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ACCEPTED', { conversationId: CONVERSATION_ID, userId: 'bob' });
       await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
         isAnswered: true,
+      });
+    });
+
+    it('lets a caller who is no longer a member still stop their ring', async () => {
+      const { gateway, conversationModel, roomEmit, caller } = await ringing();
+      conversationModel.getCallMembersByConversationId.mockResolvedValue([bob, carol]);
+
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: false,
+      });
+
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+    });
+
+    it('stops the ring of a caller removed from the conversation', async () => {
+      const { gateway, server, roomEmit } = await ringing();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'alice', 'you were removed from this group');
+
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+      await expect(
+        gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: false });
+    });
+
+    it('rejects a cancel without a conversation', async () => {
+      const { gateway } = build();
+
+      await expect(gateway.handleCancel(fakeClient('alice').client, {} as never)).resolves.toEqual({
+        error: 'you cannot cancel this call',
       });
     });
 

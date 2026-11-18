@@ -76,7 +76,7 @@ export class CallGateway implements OnGatewayDisconnect {
       const pendingRing = this.callService.pendingRing(payload.conversationId);
       if (pendingRing && pendingRing.callerId !== callerId) {
         this.callService.answerRing(payload.conversationId);
-        client
+        this.server
           .to(access.members.map((member) => member.id))
           .emit('CALL_ACCEPTED', {
             conversationId: payload.conversationId,
@@ -155,14 +155,11 @@ export class CallGateway implements OnGatewayDisconnect {
     @MessageBody() payload: CallPayload,
   ): Promise<CallAck<CallCancelResult>> {
     const userId = client.data.userId;
-    const memberIds = await this.memberIdsFor(client, payload);
-    if (!userId || !memberIds) return { error: 'you cannot cancel this call' };
+    const conversationId = payload?.conversationId;
+    if (!userId || typeof conversationId !== 'string')
+      return { error: 'you cannot cancel this call' };
 
-    const outcome = await this.stopRing(
-      payload.conversationId,
-      userId,
-      memberIds,
-    );
+    const outcome = await this.stopRing(conversationId, userId);
     return { isAnswered: outcome === 'answered' };
   }
 
@@ -408,6 +405,7 @@ export class CallGateway implements OnGatewayDisconnect {
 
   async removeFromCall(conversationId: string, userId: string, reason: string) {
     try {
+      await this.stopRing(conversationId, userId);
       const removed = await this.callService.removeUserFromRoom(
         conversationId,
         userId,
@@ -508,15 +506,14 @@ export class CallGateway implements OnGatewayDisconnect {
     });
   }
 
-  private async stopRing(
-    conversationId: string,
-    callerId: string,
-    memberIds: string[],
-  ) {
+  private async stopRing(conversationId: string, callerId: string) {
+    const ring = this.callService.pendingRing(conversationId);
     const outcome = this.callService.stopRing(conversationId, callerId);
-    if (outcome !== 'missed') return outcome;
+    if (outcome !== 'missed' || !ring) return outcome;
 
-    this.server.to(memberIds).emit('CALL_CANCELLED', { conversationId });
+    this.server
+      .to([ring.callerId, ...ring.ringingUserIds])
+      .emit('CALL_CANCELLED', { conversationId });
     await this.callNotices.post({
       conversationId,
       userId: callerId,
@@ -529,10 +526,8 @@ export class CallGateway implements OnGatewayDisconnect {
     const callerId = client.data.userId;
     if (!callerId) return;
 
-    for (const conversationId of this.callService.ringsCalledFrom(client.id)) {
-      const memberIds = await this.memberIdsFor(client, { conversationId });
-      if (memberIds) await this.stopRing(conversationId, callerId, memberIds);
-    }
+    for (const conversationId of this.callService.ringsCalledFrom(client.id))
+      await this.stopRing(conversationId, callerId);
   }
 
   private async memberIdsFor(client: TypedSocket, payload: CallPayload) {

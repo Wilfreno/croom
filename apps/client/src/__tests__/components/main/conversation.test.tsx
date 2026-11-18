@@ -164,6 +164,20 @@ describe('ConversationHeader', () => {
       expect(await within(dialog).findByText('No answer')).toBeInTheDocument();
     });
 
+    it('rings only once when the button is clicked twice in a row', async () => {
+      let answer: (reply: unknown) => void = () => undefined;
+      server.replies.CALL = () => new Promise((resolve) => (answer = resolve));
+      renderWithQuery(<ConversationHeader conversationInfo={info} conversation={oneOnOne()} />);
+      const button = screen.getByRole('button', { name: 'Start video call' });
+
+      await userEvent.click(button);
+      await userEvent.click(button);
+      await act(async () => answer({ isOngoing: false, ringingCount: 1 }));
+
+      expect(server.emitWithAck.mock.calls.filter(([event]) => event === 'CALL')).toHaveLength(1);
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    });
+
     it('stops showing "Calling…" when the server cancels the ring', async () => {
       const dialog = await call();
 

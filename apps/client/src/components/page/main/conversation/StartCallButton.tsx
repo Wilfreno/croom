@@ -70,7 +70,7 @@ export default function StartCallButton({
               variant="ghost"
               className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
               aria-label="Start video call"
-              disabled={createConversation.isPending}
+              disabled={createConversation.isPending || outgoingCall.isStarting}
               onClick={startCall}
             >
               <Video className="fill-primary" />

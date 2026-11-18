@@ -1,18 +1,12 @@
 'use client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useSocketIO } from '@/components/providers/SocketIOProvider';
-import { emitSocketEventAndWaitForServerReply } from '@/lib/utils';
+import { emitSocketEventAndWaitForServerReply, stopCallRing } from '@/lib/utils';
 import { OutgoingCallStatus, OutgoingCallTarget } from '@/types/call.types';
-import { TypedSocket } from '@/types/socket.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
 import { CallAnswerPayload, CallPayload } from '@repo/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-
-async function stopRinging(socket: TypedSocket, conversationId: string) {
-  const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_CANCEL', { conversationId }).catch(() => null);
-  return Boolean(reply?.isAnswered);
-}
 
 export default function useOutgoingCall() {
   const socket = useSocketIO();
@@ -21,6 +15,7 @@ export default function useOutgoingCall() {
   const userId = session.user?.id;
   const [status, setStatus] = useState<OutgoingCallStatus>('idle');
   const [target, setTarget] = useState<OutgoingCallTarget | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
   const ringingConversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -34,7 +29,7 @@ export default function useOutgoingCall() {
       const conversationId = ringingConversationIdRef.current;
       ringingConversationIdRef.current = null;
       if (!conversationId) return;
-      stopRinging(socket, conversationId);
+      stopCallRing(socket, conversationId);
       setStatus('unanswered');
     };
   }, [socket]);
@@ -64,7 +59,7 @@ export default function useOutgoingCall() {
     }
 
     const ringTimeoutId = setTimeout(async () => {
-      if (await stopRinging(socket, conversationId)) joinCall();
+      if (await stopCallRing(socket, conversationId)) joinCall();
       else setStatus('unanswered');
     }, CALL_RING_DURATION_MS);
     socket.on('CALL_ACCEPTED', onAccepted);
@@ -80,7 +75,8 @@ export default function useOutgoingCall() {
   }, [status, socket, target, userId, router]);
 
   async function start(callTarget: OutgoingCallTarget) {
-    if (!socket) return;
+    if (!socket || isStarting) return;
+    setIsStarting(true);
 
     try {
       const { isOngoing, ringingCount } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', {
@@ -94,6 +90,8 @@ export default function useOutgoingCall() {
       setStatus('ringing');
     } catch {
       setStatus('idle');
+    } finally {
+      setIsStarting(false);
     }
   }
 
@@ -104,12 +102,12 @@ export default function useOutgoingCall() {
   async function cancel() {
     setStatus('idle');
     if (!socket || !target) return;
-    if (await stopRinging(socket, target.conversationId)) router.push(`/call/${target.conversationId}`);
+    if (await stopCallRing(socket, target.conversationId)) router.push(`/call/${target.conversationId}`);
   }
 
   function close() {
     setStatus('idle');
   }
 
-  return { status, start, callAgain, cancel, close };
+  return { status, isStarting, start, callAgain, cancel, close };
 }

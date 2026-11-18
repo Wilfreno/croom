@@ -1,7 +1,7 @@
-import type { CallMediaPreferences, CallSession } from "@/types/call.types";
+import type { CallMediaPreferences, CallSession, RingtoneNote } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, RINGTONE_FADE_SECONDS, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
 import { CALL_MESSAGE_NOTICE_TYPES, ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
@@ -356,4 +356,28 @@ export function markMessageFailed(pages: MessagePages, id: string): MessagePages
       result: result.map((cached) => (cached.id === id ? { ...cached, pending: false, failed: true } : cached)),
     })),
   };
+}
+
+export function playRingtoneNote(context: AudioContext, output: AudioNode, note: RingtoneNote, cycleStartTime: number) {
+  const startTime = cycleStartTime + note.startSeconds;
+  const endTime = startTime + note.durationSeconds;
+  const envelope = context.createGain();
+  envelope.gain.setValueAtTime(0, startTime);
+  envelope.gain.linearRampToValueAtTime(1, startTime + RINGTONE_FADE_SECONDS);
+  envelope.gain.setValueAtTime(1, endTime - RINGTONE_FADE_SECONDS);
+  envelope.gain.linearRampToValueAtTime(0, endTime);
+  envelope.connect(output);
+
+  for (const frequency of note.frequencies) {
+    const oscillator = context.createOscillator();
+    oscillator.frequency.value = frequency;
+    oscillator.connect(envelope);
+    oscillator.start(startTime);
+    oscillator.stop(endTime);
+  }
+}
+
+export async function stopCallRing(socket: TypedSocket, conversationId: string) {
+  const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_CANCEL', { conversationId }).catch(() => null);
+  return Boolean(reply?.isAnswered);
 }
