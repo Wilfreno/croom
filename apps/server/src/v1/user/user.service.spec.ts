@@ -17,6 +17,7 @@ import {
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
+import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
 import { OtpService } from '../otp/otp.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
@@ -67,15 +68,18 @@ function build() {
     getProfilePhotosByOwnerId: vi.fn().mockResolvedValue([]),
     findProfilePhoto: vi.fn().mockResolvedValue({ url: 'https://utfs.io/f/a' }),
     markAsRecent: vi.fn().mockResolvedValue(true),
-    deleteProfilePhoto: vi.fn().mockResolvedValue(true),
-    deleteProfilePhotosBeyond: vi.fn().mockResolvedValue(undefined),
-    deleteProfilePhotosByOwnerId: vi.fn().mockResolvedValue(undefined),
+    deleteProfilePhoto: vi.fn().mockResolvedValue('photo-key'),
+    deleteProfilePhotosBeyond: vi.fn().mockResolvedValue([]),
+    deleteProfilePhotosByOwnerId: vi.fn().mockResolvedValue([]),
   };
   const sessionModel = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   };
   const socketSessions = {
     disconnectUser: vi.fn().mockResolvedValue(undefined),
+  };
+  const uploadedFiles = {
+    deleteFiles: vi.fn().mockResolvedValue(undefined),
   };
   const conversationModel = {
     getConversationPartnerIds: vi.fn().mockResolvedValue([]),
@@ -94,6 +98,7 @@ function build() {
     photoModel,
     sessionModel,
     socketSessions,
+    uploadedFiles,
   };
 }
 
@@ -111,6 +116,7 @@ async function makeService(mocks: Mocks) {
       { provide: SessionModel, useValue: mocks.sessionModel },
       { provide: ConfigService, useValue: { get: vi.fn() } },
       { provide: SocketSessionsService, useValue: mocks.socketSessions },
+      { provide: UploadedFilesService, useValue: mocks.uploadedFiles },
     ],
   }).compile();
 
@@ -423,12 +429,7 @@ describe('UserService', () => {
 
   describe('uploadProfilePhoto', () => {
     it('saves the photo, uses it, and trims old ones in one transaction', async () => {
-      const photo = {
-        key: 'k',
-        url: 'https://utfs.io/f/k',
-        width: 10,
-        height: 20,
-      };
+      const photo = { key: 'k', url: 'https://utfs.io/f/k' };
 
       await expect(
         service.uploadProfilePhoto({ requesterId: REQUESTER_ID, photo }),
@@ -441,6 +442,25 @@ describe('UserService', () => {
         { ownerId: REQUESTER_ID, keep: 5 },
         mocks.session,
       );
+    });
+
+    it('deletes the files of the trimmed photos after the transaction', async () => {
+      mocks.photoModel.deleteProfilePhotosBeyond.mockResolvedValue(['old-key']);
+      const photo = { key: 'k', url: 'https://utfs.io/f/k' };
+
+      await service.uploadProfilePhoto({ requesterId: REQUESTER_ID, photo });
+
+      expect(mocks.uploadedFiles.deleteFiles).toHaveBeenCalledWith(['old-key']);
+    });
+
+    it('keeps every file when the transaction fails', async () => {
+      mocks.userModel.setPhoto.mockRejectedValue(new Error('write conflict'));
+      const photo = { key: 'k', url: 'https://utfs.io/f/k' };
+
+      await expect(
+        service.uploadProfilePhoto({ requesterId: REQUESTER_ID, photo }),
+      ).rejects.toThrow('write conflict');
+      expect(mocks.uploadedFiles.deleteFiles).not.toHaveBeenCalled();
     });
   });
 
@@ -496,12 +516,14 @@ describe('UserService', () => {
         mocks.session,
       );
       expect(mocks.photoModel.deleteProfilePhoto).not.toHaveBeenCalled();
+      expect(mocks.uploadedFiles.deleteFiles).not.toHaveBeenCalled();
     });
 
     it('refuses a photo the requester does not own', async () => {
-      mocks.photoModel.deleteProfilePhoto.mockResolvedValue(false);
+      mocks.photoModel.deleteProfilePhoto.mockResolvedValue(null);
 
       await expect(deletePhoto()).rejects.toMatchObject({ status: 404 });
+      expect(mocks.uploadedFiles.deleteFiles).not.toHaveBeenCalled();
     });
 
     it('deletes an older photo inside the transaction', async () => {
@@ -512,6 +534,9 @@ describe('UserService', () => {
         mocks.session,
       );
       expect(mocks.session.endSession).toHaveBeenCalled();
+      expect(mocks.uploadedFiles.deleteFiles).toHaveBeenCalledWith([
+        'photo-key',
+      ]);
     });
   });
 
@@ -558,6 +583,31 @@ describe('UserService', () => {
       expect(mocks.socketSessions.disconnectUser).toHaveBeenCalledWith(
         REQUESTER_ID,
       );
+    });
+
+    it('deletes the files of every profile photo after the transaction', async () => {
+      mocks.photoModel.deleteProfilePhotosByOwnerId.mockResolvedValue([
+        'first-key',
+        'second-key',
+      ]);
+
+      await service.deleteAccount(REQUESTER_ID);
+
+      expect(mocks.uploadedFiles.deleteFiles).toHaveBeenCalledWith([
+        'first-key',
+        'second-key',
+      ]);
+    });
+
+    it('keeps every file when the transaction fails', async () => {
+      mocks.sessionModel.revokeAllForUser.mockRejectedValue(
+        new Error('write conflict'),
+      );
+
+      await expect(service.deleteAccount(REQUESTER_ID)).rejects.toThrow(
+        'write conflict',
+      );
+      expect(mocks.uploadedFiles.deleteFiles).not.toHaveBeenCalled();
     });
   });
 });

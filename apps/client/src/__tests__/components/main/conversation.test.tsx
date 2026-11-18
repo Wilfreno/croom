@@ -1,4 +1,4 @@
-import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
+import { stubImageLoading, UPLOADED_PHOTO } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
@@ -10,7 +10,7 @@ import ConversationMessages from '@/components/page/main/conversation/Conversati
 import MessageToast from '@/components/page/main/conversation/MessageToast';
 import { axiosInstance } from '@/lib/axios-instance';
 import useRingtone from '@/components/hooks/useRingtone';
-import { CALL_RINGBACK_TONE, CALL_RING_DURATION_MS } from '@repo/constants';
+import { CALL_RINGBACK_TONE, CALL_RING_DURATION_MS, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Message, MessagePayload, User, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -826,7 +826,7 @@ describe('ConversationMessages', () => {
     expect(sendMessage.mutate).toHaveBeenCalledWith({
       conversationId: 'c1',
       text: 'lost',
-      photoInput: [{ key: 'k1', url: 'https://utfs.io/a.png', width: 10, height: 20 }],
+      photoInput: [{ id: photo.id, url: 'https://utfs.io/a.png', width: 10, height: 20 }],
       retryId: failed.id,
     });
   });
@@ -950,20 +950,19 @@ describe('ConversationMessageInput', () => {
     renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
 
     await user().click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
-    expect(await screen.findByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_FILE.url);
+    expect(await screen.findByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_PHOTO.photo.url);
 
     await user().type(screen.getByPlaceholderText('Aa'), '{Enter}');
 
     expect(sendMessage.mutate).toHaveBeenCalledWith({
       conversationId: 'c1',
       text: '',
-      photoInput: [{ ...UPLOADED_FILE, width: 640, height: 480 }],
+      photoInput: [{ id: UPLOADED_PHOTO.photo.id, url: UPLOADED_PHOTO.photo.url, width: 640, height: 480 }],
     });
     await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
   });
 
-  it('removes an attached photo through the delete route', async () => {
-    const fetchMock = stubPhotoDelete();
+  it('removes an attached photo through the server', async () => {
     stubImageLoading();
     renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
     await user().click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
@@ -971,12 +970,17 @@ describe('ConversationMessageInput', () => {
 
     await user().click(image.parentElement!.querySelector('button')!);
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/photo', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ key: UPLOADED_FILE.key }) }));
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
     await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
   });
 
   it('keeps the photo and explains when it cannot be removed', async () => {
-    stubPhotoDelete({ status: 'INTERNAL_SERVER_ERROR', message: 'could not delete' });
+    vi.mocked(axiosInstance.delete).mockRejectedValueOnce(
+      new AxiosError('404', undefined, undefined, undefined, {
+        status: 404,
+        data: { status: 'NOT_FOUND', message: 'could not delete', data: null },
+      } as never),
+    );
     stubImageLoading();
     renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
     await user().click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
@@ -986,6 +990,15 @@ describe('ConversationMessageInput', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('could not delete'));
     expect(screen.getByRole('img', { name: 'image' })).toBeInTheDocument();
+  });
+
+  it('attaches nothing when the server saved no photo', async () => {
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
+
+    await user().click(screen.getAllByRole('button', { name: 'upload photo without result' })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument();
   });
 
   it('shows an upload error', async () => {

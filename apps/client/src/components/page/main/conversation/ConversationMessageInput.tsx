@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import ConversationBlockedBanner from './ConversationBlockedBanner';
-import { ServerResponse } from '@/lib/server/requests';
-import { cn, withBasePath } from '@/lib/utils';
+import { axiosInstance } from '@/lib/axios-instance';
+import { cn, getServerErrorMessage, loadImageSize } from '@/lib/utils';
 import type { PhotoInput } from '@/types/message.types';
+import type { UploadedPhotoResult } from '@/types/upload.types';
+import { MESSAGE_PHOTOS_UPLOAD_ENDPOINT, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
 import { useMutation } from '@tanstack/react-query';
@@ -19,7 +21,7 @@ import NextImage from 'next/image';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ClientUploadedFileData } from 'uploadthing/types';
+import type { ClientUploadedFileData } from 'uploadthing/types';
 
 export default function ConversationMessageInput({ conversation }: { conversation?: Conversation }) {
   const {
@@ -36,49 +38,35 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   const params = useParams<{ id: string }>();
 
   const { sendMessage } = useSendMessage(textInput);
-  const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
-    mutationFn: async ({ key }) => {
-      try {
-        const response = await fetch(withBasePath('/api/photo'), {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ key }),
-        });
-
-        const { status, message } = (await response.json()) as ServerResponse;
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+  const deletePhoto = useMutation<void, Error, { id: string; index: number }>({
+    async mutationFn({ id }) {
+      await axiosInstance.delete(`/upload/${id}`);
     },
     onSuccess: (_, { index }) => {
       setPhotoInput((prev) => prev.toSpliced(index, 1));
     },
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
+    },
   });
 
-  async function onClientUploadComplete(
-    response: ClientUploadedFileData<{
-      photoUrl: string;
-    }>[],
-  ) {
-    for (const res of response) {
-      try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const newImage = new Image();
-          newImage.onload = () => resolve(newImage);
-          newImage.onerror = (err) => reject(err);
-          newImage.src = res.url;
-        });
-        setPhotoInput((prev) => [...prev, { key: res.key, url: res.url, width: image.width, height: image.height }]);
-      } catch (error) {
-        toast.error((error as Error).message);
-        return;
+  async function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<UploadedPhotoResult | null>[]) {
+    try {
+      for (const uploadedFile of uploadedFiles) {
+        const uploadedPhoto = uploadedFile.serverData?.photo;
+        if (!uploadedPhoto) {
+          toast.error(SOMETHING_WENT_WRONG);
+          continue;
+        }
+
+        const { width, height } = await loadImageSize(uploadedPhoto.url);
+        setPhotoInput((prev) => [...prev, { id: uploadedPhoto.id, url: uploadedPhoto.url, width, height }]);
       }
+    } catch {
+      toast.error(SOMETHING_WENT_WRONG);
+    } finally {
+      setUploadingImage(false);
     }
-    setUploadingImage(false);
   }
 
   function send(text: string) {
@@ -93,7 +81,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
   return (
     <div className="h-full flex items-end p-2 bg-transparent">
       <UploadThingButton
-        endpoint="multipleImage"
+        endpoint={MESSAGE_PHOTOS_UPLOAD_ENDPOINT}
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
           button() {
@@ -117,7 +105,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
           {uploadingImage || Boolean(photoInput.length) ? (
             <div className="bg-secondary rounded-t-lg w-full p-2 md:p-4 flex items-center gap-4">
               <UploadThingButton
-                endpoint="multipleImage"
+                endpoint={MESSAGE_PHOTOS_UPLOAD_ENDPOINT}
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
                   button() {
@@ -133,7 +121,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
               />
 
               <div className="flex items-center gap-2">
-                {photoInput.map(({ url, key }, index) => (
+                {photoInput.map(({ url, id }, index) => (
                   <span key={url} className="relative">
                     <NextImage
                       src={url}
@@ -145,7 +133,7 @@ export default function ConversationMessageInput({ conversation }: { conversatio
                     />
                     <Button
                       className="aspect-square h-fit w-auto rounded-full absolute -top-2 -right-2 p-1"
-                      onClick={() => deletePhoto.mutate({ key, index })}
+                      onClick={() => deletePhoto.mutate({ id, index })}
                     >
                       <X className="h-3 md:h-4 w-auto" />
                     </Button>

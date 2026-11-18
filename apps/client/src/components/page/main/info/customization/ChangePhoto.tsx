@@ -5,20 +5,23 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { PATCHRequest, ServerResponse } from '@/lib/server/requests';
-import { cn, withBasePath } from '@/lib/utils';
+import { PATCHRequest } from '@/lib/server/requests';
+import { axiosInstance } from '@/lib/axios-instance';
+import { cn, getServerErrorMessage } from '@/lib/utils';
 import { ChangeConversationPhotoResult } from '@/types/conversation-photo.types';
+import type { UploadedPhotoResult } from '@/types/upload.types';
+import { CONVERSATION_PHOTO_UPLOAD_ENDPOINT, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { Conversation, Photo } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Image as ImageIcon, UserRound } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ClientUploadedFileData } from 'uploadthing/types';
+import type { ClientUploadedFileData } from 'uploadthing/types';
 
 export default function ChangePhoto() {
   const [open, setOpen] = useState(false);
-  const [newPhoto, setNewPhoto] = useState<{ key: string; url: string }>();
+  const [newPhoto, setNewPhoto] = useState<UploadedPhotoResult['photo']>();
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const { session } = useAuth();
@@ -33,37 +36,30 @@ export default function ChangePhoto() {
 
   const queryClient = useQueryClient();
 
-  const deletePhoto = useMutation({
-    mutationFn: async () => {
-      try {
-        if (!newPhoto) return;
-        const response = await fetch(withBasePath('/api/photo'), {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ key: newPhoto?.key }),
-        });
-
-        const { status, message } = (await response.json()) as ServerResponse;
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+  const deletePhoto = useMutation<void, Error, { photoId: string; close: boolean }>({
+    async mutationFn({ photoId }) {
+      await axiosInstance.delete(`/upload/${photoId}`);
     },
-    onSuccess: () => {
-      setNewPhoto(undefined);
-      setOpen(false);
+    onSuccess(_, { photoId, close }) {
+      setNewPhoto((current) => (current?.id === photoId ? undefined : current));
+      if (close) setOpen(false);
+    },
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
     },
   });
+
+  function cancel() {
+    if (newPhoto) deletePhoto.mutate({ photoId: newPhoto.id, close: true });
+    else setOpen(false);
+  }
 
   const setNewPhotoMutation = useMutation({
     mutationFn: async () => {
       try {
         const { status, message, data } = await PATCHRequest<ChangeConversationPhotoResult>(
           '/v1/conversation/' + params.id + '/photo',
-          { photo: newPhoto },
+          { photoId: newPhoto?.id },
         );
 
         if (status !== 'OK') throw new Error(message);
@@ -88,23 +84,17 @@ export default function ChangePhoto() {
     },
   });
 
-  async function onClientUploadComplete(
-    response: ClientUploadedFileData<{
-      photoUrl: string;
-    }>[],
-  ) {
-    if (newPhoto) {
-      deletePhoto.mutate();
-    }
-    for (const res of response) {
-      try {
-        setNewPhoto({ key: res.key, url: res.url });
-      } catch (error) {
-        toast.error((error as Error).message);
-        return;
-      }
-    }
+  function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<UploadedPhotoResult | null>[]) {
     setUploadingImage(false);
+
+    const uploadedPhoto = uploadedFiles[0]?.serverData?.photo;
+    if (!uploadedPhoto) {
+      toast.error(SOMETHING_WENT_WRONG);
+      return;
+    }
+
+    if (newPhoto) deletePhoto.mutate({ photoId: newPhoto.id, close: false });
+    setNewPhoto(uploadedPhoto);
   }
 
   return (
@@ -135,7 +125,7 @@ export default function ChangePhoto() {
           </Avatar>
           <UploadThingButton
             disabled={uploadingImage || !session}
-            endpoint="singleImage"
+            endpoint={CONVERSATION_PHOTO_UPLOAD_ENDPOINT}
             className="ut-button:h-fit ut-button:w-auto ut-button:p-2  ut-button:text-primary  ut-button:font-medium  ut-button:bg-background ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
             content={{
               button() {
@@ -145,13 +135,13 @@ export default function ChangePhoto() {
             onClientUploadComplete={onClientUploadComplete}
             onUploadError={(e) => {
               toast.error(e.message);
-              deletePhoto.mutate();
+              setUploadingImage(false);
             }}
             onUploadBegin={() => setUploadingImage(true)}
           />
         </section>
         <div className="w-full flex justify-between">
-          <Button variant="outline" onClick={() => deletePhoto.mutate()}>
+          <Button variant="outline" onClick={cancel}>
             Cancel
           </Button>
           <Button disabled={!newPhoto} onClick={() => setNewPhotoMutation.mutate()}>

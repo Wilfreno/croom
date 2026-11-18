@@ -1,4 +1,4 @@
-import { stubImageLoading, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
+import { UPLOADED_PHOTO } from '@/__tests__/mocks/mock-components';
 import { mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import SettingsPage from '@/app/(main)/(settings)/settings/page';
@@ -9,7 +9,7 @@ import SettingsChangeDisplayname from '@/components/page/settings/profile/Settin
 import SettingsChangePhoto from '@/components/page/settings/profile/SettingsChangePhoto';
 import SettingsChangeUserName from '@/components/page/settings/profile/SettingsChangeUserName';
 import { axiosInstance } from '@/lib/axios-instance';
-import { PASSWORD_CHANGED, SOMETHING_WENT_WRONG } from '@repo/constants';
+import { PASSWORD_CHANGED, PROFILE_PHOTO_CHANGED, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { AuthServiceOptions } from '@repo/enums';
 import type { UserSession } from '@repo/types';
 import { screen, waitFor, within } from '@testing-library/react';
@@ -231,19 +231,23 @@ describe('SettingsChangePhoto', () => {
     expect(screen.getByRole('button', { name: 'change' })).toBeInTheDocument();
   });
 
-  it('uses a newly uploaded photo with its size', async () => {
-    stubImageLoading();
-    vi.mocked(axiosInstance.patch).mockResolvedValue(reply({ photo: { id: 'new', url: UPLOADED_FILE.url } }));
+  it('uses the photo the server saved for the upload', async () => {
     renderWithQuery(<SettingsChangePhoto />);
 
     await userEvent.click(screen.getByRole('button', { name: 'upload photo' }));
 
-    await waitFor(() =>
-      expect(axiosInstance.patch).toHaveBeenCalledWith('/user/photo', {
-        photo: { ...UPLOADED_FILE, width: 640, height: 480 },
-      }),
-    );
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ photo: { id: 'new', url: UPLOADED_FILE.url } }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(UPLOADED_PHOTO));
+    expect(toast.success).toHaveBeenCalledWith(PROFILE_PHOTO_CHANGED);
+    expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  it('says something went wrong when the server saved no photo', async () => {
+    renderWithQuery(<SettingsChangePhoto />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'upload photo without result' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('keeps your photo when the server refuses the new one', async () => {

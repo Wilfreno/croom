@@ -1,4 +1,7 @@
 import {
+  fetchWithServerCookies,
+  loadImageSize,
+  toPhotoInputs,
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
@@ -477,5 +480,76 @@ describe('emptyChangePasswordForm', () => {
 
   it('returns a new form each time', () => {
     expect(emptyChangePasswordForm()).not.toBe(emptyChangePasswordForm());
+  });
+});
+
+describe('fetchWithServerCookies', () => {
+  const fetchSpy = vi.fn().mockResolvedValue(new Response(null));
+
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_SERVER_V1', 'http://localhost:8000/v1');
+    vi.stubGlobal('fetch', fetchSpy);
+    fetchSpy.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('sends cookies to the server', async () => {
+    await fetchWithServerCookies('http://localhost:8000/v1/upload?slug=profilePhoto', { method: 'POST' });
+
+    expect(fetchSpy).toHaveBeenCalledWith('http://localhost:8000/v1/upload?slug=profilePhoto', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  });
+
+  it('sends no cookies anywhere else', async () => {
+    const storageUrl = new URL('https://sea1.ingest.uploadthing.com/file-key');
+
+    await fetchWithServerCookies(storageUrl, { method: 'HEAD' });
+
+    expect(fetchSpy).toHaveBeenCalledWith(storageUrl, { method: 'HEAD' });
+  });
+});
+
+describe('toPhotoInputs', () => {
+  it('keeps the id, url and size of each photo for a resend', () => {
+    const photo = { id: 'p1', key: 'k1', url: 'https://utfs.io/p1.png', width: 640, height: 480 };
+
+    expect(toPhotoInputs([photo] as never)).toEqual([{ id: 'p1', url: 'https://utfs.io/p1.png', width: 640, height: 480 }]);
+  });
+});
+
+describe('loadImageSize', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubImage(outcome: 'load' | 'error') {
+    vi.stubGlobal(
+      'Image',
+      class {
+        width = 640;
+        height = 480;
+        onload: (() => void) | null = null;
+        onerror: ((error: unknown) => void) | null = null;
+        set src(_: string) {
+          queueMicrotask(() => (outcome === 'load' ? this.onload?.() : this.onerror?.(new Error('broken'))));
+        }
+      },
+    );
+  }
+
+  it('resolves with the size of the loaded image', async () => {
+    stubImage('load');
+
+    await expect(loadImageSize('https://utfs.io/p1.png')).resolves.toEqual({ width: 640, height: 480 });
+  });
+
+  it('rejects when the image cannot load', async () => {
+    stubImage('error');
+
+    await expect(loadImageSize('https://utfs.io/p1.png')).rejects.toThrow('broken');
   });
 });

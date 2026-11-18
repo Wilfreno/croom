@@ -1,7 +1,6 @@
 import MockAuthProvider from '@/__tests__/mocks/MockAuthProvider';
 import { mockCreateOTPMutation } from '@/__tests__/mocks/mock-mutation';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
-import { GET, POST } from '@/app/api/uploadthing/route';
 import SignUpForm from '@/components/page/auth/signup/SignupForm';
 import { EmailStatus } from '@repo/enums';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -50,9 +49,3 @@ describe('SignUpForm', () => {
   });
 });
 
-describe('api/uploadthing route', () => {
-  it('serves the UploadThing handlers', () => {
-    expect(GET).toBeTypeOf('function');
-    expect(POST).toBeTypeOf('function');
-  });
-});

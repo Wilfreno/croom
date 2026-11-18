@@ -1,4 +1,4 @@
-import { stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
+import { UPLOADED_PHOTO } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
@@ -702,6 +702,10 @@ describe('ChangeName', () => {
 });
 
 describe('ChangePhoto', () => {
+  beforeEach(() => {
+    vi.mocked(axiosInstance.delete).mockResolvedValue({});
+  });
+
   async function uploadInDialog() {
     await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));
     const dialog = await screen.findByRole('dialog');
@@ -730,7 +734,7 @@ describe('ChangePhoto', () => {
   it('swaps the photo in every cached copy', async () => {
     vi.mocked(PATCHRequest).mockResolvedValue({
       ...OK,
-      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+      data: { photo: { id: 'new-photo', url: UPLOADED_PHOTO.photo.url } },
     } as never);
     conversation = groupChat({ photo: mockPhoto({ url: 'https://utfs.io/old.png' }) });
     const { queryClient } = renderInfo(<ChangePhoto />);
@@ -739,11 +743,11 @@ describe('ChangePhoto', () => {
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photo: UPLOADED_FILE });
-    await waitFor(() => expect(cached(queryClient).photo?.url).toBe(UPLOADED_FILE.url));
+    expect(PATCHRequest).toHaveBeenCalledWith('/v1/conversation/c1/photo', { photoId: UPLOADED_PHOTO.photo.id });
+    await waitFor(() => expect(cached(queryClient).photo?.url).toBe(UPLOADED_PHOTO.photo.url));
     expect(cached(queryClient).photo?.id).toBe('new-photo');
     expect(queryClient.getQueryData<Conversation[]>(['active', 'conversations', sessionUser.id])![0].photo?.url).toBe(
-      UPLOADED_FILE.url,
+      UPLOADED_PHOTO.photo.url,
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -751,14 +755,14 @@ describe('ChangePhoto', () => {
   it('shows the new photo on a conversation that had none yet', async () => {
     vi.mocked(PATCHRequest).mockResolvedValue({
       ...OK,
-      data: { photo: { id: 'new-photo', url: UPLOADED_FILE.url } },
+      data: { photo: { id: 'new-photo', url: UPLOADED_PHOTO.photo.url } },
     } as never);
     const { queryClient } = renderInfo(<ChangePhoto />);
     const dialog = await uploadInDialog();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Confirm' }));
 
-    await waitFor(() => expect(cached(queryClient).photo).toEqual({ id: 'new-photo', url: UPLOADED_FILE.url }));
+    await waitFor(() => expect(cached(queryClient).photo).toEqual({ id: 'new-photo', url: UPLOADED_PHOTO.photo.url }));
   });
 
   it('keeps the dialog open when the photo cannot be saved', async () => {
@@ -773,24 +777,45 @@ describe('ChangePhoto', () => {
   });
 
   it('deletes the uploaded photo on cancel', async () => {
-    const fetchMock = stubPhotoDelete();
     renderInfo(<ChangePhoto />);
     const dialog = await uploadInDialog();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/photo', expect.objectContaining({ body: JSON.stringify({ key: UPLOADED_FILE.key }) }));
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('closes without deleting anything when nothing was uploaded', async () => {
+    renderInfo(<ChangePhoto />);
+    await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(axiosInstance.delete).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('replaces an earlier upload, deleting it', async () => {
-    const fetchMock = stubPhotoDelete();
     renderInfo(<ChangePhoto />);
     const dialog = await uploadInDialog();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'upload photo' }));
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(axiosInstance.delete).toHaveBeenCalledTimes(1);
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
+  });
+
+  it('keeps the current photo when the server saved no upload', async () => {
+    renderInfo(<ChangePhoto />);
+    await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));
+    const dialog = await screen.findByRole('dialog');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'upload photo without result' }));
+
+    expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG);
+    expect(within(dialog).getByRole('button', { name: 'Confirm' })).toBeDisabled();
   });
 });
 

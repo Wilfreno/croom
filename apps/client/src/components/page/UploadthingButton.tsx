@@ -1,8 +1,9 @@
-import { OurFileRouter } from '@/app/api/uploadthing/core';
-import { withBasePath } from '@/lib/utils';
-import { generateUploadButton, generateUploadDropzone } from '@uploadthing/react';
+import { fetchWithServerCookies } from '@/lib/utils';
+import { UPLOAD_ROUTE } from '@repo/constants';
+import { generateUploadButton } from '@uploadthing/react';
+import type { FileRouter } from 'uploadthing/types';
 
-const url = withBasePath('/api/uploadthing');
-
-export const UploadThingButton = generateUploadButton<OurFileRouter>({ url });
-export const UploadThingDropzone = generateUploadDropzone<OurFileRouter>({ url });
+export const UploadThingButton = generateUploadButton<FileRouter>({
+  url: `${process.env.NEXT_PUBLIC_SERVER_V1}/${UPLOAD_ROUTE}`,
+  fetch: fetchWithServerCookies,
+});

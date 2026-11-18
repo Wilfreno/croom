@@ -19,6 +19,7 @@ import {
   UserSchema,
 } from '@repo/schemas';
 import { SocketSessionsModule } from '../../common/socket-sessions/socket-sessions.module';
+import { UploadedFilesModule } from '../../common/uploaded-files/uploaded-files.module';
 import { OtpModule } from '../otp/otp.module';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -34,6 +35,7 @@ import { UserService } from './user.service';
     ]),
     OtpModule,
     SocketSessionsModule,
+    UploadedFilesModule,
   ],
   controllers: [UserController],
   providers: [

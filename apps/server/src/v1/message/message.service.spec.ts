@@ -15,7 +15,7 @@ const BOB = '64b7f0c2a1b2c3d4e5f60703';
 const CONVERSATION_ID = '64b7f0c2a1b2c3d4e5f60710';
 const MESSAGE_ID = new Types.ObjectId();
 
-const photo = { key: 'k1', url: 'https://utfs.io/k1.png', width: 640, height: 480 };
+const photo = { id: '64b7f0c2a1b2c3d4e5f60799', width: 640, height: 480 };
 
 function build() {
   const order: string[] = [];
@@ -39,7 +39,7 @@ function build() {
     updateMessage: vi.fn().mockResolvedValue(undefined),
   };
   const photoModel = {
-    createMany: vi.fn(async (photos: object[], _session: unknown) => photos.map(() => ({ _id: new Types.ObjectId() }))),
+    claimPendingPhotos: vi.fn().mockResolvedValue(true),
   };
   const messageGateway = { emitToUsers: vi.fn() };
   const conversationService = {
@@ -123,16 +123,25 @@ describe('MessageService', () => {
       expect(mocks.order).toEqual(['transaction', 'endSession']);
     });
 
-    it('stores the photos as message photos owned by the sender and links them', async () => {
+    it('claims the sender pending message photos and links them', async () => {
       const mocks = build();
 
       await mocks.service.create({ ...reply, photos: [photo] });
 
-      const [photos, session] = mocks.photoModel.createMany.mock.calls[0];
-      expect(session).toBe(mocks.session);
-      expect(photos).toEqual([{ owner: new Types.ObjectId(ME), type: PhotoType.MESSAGE, ...photo }]);
-      const created = await mocks.photoModel.createMany.mock.results[0].value;
-      expect(mocks.messageModel.createMessage.mock.calls[0][0].photos).toEqual([created[0]._id]);
+      expect(mocks.photoModel.claimPendingPhotos).toHaveBeenCalledWith(
+        { ownerId: ME, type: PhotoType.MESSAGE, photos: [photo] },
+        mocks.session,
+      );
+      expect(mocks.messageModel.createMessage.mock.calls[0][0].photos).toEqual([new Types.ObjectId(photo.id)]);
+    });
+
+    it('refuses photos that are not pending uploads of the sender', async () => {
+      const mocks = build();
+      mocks.photoModel.claimPendingPhotos.mockResolvedValue(false);
+
+      await expect(mocks.service.create({ ...reply, photos: [photo] })).rejects.toBeInstanceOf(NotFoundException);
+      expect(mocks.messageModel.createMessage).not.toHaveBeenCalled();
+      expect(mocks.messageGateway.emitToUsers).not.toHaveBeenCalled();
     });
 
     it('creates the conversation with the first message, adding the sender to its members', async () => {

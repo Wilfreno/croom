@@ -60,22 +60,17 @@ export class MessageService {
           member.toString(),
         );
 
-        const newPhotoIds = await this.photoModel.createMany(
-          photos.map((photo) => ({
-            owner: new Types.ObjectId(userId),
-            type: PhotoType.MESSAGE,
-            key: photo.key,
-            url: photo.url,
-            width: photo.width,
-            height: photo.height,
-          })),
+        const claimedAll = await this.photoModel.claimPendingPhotos(
+          { ownerId: userId, type: PhotoType.MESSAGE, photos },
           session,
         );
+        if (!claimedAll) throw new NotFoundException('photo does not exist');
+
         newMessage = await this.messageModel.createMessage(
           {
             conversation: conversation._id,
             text,
-            photos: newPhotoIds.map((photo) => photo._id),
+            photos: photos.map((photo) => new Types.ObjectId(photo.id)),
             sender: new Types.ObjectId(userId),
           },
           session,

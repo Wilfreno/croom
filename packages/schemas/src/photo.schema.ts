@@ -21,6 +21,9 @@ export class Photo {
   @Prop({ type: String, required: true })
   url!: string;
 
+  @Prop({ type: Boolean, default: false })
+  pending!: boolean;
+
   @Prop({ type: Number, default: null })
   width!: number;
 

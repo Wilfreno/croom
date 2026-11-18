@@ -26,6 +26,7 @@ import {
   SessionModel,
   UserModel,
 } from '@repo/models';
+import type { Photo } from '@repo/schemas';
 import { AuthenticatedUser } from '@repo/types';
 import {
   getPasswordStrengthScore,
@@ -34,11 +35,11 @@ import {
 } from '@repo/utils';
 import { Connection, Types } from 'mongoose';
 import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
+import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
 import { OtpService } from '../otp/otp.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UploadedProfilePhotoDto } from './dto/profile-photo.dto';
 import { RecoverAccountDto } from './dto/recover-account.dto';
 
 @Injectable()
@@ -53,6 +54,7 @@ export class UserService {
     private readonly sessionModel: SessionModel,
     private readonly configService: ConfigService,
     private readonly socketSessions: SocketSessionsService,
+    private readonly uploadedFiles: UploadedFilesService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -327,10 +329,11 @@ export class UserService {
     photo,
   }: {
     requesterId: string;
-    photo: UploadedProfilePhotoDto;
+    photo: Pick<Photo, 'key' | 'url'>;
   }) {
     const session = await this.connection.startSession();
     let newPhotoId = '';
+    let prunedPhotoKeys: string[] = [];
 
     try {
       await session.withTransaction(async () => {
@@ -341,8 +344,6 @@ export class UserService {
               type: PhotoType.PROFILE,
               key: photo.key,
               url: photo.url,
-              width: photo.width,
-              height: photo.height,
             },
           ],
           session,
@@ -353,7 +354,7 @@ export class UserService {
           { userId: requesterId, photoId: newPhotoId },
           session,
         );
-        await this.photoModel.deleteProfilePhotosBeyond(
+        prunedPhotoKeys = await this.photoModel.deleteProfilePhotosBeyond(
           { ownerId: requesterId, keep: MAX_RECENT_PROFILE_PHOTOS },
           session,
         );
@@ -361,6 +362,8 @@ export class UserService {
     } finally {
       await session.endSession();
     }
+
+    await this.uploadedFiles.deleteFiles(prunedPhotoKeys);
 
     return { photo: { id: newPhotoId, url: photo.url } };
   }
@@ -408,6 +411,7 @@ export class UserService {
     photoId: string;
   }) {
     const session = await this.connection.startSession();
+    let deletedPhotoKey = '';
 
     try {
       await session.withTransaction(async () => {
@@ -420,19 +424,25 @@ export class UserService {
             'you cannot delete the photo you are using',
           );
 
-        const deleted = await this.photoModel.deleteProfilePhoto(
+        const deletedKey = await this.photoModel.deleteProfilePhoto(
           { photoId, ownerId: requesterId },
           session,
         );
-        if (!deleted) throw new NotFoundException('photo does not exist');
+        if (deletedKey === null)
+          throw new NotFoundException('photo does not exist');
+
+        deletedPhotoKey = deletedKey;
       });
     } finally {
       await session.endSession();
     }
+
+    await this.uploadedFiles.deleteFiles([deletedPhotoKey]);
   }
 
   async deleteAccount(requesterId: string) {
     const session = await this.connection.startSession();
+    let deletedPhotoKeys: string[] = [];
 
     try {
       await session.withTransaction(async () => {
@@ -440,7 +450,10 @@ export class UserService {
           { userId: requesterId, displayName: DELETED_USER_DISPLAY_NAME },
           session,
         );
-        await this.photoModel.deleteProfilePhotosByOwnerId(requesterId, session);
+        deletedPhotoKeys = await this.photoModel.deleteProfilePhotosByOwnerId(
+          requesterId,
+          session,
+        );
         await this.sessionModel.revokeAllForUser(
           new Types.ObjectId(requesterId),
           { session },
@@ -451,5 +464,6 @@ export class UserService {
     }
 
     await this.socketSessions.disconnectUser(requesterId);
+    await this.uploadedFiles.deleteFiles(deletedPhotoKeys);
   }
 }

@@ -25,10 +25,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeUserNameDto } from './dto/change-user-name.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
-import {
-  ChangeProfilePhotoDto,
-  ProfilePhotoParamDto,
-} from './dto/profile-photo.dto';
+import { ProfilePhotoParamDto } from './dto/profile-photo.dto';
 import { RecoverAccountDto } from './dto/recover-account.dto';
 import { SearchUserDto } from './dto/search-user.dto';
 import { UserService } from './user.service';
@@ -125,14 +122,6 @@ export class UserController {
   @Get('/photos')
   getProfilePhotos(@CurrentUser() user: AuthenticatedUser) {
     return this.userService.getProfilePhotos(user.id);
-  }
-
-  @Patch('/photo')
-  uploadProfilePhoto(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() { photo }: ChangeProfilePhotoDto,
-  ) {
-    return this.userService.uploadProfilePhoto({ requesterId: user.id, photo });
   }
 
   @Patch('/photos/:photoId')

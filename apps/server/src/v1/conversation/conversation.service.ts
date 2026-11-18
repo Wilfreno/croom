@@ -21,9 +21,9 @@ import { hasGroupMemberCount } from '@repo/utils';
 import { ClientSession, Connection, Types } from 'mongoose';
 import { PaginationPageDTO } from 'src/common/dto/pagination-page.dto';
 import { ServerException } from 'src/common/exceptions/server-response.exception';
+import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
 import { CallGateway } from '../call/call.gateway';
 import { MessageGateway } from '../message/message.gateway';
-import { ConversationPhotoDto } from './dto/change-photo.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { GetConversationByIdDto } from './dto/get-conversation';
 import { GetConversationMessageDto } from './dto/get-message.dto';
@@ -41,6 +41,7 @@ export class ConversationService implements OnApplicationBootstrap {
     private readonly callGateway: CallGateway,
     @InjectConnection() private readonly connection: Connection,
     private readonly messageGateway: MessageGateway,
+    private readonly uploadedFiles: UploadedFilesService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -370,38 +371,31 @@ export class ConversationService implements OnApplicationBootstrap {
 
   async changePhoto({
     conversationId,
-    photo,
+    photoId,
     requesterId,
   }: {
     conversationId: string;
-    photo: ConversationPhotoDto;
+    photoId: string;
     requesterId: string;
   }) {
     await this.findGroup(conversationId);
 
     const session = await this.connection.startSession();
-    let newPhotoId = '';
+    let newPhotoUrl = '';
+    let previousPhotoKey: string | null = null;
 
     try {
       await session.withTransaction(async () => {
-        const [newPhoto] = await this.photoModel.createMany(
-          [
-            {
-              owner: new Types.ObjectId(requesterId),
-              type: PhotoType.CONVERSATION,
-              key: photo.key,
-              url: photo.url,
-              width: photo.width,
-              height: photo.height,
-            },
-          ],
+        const claimedPhoto = await this.photoModel.claimPendingPhoto(
+          { photoId, ownerId: requesterId, type: PhotoType.CONVERSATION },
           session,
         );
-        newPhotoId = String(newPhoto._id);
+        if (!claimedPhoto) throw new NotFoundException('photo does not exist');
+        newPhotoUrl = claimedPhoto.url;
 
         const { changed, previousPhotoId } =
           await this.conversationModel.setPhoto(
-            { conversationId, photoId: newPhotoId, requesterId },
+            { conversationId, photoId, requesterId },
             session,
           );
         if (!changed)
@@ -409,14 +403,18 @@ export class ConversationService implements OnApplicationBootstrap {
             'the admins of this conversation changed, try again',
           );
 
-        if (previousPhotoId)
-          await this.photoModel.deleteById(previousPhotoId, session);
+        previousPhotoKey = previousPhotoId
+          ? await this.photoModel.deleteById(previousPhotoId, session)
+          : null;
       });
     } finally {
       await session.endSession();
     }
 
-    return { photo: { id: newPhotoId, url: photo.url } };
+    if (previousPhotoKey)
+      await this.uploadedFiles.deleteFiles([previousPhotoKey]);
+
+    return { photo: { id: photoId, url: newPhotoUrl } };
   }
 
   async changeName({

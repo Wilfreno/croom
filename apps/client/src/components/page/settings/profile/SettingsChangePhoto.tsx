@@ -5,14 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { axiosInstance } from '@/lib/axios-instance';
 import { cn, getServerErrorMessage } from '@/lib/utils';
-import type { ChangeProfilePhotoResult, ChangeProfilePhotoVariables, ProfilePhoto } from '@/types/user-settings.types';
-import { MAX_RECENT_PROFILE_PHOTOS, PROFILE_PHOTO_CHANGED, SOMETHING_WENT_WRONG } from '@repo/constants';
+import type { ChangeProfilePhotoResult, ProfilePhoto } from '@/types/user-settings.types';
+import {
+  MAX_RECENT_PROFILE_PHOTOS,
+  PROFILE_PHOTO_CHANGED,
+  PROFILE_PHOTO_UPLOAD_ENDPOINT,
+  SOMETHING_WENT_WRONG,
+} from '@repo/constants';
 import type { Photo, ServerResponse } from '@repo/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Info, Trash, Upload, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ClientUploadedFileData } from 'uploadthing/types';
+import type { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 
 export default function SettingsChangePhoto() {
@@ -36,31 +41,22 @@ export default function SettingsChangePhoto() {
 
   const recentPhotos = profilePhotos?.filter((photo) => photo.id !== currentPhotoId) ?? [];
 
-  const changePhoto = useMutation<ChangeProfilePhotoResult, Error, ChangeProfilePhotoVariables>({
-    async mutationFn(variables) {
-      if ('uploaded' in variables) {
-        const { data: response } = await axiosInstance.patch<ServerResponse<ChangeProfilePhotoResult>>(
-          '/user/photo',
-          { photo: variables.uploaded },
-        );
-        return response.data;
-      }
+  async function showNewPhoto({ photo }: ChangeProfilePhotoResult) {
+    await update({ photo: photo as Photo });
+    toast.success(PROFILE_PHOTO_CHANGED);
+    await queryClient.invalidateQueries({ queryKey: photosQueryKey });
+  }
 
+  const changePhoto = useMutation<ChangeProfilePhotoResult, Error, string>({
+    async mutationFn(recentPhotoId) {
       const { data: response } = await axiosInstance.patch<ServerResponse<ChangeProfilePhotoResult>>(
-        `/user/photos/${variables.recentPhotoId}`,
+        `/user/photos/${recentPhotoId}`,
       );
       return response.data;
     },
-    async onSuccess({ photo }) {
-      await update({ photo: photo as Photo });
-      toast.success(PROFILE_PHOTO_CHANGED);
-      await queryClient.invalidateQueries({ queryKey: photosQueryKey });
-    },
+    onSuccess: showNewPhoto,
     onError(error) {
       toast.error(getServerErrorMessage(error));
-    },
-    onSettled() {
-      setUploading(false);
     },
   });
 
@@ -78,28 +74,18 @@ export default function SettingsChangePhoto() {
     },
   });
 
-  async function onClientUploadComplete(response: ClientUploadedFileData<{ photoUrl: string }>[]) {
-    for (const uploadedFile of response) {
-      try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const newImage = new Image();
+  async function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<ChangeProfilePhotoResult | null>[]) {
+    const result = uploadedFiles[0]?.serverData;
 
-          newImage.onload = () => resolve(newImage);
-          newImage.onerror = (err) => reject(err);
-          newImage.src = uploadedFile.url;
-        });
-        changePhoto.mutate({
-          uploaded: {
-            key: uploadedFile.key,
-            url: uploadedFile.url,
-            width: image.width,
-            height: image.height,
-          },
-        });
-      } catch {
+    try {
+      if (!result) {
         toast.error(SOMETHING_WENT_WRONG);
-        setUploading(false);
+        return;
       }
+
+      await showNewPhoto(result);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -111,7 +97,7 @@ export default function SettingsChangePhoto() {
         <span>Profile photo </span>
         <UploadThingButton
           disabled={isBusy}
-          endpoint="singleImage"
+          endpoint={PROFILE_PHOTO_UPLOAD_ENDPOINT}
           className="ut-button:h-fit ut-button:w-fit ut-button:p-2 ut-button:gap-2 ut-uploading:ut-button:bg-primary/50 ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
           content={{
             button() {
@@ -169,7 +155,7 @@ export default function SettingsChangePhoto() {
                       (isBeingDeleted || isBusy) && 'hidden group-hover:hidden',
                     )}
                     disabled={isBusy}
-                    onClick={() => changePhoto.mutate({ recentPhotoId: photo.id })}
+                    onClick={() => changePhoto.mutate(photo.id)}
                   >
                     change
                   </Button>

@@ -11,3 +11,4 @@ export * from './server.constants';
 export * from './report.constants';
 export * from './avatar.constants';
 export * from './user.constants';
+export * from './uploaded-files.constants';

@@ -16,7 +16,6 @@ describe('UserController', () => {
     changeUserName: vi.fn().mockResolvedValue({ userName: 'ada' }),
     changePassword: vi.fn().mockResolvedValue(undefined),
     getProfilePhotos: vi.fn().mockResolvedValue([]),
-    uploadProfilePhoto: vi.fn().mockResolvedValue({ photo: {} }),
     switchToRecentProfilePhoto: vi.fn().mockResolvedValue({ photo: {} }),
     deleteProfilePhoto: vi.fn().mockResolvedValue(undefined),
     deleteAccount: vi.fn().mockResolvedValue(undefined),
@@ -102,17 +101,6 @@ describe('UserController', () => {
     await controller.getProfilePhotos(requester);
 
     expect(userService.getProfilePhotos).toHaveBeenCalledWith('requester-1');
-  });
-
-  it('uploads a profile photo for the requester', async () => {
-    const photo = { key: 'k', url: 'https://utfs.io/f/k' };
-
-    await controller.uploadProfilePhoto(requester, { photo });
-
-    expect(userService.uploadProfilePhoto).toHaveBeenCalledWith({
-      requesterId: 'requester-1',
-      photo,
-    });
   });
 
   it('switches to a recent profile photo', async () => {
