@@ -406,6 +406,7 @@ export class CallGateway implements OnGatewayDisconnect {
   async removeFromCall(conversationId: string, userId: string, reason: string) {
     try {
       await this.stopRing(conversationId, userId);
+      this.stopRingingRemovedUser(conversationId, userId);
       const removed = await this.callService.removeUserFromRoom(
         conversationId,
         userId,
@@ -520,6 +521,16 @@ export class CallGateway implements OnGatewayDisconnect {
       type: MessageNoticeType.CALL_MISSED,
     });
     return outcome;
+  }
+
+  private stopRingingRemovedUser(conversationId: string, userId: string) {
+    const ring = this.callService.pendingRing(conversationId);
+    if (!ring?.ringingUserIds.has(userId)) return;
+
+    this.server
+      .to([ring.callerId, ...ring.ringingUserIds])
+      .emit('CALL_DECLINED', { conversationId, userId });
+    this.callService.declineRing(conversationId, userId);
   }
 
   private async stopRingsCalledFrom(client: TypedSocket) {

@@ -336,6 +336,17 @@ describe('CallGateway', () => {
       ).resolves.toEqual({ isAccepted: false });
     });
 
+    it('counts someone removed while being rung as having declined', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'carol', 'you were removed from this group');
+      expect(roomEmit).toHaveBeenCalledWith('CALL_DECLINED', { conversationId: CONVERSATION_ID, userId: 'carol' });
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleDisconnect(caller.client);
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
     it('rejects a cancel without a conversation', async () => {
       const { gateway } = build();
 

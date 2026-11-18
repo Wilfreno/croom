@@ -1,5 +1,12 @@
 'use client';
-import { appendMessage, emitSocketEventAndWaitForServerReply, getNicknameNoticeText, incomingCallToastId, setCachedNicknames } from '@/lib/utils';
+import {
+  appendMessage,
+  emitSocketEventAndWaitForServerReply,
+  getNicknameNoticeText,
+  incomingCallToastId,
+  isCallNotice,
+  setCachedNicknames,
+} from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
 import { CALL_NO_LONGER_RINGING, CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import { MessageNoticeType } from '@repo/enums';
@@ -46,7 +53,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     const conversationId = message.conversation.id;
 
     const isNicknameNotice = message.notice?.type === MessageNoticeType.NICKNAME;
-    const isCallNoticeMessage = Boolean(message.notice) && !isNicknameNotice;
+    const isCallNoticeMessage = Boolean(message.notice && isCallNotice(message.notice));
 
     if (isNicknameNotice)
       setCachedNicknames(queryClient, { conversationId, userId: session.user?.id }, () => message.conversation.nicknames);

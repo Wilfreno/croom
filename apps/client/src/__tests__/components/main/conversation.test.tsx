@@ -164,6 +164,54 @@ describe('ConversationHeader', () => {
       expect(await within(dialog).findByText('No answer')).toBeInTheDocument();
     });
 
+    describe('answers that arrive before the server confirms the ring', () => {
+      async function startWithHeldReply() {
+        let answer: (reply: unknown) => void = () => undefined;
+        server.replies.CALL = () => new Promise((resolve) => (answer = resolve));
+        renderWithQuery(<ConversationHeader conversationInfo={info} conversation={oneOnOne()} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+        return (reply: unknown) => act(async () => answer(reply));
+      }
+
+      it('joins when someone accepted first', async () => {
+        const reply = await startWithHeldReply();
+
+        act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'c1', userId: 'bob' }));
+        await reply({ isOngoing: false, ringingCount: 1 });
+
+        expect(push).toHaveBeenCalledWith('/call/c1');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+
+      it('says declined when everyone declined first', async () => {
+        const reply = await startWithHeldReply();
+
+        act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
+        await reply({ isOngoing: false, ringingCount: 1 });
+
+        expect(within(await screen.findByRole('dialog')).getByText('Call declined')).toBeInTheDocument();
+      });
+
+      it('says no answer when the ring was cancelled first', async () => {
+        const reply = await startWithHeldReply();
+
+        act(() => server.serverEmit('CALL_CANCELLED', { conversationId: 'c1' }));
+        await reply({ isOngoing: false, ringingCount: 1 });
+
+        expect(within(await screen.findByRole('dialog')).getByText('No answer')).toBeInTheDocument();
+      });
+
+      it('ignores answers for another conversation', async () => {
+        const reply = await startWithHeldReply();
+
+        act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'other', userId: 'bob' }));
+        await reply({ isOngoing: false, ringingCount: 1 });
+
+        expect(push).not.toHaveBeenCalled();
+        expect(within(await screen.findByRole('dialog')).getByText('Calling…')).toBeInTheDocument();
+      });
+    });
+
     it('rings only once when the button is clicked twice in a row', async () => {
       let answer: (reply: unknown) => void = () => undefined;
       server.replies.CALL = () => new Promise((resolve) => (answer = resolve));

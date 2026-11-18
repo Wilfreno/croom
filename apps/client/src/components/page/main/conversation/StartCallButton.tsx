@@ -33,20 +33,14 @@ export default function StartCallButton({
 
   async function startCall() {
     if (conversationId) {
-      const recipientCount = conversation
-        ? conversation.members.filter((member) => member.id !== session.user?.id).length
-        : 1;
-      await outgoingCall.start({ conversationId, recipientCount });
+      await outgoingCall.start({ conversationId });
       return;
     }
 
     const createdConversation = await createConversation.mutateAsync(newConversationMemberIds).catch(() => null);
     if (!createdConversation) return;
 
-    await outgoingCall.start({
-      conversationId: createdConversation.id,
-      recipientCount: newConversationMemberIds.length,
-    });
+    await outgoingCall.start({ conversationId: createdConversation.id });
     queryClient.invalidateQueries({ queryKey: ['conversation', 'members'] });
   }
 

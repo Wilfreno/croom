@@ -63,7 +63,14 @@ export type CallControlTone = 'neutral' | 'active' | 'off' | 'danger';
 
 export type OutgoingCallStatus = 'idle' | 'ringing' | 'declined' | 'unanswered';
 
-export type OutgoingCallTarget = { conversationId: string; recipientCount: number };
+export type OutgoingCallTarget = { conversationId: string };
+
+export type ActiveOutgoingCall = {
+  conversationId: string;
+  ringingCount: number | null;
+  declinedUserIds: Set<string>;
+  isCancelled: boolean;
+};
 
 export type RingtoneNote = { startSeconds: number; durationSeconds: number; frequencies: number[] };
 
