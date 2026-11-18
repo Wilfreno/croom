@@ -671,6 +671,35 @@ describe('CallGateway', () => {
       expect(callNotices.post).not.toHaveBeenCalled();
     });
 
+    it('says the call was missed when the ring stops before anyone joins', async () => {
+      const { gateway, callNotices } = build();
+
+      await gateway.handleCancel(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'alice',
+        type: MessageNoticeType.CALL_MISSED,
+      });
+    });
+
+    it('says nothing was missed when someone is already in the call', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleCancel(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says nothing was missed for someone who is not a member', async () => {
+      const { gateway, callNotices } = build({ members: [alice, bob] });
+
+      await gateway.handleCancel(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
     it('says the call ended when it is ended for everyone', async () => {
       const { gateway, callNotices } = build();
       await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });

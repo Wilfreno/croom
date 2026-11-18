@@ -573,6 +573,7 @@ describe('ConversationMessage', () => {
       [MessageNoticeType.CALL_RING, '', 'Bob started a call'],
       [MessageNoticeType.CALL_STARTED, '', 'Call started'],
       [MessageNoticeType.CALL_ENDED, '95', 'Call ended · 1:35'],
+      [MessageNoticeType.CALL_MISSED, '', 'You missed a call from Bob'],
     ])('reads %s as a centered sentence', (type, value, text) => {
       const { container } = renderWithQuery(
         <ConversationMessage message={callNotice(type, other, value)} isLastMessage={false} />,

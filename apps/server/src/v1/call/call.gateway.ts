@@ -123,6 +123,14 @@ export class CallGateway implements OnGatewayDisconnect {
     client
       .to(memberIds)
       .emit('CALL_CANCELLED', { conversationId: payload.conversationId });
+
+    const userId = client.data.userId;
+    if (!userId || this.callService.hasPeers(payload.conversationId)) return;
+    await this.callNotices.post({
+      conversationId: payload.conversationId,
+      userId,
+      type: MessageNoticeType.CALL_MISSED,
+    });
   }
 
   @SubscribeMessage('CALL_JOIN')

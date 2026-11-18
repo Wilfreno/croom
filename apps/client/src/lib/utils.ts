@@ -85,7 +85,12 @@ export function getNicknameNoticeText(input: NicknameNoticeInput) {
   return value ? `${actor} set ${target} nickname to ${value}` : `${actor} cleared ${target} nickname`;
 }
 
-const CALL_NOTICE_TYPES = [MessageNoticeType.CALL_RING, MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED];
+const CALL_NOTICE_TYPES = [
+  MessageNoticeType.CALL_RING,
+  MessageNoticeType.CALL_STARTED,
+  MessageNoticeType.CALL_ENDED,
+  MessageNoticeType.CALL_MISSED,
+];
 
 export function isCallNotice(notice: MessageNotice) {
   return CALL_NOTICE_TYPES.includes(notice.type);
@@ -112,6 +117,8 @@ export function getCallNoticeText({
     return `${actor} started a call`;
   }
   if (notice.type === MessageNoticeType.CALL_STARTED) return "Call started";
+  if (notice.type === MessageNoticeType.CALL_MISSED)
+    return actorId === currentUserId ? "No one answered" : `You missed a call from ${actorName}`;
 
   const durationSeconds = Number(notice.value);
   return durationSeconds > 0 ? `Call ended · ${formatCallDuration(durationSeconds)}` : "Call ended";

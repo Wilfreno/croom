@@ -1,15 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageNoticeType } from '@repo/enums';
 import { ConversationModel, MessageModel } from '@repo/models';
 import { Types } from 'mongoose';
+import type { CallNoticeType } from '../../types/call.type';
 import { MessageGateway } from '../message/message.gateway';
 
-type CallNoticeType =
-  | MessageNoticeType.CALL_RING
-  | MessageNoticeType.CALL_STARTED
-  | MessageNoticeType.CALL_ENDED;
-
-/** Writes "started a call", "call started" and "call ended" into the conversation and sends them to its members. */
 @Injectable()
 export class CallNoticeService {
   private readonly logger = new Logger(CallNoticeService.name);

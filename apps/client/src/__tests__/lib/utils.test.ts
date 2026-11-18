@@ -394,6 +394,7 @@ describe('call notices', () => {
     expect(isCallNotice(ring)).toBe(true);
     expect(isCallNotice({ type: MessageNoticeType.CALL_STARTED, user: 'ada', value: '' })).toBe(true);
     expect(isCallNotice({ type: MessageNoticeType.CALL_ENDED, user: 'ada', value: '30' })).toBe(true);
+    expect(isCallNotice({ type: MessageNoticeType.CALL_MISSED, user: 'ada', value: '' })).toBe(true);
     expect(isCallNotice({ type: MessageNoticeType.NICKNAME, user: 'ada', value: 'Ace' })).toBe(false);
   });
 
@@ -427,6 +428,15 @@ describe('call notices', () => {
     );
     expect(getCallNoticeText({ ...input, notice: { type: MessageNoticeType.CALL_ENDED, user: 'ada', value: '0' } })).toBe(
       'Call ended',
+    );
+  });
+
+  it('tells the caller nobody answered, and everyone else whose call they missed', () => {
+    const notice = { type: MessageNoticeType.CALL_MISSED, user: 'ada', value: '' };
+
+    expect(getCallNoticeText({ notice, actorId: 'me', actorName: 'Me', currentUserId: 'me' })).toBe('No one answered');
+    expect(getCallNoticeText({ notice, actorId: 'ada', actorName: 'Ada', currentUserId: 'me' })).toBe(
+      'You missed a call from Ada',
     );
   });
 

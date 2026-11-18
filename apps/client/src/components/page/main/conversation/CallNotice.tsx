@@ -3,7 +3,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { getCallNoticeText } from '@/lib/utils';
 import { MessageNoticeType } from '@repo/enums';
 import type { Conversation, Message, MessageNotice } from '@repo/types';
-import { Video, VideoOff } from 'lucide-react';
+import { type LucideIcon, PhoneMissed, Video, VideoOff } from 'lucide-react';
 
 export default function CallNotice({
   message,
@@ -16,7 +16,11 @@ export default function CallNotice({
 }) {
   const { session } = useAuth();
   const sender = conversation?.members.find((member) => member.id === message.sender.id);
-  const Icon = notice.type === MessageNoticeType.CALL_ENDED ? VideoOff : Video;
+  const icons: Partial<Record<MessageNoticeType, LucideIcon>> = {
+    [MessageNoticeType.CALL_ENDED]: VideoOff,
+    [MessageNoticeType.CALL_MISSED]: PhoneMissed,
+  };
+  const Icon = icons[notice.type] ?? Video;
 
   return (
     <div className="flex items-center justify-center gap-1.5 px-4 py-2 text-center text-xs text-muted-foreground">

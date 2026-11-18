@@ -8,4 +8,5 @@ export enum MessageNoticeType {
   CALL_RING = 'CALL_RING',
   CALL_STARTED = 'CALL_STARTED',
   CALL_ENDED = 'CALL_ENDED',
+  CALL_MISSED = 'CALL_MISSED',
 }

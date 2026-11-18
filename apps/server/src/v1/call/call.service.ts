@@ -80,7 +80,10 @@ export class CallService {
     return newPeer;
   }
 
-  /** Marks the call as started once two people are in it; true only the first time. */
+  hasPeers(conversationId: string) {
+    return Boolean(this.rooms.get(conversationId)?.size);
+  }
+
   startIfConnected(conversationId: string) {
     const peerCount = this.rooms.get(conversationId)?.size ?? 0;
     if (peerCount < 2 || this.callStartTimes.has(conversationId)) return false;
@@ -89,7 +92,6 @@ export class CallService {
     return true;
   }
 
-  /** Once a started call's room is empty, forgets it and returns how long it lasted in seconds. */
   finishIfEmpty(conversationId: string): number | null {
     const startTime = this.callStartTimes.get(conversationId);
     if (startTime === undefined || this.rooms.has(conversationId)) return null;
