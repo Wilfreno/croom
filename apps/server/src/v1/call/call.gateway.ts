@@ -158,6 +158,9 @@ export class CallGateway implements OnGatewayDisconnect {
     const conversationId = payload?.conversationId;
     if (!userId || typeof conversationId !== 'string')
       return { error: 'you cannot cancel this call' };
+    const isRingCaller = this.callService.isRingCaller(conversationId, userId);
+    if (!isRingCaller && !(await this.memberIdsFor(client, payload)))
+      return { error: 'you cannot cancel this call' };
 
     const outcome = await this.stopRing(conversationId, userId);
     return { isAnswered: outcome === 'answered' };

@@ -121,6 +121,10 @@ export class CallService {
     return this.hasPeers(conversationId) ? 'answered' : 'missed';
   }
 
+  isRingCaller(conversationId: string, userId: string) {
+    return this.rings.get(conversationId)?.callerId === userId;
+  }
+
   pendingRing(conversationId: string) {
     const ring = this.rings.get(conversationId);
     return ring && !ring.isAnswered ? ring : null;

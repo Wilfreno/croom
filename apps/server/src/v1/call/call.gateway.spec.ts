@@ -347,6 +347,15 @@ describe('CallGateway', () => {
       expect(callNotices.post).not.toHaveBeenCalled();
     });
 
+    it('tells someone outside the conversation nothing about its call', async () => {
+      const { gateway } = build({ members: [alice, bob] });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleCancel(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ error: 'you cannot cancel this call' });
+    });
+
     it('rejects a cancel without a conversation', async () => {
       const { gateway } = build();
 
