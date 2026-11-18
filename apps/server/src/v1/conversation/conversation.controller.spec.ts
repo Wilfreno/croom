@@ -16,6 +16,7 @@ function build() {
   const conversationService = {
     getConversationMessages: vi.fn().mockResolvedValue(['messages']),
     getConversationByMembersId: vi.fn().mockResolvedValue({ id: 'by-members' }),
+    createConversation: vi.fn().mockResolvedValue({ id: 'created' }),
     getConversationById: vi.fn().mockResolvedValue({ id: 'c1' }),
     getConversationMedia: vi.fn().mockResolvedValue(['media']),
     blockConversation: vi.fn().mockResolvedValue(undefined),
@@ -43,6 +44,13 @@ describe('ConversationController', () => {
       controller.getConversationMessages({ conversationId: 'c1' }, { page: 2 } as never),
     ).resolves.toEqual(['messages']);
     expect(conversationService.getConversationMessages).toHaveBeenCalledWith({ conversationId: 'c1', page: 2 });
+  });
+
+  it('creates a conversation with the given members on behalf of the caller', async () => {
+    const { controller, conversationService } = build();
+
+    await expect(controller.createConversation(USER, { members: ['ada'] })).resolves.toEqual({ id: 'created' });
+    expect(conversationService.createConversation).toHaveBeenCalledWith({ members: ['ada'], userId: 'me' });
   });
 
   it('finds a conversation by members on behalf of the caller', async () => {

@@ -4,12 +4,13 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import InitialsFallback from '@/components/page/main/InitialsFallback';
 import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isSameSender } from '@/lib/utils';
+import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isCallNotice, isSameSender } from '@/lib/utils';
 import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { Conversation, Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
+import CallNotice from './CallNotice';
 import NicknameNotice from './NicknameNotice';
 import { useEffect, useMemo, useRef } from 'react';
 
@@ -199,12 +200,16 @@ export default function ConversationMessage({
       )}
       {message.notice ? (
         <div key={message.id} ref={divRef}>
-          <NicknameNotice
-            message={message}
-            notice={message.notice}
-            conversation={conversation}
-            canEdit={canEditNicknames}
-          />
+          {isCallNotice(message.notice) ? (
+            <CallNotice message={message} notice={message.notice} conversation={conversation} />
+          ) : (
+            <NicknameNotice
+              message={message}
+              notice={message.notice}
+              conversation={conversation}
+              canEdit={canEditNicknames}
+            />
+          )}
         </div>
       ) : (
       <div

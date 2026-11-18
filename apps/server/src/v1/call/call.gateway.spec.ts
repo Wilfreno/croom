@@ -4,6 +4,8 @@ import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TypedServer, TypedSocket } from '../../common/types/socket-io.types';
 import type { CallRouterEntry } from '../../types/mediasoup.type';
+import { MessageNoticeType } from '@repo/enums';
+import { CallNoticeService } from './call-notice.service';
 import { CallGateway } from './call.gateway';
 import { CallService } from './call.service';
 import { MediasoupService } from './mediasoup.service';
@@ -95,13 +97,28 @@ function build({ members = [alice, bob] as CallMember[] | null, isBlocked = fals
     conversationModel as unknown as ConversationModel,
     mediasoup as unknown as MediasoupService,
   );
-  const gateway = new CallGateway(callService, mediasoup as unknown as MediasoupService);
+  const callNotices = { post: vi.fn(async (_notice: { type: MessageNoticeType }) => undefined) };
+  const gateway = new CallGateway(
+    callService,
+    mediasoup as unknown as MediasoupService,
+    callNotices as unknown as CallNoticeService,
+  );
   const roomEmit = vi.fn();
   const socketsLeave = vi.fn();
   const server = { to: vi.fn(() => ({ emit: roomEmit })), in: vi.fn(() => ({ socketsLeave })) };
   gateway.server = server as unknown as TypedServer;
 
-  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit, socketsLeave };
+  return {
+    gateway,
+    callService,
+    callNotices,
+    mediasoup,
+    conversationModel,
+    routerEntry,
+    server,
+    roomEmit,
+    socketsLeave,
+  };
 }
 
 /** Joins `client` to the call and gives it both transports. */
@@ -572,6 +589,127 @@ describe('CallGateway', () => {
       (callService.getPeer(receiver.client.id)!.consumers.get(id)! as unknown as EventEmitter).emit('transportclose');
 
       expect(callService.getPeer(receiver.client.id)!.consumers.has(id)).toBe(false);
+    });
+  });
+
+  describe('call notices', () => {
+    function noticeTypes(callNotices: ReturnType<typeof build>['callNotices']) {
+      return callNotices.post.mock.calls.map(([notice]) => notice.type);
+    }
+
+    it('says who started a call when it rings', async () => {
+      const { gateway, callNotices } = build();
+
+      await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'alice',
+        type: MessageNoticeType.CALL_RING,
+      });
+    });
+
+    it('says nothing new when calling into a call that is already running', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      callNotices.post.mockClear();
+
+      await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says the call started once a second person joins, and only once', async () => {
+      const { gateway, callNotices } = build({ members: [alice, bob, carol] });
+
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+      expect(callNotices.post).not.toHaveBeenCalled();
+
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledOnce();
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'bob',
+        type: MessageNoticeType.CALL_STARTED,
+      });
+    });
+
+    it('says the call ended, with how long it lasted, when the last person leaves', async () => {
+      vi.useFakeTimers();
+      try {
+        const { gateway, callNotices } = build();
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+        await gateway.join(bobsTab, { conversationId: CONVERSATION_ID });
+        vi.advanceTimersByTime(95_000);
+
+        await gateway.handleLeave(alicesTab);
+        expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED]);
+
+        await gateway.handleLeave(bobsTab);
+        expect(callNotices.post).toHaveBeenLastCalledWith({
+          conversationId: CONVERSATION_ID,
+          userId: 'bob',
+          type: MessageNoticeType.CALL_ENDED,
+          value: '95',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('says nothing when someone leaves a call nobody else joined', async () => {
+      const { gateway, callNotices } = build();
+      const { client } = fakeClient('alice');
+      await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleLeave(client);
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says the call ended when it is ended for everyone', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED]);
+    });
+
+    it('says the call ended when removing someone empties it', async () => {
+      const { gateway, callNotices } = build();
+      const alicesTab = fakeClient('alice').client;
+      await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleLeave(alicesTab);
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED]);
+    });
+
+    it('starts counting afresh for the next call', async () => {
+      const { gateway, callNotices } = build();
+      for (let round = 0; round < 2; round++) {
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+        await gateway.join(bobsTab, { conversationId: CONVERSATION_ID });
+        await gateway.handleLeave(alicesTab);
+        await gateway.handleLeave(bobsTab);
+      }
+
+      expect(noticeTypes(callNotices)).toEqual([
+        MessageNoticeType.CALL_STARTED,
+        MessageNoticeType.CALL_ENDED,
+        MessageNoticeType.CALL_STARTED,
+        MessageNoticeType.CALL_ENDED,
+      ]);
     });
   });
 

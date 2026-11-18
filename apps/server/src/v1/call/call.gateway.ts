@@ -7,6 +7,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { MessageNoticeType } from '@repo/enums';
 import type {
   CallAck,
   CallConsumeResult,
@@ -27,6 +28,7 @@ import type {
   TypedServer,
   TypedSocket,
 } from '../../common/types/socket-io.types';
+import { CallNoticeService } from './call-notice.service';
 import { CallService, Peer } from './call.service';
 import { MediasoupService } from './mediasoup.service';
 
@@ -42,6 +44,7 @@ export class CallGateway implements OnGatewayDisconnect {
   constructor(
     private readonly callService: CallService,
     private readonly mediasoup: MediasoupService,
+    private readonly callNotices: CallNoticeService,
   ) {}
 
   async handleDisconnect(client: TypedSocket) {
@@ -77,6 +80,12 @@ export class CallGateway implements OnGatewayDisconnect {
         this.server.to(recipientIds).emit('INCOMING_CALL', {
           conversationId: payload.conversationId,
           caller: access.caller,
+        });
+      if (!isOngoing)
+        await this.callNotices.post({
+          conversationId: payload.conversationId,
+          userId: callerId,
+          type: MessageNoticeType.CALL_RING,
         });
 
       return { isOngoing };
@@ -154,6 +163,13 @@ export class CallGateway implements OnGatewayDisconnect {
         await this.leave(client);
         return accessAfterJoin;
       }
+
+      if (this.callService.startIfConnected(conversationId))
+        await this.callNotices.post({
+          conversationId,
+          userId,
+          type: MessageNoticeType.CALL_STARTED,
+        });
 
       return {
         // Every router of a call has the same codecs, so any of them answers this.
@@ -337,6 +353,7 @@ export class CallGateway implements OnGatewayDisconnect {
       const room = callRoom(conversationId);
       this.server.to(room).emit('CALL_ENDED', { reason });
       this.server.in(room).socketsLeave(room);
+      await this.postEndedIfFinished(conversationId, ended[0].userId);
     } catch (error) {
       this.logger.error(error);
     }
@@ -356,6 +373,7 @@ export class CallGateway implements OnGatewayDisconnect {
       this.server.in(peerIds).socketsLeave(room);
       for (const peerId of peerIds)
         this.server.to(room).emit('CALL_PEER_LEFT', { peerId });
+      await this.postEndedIfFinished(conversationId, userId);
     } catch (error) {
       this.logger.error(error);
     }
@@ -391,9 +409,22 @@ export class CallGateway implements OnGatewayDisconnect {
       const room = callRoom(peer.conversationId);
       await client.leave(room);
       this.server.to(room).emit('CALL_PEER_LEFT', { peerId: peer.peerId });
+      await this.postEndedIfFinished(peer.conversationId, peer.userId);
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  private async postEndedIfFinished(conversationId: string, userId: string) {
+    const durationSeconds = this.callService.finishIfEmpty(conversationId);
+    if (durationSeconds === null) return;
+
+    await this.callNotices.post({
+      conversationId,
+      userId,
+      type: MessageNoticeType.CALL_ENDED,
+      value: String(durationSeconds),
+    });
   }
 
   /** Tells the conversation's members, including the sender's other tabs, who answered and how. */

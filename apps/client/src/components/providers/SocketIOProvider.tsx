@@ -2,6 +2,7 @@
 import { appendMessage, getNicknameNoticeText, incomingCallToastId, setCachedNicknames } from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
 import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
+import { MessageNoticeType } from '@repo/enums';
 import type {
   CallAnswerPayload,
   CallPayload,
@@ -43,8 +44,15 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
   function onMessage(message: MessagePayload) {
     const conversationId = message.conversation.id;
 
-    if (message.notice)
+    const isNicknameNotice = message.notice?.type === MessageNoticeType.NICKNAME;
+    const isCallNoticeMessage = Boolean(message.notice) && !isNicknameNotice;
+
+    if (isNicknameNotice)
       setCachedNicknames(queryClient, { conversationId, userId: session.user?.id }, () => message.conversation.nicknames);
+    if (isCallNoticeMessage) {
+      queryClient.invalidateQueries({ queryKey: [session.user?.id, 'conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['active', 'conversations', session.user?.id] });
+    }
 
     const isViewingConversation =
       pathname.startsWith('/conversation/' + conversationId) || pathname.startsWith('/call/' + conversationId);
@@ -57,7 +65,7 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         (prev) => prev && appendMessage(prev, newMessage),
       );
     } else if (message.notice) {
-      if (message.notice.user !== session.user?.id) return;
+      if (isCallNoticeMessage || message.notice.user !== session.user?.id) return;
       toast(
         getNicknameNoticeText({
           notice: message.notice,

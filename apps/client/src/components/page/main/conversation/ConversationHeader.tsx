@@ -1,19 +1,16 @@
 'use client';
 
 import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
-import useOutgoingCall from '@/components/hooks/useOutgoingCall';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ConversationInfo } from '@/types/common.types';
-import { ConversationStatus } from '@repo/enums';
 import { Conversation } from '@repo/types';
-import { ArrowLeft, Ellipsis, Video } from 'lucide-react';
+import { ArrowLeft, Ellipsis } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import ConversationAvatar from '../ConversationAvatar';
 import UserAvatar from '../UserAvatar';
-import OutgoingCallDialog from './OutgoingCallDialog';
+import StartCallButton from './StartCallButton';
 
 export default function ConversationHeader({
   conversationInfo,
@@ -26,20 +23,6 @@ export default function ConversationHeader({
   const { onMobile, setIsOpen } = useInfoSidebarOpen();
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const recipientCount = conversation
-    ? conversation.members.filter((member) => member.id !== session.user?.id).length
-    : 1;
-  const outgoingCall = useOutgoingCall(params.id, recipientCount);
-  const callAvatar = conversation ? (
-    <ConversationAvatar conversation={conversation} currentUserId={session.user?.id} size="lg" className="h-20 w-20" />
-  ) : (
-    <UserAvatar
-      src={conversationInfo?.photoUrl}
-      name={conversationInfo?.conversationName}
-      isOnline={false}
-      className="h-20 w-20"
-    />
-  );
 
   return (
     <section
@@ -71,22 +54,7 @@ export default function ConversationHeader({
         </div>
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        {conversation?.status !== ConversationStatus.BLOCKED && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
-                  aria-label="Start video call"
-                  onClick={outgoingCall.start}
-                >
-                  <Video className="fill-primary" />
-                </Button>
-              </TooltipTrigger>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        <StartCallButton conversationId={params.id} conversation={conversation} conversationInfo={conversationInfo} />
         <Button
           variant="ghost"
           className="aspect-square h-fit w-auto rounded-full p-1 text-primary"
@@ -95,14 +63,6 @@ export default function ConversationHeader({
           <Ellipsis />
         </Button>
       </div>
-      <OutgoingCallDialog
-        status={outgoingCall.status}
-        name={conversationInfo?.conversationName ?? ''}
-        avatar={callAvatar}
-        onCancel={outgoingCall.cancel}
-        onClose={outgoingCall.close}
-        onCallAgain={outgoingCall.start}
-      />
     </section>
   );
 }

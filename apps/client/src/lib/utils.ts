@@ -1,8 +1,8 @@
 import type { CallMediaPreferences, CallSession } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
-import { ConversationStatus, UserStatus } from "@repo/enums";
+import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
 import type { Message, MessageNotice, Photo, ServerResponse, User } from "@repo/types";
@@ -83,6 +83,42 @@ export function getNicknameNoticeText(input: NicknameNoticeInput) {
   const { actor, target, value } = getNicknameNoticeParts(input);
 
   return value ? `${actor} set ${target} nickname to ${value}` : `${actor} cleared ${target} nickname`;
+}
+
+const CALL_NOTICE_TYPES = [MessageNoticeType.CALL_RING, MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED];
+
+export function isCallNotice(notice: MessageNotice) {
+  return CALL_NOTICE_TYPES.includes(notice.type);
+}
+
+export function formatCallDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / SECONDS_IN_HOUR);
+  const minutes = Math.floor((totalSeconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE);
+  const seconds = totalSeconds % SECONDS_IN_MINUTE;
+  const paddedSeconds = String(seconds).padStart(2, "0");
+
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${paddedSeconds}`;
+  return `${minutes}:${paddedSeconds}`;
+}
+
+export function getCallNoticeText({
+  notice,
+  actorId,
+  actorName,
+  currentUserId,
+}: Omit<NicknameNoticeInput, "targetName">) {
+  if (notice.type === MessageNoticeType.CALL_RING) {
+    const actor = actorId === currentUserId ? "You" : actorName;
+    return `${actor} started a call`;
+  }
+  if (notice.type === MessageNoticeType.CALL_STARTED) return "Call started";
+
+  const durationSeconds = Number(notice.value);
+  return durationSeconds > 0 ? `Call ended · ${formatCallDuration(durationSeconds)}` : "Call ended";
+}
+
+export function getNoticeText(input: NicknameNoticeInput) {
+  return isCallNotice(input.notice) ? getCallNoticeText(input) : getNicknameNoticeText(input);
 }
 
 export function isSameSender<T extends Pick<Message, "sender" | "notice">>(

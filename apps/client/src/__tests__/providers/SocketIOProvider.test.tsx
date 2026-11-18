@@ -155,6 +155,48 @@ describe('SocketIOProvider', () => {
       });
     });
 
+    describe('call notices', () => {
+      function callNoticeIn(conversationId: string): MessagePayload {
+        return {
+          ...mockMessage({ text: '', sender: mockUser({ displayName: 'Ada' }) }),
+          notice: { type: MessageNoticeType.CALL_RING, user: 'ada', value: '' },
+          conversation: { id: conversationId, nicknames: [] },
+        } as MessagePayload;
+      }
+
+      it('adds the notice to the conversation you are calling in', () => {
+        pathname = '/call/c1';
+        const { queryClient } = renderProvider();
+        queryClient.setQueryData<MessagePages>(['conversation', 'messages', 'c1'], { pages: [{ pageParam: 1, result: [] }], pageParams: [1] });
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c1')));
+
+        expect(queryClient.getQueryData<MessagePages>(['conversation', 'messages', 'c1'])!.pages[0].result).toHaveLength(1);
+      });
+
+      it('shows no toast for a call notice elsewhere, but refreshes the conversation lists', () => {
+        const { queryClient } = renderProvider();
+        const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c2')));
+
+        expect(toast).not.toHaveBeenCalled();
+        expect(toast.custom).not.toHaveBeenCalled();
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: [sessionUser!.id, 'conversations'] });
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['active', 'conversations', sessionUser!.id] });
+      });
+
+      it('leaves cached nicknames alone', () => {
+        const { queryClient } = renderProvider();
+        const conversation = mockConversation({ id: 'c2', nicknames: [{ user: sessionUser!.id, value: 'Ace' }] });
+        queryClient.setQueryData(['conversation', 'c2'], conversation);
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c2')));
+
+        expect(queryClient.getQueryData<Conversation>(['conversation', 'c2'])!.nicknames).toEqual(conversation.nicknames);
+      });
+    });
+
     it('puts the toast at the top on mobile', () => {
       onMobile = true;
       renderProvider();

@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   OnApplicationBootstrap,
@@ -86,6 +87,34 @@ export class ConversationService implements OnApplicationBootstrap {
         })),
       },
       session,
+    );
+  }
+
+  async createConversation({
+    members,
+    userId,
+  }: CreateConversationDto & { userId: string }) {
+    const memberIds = [...new Set([...members, userId])];
+    const session = await this.connection.startSession();
+    let conversationId: string | undefined;
+
+    try {
+      await session.withTransaction(async () => {
+        const conversation = await this.create(
+          { members: memberIds, userId },
+          session,
+        );
+        conversationId = String(conversation._id);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (!conversationId)
+      throw new InternalServerErrorException('conversation was not created');
+
+    return await this.conversationModel.findConversationPayloadById(
+      conversationId,
     );
   }
 

@@ -159,6 +159,19 @@ describe('HomeConversation', () => {
     expect(screen.getByText('Bob set your nickname to Ace')).toBeInTheDocument();
   });
 
+  it('previews a call notice as a sentence', () => {
+    const bob = mockUser({ displayName: 'Bob' });
+    const conversation = chatWith(bob, {
+      sender: bob,
+      text: '',
+      notice: { type: MessageNoticeType.CALL_ENDED, user: bob.id, value: '95' },
+    });
+
+    renderWithQuery(<HomeConversation conversation={conversation} />);
+
+    expect(screen.getByText('Call ended · 1:35')).toBeInTheDocument();
+  });
+
   it("previews your own nickname change for someone else", () => {
     const bob = mockUser({ displayName: 'Bob' });
     const conversation = chatWith(bob, {

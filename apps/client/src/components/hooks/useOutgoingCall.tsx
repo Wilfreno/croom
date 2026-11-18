@@ -2,21 +2,23 @@
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { emitSocketEventAndWaitForServerReply } from '@/lib/utils';
-import { OutgoingCallStatus } from '@/types/call.types';
+import { OutgoingCallStatus, OutgoingCallTarget } from '@/types/call.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
 import { CallAnswerPayload } from '@repo/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function useOutgoingCall(conversationId: string, recipientCount: number) {
+export default function useOutgoingCall() {
   const socket = useSocketIO();
   const router = useRouter();
   const { session } = useAuth();
   const userId = session.user?.id;
   const [status, setStatus] = useState<OutgoingCallStatus>('idle');
+  const [target, setTarget] = useState<OutgoingCallTarget | null>(null);
 
   useEffect(() => {
-    if (status !== 'ringing' || !socket) return;
+    if (status !== 'ringing' || !socket || !target) return;
+    const { conversationId, recipientCount } = target;
     const declinedUserIds = new Set<string>();
 
     function isAnswerToThisCall(answer: CallAnswerPayload) {
@@ -43,23 +45,30 @@ export default function useOutgoingCall(conversationId: string, recipientCount: 
       socket.off('CALL_ACCEPTED', onAccepted);
       socket.off('CALL_DECLINED', onDeclined);
     };
-  }, [status, socket, conversationId, recipientCount, userId, router]);
+  }, [status, socket, target, userId, router]);
 
-  async function start() {
+  async function start(callTarget: OutgoingCallTarget) {
     if (!socket) return;
-    const hasSomeoneToRing = recipientCount > 0;
+    const hasSomeoneToRing = callTarget.recipientCount > 0;
+    setTarget(callTarget);
     if (hasSomeoneToRing) setStatus('ringing');
 
     try {
-      const { isOngoing } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', { conversationId });
-      if (isOngoing || !hasSomeoneToRing) router.push(`/call/${conversationId}`);
+      const { isOngoing } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', {
+        conversationId: callTarget.conversationId,
+      });
+      if (isOngoing || !hasSomeoneToRing) router.push(`/call/${callTarget.conversationId}`);
     } catch {
       setStatus('idle');
     }
   }
 
+  function callAgain() {
+    if (target) start(target);
+  }
+
   function cancel() {
-    socket?.emit('CALL_CANCEL', { conversationId });
+    if (target) socket?.emit('CALL_CANCEL', { conversationId: target.conversationId });
     setStatus('idle');
   }
 
@@ -67,5 +76,5 @@ export default function useOutgoingCall(conversationId: string, recipientCount: 
     setStatus('idle');
   }
 
-  return { status, start, cancel, close };
+  return { status, start, callAgain, cancel, close };
 }

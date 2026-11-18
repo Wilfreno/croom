@@ -31,6 +31,7 @@ type CallAccess =
 export class CallService {
   private readonly peers = new Map<string, Peer>(); // socket id → peer
   private readonly rooms = new Map<string, Set<string>>(); // conversation id → socket ids
+  private readonly callStartTimes = new Map<string, number>(); // conversation id → when a second person joined
 
   constructor(
     private readonly conversationModel: ConversationModel,
@@ -77,6 +78,24 @@ export class CallService {
     room.add(peer.peerId);
     this.rooms.set(peer.conversationId, room);
     return newPeer;
+  }
+
+  /** Marks the call as started once two people are in it; true only the first time. */
+  startIfConnected(conversationId: string) {
+    const peerCount = this.rooms.get(conversationId)?.size ?? 0;
+    if (peerCount < 2 || this.callStartTimes.has(conversationId)) return false;
+
+    this.callStartTimes.set(conversationId, Date.now());
+    return true;
+  }
+
+  /** Once a started call's room is empty, forgets it and returns how long it lasted in seconds. */
+  finishIfEmpty(conversationId: string): number | null {
+    const startTime = this.callStartTimes.get(conversationId);
+    if (startTime === undefined || this.rooms.has(conversationId)) return null;
+
+    this.callStartTimes.delete(conversationId);
+    return Math.round((Date.now() - startTime) / 1000);
   }
 
   /** Every other peer in the conversation's call. */

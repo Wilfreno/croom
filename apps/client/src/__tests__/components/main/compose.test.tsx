@@ -1,15 +1,18 @@
 import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
+import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import ComposePage from '@/app/(main)/(home)/compose/page';
 import ComposeFoundMessages from '@/components/page/main/compose/ComposeFoundMessages';
 import ComposeMessageInput from '@/components/page/main/compose/ComposeMessageInput';
 import ComposeTo from '@/components/page/main/compose/ComposeTo';
+import { axiosInstance } from '@/lib/axios-instance';
 import { COMPOSE_SELECTED_USERS_QUERY_KEY } from '@repo/constants';
 import { ConversationStatus } from '@repo/enums';
 import type { Conversation, Message, User, UserSession } from '@repo/types';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -18,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
 vi.mock('emoji-picker-react', async () => (await import('@/__tests__/mocks/mock-components')).emojiPickerModule);
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}) } }));
+vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}), post: vi.fn() } }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }));
 
 let sessionUser: UserSession;
@@ -26,6 +29,10 @@ vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ sessio
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+
+let server: ReturnType<typeof mockSocket>;
+vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => server.socket }));
+vi.mock('@/components/hooks/useRingtone', () => ({ default: vi.fn() }));
 
 let searchResult: User[] = [];
 vi.mock('@/components/hooks/queries/useSearchUsers', () => ({ default: () => ({ data: searchResult }) }));
@@ -50,6 +57,7 @@ vi.mock('@/components/hooks/mutation/useComposeMessage.mutation', () => ({ defau
 
 beforeEach(() => {
   vi.clearAllMocks();
+  server = mockSocket({ CALL: { isOngoing: false } });
   sessionUser = mockSession();
   searchResult = [];
   foundConversations = [];
@@ -175,6 +183,115 @@ describe('ComposeTo', () => {
     renderWithQuery(<ComposeToHarness initial={selection(1)} />);
 
     expect(screen.queryByText(/group chat/)).not.toBeInTheDocument();
+  });
+});
+
+describe('calling from compose', () => {
+  function shared(overrides: Partial<Conversation> = {}) {
+    const conversation = mockConversation({ members: [sessionUser as unknown as User, mockUser()], ...overrides });
+    foundConversations = [conversation];
+    foundConversation = conversation;
+    return conversation;
+  }
+
+  it('offers no call before anyone is selected', () => {
+    shared();
+
+    renderWithQuery(<ComposeToHarness />);
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
+  });
+
+  it('creates a conversation for people who have none yet, then rings it', async () => {
+    const created = mockConversation({ id: 'new-conversation' });
+    vi.mocked(axiosInstance.post).mockResolvedValue({ data: { status: 'OK', message: '', data: created } });
+    renderWithQuery(<ComposeToHarness initial={selection(2)} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+
+    expect(axiosInstance.post).toHaveBeenCalledWith('/conversation', { members: ['u1', 'u2'] });
+    expect(server.emitWithAck).toHaveBeenCalledWith('CALL', { conversationId: 'new-conversation' });
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Person 1, Person 2')).toBeInTheDocument();
+    expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+  });
+
+  it('opens the new conversation call once someone accepts', async () => {
+    vi.mocked(axiosInstance.post).mockResolvedValue({
+      data: { status: 'OK', message: '', data: mockConversation({ id: 'new-conversation' }) },
+    });
+    renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+    await screen.findByRole('dialog');
+
+    act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'new-conversation', userId: 'u1' }));
+
+    expect(push).toHaveBeenCalledWith('/call/new-conversation');
+  });
+
+  it('keeps ringing while compose finds the new conversation and loads it', async () => {
+    const created = mockConversation({ id: 'new-conversation', members: [sessionUser as unknown as User, mockUser({ id: 'u1' })] });
+    vi.mocked(axiosInstance.post).mockResolvedValue({ data: { status: 'OK', message: '', data: created } });
+    const { rerender, queryClient } = renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+    await screen.findByRole('dialog');
+
+    foundConversations = [created];
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ComposeToHarness initial={selection(1)} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Calling…')).toBeInTheDocument();
+
+    foundConversation = created;
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ComposeToHarness initial={selection(1)} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Calling…')).toBeInTheDocument();
+
+    act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'new-conversation', userId: 'u1' }));
+    expect(push).toHaveBeenCalledWith('/call/new-conversation');
+  });
+
+  it('rings nobody when the conversation could not be created', async () => {
+    vi.mocked(axiosInstance.post).mockRejectedValue(new Error('conversation already exist'));
+    renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+    expect(server.emitWithAck).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('offers no call when more than one conversation matches', () => {
+    foundConversations = [mockConversation(), mockConversation()];
+
+    renderWithQuery(<ComposeToHarness initial={selection(2)} />);
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
+  });
+
+  it('offers no call in a blocked conversation', () => {
+    shared({ status: ConversationStatus.BLOCKED });
+
+    renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
+  });
+
+  it('rings the conversation the selected people share and waits for an answer', async () => {
+    const conversation = shared();
+    renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+
+    expect(server.emitWithAck).toHaveBeenCalledWith('CALL', { conversationId: conversation.id });
+    expect(within(await screen.findByRole('dialog')).getByText('Calling…')).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
   });
 });
 

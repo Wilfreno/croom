@@ -1,23 +1,28 @@
+import { useAuth } from '@/components/providers/AuthProvider';
 import { axiosInstance } from '@/lib/axios-instance';
-import type { PhotoInput } from '@/types/message.types';
+import { getServerErrorMessage } from '@/lib/utils';
 import { Conversation, ServerResponse } from '@repo/types';
-import { useMutation } from '@tanstack/react-query';
-import useComposeMessage from './useComposeMessage.mutation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
-export default function useCreateConversation({ photos, members }: { photos: PhotoInput[]; members: string[] }) {
-  const { sendMessage } = useComposeMessage();
+export default function useCreateConversation() {
+  const queryClient = useQueryClient();
+  const { session } = useAuth();
 
-  const createNewConversation = useMutation<Conversation, Error, { text: string }>({
-    async mutationFn() {
+  const createConversation = useMutation<Conversation, Error, string[]>({
+    async mutationFn(memberIds) {
       const { data: response } = await axiosInstance.post<ServerResponse<Conversation>>('/conversation', {
-        members,
+        members: memberIds,
       });
 
       return response.data;
     },
-    onSuccess(conversation, { text }) {
-      sendMessage.mutate({ conversationId: conversation.id, text, members, photos });
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: [session.user?.id, 'conversations'] });
+    },
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
     },
   });
-  return { createNewConversation };
+  return { createConversation };
 }

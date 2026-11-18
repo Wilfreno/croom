@@ -73,10 +73,14 @@ describe('ConversationHeader', () => {
   });
 
   it('shows the online dot only for someone online', () => {
-    const { container, rerender } = renderWithQuery(<ConversationHeader conversationInfo={info} />);
+    const { container, rerender, queryClient } = renderWithQuery(<ConversationHeader conversationInfo={info} />);
     expect(container.querySelector('.bg-green-500')).toBeInTheDocument();
 
-    rerender(<ConversationHeader conversationInfo={{ ...info, status: UserStatus.OFFLINE, isOnline: false, lastOnline: '5 minute(s) ago' }} />);
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <ConversationHeader conversationInfo={{ ...info, status: UserStatus.OFFLINE, isOnline: false, lastOnline: '5 minute(s) ago' }} />
+      </QueryClientProvider>,
+    );
     expect(container.querySelector('.bg-green-500')).not.toBeInTheDocument();
     expect(screen.getByText('5 minute(s) ago')).toBeInTheDocument();
   });
@@ -559,6 +563,36 @@ describe('ConversationMessage', () => {
 
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
     expect(axiosInstance.patch).not.toHaveBeenCalled();
+  });
+
+  describe('call notices', () => {
+    const callNotice = (type: MessageNoticeType, sender = other, value = '') =>
+      message({ text: '', sender, notice: { type, user: sender.id, value } });
+
+    it.each([
+      [MessageNoticeType.CALL_RING, '', 'Bob started a call'],
+      [MessageNoticeType.CALL_STARTED, '', 'Call started'],
+      [MessageNoticeType.CALL_ENDED, '95', 'Call ended · 1:35'],
+    ])('reads %s as a centered sentence', (type, value, text) => {
+      const { container } = renderWithQuery(
+        <ConversationMessage message={callNotice(type, other, value)} isLastMessage={false} />,
+      );
+
+      expect(screen.getByText(text)).toBeInTheDocument();
+      expect(container.querySelector('.border')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Edit nickname' })).not.toBeInTheDocument();
+    });
+
+    it('says you started the call when you did', () => {
+      renderWithQuery(
+        <ConversationMessage
+          message={callNotice(MessageNoticeType.CALL_RING, sessionUser as unknown as User)}
+          isLastMessage={false}
+        />,
+      );
+
+      expect(screen.getByText('You started a call')).toBeInTheDocument();
+    });
   });
 });
 

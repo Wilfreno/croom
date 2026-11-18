@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import ConversationAvatar from "../ConversationAvatar";
+import ComposeCallButton from "./ComposeCallButton";
 import UserAvatar from "../UserAvatar";
 
 export default function ComposeTo({
@@ -234,6 +235,7 @@ export default function ComposeTo({
           </ScrollArea>
         </div>
       </div>
+      <ComposeCallButton selectedUsers={selectedUsers} />
     </section>
   );
 }
