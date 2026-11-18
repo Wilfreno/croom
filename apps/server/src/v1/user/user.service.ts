@@ -33,6 +33,7 @@ import {
   passwordStrengthScorePerCriteriaSatisfied,
 } from '@repo/utils';
 import { Connection, Types } from 'mongoose';
+import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
 import { OtpService } from '../otp/otp.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
@@ -51,6 +52,7 @@ export class UserService {
     private readonly photoModel: PhotoModel,
     private readonly sessionModel: SessionModel,
     private readonly configService: ConfigService,
+    private readonly socketSessions: SocketSessionsService,
   ) {}
 
   async createUser({
@@ -298,6 +300,10 @@ export class UserService {
     } finally {
       await session.endSession();
     }
+
+    await this.socketSessions.disconnectUser(requesterId, {
+      exceptSessionToken: sessionToken,
+    });
   }
 
   async getProfilePhotos(requesterId: string) {
@@ -415,5 +421,7 @@ export class UserService {
     } finally {
       await session.endSession();
     }
+
+    await this.socketSessions.disconnectUser(requesterId);
   }
 }

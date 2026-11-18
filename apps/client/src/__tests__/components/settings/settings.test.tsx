@@ -392,6 +392,23 @@ describe('SettingsChangePassword', () => {
       password: STRONG_PASSWORD,
       confirmPassword: STRONG_PASSWORD,
     });
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith({
+        authService: [AuthServiceOptions.WITH_GOOGLE, AuthServiceOptions.WITH_EMAIL_AND_PASSWORD],
+      }),
+    );
+  });
+
+  it('leaves the sign in methods alone when changing an existing password', async () => {
+    const { newPassword, confirm, submit } = await openForm();
+
+    await userEvent.type(screen.getByLabelText('Current Password'), 'old');
+    await userEvent.type(newPassword, STRONG_PASSWORD);
+    await userEvent.type(confirm, STRONG_PASSWORD);
+    await userEvent.click(submit);
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(PASSWORD_CHANGED));
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('shows why the change failed', async () => {

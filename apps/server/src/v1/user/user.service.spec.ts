@@ -17,6 +17,7 @@ import {
 import type { AuthenticatedUser } from '@repo/types';
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
 import { OtpService } from '../otp/otp.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
@@ -71,6 +72,9 @@ function build() {
   const sessionModel = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   };
+  const socketSessions = {
+    disconnectUser: vi.fn().mockResolvedValue(undefined),
+  };
   const conversationModel = {
     getConversationPartnerIds: vi.fn().mockResolvedValue([]),
   };
@@ -87,6 +91,7 @@ function build() {
     otpService,
     photoModel,
     sessionModel,
+    socketSessions,
   };
 }
 
@@ -103,6 +108,7 @@ async function makeService(mocks: Mocks) {
       { provide: PhotoModel, useValue: mocks.photoModel },
       { provide: SessionModel, useValue: mocks.sessionModel },
       { provide: ConfigService, useValue: { get: vi.fn() } },
+      { provide: SocketSessionsService, useValue: mocks.socketSessions },
     ],
   }).compile();
 
@@ -399,6 +405,17 @@ describe('UserService', () => {
         new Types.ObjectId(REQUESTER_ID),
         { except: 'token', session: mocks.session },
       );
+      expect(mocks.socketSessions.disconnectUser).toHaveBeenCalledWith(
+        REQUESTER_ID,
+        { exceptSessionToken: 'token' },
+      );
+    });
+
+    it('leaves every socket connected when the password is refused', async () => {
+      mocks.userModel.verifyPassword.mockResolvedValue(false);
+
+      await expect(change()).rejects.toMatchObject({ status: 401 });
+      expect(mocks.socketSessions.disconnectUser).not.toHaveBeenCalled();
     });
   });
 
@@ -501,6 +518,9 @@ describe('UserService', () => {
         { session: mocks.session },
       );
       expect(mocks.session.endSession).toHaveBeenCalled();
+      expect(mocks.socketSessions.disconnectUser).toHaveBeenCalledWith(
+        REQUESTER_ID,
+      );
     });
   });
 });

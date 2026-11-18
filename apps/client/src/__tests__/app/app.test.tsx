@@ -138,12 +138,19 @@ describe('RootLayout', () => {
 });
 
 describe('main layouts', () => {
-  it('puts the aside and conversation list beside the page', () => {
+  it('puts the aside beside the page, without the conversation list', () => {
     render(<MainLayout>page content</MainLayout>);
 
     expect(screen.getByText('aside')).toBeInTheDocument();
-    expect(screen.getByText('conversation list')).toBeInTheDocument();
+    expect(screen.queryByText('conversation list')).not.toBeInTheDocument();
     expect(screen.getByText('page content')).toBeInTheDocument();
+  });
+
+  it('puts the conversation list beside the home pages', () => {
+    render(<HomeLayout>home page</HomeLayout>);
+
+    expect(screen.getByText('conversation list')).toBeInTheDocument();
+    expect(screen.getByText('home page')).toBeInTheDocument();
   });
 
   it('adds the info sidebar next to a conversation', () => {
@@ -153,11 +160,8 @@ describe('main layouts', () => {
     expect(screen.getByText('info sidebar')).toBeInTheDocument();
   });
 
-  it.each([
-    ['home', HomeLayout],
-    ['call', CallLayout],
-  ])('the %s layout renders its page as is', (_, Layout) => {
-    render(<Layout>just the page</Layout>);
+  it('the call layout renders its page as is', () => {
+    render(<CallLayout>just the page</CallLayout>);
 
     expect(screen.getByText('just the page')).toBeInTheDocument();
   });

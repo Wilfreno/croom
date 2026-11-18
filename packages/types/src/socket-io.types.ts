@@ -149,4 +149,5 @@ export interface ClientToServerEvents {
 
 export interface SocketData {
   userId: string;
+  sessionTokenHash: string;
 }

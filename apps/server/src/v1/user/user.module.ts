@@ -18,6 +18,7 @@ import {
   User,
   UserSchema,
 } from '@repo/schemas';
+import { SocketSessionsModule } from '../../common/socket-sessions/socket-sessions.module';
 import { OtpModule } from '../otp/otp.module';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -32,6 +33,7 @@ import { UserService } from './user.service';
       { name: Session.name, schema: SessionSchema },
     ]),
     OtpModule,
+    SocketSessionsModule,
   ],
   controllers: [UserController],
   providers: [

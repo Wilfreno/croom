@@ -421,4 +421,78 @@ describe('UserModel', () => {
       expect(options).toEqual({ session });
     });
   });
+
+  describe('getUserByIdWithPassword', () => {
+    it('asks for the password the schema otherwise withholds', async () => {
+      const { collection, model } = build();
+      const select = vi.fn().mockResolvedValue(null);
+      collection.findById.mockReturnValue({ select });
+
+      await model.getUserByIdWithPassword('me');
+
+      expect(collection.findById).toHaveBeenCalledWith('me');
+      expect(select).toHaveBeenCalledWith('+password');
+    });
+  });
+
+  describe('setDisplayName', () => {
+    it('updates only the display name', async () => {
+      const { collection, model } = build();
+
+      await model.setDisplayName({ userId: 'me', displayName: 'Ada' });
+
+      expect(collection.updateOne).toHaveBeenCalledWith({ _id: 'me' }, { $set: { displayName: 'Ada' } });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.setDisplayName({ userId: 'me', displayName: 'Ada' })).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+    });
+  });
+
+  describe('setUserName', () => {
+    it('updates only the username', async () => {
+      const { collection, model } = build();
+
+      await model.setUserName({ userId: 'me', userName: 'ada' });
+
+      expect(collection.updateOne).toHaveBeenCalledWith({ _id: 'me' }, { $set: { userName: 'ada' } });
+    });
+  });
+
+  describe('setPhoto', () => {
+    it('points the user at the photo inside the session', async () => {
+      const { collection, model } = build();
+      const photoId = '507f1f77bcf86cd799439022';
+
+      await model.setPhoto({ userId: 'me', photoId }, session);
+
+      const [filter, update, options] = collection.updateOne.mock.calls[0];
+      expect(filter).toEqual({ _id: 'me' });
+      expect(String(update.$set.photo)).toBe(photoId);
+      expect(options).toEqual({ session });
+    });
+  });
+
+  describe('searchUser', () => {
+    it('leaves deleted accounts and the searcher out of the results', async () => {
+      const { collection, model } = build();
+      const lean = vi.fn().mockResolvedValue([{ _id: 'u1', displayName: 'Ada' }]);
+      const populate = vi.fn(() => ({ lean }));
+      const select = vi.fn(() => ({ populate }));
+      Object.assign(collection, { find: vi.fn(() => ({ select })) });
+
+      await expect(model.searchUser({ userId: 'me', searchText: 'ad' })).resolves.toEqual([
+        { id: 'u1', displayName: 'Ada' },
+      ]);
+
+      const [filter] = (collection as unknown as { find: ReturnType<typeof vi.fn> }).find.mock.calls[0];
+      expect(filter.$and).toContainEqual({ _id: { $ne: 'me' } });
+      expect(filter.$and).toContainEqual({ dateDeleted: null });
+    });
+  });
 });

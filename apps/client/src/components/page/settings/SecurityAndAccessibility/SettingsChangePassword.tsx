@@ -85,7 +85,11 @@ export default function SettingsChangePassword() {
         confirmPassword,
       });
     },
-    onSuccess() {
+    async onSuccess() {
+      if (!hasPassword) {
+        const authService = session.user?.authService ?? [];
+        await session.update({ authService: [...authService, AuthServiceOptions.WITH_EMAIL_AND_PASSWORD] });
+      }
       toast.success(PASSWORD_CHANGED);
       close();
     },

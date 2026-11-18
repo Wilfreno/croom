@@ -1,4 +1,5 @@
 import { InternalServerErrorException } from '@nestjs/common';
+import { PhotoType } from '@repo/enums';
 import { Message, Photo } from '@repo/schemas';
 import { ClientSession, Model } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,9 +7,28 @@ import { PhotoModel } from './photo.model';
 import { toEntity } from './pipeline';
 
 const CONVERSATION_ID = '64b7f0c2a1b2c3d4e5f60718';
+const OWNER_ID = '64b7f0c2a1b2c3d4e5f60719';
+
+function chain(result: unknown) {
+  const query = {
+    sort: vi.fn(() => query),
+    skip: vi.fn(() => query),
+    select: vi.fn(() => query),
+    session: vi.fn(() => query),
+    lean: vi.fn().mockResolvedValue(result),
+  };
+  return query;
+}
 
 function build() {
-  const photos = { create: vi.fn(), deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }) };
+  const photos = {
+    create: vi.fn(),
+    deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
+    deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
+    updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    find: vi.fn(() => chain([])),
+    findOne: vi.fn(() => chain(null)),
+  };
   const messages = { aggregate: vi.fn().mockResolvedValue([]) };
   return {
     photos,
@@ -59,6 +79,108 @@ describe('PhotoModel', () => {
       photos.deleteOne.mockRejectedValue(new Error('connection lost'));
 
       await expect(model.deleteById('p1')).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('getProfilePhotosByOwnerId', () => {
+    it('lists the owner profile photos, most recently used first', async () => {
+      const { photos, model } = build();
+      const query = chain([{ url: 'a' }]);
+      photos.find.mockReturnValue(query);
+
+      await expect(model.getProfilePhotosByOwnerId(OWNER_ID)).resolves.toEqual([{ url: 'a' }]);
+      expect(photos.find).toHaveBeenCalledWith({ owner: OWNER_ID, type: PhotoType.PROFILE });
+      expect(query.sort).toHaveBeenCalledWith({ lastUpdated: -1 });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { photos, model } = build();
+      photos.find.mockImplementation(() => {
+        throw new Error('connection lost');
+      });
+
+      await expect(model.getProfilePhotosByOwnerId(OWNER_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('findProfilePhoto', () => {
+    it('only finds a profile photo that belongs to the owner', async () => {
+      const { photos, model } = build();
+      photos.findOne.mockReturnValue(chain({ url: 'a' }));
+
+      await expect(model.findProfilePhoto({ photoId: 'p1', ownerId: OWNER_ID })).resolves.toEqual({ url: 'a' });
+      expect(photos.findOne).toHaveBeenCalledWith({ _id: 'p1', owner: OWNER_ID, type: PhotoType.PROFILE });
+    });
+
+    it('is null when the owner has no such photo', async () => {
+      const { model } = build();
+
+      await expect(model.findProfilePhoto({ photoId: 'p1', ownerId: OWNER_ID })).resolves.toBeNull();
+    });
+  });
+
+  describe('markAsRecent', () => {
+    it('stamps the photo as just used inside the session', async () => {
+      const { photos, model } = build();
+
+      await model.markAsRecent('p1', session);
+
+      const [filter, update, options] = photos.updateOne.mock.calls[0];
+      expect(filter).toEqual({ _id: 'p1' });
+      expect(update.$set.lastUpdated).toBeInstanceOf(Date);
+      expect(options).toEqual({ session });
+    });
+  });
+
+  describe('deleteProfilePhotosBeyond', () => {
+    it('deletes every profile photo past the newest ones it keeps', async () => {
+      const { photos, model } = build();
+      const query = chain([{ _id: 'old-1' }, { _id: 'old-2' }]);
+      photos.find.mockReturnValue(query);
+
+      await model.deleteProfilePhotosBeyond({ ownerId: OWNER_ID, keep: 5 }, session);
+
+      expect(photos.find).toHaveBeenCalledWith({ owner: OWNER_ID, type: PhotoType.PROFILE });
+      expect(query.sort).toHaveBeenCalledWith({ lastUpdated: -1 });
+      expect(query.skip).toHaveBeenCalledWith(5);
+      expect(query.session).toHaveBeenCalledWith(session);
+      expect(photos.deleteMany).toHaveBeenCalledWith({ _id: { $in: ['old-1', 'old-2'] } }, { session });
+    });
+
+    it('deletes nothing when the owner is within the limit', async () => {
+      const { photos, model } = build();
+
+      await model.deleteProfilePhotosBeyond({ ownerId: OWNER_ID, keep: 5 });
+
+      expect(photos.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { photos, model } = build();
+      photos.find.mockImplementation(() => {
+        throw new Error('connection lost');
+      });
+
+      await expect(model.deleteProfilePhotosBeyond({ ownerId: OWNER_ID, keep: 5 })).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+    });
+  });
+
+  describe('deleteProfilePhotosByOwnerId', () => {
+    it('deletes only the owner profile photos inside the session', async () => {
+      const { photos, model } = build();
+
+      await model.deleteProfilePhotosByOwnerId(OWNER_ID, session);
+
+      expect(photos.deleteMany).toHaveBeenCalledWith({ owner: OWNER_ID, type: PhotoType.PROFILE }, { session });
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { photos, model } = build();
+      photos.deleteMany.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.deleteProfilePhotosByOwnerId(OWNER_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 

@@ -2,6 +2,7 @@ import {
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
+  emptyChangePasswordForm,
   getAvatarColor,
   getConversationName,
   getGroupAvatarMembers,
@@ -19,6 +20,7 @@ import {
   getTimeIntervalText,
   isSameSender,
   peopleLabel,
+  withoutAtSign,
 } from '@/lib/utils';
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
@@ -447,5 +449,33 @@ describe('call notices', () => {
     expect(getNoticeText({ ...input, notice: { type: MessageNoticeType.NICKNAME, user: 'bob', value: 'Ace' } })).toBe(
       "Ada set Bob's nickname to Ace",
     );
+  });
+});
+
+describe('withoutAtSign', () => {
+  it('drops a leading @', () => {
+    expect(withoutAtSign('@ada')).toBe('ada');
+  });
+
+  it('leaves a username without an @ as it is', () => {
+    expect(withoutAtSign('ada')).toBe('ada');
+  });
+
+  it('only drops the first character when it is an @', () => {
+    expect(withoutAtSign('a@da')).toBe('a@da');
+  });
+
+  it('is empty for a missing username', () => {
+    expect(withoutAtSign(undefined)).toBe('');
+  });
+});
+
+describe('emptyChangePasswordForm', () => {
+  it('starts every field empty', () => {
+    expect(emptyChangePasswordForm()).toEqual({ currentPassword: '', password: '', confirmPassword: '' });
+  });
+
+  it('returns a new form each time', () => {
+    expect(emptyChangePasswordForm()).not.toBe(emptyChangePasswordForm());
   });
 });

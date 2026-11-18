@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common';
 import {
   OTP_REQUEST_LIMIT,
+  PASSWORD_CHANGE_REQUEST_LIMIT,
+  PASSWORD_CHANGE_REQUEST_WINDOW,
   SECONDS_IN_MINUTE,
   SESSION_COOKIE,
 } from '@repo/constants';
@@ -103,6 +105,11 @@ export class UserController {
   }
 
   @Patch('/password')
+  @RateLimit({
+    limit: PASSWORD_CHANGE_REQUEST_LIMIT,
+    window: PASSWORD_CHANGE_REQUEST_WINDOW,
+    by: 'user.id',
+  })
   changePassword(
     @CurrentUser() user: AuthenticatedUser,
     @Body() data: ChangePasswordDto,
