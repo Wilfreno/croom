@@ -1,8 +1,10 @@
 'use client';
-import { appendMessage, getNicknameNoticeText, setCachedNicknames } from '@/lib/utils';
+import { appendMessage, getNicknameNoticeText, incomingCallToastId, setCachedNicknames } from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
 import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import type {
+  CallAnswerPayload,
+  CallPayload,
   ClientToServerEvents,
   Conversation,
   ConversationMembersChangedPayload,
@@ -80,18 +82,33 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         queryKey.includes('conversations') || (queryKey[0] === 'conversation' && queryKey[1] !== 'messages'),
     });
   }
-  function onIncomingCall(call: IncomingCallPayload) {
+  function onIncomingCall(socket: Socket<ServerToClientEvents, ClientToServerEvents>, call: IncomingCallPayload) {
+    const conversationId = call.conversationId;
     toast.custom(
       (toastId) => (
-        <IncomingCallToast call={call} toastId={toastId} onAccept={() => router.push(`/call/${call.conversationId}`)} />
+        <IncomingCallToast
+          call={call}
+          toastId={toastId}
+          onAccept={() => {
+            socket.emit('CALL_ACCEPT', { conversationId });
+            router.push(`/call/${conversationId}`);
+          }}
+          onDecline={() => socket.emit('CALL_DECLINE', { conversationId })}
+        />
       ),
       {
-        id: `incoming-call-${call.conversationId}`, // a repeated ring from the same call replaces the toast
+        id: incomingCallToastId(conversationId), // a repeated ring from the same call replaces the toast
         duration: CALL_RING_DURATION_MS,
         className: 'w-full',
         position: 'top-center',
       },
     );
+  }
+  function onCallCancelled({ conversationId }: CallPayload) {
+    toast.dismiss(incomingCallToastId(conversationId));
+  }
+  function onCallAnswered({ conversationId, userId }: CallAnswerPayload) {
+    if (userId === session.user?.id) toast.dismiss(incomingCallToastId(conversationId));
   }
   function onMembersChanged({ conversationId, removedMemberId }: ConversationMembersChangedPayload) {
     const userId = session.user?.id;
@@ -135,14 +152,23 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
     socket.on('ERROR', onError);
 
     socket.on('connect_error', onConnectError);
-    socket.on('INCOMING_CALL', onIncomingCall);
+    function onIncomingCallFromSocket(call: IncomingCallPayload) {
+      onIncomingCall(socket, call);
+    }
+    socket.on('INCOMING_CALL', onIncomingCallFromSocket);
+    socket.on('CALL_CANCELLED', onCallCancelled);
+    socket.on('CALL_ACCEPTED', onCallAnswered);
+    socket.on('CALL_DECLINED', onCallAnswered);
     socket.on('CONVERSATION_MEMBERS_CHANGED', onMembersChanged);
 
     return () => {
       socket?.off('USER_STATUS', onUserStatus);
       socket?.off('ERROR', onError);
       socket?.off('connect_error', onConnectError);
-      socket?.off('INCOMING_CALL', onIncomingCall);
+      socket?.off('INCOMING_CALL', onIncomingCallFromSocket);
+      socket?.off('CALL_CANCELLED', onCallCancelled);
+      socket?.off('CALL_ACCEPTED', onCallAnswered);
+      socket?.off('CALL_DECLINED', onCallAnswered);
       socket?.off('CONVERSATION_MEMBERS_CHANGED', onMembersChanged);
       socket?.off('MESSAGE', onMessage);
       socket?.disconnect();

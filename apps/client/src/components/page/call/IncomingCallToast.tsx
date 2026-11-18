@@ -2,6 +2,9 @@
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
+import useLoopingAudio from '@/components/hooks/useLoopingAudio';
+import { withBasePath } from '@/lib/utils';
+import { CALL_RINGTONE_URL, CALL_RINGTONE_VOLUME } from '@repo/constants';
 import { IncomingCallPayload } from '@repo/types';
 import { Phone, PhoneOff } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,11 +13,15 @@ export default function IncomingCallToast({
   call,
   toastId,
   onAccept,
+  onDecline,
 }: {
   call: IncomingCallPayload;
   toastId: string | number;
   onAccept: () => void;
+  onDecline: () => void;
 }) {
+  useLoopingAudio(withBasePath(CALL_RINGTONE_URL), CALL_RINGTONE_VOLUME, true);
+
   return (
     <div className="flex w-full items-center gap-4 rounded-lg border bg-background p-3 shadow-lg">
       <Avatar>
@@ -30,7 +37,10 @@ export default function IncomingCallToast({
         variant="destructive"
         className="rounded-full"
         aria-label="Decline call"
-        onClick={() => toast.dismiss(toastId)}
+        onClick={() => {
+          toast.dismiss(toastId);
+          onDecline();
+        }}
       >
         <PhoneOff />
       </Button>

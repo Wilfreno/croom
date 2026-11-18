@@ -130,6 +130,25 @@ describe('CallGateway', () => {
       expect(roomEmit).toHaveBeenCalledWith('INCOMING_CALL', { conversationId: CONVERSATION_ID, caller: alice });
     });
 
+    it('answers that no call is running yet', async () => {
+      const { gateway } = build();
+
+      const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ isOngoing: false });
+    });
+
+    it('answers that a call is already running, and still rings', async () => {
+      const { gateway, roomEmit } = build({ members: [alice, bob, carol] });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      roomEmit.mockClear();
+
+      const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ isOngoing: true });
+      expect(roomEmit).toHaveBeenCalledWith('INCOMING_CALL', expect.objectContaining({ conversationId: CONVERSATION_ID }));
+    });
+
     it('rings nobody when the caller is the only member', async () => {
       const { gateway, server } = build({ members: [alice] });
 
@@ -142,9 +161,10 @@ describe('CallGateway', () => {
       const { gateway, server } = build({ isBlocked: true });
       const { client, spies } = fakeClient('alice');
 
-      await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
+      const result = await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
 
       expect(spies.emit).toHaveBeenCalledWith('ERROR', 'you cannot call this conversation');
+      expect(result).toEqual({ error: 'you cannot call this conversation' });
       expect(server.to).not.toHaveBeenCalled();
     });
 
@@ -164,6 +184,53 @@ describe('CallGateway', () => {
       await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
 
       expect(spies.emit).toHaveBeenCalledWith('ERROR', 'could not start the call');
+    });
+  });
+
+  describe('answering and cancelling a ring', () => {
+    it.each([
+      ['CALL_ACCEPT', 'handleAccept', 'CALL_ACCEPTED'],
+      ['CALL_DECLINE', 'handleDecline', 'CALL_DECLINED'],
+    ] as const)('%s tells every member, including your other tabs, that you answered', async (_, handler, event) => {
+      const { gateway } = build({ members: [alice, bob, carol] });
+      const { client, spies, broadcast } = fakeClient('bob');
+
+      await gateway[handler](client, { conversationId: CONVERSATION_ID });
+
+      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(broadcast.emit).toHaveBeenCalledWith(event, { conversationId: CONVERSATION_ID, userId: 'bob' });
+    });
+
+    it('CALL_CANCEL stops the ring for every member', async () => {
+      const { gateway } = build({ members: [alice, bob, carol] });
+      const { client, spies, broadcast } = fakeClient('alice');
+
+      await gateway.handleCancel(client, { conversationId: CONVERSATION_ID });
+
+      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(broadcast.emit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+    });
+
+    it('relays nothing for someone who is not a member', async () => {
+      const { gateway } = build({ members: [alice, bob] });
+      const { client, spies } = fakeClient('carol');
+
+      await gateway.handleAccept(client, { conversationId: CONVERSATION_ID });
+      await gateway.handleCancel(client, { conversationId: CONVERSATION_ID });
+
+      expect(spies.to).not.toHaveBeenCalled();
+    });
+
+    it('relays nothing for a socket without a user or when the lookup fails', async () => {
+      const { gateway, conversationModel } = build();
+      const anonymous = fakeClient(undefined);
+      await gateway.handleDecline(anonymous.client, { conversationId: CONVERSATION_ID });
+      expect(anonymous.spies.to).not.toHaveBeenCalled();
+
+      conversationModel.getCallMembersByConversationId.mockRejectedValue(new Error('db down'));
+      const bobClient = fakeClient('bob');
+      await gateway.handleAccept(bobClient.client, { conversationId: CONVERSATION_ID });
+      expect(bobClient.spies.to).not.toHaveBeenCalled();
     });
   });
 

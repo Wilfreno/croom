@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('socket.io-client', () => ({ io: vi.fn() }));
-vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { custom: vi.fn(), error: vi.fn() }) }));
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { custom: vi.fn(), error: vi.fn(), dismiss: vi.fn() }) }));
 
 let sessionUser: UserSession | null;
 vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: sessionUser } }) }));
@@ -179,19 +179,63 @@ describe('SocketIOProvider', () => {
     expect(predicate({ queryKey: ['user', 'session'] })).toBe(false);
   });
 
-  it('rings with one toast per call that opens the call when accepted', () => {
-    renderProvider();
+  describe('ringing', () => {
     const call = { conversationId: 'c1', caller: { id: 'u', displayName: 'Bob', photoUrl: null } };
 
-    act(() => server.serverEmit('INCOMING_CALL', call));
+    function ring() {
+      renderProvider();
+      act(() => server.serverEmit('INCOMING_CALL', call));
+      const [render, options] = vi.mocked(toast.custom).mock.calls[0];
+      const element = render('toast-1') as React.ReactElement<{
+        call: unknown;
+        onAccept: () => void;
+        onDecline: () => void;
+      }>;
+      return { element, options };
+    }
 
-    const [render, options] = vi.mocked(toast.custom).mock.calls[0];
-    expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS, position: 'top-center' });
+    it('rings with one toast per call', () => {
+      const { element, options } = ring();
 
-    const element = render('toast-1') as React.ReactElement<{ call: unknown; onAccept: () => void }>;
-    expect(element.props.call).toBe(call);
-    element.props.onAccept();
-    expect(push).toHaveBeenCalledWith('/call/c1');
+      expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS, position: 'top-center' });
+      expect(element.props.call).toBe(call);
+    });
+
+    it('tells the caller and opens the call when accepted', () => {
+      const { element } = ring();
+
+      element.props.onAccept();
+
+      expect(server.spies.emit).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
+      expect(push).toHaveBeenCalledWith('/call/c1');
+    });
+
+    it('tells the caller when declined, without opening the call', () => {
+      const { element } = ring();
+
+      element.props.onDecline();
+
+      expect(server.spies.emit).toHaveBeenCalledWith('CALL_DECLINE', { conversationId: 'c1' });
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('stops ringing when the caller cancels', () => {
+      ring();
+
+      act(() => server.serverEmit('CALL_CANCELLED', { conversationId: 'c1' }));
+
+      expect(toast.dismiss).toHaveBeenCalledWith('incoming-call-c1');
+    });
+
+    it.each(['CALL_ACCEPTED', 'CALL_DECLINED'])('stops ringing when you answered in another tab (%s)', (event) => {
+      ring();
+
+      act(() => server.serverEmit(event, { conversationId: 'c1', userId: 'someone-else' }));
+      expect(toast.dismiss).not.toHaveBeenCalled();
+
+      act(() => server.serverEmit(event, { conversationId: 'c1', userId: sessionUser?.id }));
+      expect(toast.dismiss).toHaveBeenCalledWith('incoming-call-c1');
+    });
   });
 
   describe('CONVERSATION_MEMBERS_CHANGED', () => {
@@ -258,7 +302,16 @@ describe('SocketIOProvider', () => {
 
     unmount();
 
-    for (const event of ['MESSAGE', 'USER_STATUS', 'ERROR', 'INCOMING_CALL', 'CONVERSATION_MEMBERS_CHANGED'])
+    for (const event of [
+      'MESSAGE',
+      'USER_STATUS',
+      'ERROR',
+      'INCOMING_CALL',
+      'CALL_CANCELLED',
+      'CALL_ACCEPTED',
+      'CALL_DECLINED',
+      'CONVERSATION_MEMBERS_CHANGED',
+    ])
       expect(server.listenerCount(event)).toBe(0);
     expect(server.spies.disconnect).toHaveBeenCalled();
   });

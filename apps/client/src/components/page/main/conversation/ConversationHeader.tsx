@@ -1,8 +1,8 @@
 'use client';
 
 import useInfoSidebarOpen from '@/components/hooks/queries/useInfoSidebarOpen';
+import useOutgoingCall from '@/components/hooks/useOutgoingCall';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { ArrowLeft, Ellipsis, Video } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import ConversationAvatar from '../ConversationAvatar';
 import UserAvatar from '../UserAvatar';
+import OutgoingCallDialog from './OutgoingCallDialog';
 
 export default function ConversationHeader({
   conversationInfo,
@@ -25,12 +26,21 @@ export default function ConversationHeader({
   const { onMobile, setIsOpen } = useInfoSidebarOpen();
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const socket = useSocketIO();
+  const recipientCount = conversation
+    ? conversation.members.filter((member) => member.id !== session.user?.id).length
+    : 1;
+  const outgoingCall = useOutgoingCall(params.id, recipientCount);
+  const callAvatar = conversation ? (
+    <ConversationAvatar conversation={conversation} currentUserId={session.user?.id} size="lg" className="h-20 w-20" />
+  ) : (
+    <UserAvatar
+      src={conversationInfo?.photoUrl}
+      name={conversationInfo?.conversationName}
+      isOnline={false}
+      className="h-20 w-20"
+    />
+  );
 
-  function startCall() {
-    socket?.emit('CALL', { conversationId: params.id });
-    router.push(`/call/${params.id}`);
-  }
   return (
     <section
       className={cn(
@@ -69,7 +79,7 @@ export default function ConversationHeader({
                   variant="ghost"
                   className="aspect-square h-fit w-auto rounded-full p-1 text-primary hover:text-accent-none hover:scale-105"
                   aria-label="Start video call"
-                  onClick={startCall}
+                  onClick={outgoingCall.start}
                 >
                   <Video className="fill-primary" />
                 </Button>
@@ -85,6 +95,14 @@ export default function ConversationHeader({
           <Ellipsis />
         </Button>
       </div>
+      <OutgoingCallDialog
+        status={outgoingCall.status}
+        name={conversationInfo?.conversationName ?? ''}
+        avatar={callAvatar}
+        onCancel={outgoingCall.cancel}
+        onClose={outgoingCall.close}
+        onCallAgain={outgoingCall.start}
+      />
     </section>
   );
 }

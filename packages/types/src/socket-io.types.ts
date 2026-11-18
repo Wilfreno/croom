@@ -16,6 +16,15 @@ export interface CallPayload {
   conversationId: string;
 }
 
+export interface CallAnswerPayload {
+  conversationId: string;
+  userId: string;
+}
+
+export interface CallStartResult {
+  isOngoing: boolean;
+}
+
 export interface IncomingCallPayload {
   conversationId: string;
   caller: {
@@ -89,10 +98,16 @@ export interface ServerToClientEvents {
   CALL_PRODUCER_CLOSED: (payload: { producerId: string }) => void;
   CALL_PRODUCER_PAUSED: (payload: { producerId: string; paused: boolean }) => void;
   CALL_ENDED: (payload: { reason: string }) => void;
+  CALL_ACCEPTED: (payload: CallAnswerPayload) => void;
+  CALL_DECLINED: (payload: CallAnswerPayload) => void;
+  CALL_CANCELLED: (payload: CallPayload) => void;
 }
 
 export interface ClientToServerEvents {
-  CALL: (payload: CallPayload) => void;
+  CALL: (payload: CallPayload, ack: (result: CallAck<CallStartResult>) => void) => void;
+  CALL_ACCEPT: (payload: CallPayload) => void;
+  CALL_DECLINE: (payload: CallPayload) => void;
+  CALL_CANCEL: (payload: CallPayload) => void;
   CALL_JOIN: (payload: CallPayload, ack: (result: CallAck<CallJoinResult>) => void) => void;
   CALL_CREATE_TRANSPORT: (
     payload: { direction: 'send' | 'recv' },

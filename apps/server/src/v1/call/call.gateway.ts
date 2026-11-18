@@ -12,6 +12,7 @@ import type {
   CallConsumeResult,
   CallJoinResult,
   CallPayload,
+  CallStartResult,
   CallTransportOptions,
   MediaKind,
   MediasoupJson,
@@ -52,9 +53,9 @@ export class CallGateway implements OnGatewayDisconnect {
   async handleCall(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
-  ) {
+  ): Promise<CallAck<CallStartResult>> {
     const callerId = client.data.userId;
-    if (!callerId) return;
+    if (!callerId) return { error: 'you are not logged in' };
 
     try {
       const access = await this.callService.checkAccess(
@@ -63,22 +64,56 @@ export class CallGateway implements OnGatewayDisconnect {
       );
       if ('error' in access) {
         client.emit('ERROR', access.error);
-        return;
+        return access;
       }
 
+      const isOngoing =
+        this.callService.otherPeers(payload.conversationId, client.id).length >
+        0;
       const recipientIds = access.members
         .map((member) => member.id)
         .filter((memberId) => memberId !== callerId);
-      if (!recipientIds.length) return;
+      if (recipientIds.length)
+        this.server.to(recipientIds).emit('INCOMING_CALL', {
+          conversationId: payload.conversationId,
+          caller: access.caller,
+        });
 
-      this.server.to(recipientIds).emit('INCOMING_CALL', {
-        conversationId: payload.conversationId,
-        caller: access.caller,
-      });
+      return { isOngoing };
     } catch (error) {
       this.logger.error(error);
       client.emit('ERROR', 'could not start the call');
+      return { error: 'could not start the call' };
     }
+  }
+
+  @SubscribeMessage('CALL_ACCEPT')
+  async handleAccept(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ) {
+    await this.relayAnswer(client, payload, 'CALL_ACCEPTED');
+  }
+
+  @SubscribeMessage('CALL_DECLINE')
+  async handleDecline(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ) {
+    await this.relayAnswer(client, payload, 'CALL_DECLINED');
+  }
+
+  @SubscribeMessage('CALL_CANCEL')
+  async handleCancel(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ) {
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!memberIds) return;
+
+    client
+      .to(memberIds)
+      .emit('CALL_CANCELLED', { conversationId: payload.conversationId });
   }
 
   @SubscribeMessage('CALL_JOIN')
@@ -358,6 +393,38 @@ export class CallGateway implements OnGatewayDisconnect {
       this.server.to(room).emit('CALL_PEER_LEFT', { peerId: peer.peerId });
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  /** Tells the conversation's members, including the sender's other tabs, who answered and how. */
+  private async relayAnswer(
+    client: TypedSocket,
+    payload: CallPayload,
+    event: 'CALL_ACCEPTED' | 'CALL_DECLINED',
+  ) {
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!memberIds) return;
+
+    client.to(memberIds).emit(event, {
+      conversationId: payload.conversationId,
+      userId: client.data.userId,
+    });
+  }
+
+  private async memberIdsFor(client: TypedSocket, payload: CallPayload) {
+    const userId = client.data.userId;
+    if (!userId) return null;
+
+    try {
+      const access = await this.callService.checkAccess(
+        payload?.conversationId,
+        userId,
+      );
+      if ('error' in access) return null;
+      return access.members.map((member) => member.id);
+    } catch (error) {
+      this.logger.error(error);
+      return null;
     }
   }
 

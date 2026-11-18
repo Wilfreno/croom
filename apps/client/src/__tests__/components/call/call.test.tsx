@@ -15,7 +15,13 @@ import SelectMicrophone from '@/components/page/call/microphone/SelectMicrophone
 import CallSidePanelProvider from '@/components/providers/CallSidePanelProvider';
 import PinnedParticipantsProvider from '@/components/providers/PinnedParticipantsProvider';
 import type { CallContextType, CallParticipant, LocalMediaContextType } from '@/types/call.types';
-import { CALL_MAX_VISIBLE_TILES, CALL_PINNED_SIDE_MAX_TILES } from '@repo/constants';
+import useLoopingAudio from '@/components/hooks/useLoopingAudio';
+import {
+  CALL_MAX_VISIBLE_TILES,
+  CALL_PINNED_SIDE_MAX_TILES,
+  CALL_RINGTONE_URL,
+  CALL_RINGTONE_VOLUME,
+} from '@repo/constants';
 import type { CallMember, Conversation, MessagePayload, UserSession } from '@repo/types';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -64,6 +70,7 @@ vi.mock('@/components/hooks/useCallParticipants', () => ({
   }),
 }));
 vi.mock('sonner', () => ({ toast: { dismiss: vi.fn() } }));
+vi.mock('@/components/hooks/useLoopingAudio', () => ({ default: vi.fn() }));
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'c1' }) }));
 vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => socket }));
 vi.mock('@/components/hooks/queries/useConversation', () => ({ default: () => ({ data: conversation }) }));
@@ -275,30 +282,40 @@ describe('IncomingCallToast', () => {
   const incoming = { conversationId: 'c1', caller: { id: 'u', displayName: 'Bob', photoUrl: null } };
 
   it('says who is calling', () => {
-    render(<IncomingCallToast call={incoming} toastId="t" onAccept={vi.fn()} />);
+    render(<IncomingCallToast call={incoming} toastId="t" onAccept={vi.fn()} onDecline={vi.fn()} />);
 
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('is calling you…')).toBeInTheDocument();
   });
 
-  it('dismisses without answering on decline', async () => {
+  it('plays the ringtone while it shows', () => {
+    render(<IncomingCallToast call={incoming} toastId="t" onAccept={vi.fn()} onDecline={vi.fn()} />);
+
+    expect(useLoopingAudio).toHaveBeenLastCalledWith(CALL_RINGTONE_URL, CALL_RINGTONE_VOLUME, true);
+  });
+
+  it('dismisses and declines on decline', async () => {
     const onAccept = vi.fn();
-    render(<IncomingCallToast call={incoming} toastId="t" onAccept={onAccept} />);
+    const onDecline = vi.fn();
+    render(<IncomingCallToast call={incoming} toastId="t" onAccept={onAccept} onDecline={onDecline} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Decline call' }));
 
     expect(toast.dismiss).toHaveBeenCalledWith('t');
+    expect(onDecline).toHaveBeenCalledOnce();
     expect(onAccept).not.toHaveBeenCalled();
   });
 
   it('dismisses and answers on accept', async () => {
     const onAccept = vi.fn();
-    render(<IncomingCallToast call={incoming} toastId="t" onAccept={onAccept} />);
+    const onDecline = vi.fn();
+    render(<IncomingCallToast call={incoming} toastId="t" onAccept={onAccept} onDecline={onDecline} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Accept call' }));
 
     expect(toast.dismiss).toHaveBeenCalledWith('t');
     expect(onAccept).toHaveBeenCalledOnce();
+    expect(onDecline).not.toHaveBeenCalled();
   });
 });
 

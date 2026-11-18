@@ -220,6 +220,10 @@ export function peopleLabel(count: number) {
   return `${count} ${count === 1 ? "person" : "people"}`;
 }
 
+export function incomingCallToastId(conversationId: string) {
+  return `incoming-call-${conversationId}`;
+}
+
 export function unreadMessagesLabel(count: number) {
   return `${count} unread ${count === 1 ? "message" : "messages"}`;
 }

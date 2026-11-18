@@ -26,3 +26,11 @@ export const CALL_DEFAULT_MEDIA_PREFERENCES = { isCameraOn: false, isMicOn: true
 export const CALL_PINNED_SIDE_MAX_TILES = 5;
 export const CALL_SIDE_PANEL_DOCKED_MEDIA_QUERY = '(min-width: 640px)';
 export const CALL_SIDE_PANEL_TRANSITION_SECONDS = 0.25;
+export const CALL_RINGBACK_TONE = {
+  volume: 0.08,
+  cycleSeconds: 6,
+  notes: [{ startSeconds: 0, durationSeconds: 2, frequencies: [440, 480] }],
+};
+export const CALL_RINGTONE_URL = '/sounds/incoming-call.mp3';
+export const CALL_RINGTONE_VOLUME = 1;
+export const RINGTONE_FADE_SECONDS = 0.02;

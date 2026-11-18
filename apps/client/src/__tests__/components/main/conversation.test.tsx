@@ -1,6 +1,7 @@
 import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
+import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import ConversationHeader from '@/components/page/main/conversation/ConversationHeader';
 import ConversationMessage from '@/components/page/main/conversation/ConversationMessage';
@@ -8,6 +9,8 @@ import ConversationMessageInput from '@/components/page/main/conversation/Conver
 import ConversationMessages from '@/components/page/main/conversation/ConversationMessages';
 import MessageToast from '@/components/page/main/conversation/MessageToast';
 import { axiosInstance } from '@/lib/axios-instance';
+import useRingtone from '@/components/hooks/useRingtone';
+import { CALL_RINGBACK_TONE, CALL_RING_DURATION_MS } from '@repo/constants';
 import { MessageNoticeType, UserStatus } from '@repo/enums';
 import type { Message, MessagePayload, User, UserSession } from '@repo/types';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -23,12 +26,13 @@ vi.mock('emoji-picker-react', async () => (await import('@/__tests__/mocks/mock-
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
 vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}), delete: vi.fn().mockResolvedValue({}) } }));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), dismiss: vi.fn() }) }));
+vi.mock('@/components/hooks/useRingtone', () => ({ default: vi.fn() }));
 
 let sessionUser: UserSession;
 vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: sessionUser } }) }));
 
-const socket = { emit: vi.fn() };
-vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => socket }));
+let server: ReturnType<typeof mockSocket>;
+vi.mock('@/components/providers/SocketIOProvider', () => ({ useSocketIO: () => server.socket }));
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), useParams: () => ({ id: 'c1' }) }));
@@ -45,6 +49,7 @@ vi.mock('@/components/hooks/queries/useMessages', () => ({ default: () => ({ fou
 
 beforeEach(() => {
   vi.clearAllMocks();
+  server = mockSocket({ CALL: { isOngoing: false } });
   sessionUser = mockSession();
   sidebar.onMobile = false;
   sendMessage.isPending = false;
@@ -84,13 +89,119 @@ describe('ConversationHeader', () => {
     expect(screen.getByLabelText('and 2 more')).toHaveTextContent('+2');
   });
 
-  it('rings the conversation and opens the call', async () => {
-    renderWithQuery(<ConversationHeader conversationInfo={info} />);
+  describe('calling', () => {
+    function oneOnOne() {
+      return mockConversation({ id: 'c1', members: [sessionUser as unknown as User, mockUser({ id: 'bob' })] });
+    }
 
-    await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+    async function call(conversation = oneOnOne()) {
+      renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+      return screen.findByRole('dialog');
+    }
 
-    expect(socket.emit).toHaveBeenCalledWith('CALL', { conversationId: 'c1' });
-    expect(push).toHaveBeenCalledWith('/call/c1');
+    it('rings the conversation and waits in a dialog instead of opening the call', async () => {
+      const dialog = await call();
+
+      expect(server.emitWithAck).toHaveBeenCalledWith('CALL', { conversationId: 'c1' });
+      expect(within(dialog).getByText('Bob')).toBeInTheDocument();
+      expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('plays the ringback tone only while ringing', async () => {
+      const dialog = await call();
+      expect(useRingtone).toHaveBeenLastCalledWith(CALL_RINGBACK_TONE, true);
+
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
+
+      expect(within(dialog).getByText('Call declined')).toBeInTheDocument();
+      expect(useRingtone).toHaveBeenLastCalledWith(CALL_RINGBACK_TONE, false);
+    });
+
+    it('opens the call once someone accepts', async () => {
+      await call();
+
+      act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'other', userId: 'bob' }));
+      act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'c1', userId: sessionUser.id }));
+      expect(push).not.toHaveBeenCalled();
+
+      act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'c1', userId: 'bob' }));
+      expect(push).toHaveBeenCalledWith('/call/c1');
+    });
+
+    it('goes straight in when the call is already running', async () => {
+      server.replies.CALL = { isOngoing: true };
+
+      await call();
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith('/call/c1'));
+    });
+
+    it('goes straight in when there is nobody else to ring', async () => {
+      renderWithQuery(
+        <ConversationHeader conversationInfo={info} conversation={mockConversation({ id: 'c1', isGroupChat: true, members: [sessionUser as unknown as User] })} />,
+      );
+
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith('/call/c1'));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('says the call was declined once everyone declines, and can call again', async () => {
+      const group = mockConversation({
+        id: 'c1',
+        isGroupChat: true,
+        members: [sessionUser as unknown as User, mockUser({ id: 'bob' }), mockUser({ id: 'carol' })],
+      });
+      const dialog = await call(group);
+
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
+      expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'carol' }));
+      expect(within(dialog).getByText('Call declined')).toBeInTheDocument();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Call again' }));
+      expect(server.emitWithAck).toHaveBeenCalledTimes(2);
+      expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+    });
+
+    it('cancels the ring', async () => {
+      const dialog = await call();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel call' }));
+
+      expect(server.spies.emit).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('gives up with "No answer" when nobody picks up in time', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const dialog = await call();
+
+        act(() => vi.advanceTimersByTime(CALL_RING_DURATION_MS));
+
+        expect(within(dialog).getByText('No answer')).toBeInTheDocument();
+        expect(server.spies.emit).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('closes the dialog when the server refuses the call', async () => {
+      server.replies.CALL = { error: 'you cannot call this conversation' };
+
+      renderWithQuery(<ConversationHeader conversationInfo={info} conversation={oneOnOne()} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(push).not.toHaveBeenCalled();
+    });
   });
 
   it.each([
