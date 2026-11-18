@@ -6,6 +6,7 @@ import { CALL_NO_LONGER_RINGING, CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT 
 import { MessageNoticeType } from '@repo/enums';
 import type { Conversation, Message, MessagePayload, UserSession } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { io } from 'socket.io-client';
@@ -224,8 +225,10 @@ describe('SocketIOProvider', () => {
   describe('ringing', () => {
     const call = { conversationId: 'c1', caller: { id: 'u', displayName: 'Bob', photoUrl: null } };
 
+    let lastRender: ReturnType<typeof renderProvider>;
+
     function ring() {
-      renderProvider();
+      lastRender = renderProvider();
       act(() => server.serverEmit('INCOMING_CALL', call));
       const [render, options] = vi.mocked(toast.custom).mock.calls[0];
       const element = render('toast-1') as React.ReactElement<{
@@ -264,6 +267,27 @@ describe('SocketIOProvider', () => {
 
       expect(push).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(CALL_NO_LONGER_RINGING);
+    });
+
+    it('answers on the current connection when you moved to another page while it rang', async () => {
+      const { element } = ring();
+      const { rerender, queryClient } = lastRender;
+      const nextServer = mockSocket({ CALL_ACCEPT: { isAccepted: true } });
+      vi.mocked(io).mockReturnValue(nextServer.socket as never);
+      pathname = '/conversation/c9';
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <SocketIOProvider>{null}</SocketIOProvider>
+        </QueryClientProvider>,
+      );
+
+      await element.props.onAccept();
+      element.props.onDecline();
+
+      expect(nextServer.emitWithAck).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
+      expect(nextServer.spies.emit).toHaveBeenCalledWith('CALL_DECLINE', { conversationId: 'c1' });
+      expect(server.emitWithAck).not.toHaveBeenCalled();
+      expect(push).toHaveBeenCalledWith('/call/c1');
     });
 
     it('tells the caller when declined, without opening the call', () => {

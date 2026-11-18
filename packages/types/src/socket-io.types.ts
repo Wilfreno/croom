@@ -23,6 +23,7 @@ export interface CallAnswerPayload {
 
 export interface CallStartResult {
   isOngoing: boolean;
+  ringingCount: number;
 }
 
 export interface CallAcceptResult {

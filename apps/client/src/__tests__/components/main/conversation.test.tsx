@@ -49,7 +49,7 @@ vi.mock('@/components/hooks/queries/useMessages', () => ({ default: () => ({ fou
 
 beforeEach(() => {
   vi.clearAllMocks();
-  server = mockSocket({ CALL: { isOngoing: false }, CALL_CANCEL: { isAnswered: false } });
+  server = mockSocket({ CALL: { isOngoing: false, ringingCount: 1 }, CALL_CANCEL: { isAnswered: false } });
   sessionUser = mockSession();
   sidebar.onMobile = false;
   sendMessage.isPending = false;
@@ -144,6 +144,7 @@ describe('ConversationHeader', () => {
     });
 
     it('goes straight in when there is nobody else to ring', async () => {
+      server.replies.CALL = { isOngoing: false, ringingCount: 0 };
       renderWithQuery(
         <ConversationHeader conversationInfo={info} conversation={mockConversation({ id: 'c1', isGroupChat: true, members: [sessionUser as unknown as User] })} />,
       );
@@ -160,6 +161,7 @@ describe('ConversationHeader', () => {
         isGroupChat: true,
         members: [sessionUser as unknown as User, mockUser({ id: 'bob' }), mockUser({ id: 'carol' })],
       });
+      server.replies.CALL = { isOngoing: false, ringingCount: 2 };
       const dialog = await call(group);
 
       act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
@@ -237,6 +239,20 @@ describe('ConversationHeader', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    it('waits for everyone the server rang before saying declined, even before the conversation loads', async () => {
+      server.replies.CALL = { isOngoing: false, ringingCount: 2 };
+      renderWithQuery(<ConversationHeader conversationInfo={info} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+      const dialog = await screen.findByRole('dialog');
+      await waitFor(() => expect(server.emitWithAck).toHaveBeenCalledWith('CALL', { conversationId: 'c1' }));
+
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'bob' }));
+      expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+
+      act(() => server.serverEmit('CALL_DECLINED', { conversationId: 'c1', userId: 'carol' }));
+      expect(within(dialog).getByText('Call declined')).toBeInTheDocument();
     });
 
     it('closes the dialog when the server refuses the call', async () => {

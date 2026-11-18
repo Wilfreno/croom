@@ -91,6 +91,7 @@ function build() {
     callGateway,
     messageGateway,
     transaction,
+    connection,
   };
 }
 
@@ -128,6 +129,15 @@ describe('ConversationService', () => {
       await service.createConversation({ members: [ADA, ME], userId: ME });
 
       expect(ids(conversationModel.createConversation.mock.calls[0][0].members)).toEqual([ADA, ME]);
+    });
+
+    it('refuses a conversation with only you in it', async () => {
+      const { service, connection } = build();
+
+      await expect(service.createConversation({ members: [ME], userId: ME })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(connection.startSession).not.toHaveBeenCalled();
     });
 
     it('refuses a second one-to-one conversation and still ends the session', async () => {

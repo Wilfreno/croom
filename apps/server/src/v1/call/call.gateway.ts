@@ -93,6 +93,7 @@ export class CallGateway implements OnGatewayDisconnect {
         this.callService.startRing(payload.conversationId, {
           callerId,
           callerSocketId: client.id,
+          ringingUserIds: new Set(recipientIds),
         });
       if (!isOngoing)
         await this.callNotices.post({
@@ -101,7 +102,7 @@ export class CallGateway implements OnGatewayDisconnect {
           type: MessageNoticeType.CALL_RING,
         });
 
-      return { isOngoing };
+      return { isOngoing, ringingCount: recipientIds.length };
     } catch (error) {
       this.logger.error(error);
       client.emit('ERROR', 'could not start the call');
@@ -128,9 +129,12 @@ export class CallGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
   ) {
+    const userId = client.data.userId;
     const memberIds = await this.memberIdsFor(client, payload);
-    if (memberIds)
-      this.relayAnswer(client, payload, memberIds, 'CALL_DECLINED');
+    if (!userId || !memberIds) return;
+
+    this.relayAnswer(client, payload, memberIds, 'CALL_DECLINED');
+    this.callService.declineRing(payload.conversationId, userId);
   }
 
   @SubscribeMessage('CALL_CANCEL')
@@ -373,6 +377,7 @@ export class CallGateway implements OnGatewayDisconnect {
 
   async endCall(conversationId: string, reason: string) {
     try {
+      this.callService.clearRing(conversationId);
       const ended = await this.callService.endRoom(conversationId);
       if (!ended.length) return;
 
@@ -475,7 +480,6 @@ export class CallGateway implements OnGatewayDisconnect {
     });
   }
 
-  /** Tells the conversation's members, including the sender's other tabs, who answered and how. */
   private relayAnswer(
     client: TypedSocket,
     payload: CallPayload,

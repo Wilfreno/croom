@@ -157,7 +157,7 @@ describe('CallGateway', () => {
 
       const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
 
-      expect(result).toEqual({ isOngoing: false });
+      expect(result).toEqual({ isOngoing: false, ringingCount: 1 });
     });
 
     it('answers that a call is already running, and still rings', async () => {
@@ -167,7 +167,7 @@ describe('CallGateway', () => {
 
       const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
 
-      expect(result).toEqual({ isOngoing: true });
+      expect(result).toEqual({ isOngoing: true, ringingCount: 1 });
       expect(roomEmit).toHaveBeenCalledWith('INCOMING_CALL', expect.objectContaining({ conversationId: CONVERSATION_ID }));
     });
 
@@ -248,6 +248,38 @@ describe('CallGateway', () => {
 
       expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
       expect(broadcast.emit).toHaveBeenCalledWith('CALL_DECLINED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+    });
+
+    it('stops the ring once everyone it rang has declined, so nothing is missed later', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleDecline(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: false });
+      await gateway.handleDisconnect(caller.client);
+
+      expect(roomEmit).not.toHaveBeenCalledWith('CALL_CANCELLED', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('keeps ringing the others while only some have declined', async () => {
+      const { gateway } = await ringing();
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: true });
+    });
+
+    it('forgets the ring when the call is ended for everyone', async () => {
+      const { gateway, callNotices, caller } = await ringing();
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+      await gateway.handleDisconnect(caller.client);
+
+      expect(callNotices.post).not.toHaveBeenCalled();
     });
 
     it('lets more people accept once the call is running', async () => {

@@ -4,15 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { OutgoingCallStatus } from '@/types/call.types';
-import { CALL_RINGBACK_TONE } from '@repo/constants';
+import { CALL_RINGBACK_TONE, OUTGOING_CALL_STATUS_TEXT } from '@repo/constants';
 import { PhoneOff, Video } from 'lucide-react';
 import React from 'react';
-
-const statusText: Record<Exclude<OutgoingCallStatus, 'idle'>, string> = {
-  ringing: 'Calling…',
-  declined: 'Call declined',
-  unanswered: 'No answer',
-};
 
 export default function OutgoingCallDialog({
   status,
@@ -50,7 +44,7 @@ export default function OutgoingCallDialog({
         <div className="grid max-w-full gap-1 text-center">
           <DialogTitle className="truncate text-xl">{name}</DialogTitle>
           <DialogDescription className={cn(isRinging && 'animate-pulse')}>
-            {status === 'idle' ? '' : statusText[status]}
+            {status === 'idle' ? '' : OUTGOING_CALL_STATUS_TEXT[status]}
           </DialogDescription>
         </div>
         {isRinging ? (

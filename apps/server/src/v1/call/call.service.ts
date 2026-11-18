@@ -32,7 +32,7 @@ type CallAccess =
 export class CallService {
   private readonly peers = new Map<string, Peer>(); // socket id → peer
   private readonly rooms = new Map<string, Set<string>>(); // conversation id → socket ids
-  private readonly callStartTimes = new Map<string, number>(); // conversation id → when a second person joined
+  private readonly callStartTimes = new Map<string, number>();
   private readonly rings = new Map<string, CallRing>();
 
   constructor(
@@ -118,6 +118,21 @@ export class CallService {
     this.rings.delete(conversationId);
     const isAnswered = ring.isAnswered || this.hasPeers(conversationId);
     return isAnswered ? 'answered' : 'missed';
+  }
+
+  declineRing(conversationId: string, userId: string) {
+    const ring = this.rings.get(conversationId);
+    if (!ring || ring.isAnswered) return false;
+
+    ring.ringingUserIds.delete(userId);
+    if (ring.ringingUserIds.size) return false;
+
+    this.rings.delete(conversationId);
+    return true;
+  }
+
+  clearRing(conversationId: string) {
+    this.rings.delete(conversationId);
   }
 
   clearAnsweredRing(conversationId: string) {

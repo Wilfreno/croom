@@ -58,7 +58,7 @@ vi.mock('@/components/hooks/mutation/useComposeMessage.mutation', () => ({ defau
 
 beforeEach(() => {
   vi.clearAllMocks();
-  server = mockSocket({ CALL: { isOngoing: false } });
+  server = mockSocket({ CALL: { isOngoing: false, ringingCount: 1 }, CALL_CANCEL: { isAnswered: false } });
   sessionUser = mockSession();
   searchResult = [];
   foundConversations = [];

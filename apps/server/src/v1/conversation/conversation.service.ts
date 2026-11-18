@@ -95,6 +95,8 @@ export class ConversationService implements OnApplicationBootstrap {
     userId,
   }: CreateConversationDto & { userId: string }) {
     const memberIds = [...new Set([...members, userId])];
+    if (memberIds.length < 2)
+      throw new BadRequestException('a conversation needs someone else in it');
     const session = await this.connection.startSession();
     let conversationId: string | undefined;
 

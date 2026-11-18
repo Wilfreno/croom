@@ -1,7 +1,7 @@
 import type { CallMediaPreferences, CallSession } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { AVATAR_FALLBACK_COLORS, CALL_NOTICE_TYPES, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
 import { ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
@@ -85,15 +85,8 @@ export function getNicknameNoticeText(input: NicknameNoticeInput) {
   return value ? `${actor} set ${target} nickname to ${value}` : `${actor} cleared ${target} nickname`;
 }
 
-const CALL_NOTICE_TYPES = [
-  MessageNoticeType.CALL_RING,
-  MessageNoticeType.CALL_STARTED,
-  MessageNoticeType.CALL_ENDED,
-  MessageNoticeType.CALL_MISSED,
-];
-
 export function isCallNotice(notice: MessageNotice) {
-  return CALL_NOTICE_TYPES.includes(notice.type);
+  return CALL_NOTICE_TYPES.some((callNoticeType) => callNoticeType === notice.type);
 }
 
 export function formatCallDuration(totalSeconds: number) {

@@ -9,6 +9,7 @@ export type CallNoticeType =
 export type CallRing = {
   callerId: string;
   callerSocketId: string;
+  ringingUserIds: Set<string>;
   isAnswered: boolean;
 };
 

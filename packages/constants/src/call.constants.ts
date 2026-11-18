@@ -19,10 +19,8 @@ export const SOCKET_SERVER_REPLY_TIMEOUT_MS = 10_000;
 export const CALL_TILE_GAP = '0.5rem';
 // Upper limit on the video each person sends (bits per second); keeps server CPU and upload bandwidth down
 export const CALL_VIDEO_MAX_BITRATE = 500_000;
-// Browser storage entry that remembers the camera, microphone and on/off choices between visits
 export const CALL_MEDIA_PREFERENCES_STORAGE_KEY = 'call:media-preferences';
 export const CALL_DEFAULT_MEDIA_PREFERENCES = { isCameraOn: false, isMicOn: true };
-// With someone pinned, the side column shows at most this many tiles; past it, the last tile counts the rest
 export const CALL_PINNED_SIDE_MAX_TILES = 5;
 export const CALL_SIDE_PANEL_DOCKED_MEDIA_QUERY = '(min-width: 640px)';
 export const CALL_SIDE_PANEL_TRANSITION_SECONDS = 0.25;
@@ -35,3 +33,9 @@ export const CALL_RINGTONE_URL = '/sounds/incoming-call.mp3';
 export const CALL_RINGTONE_VOLUME = 1;
 export const RINGTONE_FADE_SECONDS = 0.02;
 export const CALL_NO_LONGER_RINGING = 'This call is no longer ringing';
+export const CALL_NOTICE_TYPES = ['CALL_RING', 'CALL_STARTED', 'CALL_ENDED', 'CALL_MISSED'];
+export const OUTGOING_CALL_STATUS_TEXT = {
+  ringing: 'Calling…',
+  declined: 'Call declined',
+  unanswered: 'No answer',
+};

@@ -79,10 +79,14 @@ export default function useOutgoingCall() {
     if (hasSomeoneToRing) setStatus('ringing');
 
     try {
-      const { isOngoing } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', {
+      const { isOngoing, ringingCount } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', {
         conversationId: callTarget.conversationId,
       });
-      if (isOngoing || !hasSomeoneToRing) router.push(`/call/${callTarget.conversationId}`);
+      if (isOngoing || !ringingCount) {
+        router.push(`/call/${callTarget.conversationId}`);
+        return;
+      }
+      setTarget({ ...callTarget, recipientCount: ringingCount });
     } catch {
       setStatus('idle');
     }
