@@ -177,7 +177,7 @@ export default function SettingsChangePhoto() {
                     variant="outline"
                     aria-label="delete photo"
                     className="absolute -top-2 -right-2 aspect-square h-fit w-auto rounded-full p-1 z-50"
-                    disabled={isBeingDeleted}
+                    disabled={isBeingDeleted || isBusy}
                     onClick={() => deletePhoto.mutate(photo.id)}
                   >
                     <Trash className="h-4 w-auto text-destructive" />

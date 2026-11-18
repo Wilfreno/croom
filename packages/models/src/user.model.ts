@@ -1,11 +1,13 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
+import { DUPLICATE_KEY_ERROR_CODE, USER_NAME_COLLATION, USER_NAME_SUFFIX_ATTEMPTS } from '@repo/constants';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { User, UserDocument } from '@repo/schemas';
 import { AuthenticatedUser } from '@repo/types';
 import { requireEnv } from '@repo/utils';
 import { compare, hash } from 'bcrypt';
+import { randomInt } from 'crypto';
 import { ClientSession, Model, Types } from 'mongoose';
 @Injectable()
 export class UserModel {
@@ -30,7 +32,7 @@ export class UserModel {
     session: ClientSession,
   ): Promise<UserDocument> {
     try {
-      const userName = email.split('@')[0];
+      const userName = await this.findAvailableUserName(email.split('@')[0]);
       let encryptedPassword: string;
 
       if (password) encryptedPassword = await this.hashPassword(password);
@@ -78,7 +80,7 @@ export class UserModel {
 
   async getUserByEmailWithPassword(email: string): Promise<UserDocument | null> {
     try {
-      return await this.User.findOne({ email }).select('+password');
+      return await this.User.findOne({ email }).select('+password').populate({ path: 'photo', select: 'url' });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -199,14 +201,66 @@ export class UserModel {
     }
   }
 
-  async isUserNameTaken({ userName, exceptUserId }: { userName: string; exceptUserId: string }) {
+  async isUserNameTaken({ userName, exceptUserId }: { userName: string; exceptUserId?: string }) {
     try {
-      const owner = await this.User.exists({
-        _id: { $ne: exceptUserId },
-        $or: [{ userName }, { username: userName }],
-      });
+      const filter: Record<string, unknown> = { userName };
+      if (exceptUserId) filter._id = { $ne: exceptUserId };
 
-      return Boolean(owner);
+      const owners = await this.User.countDocuments(filter, { collation: USER_NAME_COLLATION });
+
+      return owners > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async findAvailableUserName(baseUserName: string) {
+    const baseIsTaken = await this.isUserNameTaken({ userName: baseUserName });
+    if (!baseIsTaken) return baseUserName;
+
+    for (let attempt = 0; attempt < USER_NAME_SUFFIX_ATTEMPTS; attempt++) {
+      const candidate = `${baseUserName}${randomInt(1000, 10000)}`;
+      const candidateIsTaken = await this.isUserNameTaken({ userName: candidate });
+      if (!candidateIsTaken) return candidate;
+    }
+
+    return `${baseUserName}${Date.now()}`;
+  }
+
+  async renameDuplicateUserNames() {
+    try {
+      const duplicateGroups = await this.User.aggregate<{ users: { _id: Types.ObjectId; userName: string }[] }>(
+        [
+          { $sort: { dateCreated: 1, _id: 1 } },
+          { $group: { _id: '$userName', users: { $push: { _id: '$_id', userName: '$userName' } } } },
+          { $match: { 'users.1': { $exists: true } } },
+        ],
+        { collation: USER_NAME_COLLATION },
+      );
+
+      let renamed = 0;
+
+      for (const { users } of duplicateGroups) {
+        const laterUsers = users.slice(1);
+
+        for (const user of laterUsers) {
+          const newUserName = await this.findAvailableUserName(user.userName);
+          await this.User.updateOne({ _id: user._id }, { $set: { userName: newUserName } });
+          renamed++;
+        }
+      }
+
+      return renamed;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async createIndexes() {
+    try {
+      await this.User.createIndexes();
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -235,6 +289,9 @@ export class UserModel {
     try {
       await this.User.updateOne({ _id: userId }, { $set: { userName } });
     } catch (error) {
+      const isDuplicateKey = (error as { code?: number }).code === DUPLICATE_KEY_ERROR_CODE;
+      if (isDuplicateKey) throw new ConflictException('username is already taken');
+
       this.logger.error(error);
       throw new InternalServerErrorException();
     }
@@ -261,6 +318,21 @@ export class UserModel {
   async setPhoto({ userId, photoId }: { userId: string; photoId: string }, session?: ClientSession) {
     try {
       await this.User.updateOne({ _id: userId }, { $set: { photo: new Types.ObjectId(photoId) } }, { session });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async touchUnlessUsingPhoto({ userId, photoId }: { userId: string; photoId: string }, session: ClientSession) {
+    try {
+      const result = await this.User.updateOne(
+        { _id: userId, photo: { $ne: new Types.ObjectId(photoId) } },
+        { $set: { lastUpdated: new Date() } },
+        { session },
+      );
+
+      return result.matchedCount > 0;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

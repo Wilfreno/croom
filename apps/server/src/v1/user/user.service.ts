@@ -55,6 +55,18 @@ export class UserService {
     private readonly socketSessions: SocketSessionsService,
   ) {}
 
+  async onApplicationBootstrap() {
+    try {
+      const renamed = await this.userModel.renameDuplicateUserNames();
+      if (renamed > 0)
+        this.logger.log(`renamed ${renamed} users with a duplicate username`);
+
+      await this.userModel.createIndexes();
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   async createUser({
     email,
     password,
@@ -370,11 +382,16 @@ export class UserService {
 
     try {
       await session.withTransaction(async () => {
+        const stillExists = await this.photoModel.markAsRecent(
+          photoId,
+          session,
+        );
+        if (!stillExists) throw new NotFoundException('photo does not exist');
+
         await this.userModel.setPhoto(
           { userId: requesterId, photoId },
           session,
         );
-        await this.photoModel.markAsRecent(photoId, session);
       });
     } finally {
       await session.endSession();
@@ -384,23 +401,34 @@ export class UserService {
   }
 
   async deleteProfilePhoto({
-    requester,
+    requesterId,
     photoId,
   }: {
-    requester: AuthenticatedUser;
+    requesterId: string;
     photoId: string;
   }) {
-    const photo = await this.photoModel.findProfilePhoto({
-      photoId,
-      ownerId: requester.id,
-    });
-    if (!photo) throw new NotFoundException('photo does not exist');
+    const session = await this.connection.startSession();
 
-    const currentPhotoId = requester.photo ? String(requester.photo._id) : null;
-    if (currentPhotoId === photoId)
-      throw new ConflictException('you cannot delete the photo you are using');
+    try {
+      await session.withTransaction(async () => {
+        const notInUse = await this.userModel.touchUnlessUsingPhoto(
+          { userId: requesterId, photoId },
+          session,
+        );
+        if (!notInUse)
+          throw new ConflictException(
+            'you cannot delete the photo you are using',
+          );
 
-    await this.photoModel.deleteById(photoId);
+        const deleted = await this.photoModel.deleteProfilePhoto(
+          { photoId, ownerId: requesterId },
+          session,
+        );
+        if (!deleted) throw new NotFoundException('photo does not exist');
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 
   async deleteAccount(requesterId: string) {

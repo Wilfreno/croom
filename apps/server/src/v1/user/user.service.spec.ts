@@ -14,7 +14,6 @@ import {
   SessionModel,
   UserModel,
 } from '@repo/models';
-import type { AuthenticatedUser } from '@repo/types';
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
@@ -59,15 +58,18 @@ function build() {
     setPassword: vi.fn().mockResolvedValue(undefined),
     setPhoto: vi.fn().mockResolvedValue(undefined),
     anonymize: vi.fn().mockResolvedValue(undefined),
+    touchUnlessUsingPhoto: vi.fn().mockResolvedValue(true),
+    renameDuplicateUserNames: vi.fn().mockResolvedValue(0),
+    createIndexes: vi.fn().mockResolvedValue(undefined),
   };
   const photoModel = {
     createMany: vi.fn().mockResolvedValue([{ _id: PHOTO_ID }]),
     getProfilePhotosByOwnerId: vi.fn().mockResolvedValue([]),
     findProfilePhoto: vi.fn().mockResolvedValue({ url: 'https://utfs.io/f/a' }),
-    markAsRecent: vi.fn().mockResolvedValue(undefined),
+    markAsRecent: vi.fn().mockResolvedValue(true),
+    deleteProfilePhoto: vi.fn().mockResolvedValue(true),
     deleteProfilePhotosBeyond: vi.fn().mockResolvedValue(undefined),
     deleteProfilePhotosByOwnerId: vi.fn().mockResolvedValue(undefined),
-    deleteById: vi.fn().mockResolvedValue(undefined),
   };
   const sessionModel = {
     revokeAllForUser: vi.fn().mockResolvedValue(undefined),
@@ -443,62 +445,97 @@ describe('UserService', () => {
   });
 
   describe('switchToRecentProfilePhoto', () => {
+    const switchPhoto = () =>
+      service.switchToRecentProfilePhoto({
+        requesterId: REQUESTER_ID,
+        photoId: PHOTO_ID,
+      });
+
     it('refuses a photo the requester does not own', async () => {
       mocks.photoModel.findProfilePhoto.mockResolvedValue(null);
 
-      await expect(
-        service.switchToRecentProfilePhoto({
-          requesterId: REQUESTER_ID,
-          photoId: PHOTO_ID,
-        }),
-      ).rejects.toMatchObject({ status: 404 });
+      await expect(switchPhoto()).rejects.toMatchObject({ status: 404 });
       expect(mocks.userModel.setPhoto).not.toHaveBeenCalled();
     });
 
-    it('uses the photo and moves it to the front of the recent list', async () => {
-      await expect(
-        service.switchToRecentProfilePhoto({
-          requesterId: REQUESTER_ID,
-          photoId: PHOTO_ID,
-        }),
-      ).resolves.toEqual({
+    it('refuses a photo deleted before the switch could save', async () => {
+      mocks.photoModel.markAsRecent.mockResolvedValue(false);
+
+      await expect(switchPhoto()).rejects.toMatchObject({ status: 404 });
+      expect(mocks.userModel.setPhoto).not.toHaveBeenCalled();
+    });
+
+    it('moves the photo to the front of the recent list, then uses it', async () => {
+      await expect(switchPhoto()).resolves.toEqual({
         photo: { id: PHOTO_ID, url: 'https://utfs.io/f/a' },
       });
       expect(mocks.photoModel.markAsRecent).toHaveBeenCalledWith(
         PHOTO_ID,
         mocks.session,
       );
+      expect(mocks.userModel.setPhoto).toHaveBeenCalledWith(
+        { userId: REQUESTER_ID, photoId: PHOTO_ID },
+        mocks.session,
+      );
     });
   });
 
   describe('deleteProfilePhoto', () => {
-    const requesterUsing = (photoId: string | null) =>
-      ({
-        id: REQUESTER_ID,
-        photo: photoId ? { _id: new Types.ObjectId(photoId) } : null,
-      }) as unknown as AuthenticatedUser;
+    const deletePhoto = () =>
+      service.deleteProfilePhoto({
+        requesterId: REQUESTER_ID,
+        photoId: PHOTO_ID,
+      });
 
-    it('refuses to delete the photo in use', async () => {
-      await expect(
-        service.deleteProfilePhoto({
-          requester: requesterUsing(PHOTO_ID),
-          photoId: PHOTO_ID,
-        }),
-      ).rejects.toMatchObject({ status: 409 });
-      expect(mocks.photoModel.deleteById).not.toHaveBeenCalled();
+    it('refuses to delete the photo in use, checked inside the transaction', async () => {
+      mocks.userModel.touchUnlessUsingPhoto.mockResolvedValue(false);
+
+      await expect(deletePhoto()).rejects.toMatchObject({ status: 409 });
+      expect(mocks.userModel.touchUnlessUsingPhoto).toHaveBeenCalledWith(
+        { userId: REQUESTER_ID, photoId: PHOTO_ID },
+        mocks.session,
+      );
+      expect(mocks.photoModel.deleteProfilePhoto).not.toHaveBeenCalled();
     });
 
-    it('deletes an older photo', async () => {
-      await service.deleteProfilePhoto({
-        requester: requesterUsing(null),
-        photoId: PHOTO_ID,
+    it('refuses a photo the requester does not own', async () => {
+      mocks.photoModel.deleteProfilePhoto.mockResolvedValue(false);
+
+      await expect(deletePhoto()).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('deletes an older photo inside the transaction', async () => {
+      await deletePhoto();
+
+      expect(mocks.photoModel.deleteProfilePhoto).toHaveBeenCalledWith(
+        { photoId: PHOTO_ID, ownerId: REQUESTER_ID },
+        mocks.session,
+      );
+      expect(mocks.session.endSession).toHaveBeenCalled();
+    });
+  });
+
+  describe('onApplicationBootstrap', () => {
+    it('renames duplicate usernames before building the unique index', async () => {
+      const order: string[] = [];
+      mocks.userModel.renameDuplicateUserNames.mockImplementation(() => {
+        order.push('rename');
+        return Promise.resolve(2);
+      });
+      mocks.userModel.createIndexes.mockImplementation(() => {
+        order.push('index');
+        return Promise.resolve(undefined);
       });
 
-      expect(mocks.photoModel.findProfilePhoto).toHaveBeenCalledWith({
-        photoId: PHOTO_ID,
-        ownerId: REQUESTER_ID,
-      });
-      expect(mocks.photoModel.deleteById).toHaveBeenCalledWith(PHOTO_ID);
+      await service.onApplicationBootstrap();
+
+      expect(order).toEqual(['rename', 'index']);
+    });
+
+    it('does not stop the server when the index cannot be built', async () => {
+      mocks.userModel.createIndexes.mockRejectedValue(new Error('duplicate'));
+
+      await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
     });
   });
 

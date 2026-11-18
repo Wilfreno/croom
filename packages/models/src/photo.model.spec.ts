@@ -25,7 +25,7 @@ function build() {
     create: vi.fn(),
     deleteOne: vi.fn().mockResolvedValue({ deletedCount: 1 }),
     deleteMany: vi.fn().mockResolvedValue({ deletedCount: 0 }),
-    updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    updateOne: vi.fn().mockResolvedValue({ acknowledged: true, matchedCount: 1 }),
     find: vi.fn(() => chain([])),
     findOne: vi.fn(() => chain(null)),
   };
@@ -123,12 +123,38 @@ describe('PhotoModel', () => {
     it('stamps the photo as just used inside the session', async () => {
       const { photos, model } = build();
 
-      await model.markAsRecent('p1', session);
+      await expect(model.markAsRecent('p1', session)).resolves.toBe(true);
 
       const [filter, update, options] = photos.updateOne.mock.calls[0];
       expect(filter).toEqual({ _id: 'p1' });
       expect(update.$set.lastUpdated).toBeInstanceOf(Date);
       expect(options).toEqual({ session });
+    });
+
+    it('is false when the photo no longer exists', async () => {
+      const { photos, model } = build();
+      photos.updateOne.mockResolvedValue({ acknowledged: true, matchedCount: 0 });
+
+      await expect(model.markAsRecent('p1', session)).resolves.toBe(false);
+    });
+  });
+
+  describe('deleteProfilePhoto', () => {
+    it('only deletes a profile photo the owner has, inside the session', async () => {
+      const { photos, model } = build();
+
+      await expect(model.deleteProfilePhoto({ photoId: 'p1', ownerId: OWNER_ID }, session)).resolves.toBe(true);
+      expect(photos.deleteOne).toHaveBeenCalledWith(
+        { _id: 'p1', owner: OWNER_ID, type: PhotoType.PROFILE },
+        { session },
+      );
+    });
+
+    it('is false when the owner has no such photo', async () => {
+      const { photos, model } = build();
+      photos.deleteOne.mockResolvedValue({ deletedCount: 0 });
+
+      await expect(model.deleteProfilePhoto({ photoId: 'p1', ownerId: OWNER_ID })).resolves.toBe(false);
     });
   });
 

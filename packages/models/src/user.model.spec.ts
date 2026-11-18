@@ -1,4 +1,5 @@
-import { InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { USER_NAME_COLLATION } from '@repo/constants';
 import { AuthServiceOptions } from '@repo/enums';
 import { User } from '@repo/schemas';
 import { ConfigService } from '@nestjs/config';
@@ -29,10 +30,15 @@ function build() {
     }),
     {
       exists: vi.fn().mockResolvedValue(null),
-      findOne: vi.fn().mockReturnValue({ select: vi.fn().mockResolvedValue(null) }),
+      findOne: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({ populate: vi.fn().mockResolvedValue(null) }),
+      }),
+      countDocuments: vi.fn().mockResolvedValue(0),
+      aggregate: vi.fn().mockResolvedValue([]),
+      createIndexes: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn().mockResolvedValue(null),
       findByIdAndUpdate: vi.fn().mockResolvedValue(created),
-      updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+      updateOne: vi.fn().mockResolvedValue({ acknowledged: true, matchedCount: 1 }),
     },
   );
 
@@ -194,15 +200,17 @@ describe('UserModel', () => {
   });
 
   describe('getUserByEmailWithPassword', () => {
-    it('asks for the password the schema otherwise withholds', async () => {
+    it('asks for the password the schema otherwise withholds, and the photo url', async () => {
       const { collection, model } = build();
-      const select = vi.fn().mockResolvedValue(null);
+      const populate = vi.fn().mockResolvedValue(null);
+      const select = vi.fn().mockReturnValue({ populate });
       collection.findOne.mockReturnValue({ select });
 
       await model.getUserByEmailWithPassword('someone@example.com');
 
       expect(collection.findOne).toHaveBeenCalledWith({ email: 'someone@example.com' });
       expect(select).toHaveBeenCalledWith('+password');
+      expect(populate).toHaveBeenCalledWith({ path: 'photo', select: 'url' });
     });
 
     it('is null when no account matches', async () => {
@@ -366,21 +374,142 @@ describe('UserModel', () => {
   });
 
   describe('isUserNameTaken', () => {
-    it('looks for anyone else holding the name, in either field spelling', async () => {
+    it('looks for anyone else holding the name, ignoring case', async () => {
       const { collection, model } = build();
-      collection.exists.mockResolvedValue({ _id: 'other' });
+      collection.countDocuments.mockResolvedValue(1);
 
-      await expect(model.isUserNameTaken({ userName: 'ada', exceptUserId: 'me' })).resolves.toBe(true);
-      expect(collection.exists).toHaveBeenCalledWith({
-        _id: { $ne: 'me' },
-        $or: [{ userName: 'ada' }, { username: 'ada' }],
-      });
+      await expect(model.isUserNameTaken({ userName: 'Ada', exceptUserId: 'me' })).resolves.toBe(true);
+      expect(collection.countDocuments).toHaveBeenCalledWith(
+        { userName: 'Ada', _id: { $ne: 'me' } },
+        { collation: USER_NAME_COLLATION },
+      );
     });
 
-    it('is false when nobody else has it', async () => {
+    it('checks everyone when no one is excluded', async () => {
+      const { collection, model } = build();
+
+      await expect(model.isUserNameTaken({ userName: 'ada' })).resolves.toBe(false);
+      expect(collection.countDocuments).toHaveBeenCalledWith({ userName: 'ada' }, { collation: USER_NAME_COLLATION });
+    });
+  });
+
+  describe('create, when the email local part is already a username', () => {
+    it('gives the new account a numbered username instead', async () => {
+      const { collection, model } = build();
+      collection.countDocuments.mockResolvedValueOnce(1);
+
+      await model.create(
+        { email: 'ada@example.com', password: 'sup3rsecret', authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD },
+        session,
+      );
+
+      expect(created(collection).userName).toMatch(/^ada\d{4}$/);
+    });
+  });
+
+  describe('findAvailableUserName', () => {
+    it('keeps the name when nobody has it', async () => {
       const { model } = build();
 
-      await expect(model.isUserNameTaken({ userName: 'ada', exceptUserId: 'me' })).resolves.toBe(false);
+      await expect(model.findAvailableUserName('ada')).resolves.toBe('ada');
+    });
+
+    it('adds a number when the name is taken', async () => {
+      const { collection, model } = build();
+      collection.countDocuments.mockResolvedValueOnce(1);
+
+      await expect(model.findAvailableUserName('ada')).resolves.toMatch(/^ada\d{4}$/);
+    });
+
+    it('falls back to a timestamp when every numbered name is taken', async () => {
+      const { collection, model } = build();
+      collection.countDocuments.mockResolvedValue(1);
+
+      await expect(model.findAvailableUserName('ada')).resolves.toMatch(/^ada\d{13,}$/);
+    });
+  });
+
+  describe('setUserName', () => {
+    it('reports a name someone took at the same moment as a conflict', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(Object.assign(new Error('E11000'), { code: 11000 }));
+
+      await expect(model.setUserName({ userId: 'me', userName: 'ada' })).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('turns any other failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.setUserName({ userId: 'me', userName: 'ada' })).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+    });
+  });
+
+  describe('renameDuplicateUserNames', () => {
+    it('keeps the oldest holder of a name and renames the rest', async () => {
+      const { collection, model } = build();
+      collection.aggregate.mockResolvedValue([
+        {
+          users: [
+            { _id: 'oldest', userName: 'ada' },
+            { _id: 'newer', userName: 'Ada' },
+          ],
+        },
+      ]);
+      collection.countDocuments.mockResolvedValueOnce(1);
+
+      await expect(model.renameDuplicateUserNames()).resolves.toBe(1);
+
+      const [pipeline, options] = collection.aggregate.mock.calls[0];
+      expect(pipeline[0]).toEqual({ $sort: { dateCreated: 1, _id: 1 } });
+      expect(options).toEqual({ collation: USER_NAME_COLLATION });
+      expect(collection.updateOne).toHaveBeenCalledOnce();
+      const [filter, update] = collection.updateOne.mock.calls[0];
+      expect(filter).toEqual({ _id: 'newer' });
+      expect(update.$set.userName).toMatch(/^Ada\d{4}$/);
+    });
+
+    it('renames nothing when every name is unique', async () => {
+      const { collection, model } = build();
+
+      await expect(model.renameDuplicateUserNames()).resolves.toBe(0);
+      expect(collection.updateOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createIndexes', () => {
+    it('builds the indexes the schema declares', async () => {
+      const { collection, model } = build();
+
+      await model.createIndexes();
+
+      expect(collection.createIndexes).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('touchUnlessUsingPhoto', () => {
+    it('touches the user only when the photo is not the one in use', async () => {
+      const { collection, model } = build();
+      const photoId = '507f1f77bcf86cd799439022';
+
+      await expect(model.touchUnlessUsingPhoto({ userId: 'me', photoId }, session)).resolves.toBe(true);
+
+      const [filter, update, options] = collection.updateOne.mock.calls[0];
+      expect(filter._id).toBe('me');
+      expect(String(filter.photo.$ne)).toBe(photoId);
+      expect(update.$set.lastUpdated).toBeInstanceOf(Date);
+      expect(options).toEqual({ session });
+    });
+
+    it('is false when the user is using the photo', async () => {
+      const { collection, model } = build();
+      collection.updateOne.mockResolvedValue({ acknowledged: true, matchedCount: 0 });
+
+      await expect(
+        model.touchUnlessUsingPhoto({ userId: 'me', photoId: '507f1f77bcf86cd799439022' }, session),
+      ).resolves.toBe(false);
     });
   });
 

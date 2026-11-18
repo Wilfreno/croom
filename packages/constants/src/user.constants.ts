@@ -15,3 +15,9 @@ export const DELETED_USER_DISPLAY_NAME = 'Deleted user';
 export const PASSWORD_CHANGE_REQUEST_LIMIT = 5;
 
 export const PASSWORD_CHANGE_REQUEST_WINDOW = SECONDS_IN_MINUTE * 15;
+
+export const USER_NAME_COLLATION = { locale: 'en', strength: 2 };
+
+export const USER_NAME_SUFFIX_ATTEMPTS = 10;
+
+export const DUPLICATE_KEY_ERROR_CODE = 11000;

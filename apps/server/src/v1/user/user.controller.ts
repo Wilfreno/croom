@@ -151,7 +151,10 @@ export class UserController {
     @CurrentUser() user: AuthenticatedUser,
     @Param() { photoId }: ProfilePhotoParamDto,
   ) {
-    return this.userService.deleteProfilePhoto({ requester: user, photoId });
+    return this.userService.deleteProfilePhoto({
+      requesterId: user.id,
+      photoId,
+    });
   }
 
   @Delete()

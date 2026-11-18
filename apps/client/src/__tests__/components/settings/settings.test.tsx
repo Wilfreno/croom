@@ -207,6 +207,18 @@ describe('SettingsChangePhoto', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'change' })).toHaveLength(1));
   });
 
+  it('cannot delete a recent photo while switching to it', async () => {
+    const older = mockPhoto();
+    vi.mocked(axiosInstance.get).mockResolvedValue(reply([older]));
+    vi.mocked(axiosInstance.patch).mockReturnValue(new Promise(() => {}));
+    renderWithQuery(<SettingsChangePhoto />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'change' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'delete photo' })).toBeDisabled());
+    expect(axiosInstance.delete).not.toHaveBeenCalled();
+  });
+
   it('keeps a photo it could not delete', async () => {
     vi.mocked(axiosInstance.get).mockResolvedValue(reply([mockPhoto()]));
     vi.mocked(axiosInstance.delete).mockRejectedValue(refused('photo does not exist', 404));

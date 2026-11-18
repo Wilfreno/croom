@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { USER_NAME_COLLATION } from '@repo/constants';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { HydratedDocument, Types } from 'mongoose';
 
@@ -48,3 +49,5 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index({ userName: 1 }, { unique: true, collation: USER_NAME_COLLATION });

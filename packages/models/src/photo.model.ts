@@ -60,7 +60,20 @@ export class PhotoModel {
 
   async markAsRecent(photoId: string, session?: ClientSession) {
     try {
-      await this.Photo.updateOne({ _id: photoId }, { $set: { lastUpdated: new Date() } }, { session });
+      const result = await this.Photo.updateOne({ _id: photoId }, { $set: { lastUpdated: new Date() } }, { session });
+
+      return result.matchedCount > 0;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async deleteProfilePhoto({ photoId, ownerId }: { photoId: string; ownerId: string }, session?: ClientSession) {
+    try {
+      const result = await this.Photo.deleteOne({ _id: photoId, owner: ownerId, type: PhotoType.PROFILE }, { session });
+
+      return result.deletedCount > 0;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();

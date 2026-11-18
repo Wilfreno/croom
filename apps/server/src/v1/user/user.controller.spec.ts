@@ -126,11 +126,11 @@ describe('UserController', () => {
     });
   });
 
-  it('deletes a profile photo with the requester attached', async () => {
+  it('deletes a profile photo of the requester', async () => {
     await controller.deleteProfilePhoto(requester, { photoId: PHOTO_ID });
 
     expect(userService.deleteProfilePhoto).toHaveBeenCalledWith({
-      requester,
+      requesterId: 'requester-1',
       photoId: PHOTO_ID,
     });
   });
