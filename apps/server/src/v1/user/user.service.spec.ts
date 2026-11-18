@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import {
@@ -7,13 +8,23 @@ import {
   OTPType,
   UserStatus,
 } from '@repo/enums';
-import { ConversationModel, UserModel } from '@repo/models';
+import {
+  ConversationModel,
+  PhotoModel,
+  SessionModel,
+  UserModel,
+} from '@repo/models';
+import type { AuthenticatedUser } from '@repo/types';
+import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OtpService } from '../otp/otp.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
 
 const EMAIL = 'someone@example.com';
+const REQUESTER_ID = '507f1f77bcf86cd799439011';
+const PHOTO_ID = '507f1f77bcf86cd799439022';
+const STRONG_PASSWORD = 'N3w-secret!';
 
 const signup = (over: Partial<CreateUserDto> = {}): CreateUserDto =>
   ({
@@ -37,6 +48,28 @@ function build() {
     getUserExistByUsername: vi.fn().mockResolvedValue(false),
     create: vi.fn().mockResolvedValue(undefined),
     setUserStatus: vi.fn().mockResolvedValue(null),
+    isUserNameTaken: vi.fn().mockResolvedValue(false),
+    setDisplayName: vi.fn().mockResolvedValue(undefined),
+    setUserName: vi.fn().mockResolvedValue(undefined),
+    getUserByIdWithPassword: vi
+      .fn()
+      .mockResolvedValue({ password: 'hashed:old' }),
+    verifyPassword: vi.fn().mockResolvedValue(true),
+    setPassword: vi.fn().mockResolvedValue(undefined),
+    setPhoto: vi.fn().mockResolvedValue(undefined),
+    anonymize: vi.fn().mockResolvedValue(undefined),
+  };
+  const photoModel = {
+    createMany: vi.fn().mockResolvedValue([{ _id: PHOTO_ID }]),
+    getProfilePhotosByOwnerId: vi.fn().mockResolvedValue([]),
+    findProfilePhoto: vi.fn().mockResolvedValue({ url: 'https://utfs.io/f/a' }),
+    markAsRecent: vi.fn().mockResolvedValue(undefined),
+    deleteProfilePhotosBeyond: vi.fn().mockResolvedValue(undefined),
+    deleteProfilePhotosByOwnerId: vi.fn().mockResolvedValue(undefined),
+    deleteById: vi.fn().mockResolvedValue(undefined),
+  };
+  const sessionModel = {
+    revokeAllForUser: vi.fn().mockResolvedValue(undefined),
   };
   const conversationModel = {
     getConversationPartnerIds: vi.fn().mockResolvedValue([]),
@@ -46,7 +79,15 @@ function build() {
     consume: vi.fn().mockResolvedValue(undefined),
   };
 
-  return { session, connection, userModel, conversationModel, otpService };
+  return {
+    session,
+    connection,
+    userModel,
+    conversationModel,
+    otpService,
+    photoModel,
+    sessionModel,
+  };
 }
 
 type Mocks = ReturnType<typeof build>;
@@ -59,6 +100,9 @@ async function makeService(mocks: Mocks) {
       { provide: UserModel, useValue: mocks.userModel },
       { provide: ConversationModel, useValue: mocks.conversationModel },
       { provide: OtpService, useValue: mocks.otpService },
+      { provide: PhotoModel, useValue: mocks.photoModel },
+      { provide: SessionModel, useValue: mocks.sessionModel },
+      { provide: ConfigService, useValue: { get: vi.fn() } },
     ],
   }).compile();
 
@@ -266,6 +310,197 @@ describe('UserService', () => {
       expect(
         mocks.conversationModel.getConversationPartnerIds,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changeDisplayName', () => {
+    it('saves and returns the new display name', async () => {
+      await expect(
+        service.changeDisplayName({
+          requesterId: REQUESTER_ID,
+          displayName: 'Ada',
+        }),
+      ).resolves.toEqual({ displayName: 'Ada' });
+      expect(mocks.userModel.setDisplayName).toHaveBeenCalledWith({
+        userId: REQUESTER_ID,
+        displayName: 'Ada',
+      });
+    });
+  });
+
+  describe('changeUserName', () => {
+    it('refuses a username someone else has', async () => {
+      mocks.userModel.isUserNameTaken.mockResolvedValue(true);
+
+      await expect(
+        service.changeUserName({ requesterId: REQUESTER_ID, userName: 'ada' }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(mocks.userModel.setUserName).not.toHaveBeenCalled();
+    });
+
+    it('ignores the requester when checking who has the name', async () => {
+      await expect(
+        service.changeUserName({ requesterId: REQUESTER_ID, userName: 'ada' }),
+      ).resolves.toEqual({ userName: 'ada' });
+      expect(mocks.userModel.isUserNameTaken).toHaveBeenCalledWith({
+        userName: 'ada',
+        exceptUserId: REQUESTER_ID,
+      });
+    });
+  });
+
+  describe('changePassword', () => {
+    const change = (over = {}) =>
+      service.changePassword({
+        requesterId: REQUESTER_ID,
+        sessionToken: 'token',
+        currentPassword: 'Old-secret1!',
+        password: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
+        ...over,
+      });
+
+    it('refuses passwords that do not match', async () => {
+      await expect(
+        change({ confirmPassword: 'N3w-secret?' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('refuses a weak password', async () => {
+      await expect(
+        change({ password: 'weakweak', confirmPassword: 'weakweak' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('refuses a wrong current password', async () => {
+      mocks.userModel.verifyPassword.mockResolvedValue(false);
+
+      await expect(change()).rejects.toMatchObject({ status: 401 });
+      expect(mocks.userModel.setPassword).not.toHaveBeenCalled();
+    });
+
+    it('lets an account without a password set one without a current password', async () => {
+      mocks.userModel.getUserByIdWithPassword.mockResolvedValue({});
+
+      await change({ currentPassword: undefined });
+
+      expect(mocks.userModel.verifyPassword).not.toHaveBeenCalled();
+      expect(mocks.userModel.setPassword).toHaveBeenCalled();
+    });
+
+    it('saves the password and signs out every other session', async () => {
+      await change();
+
+      expect(mocks.userModel.setPassword).toHaveBeenCalledWith(
+        { userId: REQUESTER_ID, password: STRONG_PASSWORD },
+        mocks.session,
+      );
+      expect(mocks.sessionModel.revokeAllForUser).toHaveBeenCalledWith(
+        new Types.ObjectId(REQUESTER_ID),
+        { except: 'token', session: mocks.session },
+      );
+    });
+  });
+
+  describe('uploadProfilePhoto', () => {
+    it('saves the photo, uses it, and trims old ones in one transaction', async () => {
+      const photo = {
+        key: 'k',
+        url: 'https://utfs.io/f/k',
+        width: 10,
+        height: 20,
+      };
+
+      await expect(
+        service.uploadProfilePhoto({ requesterId: REQUESTER_ID, photo }),
+      ).resolves.toEqual({ photo: { id: PHOTO_ID, url: photo.url } });
+      expect(mocks.userModel.setPhoto).toHaveBeenCalledWith(
+        { userId: REQUESTER_ID, photoId: PHOTO_ID },
+        mocks.session,
+      );
+      expect(mocks.photoModel.deleteProfilePhotosBeyond).toHaveBeenCalledWith(
+        { ownerId: REQUESTER_ID, keep: 5 },
+        mocks.session,
+      );
+    });
+  });
+
+  describe('switchToRecentProfilePhoto', () => {
+    it('refuses a photo the requester does not own', async () => {
+      mocks.photoModel.findProfilePhoto.mockResolvedValue(null);
+
+      await expect(
+        service.switchToRecentProfilePhoto({
+          requesterId: REQUESTER_ID,
+          photoId: PHOTO_ID,
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(mocks.userModel.setPhoto).not.toHaveBeenCalled();
+    });
+
+    it('uses the photo and moves it to the front of the recent list', async () => {
+      await expect(
+        service.switchToRecentProfilePhoto({
+          requesterId: REQUESTER_ID,
+          photoId: PHOTO_ID,
+        }),
+      ).resolves.toEqual({
+        photo: { id: PHOTO_ID, url: 'https://utfs.io/f/a' },
+      });
+      expect(mocks.photoModel.markAsRecent).toHaveBeenCalledWith(
+        PHOTO_ID,
+        mocks.session,
+      );
+    });
+  });
+
+  describe('deleteProfilePhoto', () => {
+    const requesterUsing = (photoId: string | null) =>
+      ({
+        id: REQUESTER_ID,
+        photo: photoId ? { _id: new Types.ObjectId(photoId) } : null,
+      }) as unknown as AuthenticatedUser;
+
+    it('refuses to delete the photo in use', async () => {
+      await expect(
+        service.deleteProfilePhoto({
+          requester: requesterUsing(PHOTO_ID),
+          photoId: PHOTO_ID,
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(mocks.photoModel.deleteById).not.toHaveBeenCalled();
+    });
+
+    it('deletes an older photo', async () => {
+      await service.deleteProfilePhoto({
+        requester: requesterUsing(null),
+        photoId: PHOTO_ID,
+      });
+
+      expect(mocks.photoModel.findProfilePhoto).toHaveBeenCalledWith({
+        photoId: PHOTO_ID,
+        ownerId: REQUESTER_ID,
+      });
+      expect(mocks.photoModel.deleteById).toHaveBeenCalledWith(PHOTO_ID);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('anonymizes the account, drops its photos and ends every session', async () => {
+      await service.deleteAccount(REQUESTER_ID);
+
+      expect(mocks.userModel.anonymize).toHaveBeenCalledWith(
+        { userId: REQUESTER_ID, displayName: 'Deleted user' },
+        mocks.session,
+      );
+      expect(
+        mocks.photoModel.deleteProfilePhotosByOwnerId,
+      ).toHaveBeenCalledWith(REQUESTER_ID, mocks.session);
+      expect(mocks.sessionModel.revokeAllForUser).toHaveBeenCalledWith(
+        new Types.ObjectId(REQUESTER_ID),
+        { session: mocks.session },
+      );
+      expect(mocks.session.endSession).toHaveBeenCalled();
     });
   });
 });

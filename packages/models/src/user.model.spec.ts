@@ -32,6 +32,7 @@ function build() {
       findOne: vi.fn().mockReturnValue({ select: vi.fn().mockResolvedValue(null) }),
       findById: vi.fn().mockResolvedValue(null),
       findByIdAndUpdate: vi.fn().mockResolvedValue(created),
+      updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
     },
   );
 
@@ -223,25 +224,37 @@ describe('UserModel', () => {
   });
 
   describe('getUserById', () => {
-    it('reads the account by id', async () => {
+    function withPopulate(collection: ReturnType<typeof build>['collection']) {
+      const populate = vi.fn().mockResolvedValue(null);
+      collection.findById.mockReturnValue({ populate });
+      return populate;
+    }
+
+    it('reads the account by id with its photo url', async () => {
       const { collection, model } = build();
+      const populate = withPopulate(collection);
 
       await model.getUserById('507f1f77bcf86cd799439011');
 
       expect(collection.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+      expect(populate).toHaveBeenCalledWith({ path: 'photo', select: 'url' });
     });
 
     it('does not ask for the password', async () => {
       const { collection, model } = build();
+      const populate = withPopulate(collection);
 
       await model.getUserById('507f1f77bcf86cd799439011');
 
       expect(JSON.stringify(collection.findById.mock.calls)).not.toContain('password');
+      expect(JSON.stringify(populate.mock.calls)).not.toContain('password');
     });
 
     it('turns a driver failure into a 500', async () => {
       const { collection, model } = build();
-      collection.findById.mockRejectedValue(new Error('connection lost'));
+      collection.findById.mockImplementation(() => {
+        throw new Error('connection lost');
+      });
 
       await expect(model.getUserById('507f1f77bcf86cd799439011')).rejects.toBeInstanceOf(
         InternalServerErrorException,
@@ -349,6 +362,63 @@ describe('UserModel', () => {
       await expect(model.linkGoogleAccount(id)).rejects.toBeInstanceOf(
         InternalServerErrorException,
       );
+    });
+  });
+
+  describe('isUserNameTaken', () => {
+    it('looks for anyone else holding the name, in either field spelling', async () => {
+      const { collection, model } = build();
+      collection.exists.mockResolvedValue({ _id: 'other' });
+
+      await expect(model.isUserNameTaken({ userName: 'ada', exceptUserId: 'me' })).resolves.toBe(true);
+      expect(collection.exists).toHaveBeenCalledWith({
+        _id: { $ne: 'me' },
+        $or: [{ userName: 'ada' }, { username: 'ada' }],
+      });
+    });
+
+    it('is false when nobody else has it', async () => {
+      const { model } = build();
+
+      await expect(model.isUserNameTaken({ userName: 'ada', exceptUserId: 'me' })).resolves.toBe(false);
+    });
+  });
+
+  describe('setPassword', () => {
+    it('stores the hash and enables email and password sign in', async () => {
+      const { collection, model } = build();
+
+      await model.setPassword({ userId: 'me', password: 'Sup3r-secret!' }, session);
+
+      expect(collection.updateOne).toHaveBeenCalledWith(
+        { _id: 'me' },
+        {
+          $set: { password: 'hashed:Sup3r-secret!' },
+          $addToSet: { authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD },
+        },
+        { session },
+      );
+    });
+  });
+
+  describe('anonymize', () => {
+    it('frees the email, removes every way in, and marks the account deleted', async () => {
+      const { collection, model } = build();
+
+      await model.anonymize({ userId: 'me', displayName: 'Deleted user' }, session);
+
+      const [filter, update, options] = collection.updateOne.mock.calls[0];
+      expect(filter).toEqual({ _id: 'me' });
+      expect(update.$set).toMatchObject({
+        displayName: 'Deleted user',
+        userName: 'deleted-me',
+        email: 'deleted-me@deleted.invalid',
+        authService: [],
+        photo: null,
+      });
+      expect(update.$set.dateDeleted).toBeInstanceOf(Date);
+      expect(update.$unset).toEqual({ password: '' });
+      expect(options).toEqual({ session });
     });
   });
 });

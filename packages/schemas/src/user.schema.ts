@@ -37,6 +37,9 @@ export class User {
   @Prop({ type: Date, required: false, default: Date.now })
   lastOnline!: Date;
 
+  @Prop({ type: Date, default: null })
+  dateDeleted!: Date | null;
+
   @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 

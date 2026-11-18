@@ -87,7 +87,7 @@ export class UserModel {
 
   async getUserById(id: Types.ObjectId | string): Promise<UserDocument | null> {
     try {
-      return await this.User.findById(id);
+      return await this.User.findById(id).populate({ path: 'photo', select: 'url' });
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException();
@@ -177,6 +177,9 @@ export class UserModel {
         {
           _id: { $ne: userId },
         },
+        {
+          dateDeleted: null,
+        },
       ],
     })
       .select('displayName userName photo status')
@@ -196,4 +199,97 @@ export class UserModel {
     }
   }
 
+  async isUserNameTaken({ userName, exceptUserId }: { userName: string; exceptUserId: string }) {
+    try {
+      const owner = await this.User.exists({
+        _id: { $ne: exceptUserId },
+        $or: [{ userName }, { username: userName }],
+      });
+
+      return Boolean(owner);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getUserByIdWithPassword(userId: string): Promise<UserDocument | null> {
+    try {
+      return await this.User.findById(userId).select('+password');
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async setDisplayName({ userId, displayName }: { userId: string; displayName: string }) {
+    try {
+      await this.User.updateOne({ _id: userId }, { $set: { displayName } });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async setUserName({ userId, userName }: { userId: string; userName: string }) {
+    try {
+      await this.User.updateOne({ _id: userId }, { $set: { userName } });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async setPassword({ userId, password }: { userId: string; password: string }, session?: ClientSession) {
+    try {
+      const hashedPassword = await this.hashPassword(password);
+
+      await this.User.updateOne(
+        { _id: userId },
+        {
+          $set: { password: hashedPassword },
+          $addToSet: { authService: AuthServiceOptions.WITH_EMAIL_AND_PASSWORD },
+        },
+        { session },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async setPhoto({ userId, photoId }: { userId: string; photoId: string }, session?: ClientSession) {
+    try {
+      await this.User.updateOne({ _id: userId }, { $set: { photo: new Types.ObjectId(photoId) } }, { session });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async anonymize({ userId, displayName }: { userId: string; displayName: string }, session: ClientSession) {
+    try {
+      const placeholder = `deleted-${userId}`;
+
+      await this.User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            displayName,
+            userName: placeholder,
+            email: `${placeholder}@deleted.invalid`,
+            authService: [],
+            photo: null,
+            status: UserStatus.OFFLINE,
+            dateDeleted: new Date(),
+          },
+          $unset: { password: '' },
+        },
+        { session },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
 }

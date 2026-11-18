@@ -3,26 +3,41 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectConnection } from '@nestjs/mongoose';
+import {
+  DELETED_USER_DISPLAY_NAME,
+  MAX_RECENT_PROFILE_PHOTOS,
+} from '@repo/constants';
 import {
   AuthServiceOptions,
   CheckUserDataType,
   EmailStatus,
   OTPType,
+  PhotoType,
   UserStatus,
 } from '@repo/enums';
-import { ConversationModel, UserModel } from '@repo/models';
+import {
+  ConversationModel,
+  PhotoModel,
+  SessionModel,
+  UserModel,
+} from '@repo/models';
 import { AuthenticatedUser } from '@repo/types';
 import {
   getPasswordStrengthScore,
   isEmail,
   passwordStrengthScorePerCriteriaSatisfied,
 } from '@repo/utils';
-import { Connection } from 'mongoose';
+import { Connection, Types } from 'mongoose';
 import { OtpService } from '../otp/otp.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UploadedProfilePhotoDto } from './dto/profile-photo.dto';
 import { RecoverAccountDto } from './dto/recover-account.dto';
 
 @Injectable()
@@ -33,6 +48,9 @@ export class UserService {
     private readonly userModel: UserModel,
     private readonly conversationModel: ConversationModel,
     private readonly otpService: OtpService,
+    private readonly photoModel: PhotoModel,
+    private readonly sessionModel: SessionModel,
+    private readonly configService: ConfigService,
   ) {}
 
   async createUser({
@@ -201,5 +219,201 @@ export class UserService {
       lastOnline: new Date(user.lastOnline).toISOString(),
       partnerIds,
     };
+  }
+
+  async changeDisplayName({
+    requesterId,
+    displayName,
+  }: {
+    requesterId: string;
+    displayName: string;
+  }) {
+    await this.userModel.setDisplayName({ userId: requesterId, displayName });
+
+    return { displayName };
+  }
+
+  async changeUserName({
+    requesterId,
+    userName,
+  }: {
+    requesterId: string;
+    userName: string;
+  }) {
+    const taken = await this.userModel.isUserNameTaken({
+      userName,
+      exceptUserId: requesterId,
+    });
+    if (taken) throw new ConflictException('username is already taken');
+
+    await this.userModel.setUserName({ userId: requesterId, userName });
+
+    return { userName };
+  }
+
+  async changePassword({
+    requesterId,
+    sessionToken,
+    currentPassword,
+    password,
+    confirmPassword,
+  }: ChangePasswordDto & { requesterId: string; sessionToken?: string }) {
+    if (password !== confirmPassword)
+      throw new BadRequestException(
+        'Password and Confirm password is not the same',
+      );
+
+    if (
+      getPasswordStrengthScore(password) <
+      passwordStrengthScorePerCriteriaSatisfied(5)
+    )
+      throw new BadRequestException('password is weak');
+
+    const user = await this.userModel.getUserByIdWithPassword(requesterId);
+    if (!user) throw new NotFoundException('user does not exist');
+
+    if (user.password) {
+      const matched = await this.userModel.verifyPassword({
+        password: currentPassword ?? '',
+        hashed: user.password,
+        configService: this.configService,
+      });
+      if (!matched)
+        throw new UnauthorizedException('current password is incorrect');
+    }
+
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await this.userModel.setPassword(
+          { userId: requesterId, password },
+          session,
+        );
+        await this.sessionModel.revokeAllForUser(
+          new Types.ObjectId(requesterId),
+          { except: sessionToken, session },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async getProfilePhotos(requesterId: string) {
+    return await this.photoModel.getProfilePhotosByOwnerId(requesterId);
+  }
+
+  async uploadProfilePhoto({
+    requesterId,
+    photo,
+  }: {
+    requesterId: string;
+    photo: UploadedProfilePhotoDto;
+  }) {
+    const session = await this.connection.startSession();
+    let newPhotoId = '';
+
+    try {
+      await session.withTransaction(async () => {
+        const [newPhoto] = await this.photoModel.createMany(
+          [
+            {
+              owner: new Types.ObjectId(requesterId),
+              type: PhotoType.PROFILE,
+              key: photo.key,
+              url: photo.url,
+              width: photo.width,
+              height: photo.height,
+            },
+          ],
+          session,
+        );
+        newPhotoId = String(newPhoto._id);
+
+        await this.userModel.setPhoto(
+          { userId: requesterId, photoId: newPhotoId },
+          session,
+        );
+        await this.photoModel.deleteProfilePhotosBeyond(
+          { ownerId: requesterId, keep: MAX_RECENT_PROFILE_PHOTOS },
+          session,
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { photo: { id: newPhotoId, url: photo.url } };
+  }
+
+  async switchToRecentProfilePhoto({
+    requesterId,
+    photoId,
+  }: {
+    requesterId: string;
+    photoId: string;
+  }) {
+    const photo = await this.photoModel.findProfilePhoto({
+      photoId,
+      ownerId: requesterId,
+    });
+    if (!photo) throw new NotFoundException('photo does not exist');
+
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await this.userModel.setPhoto(
+          { userId: requesterId, photoId },
+          session,
+        );
+        await this.photoModel.markAsRecent(photoId, session);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { photo: { id: photoId, url: photo.url } };
+  }
+
+  async deleteProfilePhoto({
+    requester,
+    photoId,
+  }: {
+    requester: AuthenticatedUser;
+    photoId: string;
+  }) {
+    const photo = await this.photoModel.findProfilePhoto({
+      photoId,
+      ownerId: requester.id,
+    });
+    if (!photo) throw new NotFoundException('photo does not exist');
+
+    const currentPhotoId = requester.photo ? String(requester.photo._id) : null;
+    if (currentPhotoId === photoId)
+      throw new ConflictException('you cannot delete the photo you are using');
+
+    await this.photoModel.deleteById(photoId);
+  }
+
+  async deleteAccount(requesterId: string) {
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await this.userModel.anonymize(
+          { userId: requesterId, displayName: DELETED_USER_DISPLAY_NAME },
+          session,
+        );
+        await this.photoModel.deleteProfilePhotosByOwnerId(requesterId, session);
+        await this.sessionModel.revokeAllForUser(
+          new Types.ObjectId(requesterId),
+          { session },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
   }
 }
