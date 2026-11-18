@@ -6,8 +6,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 export default function useLocalMediaStream({
   cameraDeviceId,
+  microphoneDeviceId,
   video = true,
   audio = true,
+  enabled = true,
 }: LocalMediaOptions = {}) {
   const [mediaState, setMediaState] = useState<LocalMediaState>({ status: 'loading', stream: null, error: null });
 
@@ -16,16 +18,27 @@ export default function useLocalMediaStream({
     let openedStream: MediaStream | null = null;
 
     
+    if (!enabled) {
+      setMediaState({ status: 'loading', stream: null, error: null });
+      return;
+    }
+
     if (!video && !audio) {
       setMediaState({ status: 'off', stream: null, error: null });
       return;
     }
 
     setMediaState({ status: 'loading', stream: null, error: null });
+    const hasChosenDevice = Boolean(cameraDeviceId || microphoneDeviceId);
     navigator.mediaDevices
       .getUserMedia({
         video: video && (cameraDeviceId ? { deviceId: { exact: cameraDeviceId } } : true),
-        audio,
+        audio: audio && (microphoneDeviceId ? { deviceId: { exact: microphoneDeviceId } } : true),
+      })
+      .catch((error: unknown) => {
+        const isChosenDeviceGone = error instanceof DOMException && error.name === 'OverconstrainedError';
+        if (hasChosenDevice && isChosenDeviceGone) return navigator.mediaDevices.getUserMedia({ video, audio });
+        throw error;
       })
       .then((stream) => {
         if (isCancelled) {
@@ -44,25 +57,25 @@ export default function useLocalMediaStream({
       isCancelled = true;
       openedStream?.getTracks().forEach((track) => track.stop());
     };
-  }, [cameraDeviceId, video, audio]);
+  }, [cameraDeviceId, microphoneDeviceId, video, audio, enabled]);
 
   return mediaState;
 }
 
-export function useCameraDevices(refreshKey?: unknown) {
-  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+export function useMediaDevices(kind: MediaDeviceKind, refreshKey?: unknown) {
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
 
-  const refreshCameras = useCallback(async () => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    setCameras(devices.filter((device) => device.kind === 'videoinput' && device.deviceId));
-  }, []);
+  const refreshDevices = useCallback(async () => {
+    const allDevices = await navigator.mediaDevices.enumerateDevices();
+    setDevices(allDevices.filter((device) => device.kind === kind && device.deviceId));
+  }, [kind]);
 
   useEffect(() => {
-    refreshCameras();
-    navigator.mediaDevices.addEventListener('devicechange', refreshCameras);
-    return () => navigator.mediaDevices.removeEventListener('devicechange', refreshCameras);
-  }, [refreshCameras, refreshKey]);
+    refreshDevices();
+    navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
+    return () => navigator.mediaDevices.removeEventListener('devicechange', refreshDevices);
+  }, [refreshDevices, refreshKey]);
 
-  return cameras;
+  return devices;
 }
 

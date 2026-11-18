@@ -4,6 +4,8 @@ import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TypedServer, TypedSocket } from '../../common/types/socket-io.types';
 import type { CallRouterEntry } from '../../types/mediasoup.type';
+import { MessageNoticeType } from '@repo/enums';
+import { CallNoticeService } from './call-notice.service';
 import { CallGateway } from './call.gateway';
 import { CallService } from './call.service';
 import { MediasoupService } from './mediasoup.service';
@@ -79,10 +81,15 @@ function fakeClient(userId: string | undefined, id = nextId('socket')) {
   return { client: client as unknown as TypedSocket, spies: client, broadcast };
 }
 
-function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
+function build({
+  members = [alice, bob] as CallMember[] | null,
+  isBlocked = false,
+  isGroupChat = false,
+} = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
     isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
+    isGroupChat: vi.fn().mockResolvedValue(isGroupChat),
   };
   const routerEntry = fakeRouterEntry();
   const mediasoup = {
@@ -95,13 +102,28 @@ function build({ members = [alice, bob] as CallMember[] | null, isBlocked = fals
     conversationModel as unknown as ConversationModel,
     mediasoup as unknown as MediasoupService,
   );
-  const gateway = new CallGateway(callService, mediasoup as unknown as MediasoupService);
+  const callNotices = { post: vi.fn(async (_notice: { type: MessageNoticeType }) => undefined) };
+  const gateway = new CallGateway(
+    callService,
+    mediasoup as unknown as MediasoupService,
+    callNotices as unknown as CallNoticeService,
+  );
   const roomEmit = vi.fn();
   const socketsLeave = vi.fn();
   const server = { to: vi.fn(() => ({ emit: roomEmit })), in: vi.fn(() => ({ socketsLeave })) };
   gateway.server = server as unknown as TypedServer;
 
-  return { gateway, callService, mediasoup, conversationModel, routerEntry, server, roomEmit, socketsLeave };
+  return {
+    gateway,
+    callService,
+    callNotices,
+    mediasoup,
+    conversationModel,
+    routerEntry,
+    server,
+    roomEmit,
+    socketsLeave,
+  };
 }
 
 /** Joins `client` to the call and gives it both transports. */
@@ -130,6 +152,35 @@ describe('CallGateway', () => {
       expect(roomEmit).toHaveBeenCalledWith('INCOMING_CALL', { conversationId: CONVERSATION_ID, caller: alice });
     });
 
+    it('answers that no call is running yet', async () => {
+      const { gateway } = build();
+
+      const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ isOngoing: false, ringingCount: 1 });
+    });
+
+    it('answers that a call is already running, and still rings', async () => {
+      const { gateway, roomEmit } = build({ members: [alice, bob, carol] });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      roomEmit.mockClear();
+
+      const result = await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(result).toEqual({ isOngoing: true, ringingCount: 1 });
+      expect(roomEmit).toHaveBeenCalledWith('INCOMING_CALL', expect.objectContaining({ conversationId: CONVERSATION_ID }));
+    });
+
+    it('does not ring the people already in the call', async () => {
+      const { gateway, server } = build({ members: [alice, bob, carol] });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      server.to.mockClear();
+
+      await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(server.to).toHaveBeenCalledWith(['carol']);
+    });
+
     it('rings nobody when the caller is the only member', async () => {
       const { gateway, server } = build({ members: [alice] });
 
@@ -142,9 +193,10 @@ describe('CallGateway', () => {
       const { gateway, server } = build({ isBlocked: true });
       const { client, spies } = fakeClient('alice');
 
-      await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
+      const result = await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
 
       expect(spies.emit).toHaveBeenCalledWith('ERROR', 'you cannot call this conversation');
+      expect(result).toEqual({ error: 'you cannot call this conversation' });
       expect(server.to).not.toHaveBeenCalled();
     });
 
@@ -164,6 +216,277 @@ describe('CallGateway', () => {
       await gateway.handleCall(client, { conversationId: CONVERSATION_ID });
 
       expect(spies.emit).toHaveBeenCalledWith('ERROR', 'could not start the call');
+    });
+  });
+
+  describe('answering and cancelling a ring', () => {
+    async function ringing(options: Parameters<typeof build>[0] = { members: [alice, bob, carol] }) {
+      const built = build(options);
+      const caller = fakeClient('alice');
+      await built.gateway.handleCall(caller.client, { conversationId: CONVERSATION_ID });
+      vi.clearAllMocks();
+      return { ...built, caller };
+    }
+
+    it('CALL_ACCEPT tells every member, including your other tabs, that you answered', async () => {
+      const { gateway } = await ringing();
+      const { client, spies, broadcast } = fakeClient('bob');
+
+      await expect(gateway.handleAccept(client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAccepted: true,
+      });
+
+      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(broadcast.emit).toHaveBeenCalledWith('CALL_ACCEPTED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+    });
+
+    it('CALL_DECLINE tells every member, including your other tabs, that you declined', async () => {
+      const { gateway } = await ringing();
+      const { client, spies, broadcast } = fakeClient('bob');
+
+      await gateway.handleDecline(client, { conversationId: CONVERSATION_ID });
+
+      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(broadcast.emit).toHaveBeenCalledWith('CALL_DECLINED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+    });
+
+    it('stops the ring once everyone it rang has declined, so nothing is missed later', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleDecline(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: false });
+      await gateway.handleDisconnect(caller.client);
+
+      expect(roomEmit).not.toHaveBeenCalledWith('CALL_CANCELLED', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('keeps ringing the others while only some have declined', async () => {
+      const { gateway } = await ringing();
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: true });
+    });
+
+    it('forgets the ring and stops it for everyone when the call is ended for everyone', async () => {
+      const { gateway, server, roomEmit, callNotices, caller } = await ringing();
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+      await gateway.handleDisconnect(caller.client);
+
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('still lets others accept after the caller reconnects on the way into the answered call', async () => {
+      const { gateway, caller } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleDisconnect(caller.client);
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: true });
+    });
+
+    it('joins someone already calling instead of ringing over them', async () => {
+      const { gateway, server, roomEmit, callNotices, caller } = await ringing();
+      const { client } = fakeClient('bob');
+
+      await expect(gateway.handleCall(client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isOngoing: true,
+        ringingCount: 0,
+      });
+
+      expect(roomEmit).not.toHaveBeenCalledWith('INCOMING_CALL', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ACCEPTED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: true,
+      });
+    });
+
+    it('lets a caller who is no longer a member still stop their ring', async () => {
+      const { gateway, conversationModel, roomEmit, caller } = await ringing();
+      conversationModel.getCallMembersByConversationId.mockResolvedValue([bob, carol]);
+
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: false,
+      });
+
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+    });
+
+    it('stops the ring of a caller removed from the conversation', async () => {
+      const { gateway, server, roomEmit } = await ringing();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'alice', 'you were removed from this group');
+
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+      await expect(
+        gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: false });
+    });
+
+    it('counts someone removed while being rung as having declined', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'carol', 'you were removed from this group');
+      expect(roomEmit).toHaveBeenCalledWith('CALL_DECLINED', { conversationId: CONVERSATION_ID, userId: 'carol' });
+      await gateway.handleDecline(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleDisconnect(caller.client);
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('tells someone outside the conversation nothing about its call', async () => {
+      const { gateway } = build({ members: [alice, bob] });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleCancel(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ error: 'you cannot cancel this call' });
+    });
+
+    it('rejects a cancel without a conversation', async () => {
+      const { gateway } = build();
+
+      await expect(gateway.handleCancel(fakeClient('alice').client, {} as never)).resolves.toEqual({
+        error: 'you cannot cancel this call',
+      });
+    });
+
+    it('rings again when the same caller calls again', async () => {
+      const { gateway, server, caller } = await ringing();
+
+      await gateway.handleCall(caller.client, { conversationId: CONVERSATION_ID });
+
+      expect(server.to).toHaveBeenCalledWith(['bob', 'carol']);
+    });
+
+    it('lets more people accept once the call is running', async () => {
+      const { gateway } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: true });
+    });
+
+    it('turns down an accept that comes after the ring stopped', async () => {
+      const { gateway, caller } = await ringing();
+      await gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID });
+      const { client, broadcast } = fakeClient('bob');
+
+      await expect(gateway.handleAccept(client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAccepted: false,
+      });
+      expect(broadcast.emit).not.toHaveBeenCalled();
+    });
+
+    it('CALL_CANCEL stops the ring for every member and says nobody answered', async () => {
+      const { gateway, server, roomEmit, caller } = await ringing();
+
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: false,
+      });
+
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+    });
+
+    it('tells the caller the call was answered when an accept beat the cancel', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: true,
+      });
+
+      expect(roomEmit).not.toHaveBeenCalledWith('CALL_CANCELLED', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('tells the caller the call was answered once the other person joined', async () => {
+      const { gateway, caller } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: true,
+      });
+    });
+
+    it('ignores a cancel from someone other than the caller', async () => {
+      const { gateway, roomEmit, callNotices } = await ringing();
+
+      await gateway.handleCancel(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      expect(roomEmit).not.toHaveBeenCalledWith('CALL_CANCELLED', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('ignores a cancel when nothing is ringing', async () => {
+      const { gateway, roomEmit, callNotices } = build();
+
+      await expect(
+        gateway.handleCancel(fakeClient('alice').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAnswered: false });
+
+      expect(roomEmit).not.toHaveBeenCalled();
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('stops the ring when the caller disconnects before anyone answers', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+
+      await gateway.handleDisconnect(caller.client);
+
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
+      expect(callNotices.post).toHaveBeenCalledWith(
+        expect.objectContaining({ type: MessageNoticeType.CALL_MISSED, userId: 'alice' }),
+      );
+    });
+
+    it('leaves an answered ring alone when the caller disconnects to join the call', async () => {
+      const { gateway, roomEmit, callNotices, caller } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleDisconnect(caller.client);
+
+      expect(roomEmit).not.toHaveBeenCalledWith('CALL_CANCELLED', expect.anything());
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('relays nothing for someone who is not a member', async () => {
+      const { gateway } = build({ members: [alice, bob] });
+      const { client, spies } = fakeClient('carol');
+
+      await gateway.handleAccept(client, { conversationId: CONVERSATION_ID });
+      await gateway.handleCancel(client, { conversationId: CONVERSATION_ID });
+
+      expect(spies.to).not.toHaveBeenCalled();
+    });
+
+    it('relays nothing for a socket without a user or when the lookup fails', async () => {
+      const { gateway, conversationModel } = build();
+      const anonymous = fakeClient(undefined);
+      await gateway.handleDecline(anonymous.client, { conversationId: CONVERSATION_ID });
+      expect(anonymous.spies.to).not.toHaveBeenCalled();
+
+      conversationModel.getCallMembersByConversationId.mockRejectedValue(new Error('db down'));
+      const bobClient = fakeClient('bob');
+      await gateway.handleAccept(bobClient.client, { conversationId: CONVERSATION_ID });
+      expect(bobClient.spies.to).not.toHaveBeenCalled();
     });
   });
 
@@ -508,6 +831,168 @@ describe('CallGateway', () => {
     });
   });
 
+  describe('call notices', () => {
+    function noticeTypes(callNotices: ReturnType<typeof build>['callNotices']) {
+      return callNotices.post.mock.calls.map(([notice]) => notice.type);
+    }
+
+    it('says who started a call when it rings', async () => {
+      const { gateway, callNotices } = build();
+
+      await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'alice',
+        type: MessageNoticeType.CALL_RING,
+      });
+    });
+
+    it('says nothing new when calling into a call that is already running', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      callNotices.post.mockClear();
+
+      await gateway.handleCall(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says the call started once a second person joins, and only once', async () => {
+      const { gateway, callNotices } = build({ members: [alice, bob, carol] });
+
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+      expect(callNotices.post).not.toHaveBeenCalled();
+
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledOnce();
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'bob',
+        type: MessageNoticeType.CALL_STARTED,
+      });
+    });
+
+    it('says the call ended, with how long it lasted, when the last person leaves', async () => {
+      vi.useFakeTimers();
+      try {
+        const { gateway, callNotices } = build({ isGroupChat: true });
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+        await gateway.join(bobsTab, { conversationId: CONVERSATION_ID });
+        vi.advanceTimersByTime(95_000);
+
+        await gateway.handleLeave(alicesTab);
+        expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED]);
+
+        await gateway.handleLeave(bobsTab);
+        expect(callNotices.post).toHaveBeenLastCalledWith({
+          conversationId: CONVERSATION_ID,
+          userId: 'bob',
+          type: MessageNoticeType.CALL_ENDED,
+          value: '95',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does not say the call started when one person joins from two tabs', async () => {
+      const { gateway, callNotices } = build();
+
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says nothing when someone leaves a call nobody else joined', async () => {
+      const { gateway, callNotices } = build();
+      const { client } = fakeClient('alice');
+      await gateway.join(client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleLeave(client);
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says the call was missed when the ring stops before anyone joins', async () => {
+      const { gateway, callNotices } = build();
+      const caller = fakeClient('alice').client;
+      await gateway.handleCall(caller, { conversationId: CONVERSATION_ID });
+      callNotices.post.mockClear();
+
+      await gateway.handleCancel(caller, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: 'alice',
+        type: MessageNoticeType.CALL_MISSED,
+      });
+    });
+
+    it('says nothing was missed when someone is already in the call', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleCancel(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says nothing was missed for someone who is not a member', async () => {
+      const { gateway, callNotices } = build({ members: [alice, bob] });
+
+      await gateway.handleCancel(fakeClient('carol').client, { conversationId: CONVERSATION_ID });
+
+      expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('says the call ended when it is ended for everyone', async () => {
+      const { gateway, callNotices } = build();
+      await gateway.join(fakeClient('alice').client, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
+
+      expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED]);
+    });
+
+    it('says the call ended when removing someone empties it', async () => {
+      const { gateway, callNotices } = build({ isGroupChat: true });
+      const alicesTab = fakeClient('alice').client;
+      await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+      await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+      await gateway.handleLeave(alicesTab);
+
+      await gateway.removeFromCall(CONVERSATION_ID, 'bob', 'you were removed from this group');
+
+      expect(noticeTypes(callNotices)).toEqual([MessageNoticeType.CALL_STARTED, MessageNoticeType.CALL_ENDED]);
+    });
+
+    it('starts counting afresh for the next call', async () => {
+      const { gateway, callNotices } = build();
+      for (let round = 0; round < 2; round++) {
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
+        await gateway.join(bobsTab, { conversationId: CONVERSATION_ID });
+        await gateway.handleLeave(alicesTab);
+        await gateway.handleLeave(bobsTab);
+      }
+
+      expect(noticeTypes(callNotices)).toEqual([
+        MessageNoticeType.CALL_STARTED,
+        MessageNoticeType.CALL_ENDED,
+        MessageNoticeType.CALL_STARTED,
+        MessageNoticeType.CALL_ENDED,
+      ]);
+    });
+  });
+
   describe('ending a call', () => {
     it('removes everyone in the call, tells them why and empties the room', async () => {
       const { gateway, callService, server, roomEmit, socketsLeave } = build();
@@ -555,7 +1040,10 @@ describe('CallGateway', () => {
       expect(callService.getPeer(bobsTab.id)).toBeUndefined();
       expect(callService.getPeer(bobsOtherTab.id)).toBeUndefined();
       expect(server.to).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
-      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'you were removed from this group' });
+      expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', {
+        reason: 'you were removed from this group',
+        isRemovedFromConversation: true,
+      });
       expect(server.in).toHaveBeenCalledWith([bobsTab.id, bobsOtherTab.id]);
       expect(socketsLeave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: bobsTab.id });
@@ -599,6 +1087,72 @@ describe('CallGateway', () => {
       expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(server.to).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
+    describe('hanging up', () => {
+      async function inCall(options: Parameters<typeof build>[0] = {}) {
+        const built = build(options);
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await joinWithTransports(built.gateway, alicesTab);
+        await joinWithTransports(built.gateway, bobsTab);
+        vi.clearAllMocks();
+        return { ...built, alicesTab, bobsTab };
+      }
+
+      it('ends a one-to-one call for the other person too, saying who hung up', async () => {
+        const { gateway, callService, callNotices, roomEmit, alicesTab, bobsTab } = await inCall();
+
+        await gateway.handleLeave(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+        expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'Alice ended the call' });
+        expect(callNotices.post).toHaveBeenCalledOnce();
+        expect(callNotices.post).toHaveBeenCalledWith(
+          expect.objectContaining({ type: MessageNoticeType.CALL_ENDED }),
+        );
+      });
+
+      it('keeps a one-to-one call going when you hang up in one tab but are still in it in another', async () => {
+        const { gateway, callService, roomEmit, alicesTab, bobsTab } = await inCall();
+        const alicesOtherTab = fakeClient('alice').client;
+        await gateway.join(alicesOtherTab, { conversationId: CONVERSATION_ID });
+
+        await gateway.handleLeave(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+        expect(callService.getPeer(alicesOtherTab.id)).toBeDefined();
+        expect(roomEmit).not.toHaveBeenCalledWith('CALL_ENDED', expect.anything());
+      });
+
+      it('keeps a group call going for everyone else', async () => {
+        const { gateway, callService, roomEmit, alicesTab, bobsTab } = await inCall({
+          members: [alice, bob, carol],
+          isGroupChat: true,
+        });
+
+        await gateway.handleLeave(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+        expect(roomEmit).not.toHaveBeenCalledWith('CALL_ENDED', expect.anything());
+      });
+
+      it('keeps a one-to-one call going when someone only drops their connection', async () => {
+        const { gateway, callService, roomEmit, alicesTab, bobsTab } = await inCall();
+
+        await gateway.handleDisconnect(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+        expect(roomEmit).not.toHaveBeenCalledWith('CALL_ENDED', expect.anything());
+      });
+
+      it('keeps the other person in the call when the lookup fails', async () => {
+        const { gateway, callService, conversationModel, alicesTab, bobsTab } = await inCall();
+        conversationModel.isGroupChat.mockRejectedValue(new Error('db down'));
+
+        await expect(gateway.handleLeave(alicesTab)).resolves.toBeUndefined();
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+      });
     });
 
     it('does nothing for a socket that was not in a call', async () => {

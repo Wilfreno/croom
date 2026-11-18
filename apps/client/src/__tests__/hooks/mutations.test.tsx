@@ -9,9 +9,12 @@ import type { InfiniteData } from '@tanstack/react-query';
 import type { CachedMessage } from '@/types/message.types';
 import { act, waitFor } from '@testing-library/react';
 import { AxiosError } from 'axios';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }));
+vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: { id: 'me' } } }) }));
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
@@ -398,33 +401,28 @@ describe('useComposeMessage', () => {
 });
 
 describe('useCreateConversation', () => {
-  it('creates the conversation, then sends the first message into it', async () => {
+  it('creates a conversation with the given members and returns it', async () => {
     const conversation = mockConversation();
-    post
-      .mockResolvedValueOnce({ data: { status: 'OK', message: '', data: conversation } })
-      .mockResolvedValueOnce({ data: { status: 'OK', message: '', data: payloadFor(conversation.id) } });
+    post.mockResolvedValueOnce({ data: { status: 'OK', message: '', data: conversation } });
 
-    const { result } = renderHookWithQuery(() => useCreateConversation({ photos: [], members: ['u1', 'u2'] }));
-    await act(() => result.current.createNewConversation.mutateAsync({ text: 'hello' }));
+    const { result } = renderHookWithQuery(() => useCreateConversation());
+    let created: unknown;
+    await act(async () => {
+      created = await result.current.createConversation.mutateAsync(['u1', 'u2']);
+    });
 
-    expect(post).toHaveBeenNthCalledWith(1, '/conversation', { members: ['u1', 'u2'] });
-    await waitFor(() =>
-      expect(post).toHaveBeenNthCalledWith(2, '/message', {
-        conversationId: conversation.id,
-        text: 'hello',
-        photos: [],
-      }),
-    );
-    await waitFor(() => expect(push).toHaveBeenCalledWith(`/conversation/${conversation.id}`));
+    expect(post).toHaveBeenCalledWith('/conversation', { members: ['u1', 'u2'] });
+    expect(created).toEqual(conversation);
   });
 
-  it('sends no message when the conversation could not be created', async () => {
+  it('says why when the conversation could not be created', async () => {
     post.mockRejectedValue(new Error('network'));
 
-    const { result } = renderHookWithQuery(() => useCreateConversation({ photos: [], members: ['u1'] }));
-    act(() => result.current.createNewConversation.mutate({ text: 'hello' }));
+    const { result } = renderHookWithQuery(() => useCreateConversation());
+    act(() => result.current.createConversation.mutate(['u1']));
 
-    await waitFor(() => expect(result.current.createNewConversation.isError).toBe(true));
-    expect(post).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.createConversation.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalled();
   });
 });
+

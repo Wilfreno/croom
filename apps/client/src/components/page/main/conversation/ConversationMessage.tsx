@@ -4,12 +4,13 @@ import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import InitialsFallback from '@/components/page/main/InitialsFallback';
 import Loading from '@/components/svg/Loading';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isSameSender } from '@/lib/utils';
+import { cn, getSecondsInterval, getTimeIntervalText, isBlockedError, isCallNotice, isSameSender } from '@/lib/utils';
 import type { CachedMessage } from '@/types/message.types';
 import { SECONDS_IN_MINUTE } from '@repo/constants';
 import { Conversation, Message } from '@repo/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
+import CallNotice from './CallNotice';
 import NicknameNotice from './NicknameNotice';
 import { useEffect, useMemo, useRef } from 'react';
 
@@ -191,7 +192,7 @@ export default function ConversationMessage({
   }, [markSeen, isLastMessage, message.pending, message.failed]);
 
   return (
-    <span className="grid gap-3">
+    <span className="grid grid-cols-[minmax(0,1fr)] gap-3">
       {showTimeInterval && (
         <div key={message.id + 'time_interval'} className="mt-6 text-center text-xs text-muted-foreground font-medium">
           {timeIntervalText}
@@ -199,12 +200,16 @@ export default function ConversationMessage({
       )}
       {message.notice ? (
         <div key={message.id} ref={divRef}>
-          <NicknameNotice
-            message={message}
-            notice={message.notice}
-            conversation={conversation}
-            canEdit={canEditNicknames}
-          />
+          {isCallNotice(message.notice) ? (
+            <CallNotice message={message} notice={message.notice} conversation={conversation} />
+          ) : (
+            <NicknameNotice
+              message={message}
+              notice={message.notice}
+              conversation={conversation}
+              canEdit={canEditNicknames}
+            />
+          )}
         </div>
       ) : (
       <div
@@ -212,7 +217,7 @@ export default function ConversationMessage({
         ref={divRef}
         className={cn(
           'gap-2 w-full grid',
-          message.sender.id === session.user?.id ? 'ml-auto' : 'grid-cols-[auto_1fr] items-end',
+          message.sender.id === session.user?.id ? 'ml-auto grid-cols-[minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)] items-end',
         )}
       >
         {message.sender.id !== session.user?.id && (
@@ -223,7 +228,7 @@ export default function ConversationMessage({
         )}
         <div
           className={cn(
-            'grid transition-opacity duration-300',
+            'grid min-w-0 grid-cols-[minmax(0,1fr)] transition-opacity duration-300',
             (message.pending || message.failed) && 'opacity-50',
             message.failed && onRetry && 'cursor-pointer',
           )}

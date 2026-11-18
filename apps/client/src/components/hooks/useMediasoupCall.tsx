@@ -18,17 +18,18 @@ export default function useMediasoupCall({
   conversationId,
   localStream,
   isCameraOn,
+  isMicOn,
 }: {
   socket: TypedSocket | null;
   conversationId: string;
   localStream: MediaStream | null;
   isCameraOn: boolean;
+  isMicOn: boolean;
 }) {
   const [status, setStatus] = useState<CallStatus>('connecting');
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<Map<string, CallMember>>(new Map());
   const [participants, setParticipants] = useState<Map<string, CallParticipant>>(new Map());
-  const [isMicOn, setIsMicOn] = useState(true);
   const sessionRef = useRef<CallSession | null>(null);
 
   const updateParticipant = useCallback(
@@ -264,15 +265,11 @@ export default function useMediasoupCall({
       .catch((publishError) => console.error('Could not publish media', publishError));
   }, [status, socket, localStream, isCameraOn, isMicOn]);
 
-  const toggleMic = useCallback(() => setIsMicOn((wasOn) => !wasOn), []);
-
   return {
     status,
     error,
     members,
     participants: [...participants.values()],
-    isMicOn,
-    toggleMic,
   };
 }
 

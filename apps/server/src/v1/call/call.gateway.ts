@@ -7,11 +7,15 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { MessageNoticeType } from '@repo/enums';
 import type {
+  CallAcceptResult,
   CallAck,
+  CallCancelResult,
   CallConsumeResult,
   CallJoinResult,
   CallPayload,
+  CallStartResult,
   CallTransportOptions,
   MediaKind,
   MediasoupJson,
@@ -26,6 +30,7 @@ import type {
   TypedServer,
   TypedSocket,
 } from '../../common/types/socket-io.types';
+import { CallNoticeService } from './call-notice.service';
 import { CallService, Peer } from './call.service';
 import { MediasoupService } from './mediasoup.service';
 
@@ -41,9 +46,11 @@ export class CallGateway implements OnGatewayDisconnect {
   constructor(
     private readonly callService: CallService,
     private readonly mediasoup: MediasoupService,
+    private readonly callNotices: CallNoticeService,
   ) {}
 
   async handleDisconnect(client: TypedSocket) {
+    await this.stopRingsCalledFrom(client);
     await this.leave(client);
   }
 
@@ -52,9 +59,9 @@ export class CallGateway implements OnGatewayDisconnect {
   async handleCall(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
-  ) {
+  ): Promise<CallAck<CallStartResult>> {
     const callerId = client.data.userId;
-    if (!callerId) return;
+    if (!callerId) return { error: 'you are not logged in' };
 
     try {
       const access = await this.callService.checkAccess(
@@ -63,22 +70,100 @@ export class CallGateway implements OnGatewayDisconnect {
       );
       if ('error' in access) {
         client.emit('ERROR', access.error);
-        return;
+        return access;
       }
 
+      const pendingRing = this.callService.pendingRing(payload.conversationId);
+      if (pendingRing && pendingRing.callerId !== callerId) {
+        this.callService.answerRing(payload.conversationId);
+        this.server
+          .to(access.members.map((member) => member.id))
+          .emit('CALL_ACCEPTED', {
+            conversationId: payload.conversationId,
+            userId: callerId,
+          });
+        return { isOngoing: true, ringingCount: 0 };
+      }
+
+      const isOngoing =
+        this.callService.otherPeers(payload.conversationId, client.id).length >
+        0;
+      const userIdsInCall = this.callService.userIdsInCall(
+        payload.conversationId,
+      );
       const recipientIds = access.members
         .map((member) => member.id)
-        .filter((memberId) => memberId !== callerId);
-      if (!recipientIds.length) return;
+        .filter(
+          (memberId) => memberId !== callerId && !userIdsInCall.has(memberId),
+        );
+      if (recipientIds.length)
+        this.server.to(recipientIds).emit('INCOMING_CALL', {
+          conversationId: payload.conversationId,
+          caller: access.caller,
+        });
+      if (!isOngoing && recipientIds.length)
+        this.callService.startRing(payload.conversationId, {
+          callerId,
+          callerSocketId: client.id,
+          ringingUserIds: new Set(recipientIds),
+        });
+      if (!isOngoing)
+        await this.callNotices.post({
+          conversationId: payload.conversationId,
+          userId: callerId,
+          type: MessageNoticeType.CALL_RING,
+        });
 
-      this.server.to(recipientIds).emit('INCOMING_CALL', {
-        conversationId: payload.conversationId,
-        caller: access.caller,
-      });
+      return { isOngoing, ringingCount: recipientIds.length };
     } catch (error) {
       this.logger.error(error);
       client.emit('ERROR', 'could not start the call');
+      return { error: 'could not start the call' };
     }
+  }
+
+  @SubscribeMessage('CALL_ACCEPT')
+  async handleAccept(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ): Promise<CallAck<CallAcceptResult>> {
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!memberIds) return { error: 'you cannot answer this call' };
+
+    const isAccepted = this.callService.answerRing(payload.conversationId);
+    if (isAccepted)
+      this.relayAnswer(client, payload, memberIds, 'CALL_ACCEPTED');
+    return { isAccepted };
+  }
+
+  @SubscribeMessage('CALL_DECLINE')
+  async handleDecline(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ) {
+    const userId = client.data.userId;
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!userId || !memberIds) return;
+
+    this.relayAnswer(client, payload, memberIds, 'CALL_DECLINED');
+    this.callService.declineRing(payload.conversationId, userId);
+  }
+
+  @SubscribeMessage('CALL_CANCEL')
+  async handleCancel(
+    @ConnectedSocket() client: TypedSocket,
+    @MessageBody() payload: CallPayload,
+  ): Promise<CallAck<CallCancelResult>> {
+    const userId = client.data.userId;
+    const conversationId = payload?.conversationId;
+    if (!userId || typeof conversationId !== 'string')
+      return { error: 'you cannot cancel this call' };
+    const isRingCaller = this.callService.isRingCaller(conversationId, userId);
+    if (!isRingCaller && !(await this.memberIdsFor(client, payload)))
+      return { error: 'you cannot cancel this call' };
+
+    const outcome = await this.stopRing(conversationId, userId);
+    return { isAnswered: outcome === 'answered' };
   }
 
   @SubscribeMessage('CALL_JOIN')
@@ -105,6 +190,7 @@ export class CallGateway implements OnGatewayDisconnect {
         conversationId,
         routerEntry,
       });
+      this.callService.clearAnsweredRing(conversationId);
 
       client
         .to(callRoom(conversationId))
@@ -119,6 +205,13 @@ export class CallGateway implements OnGatewayDisconnect {
         await this.leave(client);
         return accessAfterJoin;
       }
+
+      if (this.callService.startIfConnected(conversationId))
+        await this.callNotices.post({
+          conversationId,
+          userId,
+          type: MessageNoticeType.CALL_STARTED,
+        });
 
       return {
         // Every router of a call has the same codecs, so any of them answers this.
@@ -296,12 +389,18 @@ export class CallGateway implements OnGatewayDisconnect {
 
   async endCall(conversationId: string, reason: string) {
     try {
+      const ring = this.callService.clearRing(conversationId);
+      if (ring && !ring.isAnswered)
+        this.server
+          .to([ring.callerId, ...ring.ringingUserIds])
+          .emit('CALL_CANCELLED', { conversationId });
       const ended = await this.callService.endRoom(conversationId);
       if (!ended.length) return;
 
       const room = callRoom(conversationId);
       this.server.to(room).emit('CALL_ENDED', { reason });
       this.server.in(room).socketsLeave(room);
+      await this.postEndedIfFinished(conversationId, ended[0].userId);
     } catch (error) {
       this.logger.error(error);
     }
@@ -309,6 +408,8 @@ export class CallGateway implements OnGatewayDisconnect {
 
   async removeFromCall(conversationId: string, userId: string, reason: string) {
     try {
+      await this.stopRing(conversationId, userId);
+      this.stopRingingRemovedUser(conversationId, userId);
       const removed = await this.callService.removeUserFromRoom(
         conversationId,
         userId,
@@ -317,10 +418,13 @@ export class CallGateway implements OnGatewayDisconnect {
 
       const room = callRoom(conversationId);
       const peerIds = removed.map((peer) => peer.peerId);
-      this.server.to(peerIds).emit('CALL_ENDED', { reason });
+      this.server
+        .to(peerIds)
+        .emit('CALL_ENDED', { reason, isRemovedFromConversation: true });
       this.server.in(peerIds).socketsLeave(room);
       for (const peerId of peerIds)
         this.server.to(room).emit('CALL_PEER_LEFT', { peerId });
+      await this.postEndedIfFinished(conversationId, userId);
     } catch (error) {
       this.logger.error(error);
     }
@@ -328,7 +432,9 @@ export class CallGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage('CALL_LEAVE')
   async handleLeave(@ConnectedSocket() client: TypedSocket) {
+    const peer = this.callService.getPeer(client.id);
     await this.leave(client);
+    if (peer) await this.endOneToOneCall(peer.conversationId, peer.userId);
   }
 
   private trackConsumer(client: TypedSocket, peer: Peer, consumer: Consumer) {
@@ -356,8 +462,102 @@ export class CallGateway implements OnGatewayDisconnect {
       const room = callRoom(peer.conversationId);
       await client.leave(room);
       this.server.to(room).emit('CALL_PEER_LEFT', { peerId: peer.peerId });
+      await this.postEndedIfFinished(peer.conversationId, peer.userId);
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  private async endOneToOneCall(conversationId: string, userId: string) {
+    try {
+      const userIdsInCall = this.callService.userIdsInCall(conversationId);
+      if (!userIdsInCall.size || userIdsInCall.has(userId)) return;
+
+      const [isGroupCall, access] = await Promise.all([
+        this.callService.isGroupCall(conversationId),
+        this.callService.checkAccess(conversationId, userId),
+      ]);
+      if (isGroupCall) return;
+
+      const name = 'caller' in access ? access.caller.displayName : 'Someone';
+      await this.endCall(conversationId, `${name} ended the call`);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  private async postEndedIfFinished(conversationId: string, userId: string) {
+    const durationSeconds = this.callService.finishIfEmpty(conversationId);
+    if (durationSeconds === null) return;
+
+    await this.callNotices.post({
+      conversationId,
+      userId,
+      type: MessageNoticeType.CALL_ENDED,
+      value: String(durationSeconds),
+    });
+  }
+
+  private relayAnswer(
+    client: TypedSocket,
+    payload: CallPayload,
+    memberIds: string[],
+    event: 'CALL_ACCEPTED' | 'CALL_DECLINED',
+  ) {
+    client.to(memberIds).emit(event, {
+      conversationId: payload.conversationId,
+      userId: client.data.userId,
+    });
+  }
+
+  private async stopRing(conversationId: string, callerId: string) {
+    const ring = this.callService.pendingRing(conversationId);
+    const outcome = this.callService.stopRing(conversationId, callerId);
+    if (outcome !== 'missed' || !ring) return outcome;
+
+    this.server
+      .to([ring.callerId, ...ring.ringingUserIds])
+      .emit('CALL_CANCELLED', { conversationId });
+    await this.callNotices.post({
+      conversationId,
+      userId: callerId,
+      type: MessageNoticeType.CALL_MISSED,
+    });
+    return outcome;
+  }
+
+  private stopRingingRemovedUser(conversationId: string, userId: string) {
+    const ring = this.callService.pendingRing(conversationId);
+    if (!ring?.ringingUserIds.has(userId)) return;
+
+    this.server
+      .to([ring.callerId, ...ring.ringingUserIds])
+      .emit('CALL_DECLINED', { conversationId, userId });
+    this.callService.declineRing(conversationId, userId);
+  }
+
+  private async stopRingsCalledFrom(client: TypedSocket) {
+    const callerId = client.data.userId;
+    if (!callerId) return;
+
+    for (const conversationId of this.callService.ringsCalledFrom(client.id))
+      await this.stopRing(conversationId, callerId);
+  }
+
+  private async memberIdsFor(client: TypedSocket, payload: CallPayload) {
+    const userId = client.data.userId;
+    if (!userId) return null;
+
+    try {
+      const access = await this.callService.checkAccess(
+        payload?.conversationId,
+        userId,
+      );
+      if ('error' in access) return null;
+      return access.members.map((member) => member.id);
+    } catch (error) {
+      this.logger.error(error);
+      return null;
     }
   }
 

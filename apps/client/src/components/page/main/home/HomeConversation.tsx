@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { cn, getConversationName, getNicknameNoticeText, getTimeIntervalText } from "@/lib/utils";
+import { cn, getConversationName, getNoticeText, getTimeIntervalText } from "@/lib/utils";
 import { Conversation } from "@repo/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,7 +46,7 @@ export default function HomeConversation({ conversation }: { conversation: Conve
     let text = "";
 
     if (lastMessage.notice)
-      return getNicknameNoticeText({
+      return getNoticeText({
         notice: lastMessage.notice,
         actorId: lastMessage.sender.id,
         actorName: lastMessage.sender.displayName,

@@ -10,7 +10,11 @@ import {
   isBlockedMember,
   isConversationOnline,
   getMediaErrorMessage,
+  formatCallDuration,
+  getCallNoticeText,
   getNicknameNoticeText,
+  getNoticeText,
+  isCallNotice,
   getSecondsInterval,
   getTimeIntervalText,
   isSameSender,
@@ -380,5 +384,68 @@ describe('getAvatarColor', () => {
   it('spreads different keys across the palette', () => {
     const colors = new Set(Array.from({ length: 50 }, (_, index) => getAvatarColor(`user-${index}`)));
     expect(colors.size).toBeGreaterThan(1);
+  });
+});
+
+describe('call notices', () => {
+  const ring = { type: MessageNoticeType.CALL_RING, user: 'ada', value: '' };
+
+  it('tells call notices apart from nickname notices', () => {
+    expect(isCallNotice(ring)).toBe(true);
+    expect(isCallNotice({ type: MessageNoticeType.CALL_STARTED, user: 'ada', value: '' })).toBe(true);
+    expect(isCallNotice({ type: MessageNoticeType.CALL_ENDED, user: 'ada', value: '30' })).toBe(true);
+    expect(isCallNotice({ type: MessageNoticeType.CALL_MISSED, user: 'ada', value: '' })).toBe(true);
+    expect(isCallNotice({ type: MessageNoticeType.NICKNAME, user: 'ada', value: 'Ace' })).toBe(false);
+  });
+
+  it.each([
+    [0, '0:00'],
+    [7, '0:07'],
+    [95, '1:35'],
+    [3600, '1:00:00'],
+    [3725, '1:02:05'],
+  ])('formats %i seconds as %s', (seconds, text) => {
+    expect(formatCallDuration(seconds)).toBe(text);
+  });
+
+  it('names who started a call, or says you did', () => {
+    expect(getCallNoticeText({ notice: ring, actorId: 'ada', actorName: 'Ada', currentUserId: 'me' })).toBe(
+      'Ada started a call',
+    );
+    expect(getCallNoticeText({ notice: ring, actorId: 'me', actorName: 'Me', currentUserId: 'me' })).toBe(
+      'You started a call',
+    );
+  });
+
+  it('says the call started, and when it ended how long it lasted', () => {
+    const input = { actorId: 'ada', actorName: 'Ada', currentUserId: 'me' };
+
+    expect(getCallNoticeText({ ...input, notice: { type: MessageNoticeType.CALL_STARTED, user: 'ada', value: '' } })).toBe(
+      'Call started',
+    );
+    expect(getCallNoticeText({ ...input, notice: { type: MessageNoticeType.CALL_ENDED, user: 'ada', value: '95' } })).toBe(
+      'Call ended · 1:35',
+    );
+    expect(getCallNoticeText({ ...input, notice: { type: MessageNoticeType.CALL_ENDED, user: 'ada', value: '0' } })).toBe(
+      'Call ended',
+    );
+  });
+
+  it('tells the caller nobody answered, and everyone else whose call they missed', () => {
+    const notice = { type: MessageNoticeType.CALL_MISSED, user: 'ada', value: '' };
+
+    expect(getCallNoticeText({ notice, actorId: 'me', actorName: 'Me', currentUserId: 'me' })).toBe('No one answered');
+    expect(getCallNoticeText({ notice, actorId: 'ada', actorName: 'Ada', currentUserId: 'me' })).toBe(
+      'You missed a call from Ada',
+    );
+  });
+
+  it('picks the right sentence for any notice', () => {
+    const input = { actorId: 'ada', actorName: 'Ada', targetName: 'Bob', currentUserId: 'me' };
+
+    expect(getNoticeText({ ...input, notice: ring })).toBe('Ada started a call');
+    expect(getNoticeText({ ...input, notice: { type: MessageNoticeType.NICKNAME, user: 'bob', value: 'Ace' } })).toBe(
+      "Ada set Bob's nickname to Ace",
+    );
   });
 });

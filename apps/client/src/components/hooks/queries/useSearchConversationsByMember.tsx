@@ -8,7 +8,7 @@ export default function useSearchConversationsByMembers(selectedUsers: string[][
     session: { user },
   } = useAuth();
 
-  const { data: foundConversations, isError } = useQuery({
+  const { data: foundConversations, isError, isPlaceholderData } = useQuery({
     enabled: Boolean(selectedUsers?.length) && Boolean(user),
     queryKey: ['conversation', 'members', selectedUsers],
     queryFn: async () => {
@@ -27,5 +27,6 @@ export default function useSearchConversationsByMembers(selectedUsers: string[][
   return {
     foundConversations,
     isError,
+    isSearching: isPlaceholderData,
   };
 }

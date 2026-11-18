@@ -3,6 +3,7 @@ import { ConversationModel } from '@repo/models';
 import type { CallMember, CallPeer, CallProducerInfo } from '@repo/types';
 import type { Consumer, Producer, WebRtcTransport } from 'mediasoup/types';
 import { isValidObjectId } from 'mongoose';
+import type { CallRing, CallRingOutcome } from '../../types/call.type';
 import type { CallRouterEntry } from '../../types/mediasoup.type';
 import { MediasoupService } from './mediasoup.service';
 
@@ -31,6 +32,8 @@ type CallAccess =
 export class CallService {
   private readonly peers = new Map<string, Peer>(); // socket id → peer
   private readonly rooms = new Map<string, Set<string>>(); // conversation id → socket ids
+  private readonly callStartTimes = new Map<string, number>();
+  private readonly rings = new Map<string, CallRing>();
 
   constructor(
     private readonly conversationModel: ConversationModel,
@@ -59,6 +62,10 @@ export class CallService {
     return { members, caller };
   }
 
+  isGroupCall(conversationId: string) {
+    return this.conversationModel.isGroupChat(conversationId);
+  }
+
   getPeer(peerId: string) {
     return this.peers.get(peerId);
   }
@@ -77,6 +84,94 @@ export class CallService {
     room.add(peer.peerId);
     this.rooms.set(peer.conversationId, room);
     return newPeer;
+  }
+
+  hasPeers(conversationId: string) {
+    return Boolean(this.rooms.get(conversationId)?.size);
+  }
+
+  userIdsInCall(conversationId: string) {
+    const peerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const userIds = peerIds
+      .map((peerId) => this.peers.get(peerId)?.userId)
+      .filter((userId): userId is string => Boolean(userId));
+    return new Set(userIds);
+  }
+
+  startRing(conversationId: string, ring: Omit<CallRing, 'isAnswered'>) {
+    this.rings.set(conversationId, { ...ring, isAnswered: false });
+  }
+
+  answerRing(conversationId: string) {
+    const ring = this.rings.get(conversationId);
+    if (!ring) return this.hasPeers(conversationId);
+
+    ring.isAnswered = true;
+    return true;
+  }
+
+  stopRing(conversationId: string, callerId: string): CallRingOutcome {
+    const ring = this.rings.get(conversationId);
+    if (!ring) return this.hasPeers(conversationId) ? 'answered' : 'ignored';
+    if (ring.callerId !== callerId) return 'ignored';
+
+    if (ring.isAnswered) return 'answered';
+
+    this.rings.delete(conversationId);
+    return this.hasPeers(conversationId) ? 'answered' : 'missed';
+  }
+
+  isRingCaller(conversationId: string, userId: string) {
+    return this.rings.get(conversationId)?.callerId === userId;
+  }
+
+  pendingRing(conversationId: string) {
+    const ring = this.rings.get(conversationId);
+    return ring && !ring.isAnswered ? ring : null;
+  }
+
+  declineRing(conversationId: string, userId: string) {
+    const ring = this.rings.get(conversationId);
+    if (!ring || ring.isAnswered) return false;
+
+    ring.ringingUserIds.delete(userId);
+    if (ring.ringingUserIds.size) return false;
+
+    this.rings.delete(conversationId);
+    return true;
+  }
+
+  clearRing(conversationId: string) {
+    const ring = this.rings.get(conversationId) ?? null;
+    this.rings.delete(conversationId);
+    return ring;
+  }
+
+  clearAnsweredRing(conversationId: string) {
+    if (this.rings.get(conversationId)?.isAnswered)
+      this.rings.delete(conversationId);
+  }
+
+  ringsCalledFrom(socketId: string) {
+    return [...this.rings.entries()]
+      .filter(([, ring]) => ring.callerSocketId === socketId)
+      .map(([conversationId]) => conversationId);
+  }
+
+  startIfConnected(conversationId: string) {
+    const userCount = this.userIdsInCall(conversationId).size;
+    if (userCount < 2 || this.callStartTimes.has(conversationId)) return false;
+
+    this.callStartTimes.set(conversationId, Date.now());
+    return true;
+  }
+
+  finishIfEmpty(conversationId: string): number | null {
+    const startTime = this.callStartTimes.get(conversationId);
+    if (startTime === undefined || this.rooms.has(conversationId)) return null;
+
+    this.callStartTimes.delete(conversationId);
+    return Math.round((Date.now() - startTime) / 1000);
   }
 
   /** Every other peer in the conversation's call. */

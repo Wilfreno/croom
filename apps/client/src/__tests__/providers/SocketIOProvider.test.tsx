@@ -2,10 +2,11 @@ import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests_
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import SocketIOProvider, { useSocketIO } from '@/components/providers/SocketIOProvider';
-import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
+import { CALL_NO_LONGER_RINGING, CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import { MessageNoticeType } from '@repo/enums';
 import type { Conversation, Message, MessagePayload, UserSession } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { io } from 'socket.io-client';
@@ -13,7 +14,7 @@ import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('socket.io-client', () => ({ io: vi.fn() }));
-vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { custom: vi.fn(), error: vi.fn() }) }));
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { custom: vi.fn(), error: vi.fn(), dismiss: vi.fn() }) }));
 
 let sessionUser: UserSession | null;
 vi.mock('@/components/providers/AuthProvider', () => ({ useAuth: () => ({ session: { user: sessionUser } }) }));
@@ -155,6 +156,48 @@ describe('SocketIOProvider', () => {
       });
     });
 
+    describe('call notices', () => {
+      function callNoticeIn(conversationId: string): MessagePayload {
+        return {
+          ...mockMessage({ text: '', sender: mockUser({ displayName: 'Ada' }) }),
+          notice: { type: MessageNoticeType.CALL_RING, user: 'ada', value: '' },
+          conversation: { id: conversationId, nicknames: [] },
+        } as MessagePayload;
+      }
+
+      it('adds the notice to the conversation you are calling in', () => {
+        pathname = '/call/c1';
+        const { queryClient } = renderProvider();
+        queryClient.setQueryData<MessagePages>(['conversation', 'messages', 'c1'], { pages: [{ pageParam: 1, result: [] }], pageParams: [1] });
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c1')));
+
+        expect(queryClient.getQueryData<MessagePages>(['conversation', 'messages', 'c1'])!.pages[0].result).toHaveLength(1);
+      });
+
+      it('shows no toast for a call notice elsewhere, but refreshes the conversation lists', () => {
+        const { queryClient } = renderProvider();
+        const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c2')));
+
+        expect(toast).not.toHaveBeenCalled();
+        expect(toast.custom).not.toHaveBeenCalled();
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: [sessionUser!.id, 'conversations'] });
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['active', 'conversations', sessionUser!.id] });
+      });
+
+      it('leaves cached nicknames alone', () => {
+        const { queryClient } = renderProvider();
+        const conversation = mockConversation({ id: 'c2', nicknames: [{ user: sessionUser!.id, value: 'Ace' }] });
+        queryClient.setQueryData(['conversation', 'c2'], conversation);
+
+        act(() => server.serverEmit('MESSAGE', callNoticeIn('c2')));
+
+        expect(queryClient.getQueryData<Conversation>(['conversation', 'c2'])!.nicknames).toEqual(conversation.nicknames);
+      });
+    });
+
     it('puts the toast at the top on mobile', () => {
       onMobile = true;
       renderProvider();
@@ -179,19 +222,100 @@ describe('SocketIOProvider', () => {
     expect(predicate({ queryKey: ['user', 'session'] })).toBe(false);
   });
 
-  it('rings with one toast per call that opens the call when accepted', () => {
-    renderProvider();
+  describe('ringing', () => {
     const call = { conversationId: 'c1', caller: { id: 'u', displayName: 'Bob', photoUrl: null } };
 
-    act(() => server.serverEmit('INCOMING_CALL', call));
+    let lastRender: ReturnType<typeof renderProvider>;
 
-    const [render, options] = vi.mocked(toast.custom).mock.calls[0];
-    expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS });
+    function ring() {
+      lastRender = renderProvider();
+      act(() => server.serverEmit('INCOMING_CALL', call));
+      const [render, options] = vi.mocked(toast.custom).mock.calls[0];
+      const element = render('toast-1') as React.ReactElement<{
+        call: unknown;
+        onAccept: () => Promise<void>;
+        onDecline: () => void;
+      }>;
+      return { element, options };
+    }
 
-    const element = render('toast-1') as React.ReactElement<{ call: unknown; onAccept: () => void }>;
-    expect(element.props.call).toBe(call);
-    element.props.onAccept();
-    expect(push).toHaveBeenCalledWith('/call/c1');
+    it('rings with one toast per call', () => {
+      const { element, options } = ring();
+
+      expect(options).toMatchObject({ id: 'incoming-call-c1', duration: CALL_RING_DURATION_MS, position: 'top-center' });
+      expect(element.props.call).toBe(call);
+    });
+
+    it('tells the caller and opens the call when accepted', async () => {
+      server.replies.CALL_ACCEPT = { isAccepted: true };
+      const { element } = ring();
+
+      await element.props.onAccept();
+
+      expect(server.emitWithAck).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
+      expect(push).toHaveBeenCalledWith('/call/c1');
+    });
+
+    it.each([
+      ['the ring already stopped', { isAccepted: false }],
+      ['the server refuses', { error: 'you cannot answer this call' }],
+    ])('stays put and says so when %s', async (_, reply) => {
+      server.replies.CALL_ACCEPT = reply;
+      const { element } = ring();
+
+      await element.props.onAccept();
+
+      expect(push).not.toHaveBeenCalled();
+      expect(toast).toHaveBeenCalledWith(CALL_NO_LONGER_RINGING);
+    });
+
+    it('answers on the current connection when you moved to another page while it rang', async () => {
+      const { element } = ring();
+      const { rerender, queryClient } = lastRender;
+      const nextServer = mockSocket({ CALL_ACCEPT: { isAccepted: true } });
+      vi.mocked(io).mockReturnValue(nextServer.socket as never);
+      pathname = '/conversation/c9';
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <SocketIOProvider>{null}</SocketIOProvider>
+        </QueryClientProvider>,
+      );
+
+      await element.props.onAccept();
+      element.props.onDecline();
+
+      expect(nextServer.emitWithAck).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
+      expect(nextServer.spies.emit).toHaveBeenCalledWith('CALL_DECLINE', { conversationId: 'c1' });
+      expect(server.emitWithAck).not.toHaveBeenCalled();
+      expect(push).toHaveBeenCalledWith('/call/c1');
+    });
+
+    it('tells the caller when declined, without opening the call', () => {
+      const { element } = ring();
+
+      element.props.onDecline();
+
+      expect(server.spies.emit).toHaveBeenCalledWith('CALL_DECLINE', { conversationId: 'c1' });
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('stops ringing when the caller cancels', () => {
+      ring();
+
+      act(() => server.serverEmit('CALL_CANCELLED', { conversationId: 'c1' }));
+
+      expect(toast.dismiss).toHaveBeenCalledWith('incoming-call-c1');
+    });
+
+    it.each(['CALL_ACCEPTED', 'CALL_DECLINED'])('stops ringing when you answered in another tab (%s)', (event) => {
+      ring();
+
+      act(() => server.serverEmit(event, { conversationId: 'c1', userId: 'someone-else' }));
+      expect(toast.dismiss).not.toHaveBeenCalled();
+
+      act(() => server.serverEmit(event, { conversationId: 'c1', userId: sessionUser?.id }));
+      expect(toast.dismiss).toHaveBeenCalledWith('incoming-call-c1');
+    });
   });
 
   describe('CONVERSATION_MEMBERS_CHANGED', () => {
@@ -258,7 +382,16 @@ describe('SocketIOProvider', () => {
 
     unmount();
 
-    for (const event of ['MESSAGE', 'USER_STATUS', 'ERROR', 'INCOMING_CALL', 'CONVERSATION_MEMBERS_CHANGED'])
+    for (const event of [
+      'MESSAGE',
+      'USER_STATUS',
+      'ERROR',
+      'INCOMING_CALL',
+      'CALL_CANCELLED',
+      'CALL_ACCEPTED',
+      'CALL_DECLINED',
+      'CONVERSATION_MEMBERS_CHANGED',
+    ])
       expect(server.listenerCount(event)).toBe(0);
     expect(server.spies.disconnect).toHaveBeenCalled();
   });

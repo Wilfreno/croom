@@ -12,7 +12,7 @@ export class MessageModel {
 
   constructor(@InjectModel(Message.name) private Message: Model<Message>) {}
 
-  async createMessage(data: Partial<Message>, session: ClientSession) {
+  async createMessage(data: Partial<Message>, session?: ClientSession) {
     try {
       const newMessage = new this.Message(data);
 

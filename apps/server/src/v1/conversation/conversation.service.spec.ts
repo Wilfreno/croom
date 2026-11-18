@@ -91,6 +91,7 @@ function build() {
     callGateway,
     messageGateway,
     transaction,
+    connection,
   };
 }
 
@@ -107,6 +108,46 @@ describe('ConversationService', () => {
       await service.onApplicationBootstrap();
 
       expect(conversationModel.backfillIsGroupChat).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('createConversation', () => {
+    it('creates it with you as a member, in a transaction, and returns it', async () => {
+      const { service, conversationModel, transaction } = build();
+
+      await expect(service.createConversation({ members: [ADA], userId: ME })).resolves.toEqual({ id: 'c1' });
+
+      expect(transaction.withTransaction).toHaveBeenCalledOnce();
+      expect(ids(conversationModel.createConversation.mock.calls[0][0].members)).toEqual([ADA, ME]);
+      expect(conversationModel.findConversationPayloadById).toHaveBeenCalledWith('new');
+      expect(transaction.endSession).toHaveBeenCalledOnce();
+    });
+
+    it('does not add you twice when you are already listed', async () => {
+      const { service, conversationModel } = build();
+
+      await service.createConversation({ members: [ADA, ME], userId: ME });
+
+      expect(ids(conversationModel.createConversation.mock.calls[0][0].members)).toEqual([ADA, ME]);
+    });
+
+    it('refuses a conversation with only you in it', async () => {
+      const { service, connection } = build();
+
+      await expect(service.createConversation({ members: [ME], userId: ME })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(connection.startSession).not.toHaveBeenCalled();
+    });
+
+    it('refuses a second one-to-one conversation and still ends the session', async () => {
+      const { service, conversationModel, transaction } = build();
+      conversationModel.checkConversationExistByMembers.mockResolvedValue(true);
+
+      await expect(service.createConversation({ members: [ADA], userId: ME })).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(transaction.endSession).toHaveBeenCalledOnce();
     });
   });
 

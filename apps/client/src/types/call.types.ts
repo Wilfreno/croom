@@ -10,8 +10,17 @@ export type LocalMediaState =
 
 export type LocalMediaOptions = {
   cameraDeviceId?: string;
+  microphoneDeviceId?: string;
   video?: boolean;
   audio?: boolean;
+  enabled?: boolean;
+};
+
+export type CallMediaPreferences = {
+  cameraId?: string;
+  microphoneId?: string;
+  isCameraOn: boolean;
+  isMicOn: boolean;
 };
 
 export type LocalMediaContextType = {
@@ -19,8 +28,13 @@ export type LocalMediaContextType = {
   cameras: MediaDeviceInfo[];
   activeCameraId?: string;
   selectCamera: (cameraDeviceId: string) => void;
+  microphones: MediaDeviceInfo[];
+  activeMicrophoneId?: string;
+  selectMicrophone: (microphoneDeviceId: string) => void;
   isCameraOn: boolean;
   toggleCamera: () => void;
+  isMicOn: boolean;
+  toggleMic: () => void;
 };
 
 export type CallStatus = 'connecting' | 'connected' | 'error';
@@ -40,15 +54,47 @@ export type CallContextType = {
   error: string | null;
   members: Map<string, CallMember>;
   participants: CallParticipant[];
-  isMicOn: boolean;
-  toggleMic: () => void;
   leave: () => void;
+};
+
+export type CallSidePanel = 'participants' | 'chat';
+
+export type CallControlTone = 'neutral' | 'active' | 'off' | 'danger';
+
+export type OutgoingCallStatus = 'idle' | 'ringing' | 'declined' | 'unanswered';
+
+export type OutgoingCallTarget = { conversationId: string };
+
+export type ActiveOutgoingCall = {
+  conversationId: string;
+  ringingCount: number | null;
+  declinedUserIds: Set<string>;
+  isCancelled: boolean;
+};
+
+export type RingtoneNote = { startSeconds: number; durationSeconds: number; frequencies: number[] };
+
+export type Ringtone = { volume: number; cycleSeconds: number; notes: RingtoneNote[] };
+
+export type CallSidePanelContextType = {
+  openPanel: CallSidePanel | null;
+  setOpenPanel: (panel: CallSidePanel | null) => void;
+  togglePanel: (panel: CallSidePanel) => void;
+};
+
+export type PinnedParticipantsContextType = {
+  pinnedPeerId: string | null;
+  isPinned: (peerId: string) => boolean;
+  togglePin: (peerId: string) => void;
 };
 
 /** One row in the participants side panel. */
 export type ParticipantListItem = {
   key: string;
+  peerId?: string;
+  userId: string;
   displayName: string;
+  nickname?: string;
   photoUrl: string | null;
   isMuted: boolean;
   isCameraOff: boolean;

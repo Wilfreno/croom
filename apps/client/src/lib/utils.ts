@@ -1,8 +1,8 @@
-import type { CallSession } from "@/types/call.types";
+import type { CallMediaPreferences, CallSession, RingtoneNote } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
-import { AVATAR_FALLBACK_COLORS, SECONDS_IN_DAY, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
-import { ConversationStatus, UserStatus } from "@repo/enums";
+import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, RINGTONE_FADE_SECONDS, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
+import { CALL_MESSAGE_NOTICE_TYPES, ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
 import type { ClientToServerEvents } from "@repo/types";
 import { Conversation } from "@repo/types";
 import type { Message, MessageNotice, Photo, ServerResponse, User } from "@repo/types";
@@ -45,14 +45,16 @@ export function getGroupAvatarMembers(conversation: Pick<Conversation, "members"
   return { shown, remainingCount: Math.max(others.length - 1, 0) };
 }
 
+export function getMemberNickname(conversation: Pick<Conversation, "nicknames"> | undefined, userId: string) {
+  return conversation?.nicknames.find((nickname) => nickname.user === userId)?.value || undefined;
+}
+
 export function getConversationName(conversation: Conversation, currentUserId?: string) {
   if (conversation.name) return conversation.name;
 
   const otherMemberNames = conversation.members
     .filter((member) => member.id !== currentUserId)
-    .map(
-      (member) => conversation.nicknames.find((nickname) => nickname.user === member.id)?.value || member.displayName,
-    );
+    .map((member) => getMemberNickname(conversation, member.id) || member.displayName);
 
   if (conversation.isGroupChat && otherMemberNames.length === 0) return "Only you";
   if (conversation.isGroupChat && otherMemberNames.length === 1) return `You and ${otherMemberNames[0]}`;
@@ -81,6 +83,42 @@ export function getNicknameNoticeText(input: NicknameNoticeInput) {
   const { actor, target, value } = getNicknameNoticeParts(input);
 
   return value ? `${actor} set ${target} nickname to ${value}` : `${actor} cleared ${target} nickname`;
+}
+
+export function isCallNotice(notice: MessageNotice) {
+  return CALL_MESSAGE_NOTICE_TYPES.includes(notice.type);
+}
+
+export function formatCallDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / SECONDS_IN_HOUR);
+  const minutes = Math.floor((totalSeconds % SECONDS_IN_HOUR) / SECONDS_IN_MINUTE);
+  const seconds = totalSeconds % SECONDS_IN_MINUTE;
+  const paddedSeconds = String(seconds).padStart(2, "0");
+
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${paddedSeconds}`;
+  return `${minutes}:${paddedSeconds}`;
+}
+
+export function getCallNoticeText({
+  notice,
+  actorId,
+  actorName,
+  currentUserId,
+}: Omit<NicknameNoticeInput, "targetName">) {
+  if (notice.type === MessageNoticeType.CALL_RING) {
+    const actor = actorId === currentUserId ? "You" : actorName;
+    return `${actor} started a call`;
+  }
+  if (notice.type === MessageNoticeType.CALL_STARTED) return "Call started";
+  if (notice.type === MessageNoticeType.CALL_MISSED)
+    return actorId === currentUserId ? "No one answered" : `You missed a call from ${actorName}`;
+
+  const durationSeconds = Number(notice.value);
+  return durationSeconds > 0 ? `Call ended · ${formatCallDuration(durationSeconds)}` : "Call ended";
+}
+
+export function getNoticeText(input: NicknameNoticeInput) {
+  return isCallNotice(input.notice) ? getCallNoticeText(input) : getNicknameNoticeText(input);
 }
 
 export function isSameSender<T extends Pick<Message, "sender" | "notice">>(
@@ -161,6 +199,28 @@ export function getMediaErrorMessage(error: unknown) {
   return "Could not start the camera";
 }
 
+export function readCallMediaPreferences(): CallMediaPreferences {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CALL_MEDIA_PREFERENCES_STORAGE_KEY) ?? "{}");
+    return {
+      cameraId: typeof saved.cameraId === "string" ? saved.cameraId : undefined,
+      microphoneId: typeof saved.microphoneId === "string" ? saved.microphoneId : undefined,
+      isCameraOn: typeof saved.isCameraOn === "boolean" ? saved.isCameraOn : CALL_DEFAULT_MEDIA_PREFERENCES.isCameraOn,
+      isMicOn: typeof saved.isMicOn === "boolean" ? saved.isMicOn : CALL_DEFAULT_MEDIA_PREFERENCES.isMicOn,
+    };
+  } catch {
+    return CALL_DEFAULT_MEDIA_PREFERENCES;
+  }
+}
+
+export function saveCallMediaPreferences(preferences: CallMediaPreferences) {
+  try {
+    localStorage.setItem(CALL_MEDIA_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  } catch {
+    return;
+  }
+}
+
 export function getInitials(name: string) {
   const words = name.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   if (words.length === 0) return "";
@@ -183,8 +243,29 @@ export function getAvatarColor(key: string) {
   return AVATAR_FALLBACK_COLORS[index];
 }
 
+export function getTileSize(tileCount: number) {
+  const columns = Math.ceil(Math.sqrt(tileCount));
+  const rows = Math.ceil(tileCount / columns);
+  return {
+    width: `calc((100% - ${columns - 1} * ${CALL_TILE_GAP}) / ${columns})`,
+    height: `calc((100% - ${rows - 1} * ${CALL_TILE_GAP}) / ${rows})`,
+  };
+}
+
 export function peopleLabel(count: number) {
   return `${count} ${count === 1 ? "person" : "people"}`;
+}
+
+export function incomingCallToastId(conversationId: string) {
+  return `incoming-call-${conversationId}`;
+}
+
+export function unreadMessagesLabel(count: number) {
+  return `${count} unread ${count === 1 ? "message" : "messages"}`;
+}
+
+export function othersLabel(count: number) {
+  return `${count} ${count === 1 ? "other" : "others"}`;
 }
 
 /**
@@ -275,4 +356,28 @@ export function markMessageFailed(pages: MessagePages, id: string): MessagePages
       result: result.map((cached) => (cached.id === id ? { ...cached, pending: false, failed: true } : cached)),
     })),
   };
+}
+
+export function playRingtoneNote(context: AudioContext, output: AudioNode, note: RingtoneNote, cycleStartTime: number) {
+  const startTime = cycleStartTime + note.startSeconds;
+  const endTime = startTime + note.durationSeconds;
+  const envelope = context.createGain();
+  envelope.gain.setValueAtTime(0, startTime);
+  envelope.gain.linearRampToValueAtTime(1, startTime + RINGTONE_FADE_SECONDS);
+  envelope.gain.setValueAtTime(1, endTime - RINGTONE_FADE_SECONDS);
+  envelope.gain.linearRampToValueAtTime(0, endTime);
+  envelope.connect(output);
+
+  for (const frequency of note.frequencies) {
+    const oscillator = context.createOscillator();
+    oscillator.frequency.value = frequency;
+    oscillator.connect(envelope);
+    oscillator.start(startTime);
+    oscillator.stop(endTime);
+  }
+}
+
+export async function stopCallRing(socket: TypedSocket, conversationId: string) {
+  const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_CANCEL', { conversationId }).catch(() => null);
+  return Boolean(reply?.isAnswered);
 }

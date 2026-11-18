@@ -18,6 +18,7 @@ import {
   GetConversationByMembersIdDto,
 } from './dto/get-conversation';
 import { BlockConversationDto } from './dto/block-conversation.dto';
+import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChangeNameDto, ChangeNameParamDto } from './dto/change-name.dto';
 import { ChangePhotoDto, ChangePhotoParamDto } from './dto/change-photo.dto';
 import { LeaveConversationDto } from './dto/leave-conversation.dto';
@@ -48,6 +49,17 @@ export class ConversationController {
     return this.conversationService.getConversationMessages({
       conversationId,
       page,
+    });
+  }
+
+  @Post()
+  createConversation(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() { members }: CreateConversationDto,
+  ) {
+    return this.conversationService.createConversation({
+      members,
+      userId: currentUser.id,
     });
   }
 
