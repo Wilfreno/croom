@@ -1,5 +1,6 @@
 import type { CallMediaPreferences, CallSession, RingtoneNote } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
+import type { ChangePasswordForm } from "@/types/user-settings.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
 import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, RINGTONE_FADE_SECONDS, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
 import { CALL_MESSAGE_NOTICE_TYPES, ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
@@ -32,6 +33,16 @@ export function getServerErrorMessage(error: unknown) {
     return error.response.data.message;
 
   return SOMETHING_WENT_WRONG;
+}
+
+export function withoutAtSign(userName: string | undefined) {
+  if (!userName) return "";
+  if (userName.startsWith("@")) return userName.slice(1);
+  return userName;
+}
+
+export function emptyChangePasswordForm(): ChangePasswordForm {
+  return { currentPassword: "", password: "", confirmPassword: "" };
 }
 
 export function isConversationOnline(conversation: Pick<Conversation, "members">, currentUserId?: string) {

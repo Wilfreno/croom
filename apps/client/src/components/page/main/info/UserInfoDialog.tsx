@@ -6,6 +6,7 @@ import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { GETRequest } from '@/lib/server/requests';
+import { withoutAtSign } from '@/lib/utils';
 import { Conversation, User } from '@repo/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AtSign, Mail, Send, X } from 'lucide-react';
@@ -85,7 +86,7 @@ export default function UserInfoDialog({ children, user }: { children: React.Rea
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <AtSign className="h-4 w-auto" />
-                <span>{userInfo?.userName.slice(1)}</span>
+                <span>{withoutAtSign(userInfo?.userName)}</span>
               </div>
             </div>
 
