@@ -49,7 +49,7 @@ vi.mock('@/components/hooks/queries/useMessages', () => ({ default: () => ({ fou
 
 beforeEach(() => {
   vi.clearAllMocks();
-  server = mockSocket({ CALL: { isOngoing: false } });
+  server = mockSocket({ CALL: { isOngoing: false }, CALL_CANCEL: { isAnswered: false } });
   sessionUser = mockSession();
   sidebar.onMobile = false;
   sendMessage.isPending = false;
@@ -99,9 +99,10 @@ describe('ConversationHeader', () => {
     }
 
     async function call(conversation = oneOnOne()) {
-      renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
+      const rendered = renderWithQuery(<ConversationHeader conversationInfo={info} conversation={conversation} />);
       await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
-      return screen.findByRole('dialog');
+      const dialog = await screen.findByRole('dialog');
+      return Object.assign(dialog, { unmount: rendered.unmount });
     }
 
     it('rings the conversation and waits in a dialog instead of opening the call', async () => {
@@ -178,8 +179,35 @@ describe('ConversationHeader', () => {
 
       await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel call' }));
 
-      expect(server.spies.emit).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+      expect(server.emitWithAck).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it('joins instead when someone answered just before you cancelled', async () => {
+      server.replies.CALL_CANCEL = { isAnswered: true };
+      const dialog = await call();
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel call' }));
+
+      await waitFor(() => expect(push).toHaveBeenCalledWith('/call/c1'));
+    });
+
+    it('stops the ring when you leave the page while it rings', async () => {
+      const dialog = await call();
+
+      dialog.unmount();
+
+      expect(server.emitWithAck).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+    });
+
+    it('does not stop the ring when you leave the page to join the answered call', async () => {
+      const dialog = await call();
+      act(() => server.serverEmit('CALL_ACCEPTED', { conversationId: 'c1', userId: 'bob' }));
+
+      dialog.unmount();
+
+      expect(server.emitWithAck).not.toHaveBeenCalledWith('CALL_CANCEL', expect.anything());
     });
 
     it('gives up with "No answer" when nobody picks up in time', async () => {
@@ -189,8 +217,23 @@ describe('ConversationHeader', () => {
 
         act(() => vi.advanceTimersByTime(CALL_RING_DURATION_MS));
 
-        expect(within(dialog).getByText('No answer')).toBeInTheDocument();
-        expect(server.spies.emit).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+        expect(await within(dialog).findByText('No answer')).toBeInTheDocument();
+        expect(server.emitWithAck).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+        expect(push).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('joins instead of giving up when someone answered right as the ring ran out', async () => {
+      server.replies.CALL_CANCEL = { isAnswered: true };
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        await call();
+
+        act(() => vi.advanceTimersByTime(CALL_RING_DURATION_MS));
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/call/c1'));
       } finally {
         vi.useRealTimers();
       }

@@ -1,7 +1,7 @@
 'use client';
-import { appendMessage, getNicknameNoticeText, incomingCallToastId, setCachedNicknames } from '@/lib/utils';
+import { appendMessage, emitSocketEventAndWaitForServerReply, getNicknameNoticeText, incomingCallToastId, setCachedNicknames } from '@/lib/utils';
 import type { MessagePages } from '@/types/message.types';
-import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
+import { CALL_NO_LONGER_RINGING, CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import { MessageNoticeType } from '@repo/enums';
 import type {
   CallAnswerPayload,
@@ -90,17 +90,19 @@ export default function SocketIOProvider({ children }: { children: React.ReactNo
         queryKey.includes('conversations') || (queryKey[0] === 'conversation' && queryKey[1] !== 'messages'),
     });
   }
-  function onIncomingCall(socket: Socket<ServerToClientEvents, ClientToServerEvents>, call: IncomingCallPayload) {
+  async function acceptCall(socket: Socket<ServerToClientEvents, ClientToServerEvents>, conversationId: string) {
+    const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_ACCEPT', { conversationId }).catch(() => null);
+    if (reply?.isAccepted) router.push(`/call/${conversationId}`);
+    else toast(CALL_NO_LONGER_RINGING);
+  }
+    function onIncomingCall(socket: Socket<ServerToClientEvents, ClientToServerEvents>, call: IncomingCallPayload) {
     const conversationId = call.conversationId;
     toast.custom(
       (toastId) => (
         <IncomingCallToast
           call={call}
           toastId={toastId}
-          onAccept={() => {
-            socket.emit('CALL_ACCEPT', { conversationId });
-            router.push(`/call/${conversationId}`);
-          }}
+          onAccept={() => acceptCall(socket, conversationId)}
           onDecline={() => socket.emit('CALL_DECLINE', { conversationId })}
         />
       ),

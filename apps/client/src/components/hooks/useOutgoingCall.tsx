@@ -3,10 +3,16 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useSocketIO } from '@/components/providers/SocketIOProvider';
 import { emitSocketEventAndWaitForServerReply } from '@/lib/utils';
 import { OutgoingCallStatus, OutgoingCallTarget } from '@/types/call.types';
+import { TypedSocket } from '@/types/socket.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
 import { CallAnswerPayload } from '@repo/types';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+async function stopRinging(socket: TypedSocket, conversationId: string) {
+  const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_CANCEL', { conversationId }).catch(() => null);
+  return Boolean(reply?.isAnswered);
+}
 
 export default function useOutgoingCall() {
   const socket = useSocketIO();
@@ -15,17 +21,36 @@ export default function useOutgoingCall() {
   const userId = session.user?.id;
   const [status, setStatus] = useState<OutgoingCallStatus>('idle');
   const [target, setTarget] = useState<OutgoingCallTarget | null>(null);
+  const ringingConversationIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    ringingConversationIdRef.current = status === 'ringing' && target ? target.conversationId : null;
+  }, [status, target]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    return () => {
+      const conversationId = ringingConversationIdRef.current;
+      ringingConversationIdRef.current = null;
+      if (conversationId) stopRinging(socket, conversationId);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (status !== 'ringing' || !socket || !target) return;
     const { conversationId, recipientCount } = target;
     const declinedUserIds = new Set<string>();
 
+    function joinCall() {
+      ringingConversationIdRef.current = null;
+      router.push(`/call/${conversationId}`);
+    }
     function isAnswerToThisCall(answer: CallAnswerPayload) {
       return answer.conversationId === conversationId && answer.userId !== userId;
     }
     function onAccepted(answer: CallAnswerPayload) {
-      if (isAnswerToThisCall(answer)) router.push(`/call/${conversationId}`);
+      if (isAnswerToThisCall(answer)) joinCall();
     }
     function onDeclined(answer: CallAnswerPayload) {
       if (!isAnswerToThisCall(answer)) return;
@@ -33,9 +58,9 @@ export default function useOutgoingCall() {
       if (declinedUserIds.size >= recipientCount) setStatus('declined');
     }
 
-    const ringTimeoutId = setTimeout(() => {
-      socket.emit('CALL_CANCEL', { conversationId });
-      setStatus('unanswered');
+    const ringTimeoutId = setTimeout(async () => {
+      if (await stopRinging(socket, conversationId)) joinCall();
+      else setStatus('unanswered');
     }, CALL_RING_DURATION_MS);
     socket.on('CALL_ACCEPTED', onAccepted);
     socket.on('CALL_DECLINED', onDeclined);
@@ -67,9 +92,10 @@ export default function useOutgoingCall() {
     if (target) start(target);
   }
 
-  function cancel() {
-    if (target) socket?.emit('CALL_CANCEL', { conversationId: target.conversationId });
+  async function cancel() {
     setStatus('idle');
+    if (!socket || !target) return;
+    if (await stopRinging(socket, target.conversationId)) router.push(`/call/${target.conversationId}`);
   }
 
   function close() {

@@ -25,6 +25,19 @@ export interface CallStartResult {
   isOngoing: boolean;
 }
 
+export interface CallAcceptResult {
+  isAccepted: boolean;
+}
+
+export interface CallCancelResult {
+  isAnswered: boolean;
+}
+
+export interface CallEndedPayload {
+  reason: string;
+  isRemovedFromConversation?: boolean;
+}
+
 export interface IncomingCallPayload {
   conversationId: string;
   caller: {
@@ -97,7 +110,7 @@ export interface ServerToClientEvents {
   CALL_NEW_PRODUCER: (producer: CallProducerInfo) => void;
   CALL_PRODUCER_CLOSED: (payload: { producerId: string }) => void;
   CALL_PRODUCER_PAUSED: (payload: { producerId: string; paused: boolean }) => void;
-  CALL_ENDED: (payload: { reason: string }) => void;
+  CALL_ENDED: (payload: CallEndedPayload) => void;
   CALL_ACCEPTED: (payload: CallAnswerPayload) => void;
   CALL_DECLINED: (payload: CallAnswerPayload) => void;
   CALL_CANCELLED: (payload: CallPayload) => void;
@@ -105,9 +118,9 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   CALL: (payload: CallPayload, ack: (result: CallAck<CallStartResult>) => void) => void;
-  CALL_ACCEPT: (payload: CallPayload) => void;
+  CALL_ACCEPT: (payload: CallPayload, ack: (result: CallAck<CallAcceptResult>) => void) => void;
   CALL_DECLINE: (payload: CallPayload) => void;
-  CALL_CANCEL: (payload: CallPayload) => void;
+  CALL_CANCEL: (payload: CallPayload, ack: (result: CallAck<CallCancelResult>) => void) => void;
   CALL_JOIN: (payload: CallPayload, ack: (result: CallAck<CallJoinResult>) => void) => void;
   CALL_CREATE_TRANSPORT: (
     payload: { direction: 'send' | 'recv' },

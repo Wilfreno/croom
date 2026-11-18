@@ -34,3 +34,4 @@ export const CALL_RINGBACK_TONE = {
 export const CALL_RINGTONE_URL = '/sounds/incoming-call.mp3';
 export const CALL_RINGTONE_VOLUME = 1;
 export const RINGTONE_FADE_SECONDS = 0.02;
+export const CALL_NO_LONGER_RINGING = 'This call is no longer ringing';

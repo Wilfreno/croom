@@ -3,6 +3,7 @@ import { ConversationModel } from '@repo/models';
 import type { CallMember, CallPeer, CallProducerInfo } from '@repo/types';
 import type { Consumer, Producer, WebRtcTransport } from 'mediasoup/types';
 import { isValidObjectId } from 'mongoose';
+import type { CallRing, CallRingOutcome } from '../../types/call.type';
 import type { CallRouterEntry } from '../../types/mediasoup.type';
 import { MediasoupService } from './mediasoup.service';
 
@@ -32,6 +33,7 @@ export class CallService {
   private readonly peers = new Map<string, Peer>(); // socket id → peer
   private readonly rooms = new Map<string, Set<string>>(); // conversation id → socket ids
   private readonly callStartTimes = new Map<string, number>(); // conversation id → when a second person joined
+  private readonly rings = new Map<string, CallRing>();
 
   constructor(
     private readonly conversationModel: ConversationModel,
@@ -88,9 +90,50 @@ export class CallService {
     return Boolean(this.rooms.get(conversationId)?.size);
   }
 
+  userIdsInCall(conversationId: string) {
+    const peerIds = [...(this.rooms.get(conversationId) ?? [])];
+    const userIds = peerIds
+      .map((peerId) => this.peers.get(peerId)?.userId)
+      .filter((userId): userId is string => Boolean(userId));
+    return new Set(userIds);
+  }
+
+  startRing(conversationId: string, ring: Omit<CallRing, 'isAnswered'>) {
+    this.rings.set(conversationId, { ...ring, isAnswered: false });
+  }
+
+  answerRing(conversationId: string) {
+    const ring = this.rings.get(conversationId);
+    if (!ring) return this.hasPeers(conversationId);
+
+    ring.isAnswered = true;
+    return true;
+  }
+
+  stopRing(conversationId: string, callerId: string): CallRingOutcome {
+    const ring = this.rings.get(conversationId);
+    if (!ring) return this.hasPeers(conversationId) ? 'answered' : 'ignored';
+    if (ring.callerId !== callerId) return 'ignored';
+
+    this.rings.delete(conversationId);
+    const isAnswered = ring.isAnswered || this.hasPeers(conversationId);
+    return isAnswered ? 'answered' : 'missed';
+  }
+
+  clearAnsweredRing(conversationId: string) {
+    if (this.rings.get(conversationId)?.isAnswered)
+      this.rings.delete(conversationId);
+  }
+
+  ringsCalledFrom(socketId: string) {
+    return [...this.rings.entries()]
+      .filter(([, ring]) => ring.callerSocketId === socketId)
+      .map(([conversationId]) => conversationId);
+  }
+
   startIfConnected(conversationId: string) {
-    const peerCount = this.rooms.get(conversationId)?.size ?? 0;
-    if (peerCount < 2 || this.callStartTimes.has(conversationId)) return false;
+    const userCount = this.userIdsInCall(conversationId).size;
+    if (userCount < 2 || this.callStartTimes.has(conversationId)) return false;
 
     this.callStartTimes.set(conversationId, Date.now());
     return true;

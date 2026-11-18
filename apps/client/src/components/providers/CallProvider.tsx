@@ -1,6 +1,7 @@
 'use client';
 import useMediasoupCall from '@/components/hooks/useMediasoupCall';
 import { CallContextType } from '@/types/call.types';
+import { CallEndedPayload } from '@repo/types';
 import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -29,9 +30,9 @@ export default function CallProvider({ conversationId, children }: { conversatio
   useEffect(() => {
     if (!socket) return;
 
-    function onCallEnded({ reason }: { reason: string }) {
+    function onCallEnded({ reason, isRemovedFromConversation }: CallEndedPayload) {
       toast(reason);
-      router.push(`/conversation/${conversationId}`);
+      router.push(isRemovedFromConversation ? '/' : `/conversation/${conversationId}`);
     }
 
     socket.on('CALL_ENDED', onCallEnded);

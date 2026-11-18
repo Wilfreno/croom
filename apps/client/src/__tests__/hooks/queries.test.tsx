@@ -368,6 +368,16 @@ describe('useSearchConversationsByMembers', () => {
     expect(get).toHaveBeenCalledWith('/conversation?members=u1,u2');
   });
 
+  it('says it is still searching until the first answer comes back', async () => {
+    serverReturns([]);
+
+    const { result } = renderHookWithQuery(() => useSearchConversationsByMembers([['u1', 'Alice']]));
+
+    expect(result.current.isSearching).toBe(true);
+    await waitFor(() => expect(result.current.isSearching).toBe(false));
+    expect(result.current.foundConversations).toEqual([]);
+  });
+
   it('does nothing until someone is selected', () => {
     renderHookWithQuery(() => useSearchConversationsByMembers([]));
 

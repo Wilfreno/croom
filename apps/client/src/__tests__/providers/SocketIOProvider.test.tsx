@@ -2,7 +2,7 @@ import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests_
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import { renderWithQuery } from '@/__tests__/mocks/render-with-query';
 import SocketIOProvider, { useSocketIO } from '@/components/providers/SocketIOProvider';
-import { CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
+import { CALL_NO_LONGER_RINGING, CALL_RING_DURATION_MS, REMOVED_FROM_GROUP_CHAT } from '@repo/constants';
 import { MessageNoticeType } from '@repo/enums';
 import type { Conversation, Message, MessagePayload, UserSession } from '@repo/types';
 import type { InfiniteData } from '@tanstack/react-query';
@@ -230,7 +230,7 @@ describe('SocketIOProvider', () => {
       const [render, options] = vi.mocked(toast.custom).mock.calls[0];
       const element = render('toast-1') as React.ReactElement<{
         call: unknown;
-        onAccept: () => void;
+        onAccept: () => Promise<void>;
         onDecline: () => void;
       }>;
       return { element, options };
@@ -243,13 +243,27 @@ describe('SocketIOProvider', () => {
       expect(element.props.call).toBe(call);
     });
 
-    it('tells the caller and opens the call when accepted', () => {
+    it('tells the caller and opens the call when accepted', async () => {
+      server.replies.CALL_ACCEPT = { isAccepted: true };
       const { element } = ring();
 
-      element.props.onAccept();
+      await element.props.onAccept();
 
-      expect(server.spies.emit).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
+      expect(server.emitWithAck).toHaveBeenCalledWith('CALL_ACCEPT', { conversationId: 'c1' });
       expect(push).toHaveBeenCalledWith('/call/c1');
+    });
+
+    it.each([
+      ['the ring already stopped', { isAccepted: false }],
+      ['the server refuses', { error: 'you cannot answer this call' }],
+    ])('stays put and says so when %s', async (_, reply) => {
+      server.replies.CALL_ACCEPT = reply;
+      const { element } = ring();
+
+      await element.props.onAccept();
+
+      expect(push).not.toHaveBeenCalled();
+      expect(toast).toHaveBeenCalledWith(CALL_NO_LONGER_RINGING);
     });
 
     it('tells the caller when declined, without opening the call', () => {

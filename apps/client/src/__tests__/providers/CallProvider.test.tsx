@@ -78,6 +78,18 @@ describe('CallProvider', () => {
     expect(push).toHaveBeenCalledWith('/conversation/c1');
   });
 
+  it('sends you home instead when you were removed from the conversation', () => {
+    renderHook(() => useCall(), { wrapper });
+
+    act(() =>
+      server.serverEmit('CALL_ENDED', { reason: 'you were removed from this group', isRemovedFromConversation: true }),
+    );
+
+    expect(toast).toHaveBeenCalledWith('you were removed from this group');
+    expect(push).toHaveBeenCalledWith('/');
+    expect(push).not.toHaveBeenCalledWith('/conversation/c1');
+  });
+
   it('stops listening once you leave the call page', () => {
     const { unmount } = renderHook(() => useCall(), { wrapper });
 

@@ -39,8 +39,9 @@ vi.mock('@/components/hooks/queries/useSearchUsers', () => ({ default: () => ({ 
 
 let foundConversations: Conversation[] = [];
 let foundIsError = false;
+let isSearchingConversations = false;
 vi.mock('@/components/hooks/queries/useSearchConversationsByMember', () => ({
-  default: () => ({ foundConversations, isError: foundIsError }),
+  default: () => ({ foundConversations, isError: foundIsError, isSearching: isSearchingConversations }),
 }));
 
 let foundConversation: Conversation | undefined;
@@ -62,6 +63,7 @@ beforeEach(() => {
   searchResult = [];
   foundConversations = [];
   foundIsError = false;
+  isSearchingConversations = false;
   foundConversation = undefined;
   messagePages = undefined;
   messagesError = false;
@@ -265,6 +267,14 @@ describe('calling from compose', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
     expect(server.emitWithAck).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('offers no call while it is still looking for their conversation', () => {
+    isSearchingConversations = true;
+
+    renderWithQuery(<ComposeToHarness initial={selection(1)} />);
+
+    expect(screen.queryByRole('button', { name: 'Start video call' })).not.toBeInTheDocument();
   });
 
   it('offers no call when more than one conversation matches', () => {

@@ -9,7 +9,9 @@ import {
 } from '@nestjs/websockets';
 import { MessageNoticeType } from '@repo/enums';
 import type {
+  CallAcceptResult,
   CallAck,
+  CallCancelResult,
   CallConsumeResult,
   CallJoinResult,
   CallPayload,
@@ -48,6 +50,7 @@ export class CallGateway implements OnGatewayDisconnect {
   ) {}
 
   async handleDisconnect(client: TypedSocket) {
+    await this.stopRingsCalledFrom(client);
     await this.leave(client);
   }
 
@@ -73,13 +76,23 @@ export class CallGateway implements OnGatewayDisconnect {
       const isOngoing =
         this.callService.otherPeers(payload.conversationId, client.id).length >
         0;
+      const userIdsInCall = this.callService.userIdsInCall(
+        payload.conversationId,
+      );
       const recipientIds = access.members
         .map((member) => member.id)
-        .filter((memberId) => memberId !== callerId);
+        .filter(
+          (memberId) => memberId !== callerId && !userIdsInCall.has(memberId),
+        );
       if (recipientIds.length)
         this.server.to(recipientIds).emit('INCOMING_CALL', {
           conversationId: payload.conversationId,
           caller: access.caller,
+        });
+      if (!isOngoing && recipientIds.length)
+        this.callService.startRing(payload.conversationId, {
+          callerId,
+          callerSocketId: client.id,
         });
       if (!isOngoing)
         await this.callNotices.post({
@@ -100,8 +113,14 @@ export class CallGateway implements OnGatewayDisconnect {
   async handleAccept(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
-  ) {
-    await this.relayAnswer(client, payload, 'CALL_ACCEPTED');
+  ): Promise<CallAck<CallAcceptResult>> {
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!memberIds) return { error: 'you cannot answer this call' };
+
+    const isAccepted = this.callService.answerRing(payload.conversationId);
+    if (isAccepted)
+      this.relayAnswer(client, payload, memberIds, 'CALL_ACCEPTED');
+    return { isAccepted };
   }
 
   @SubscribeMessage('CALL_DECLINE')
@@ -109,28 +128,26 @@ export class CallGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
   ) {
-    await this.relayAnswer(client, payload, 'CALL_DECLINED');
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (memberIds)
+      this.relayAnswer(client, payload, memberIds, 'CALL_DECLINED');
   }
 
   @SubscribeMessage('CALL_CANCEL')
   async handleCancel(
     @ConnectedSocket() client: TypedSocket,
     @MessageBody() payload: CallPayload,
-  ) {
-    const memberIds = await this.memberIdsFor(client, payload);
-    if (!memberIds) return;
-
-    client
-      .to(memberIds)
-      .emit('CALL_CANCELLED', { conversationId: payload.conversationId });
-
+  ): Promise<CallAck<CallCancelResult>> {
     const userId = client.data.userId;
-    if (!userId || this.callService.hasPeers(payload.conversationId)) return;
-    await this.callNotices.post({
-      conversationId: payload.conversationId,
+    const memberIds = await this.memberIdsFor(client, payload);
+    if (!userId || !memberIds) return { error: 'you cannot cancel this call' };
+
+    const outcome = await this.stopRing(
+      payload.conversationId,
       userId,
-      type: MessageNoticeType.CALL_MISSED,
-    });
+      memberIds,
+    );
+    return { isAnswered: outcome === 'answered' };
   }
 
   @SubscribeMessage('CALL_JOIN')
@@ -157,6 +174,7 @@ export class CallGateway implements OnGatewayDisconnect {
         conversationId,
         routerEntry,
       });
+      this.callService.clearAnsweredRing(conversationId);
 
       client
         .to(callRoom(conversationId))
@@ -377,7 +395,9 @@ export class CallGateway implements OnGatewayDisconnect {
 
       const room = callRoom(conversationId);
       const peerIds = removed.map((peer) => peer.peerId);
-      this.server.to(peerIds).emit('CALL_ENDED', { reason });
+      this.server
+        .to(peerIds)
+        .emit('CALL_ENDED', { reason, isRemovedFromConversation: true });
       this.server.in(peerIds).socketsLeave(room);
       for (const peerId of peerIds)
         this.server.to(room).emit('CALL_PEER_LEFT', { peerId });
@@ -427,7 +447,8 @@ export class CallGateway implements OnGatewayDisconnect {
 
   private async endOneToOneCall(conversationId: string, userId: string) {
     try {
-      if (!this.callService.hasPeers(conversationId)) return;
+      const userIdsInCall = this.callService.userIdsInCall(conversationId);
+      if (!userIdsInCall.size || userIdsInCall.has(userId)) return;
 
       const [isGroupCall, access] = await Promise.all([
         this.callService.isGroupCall(conversationId),
@@ -455,18 +476,43 @@ export class CallGateway implements OnGatewayDisconnect {
   }
 
   /** Tells the conversation's members, including the sender's other tabs, who answered and how. */
-  private async relayAnswer(
+  private relayAnswer(
     client: TypedSocket,
     payload: CallPayload,
+    memberIds: string[],
     event: 'CALL_ACCEPTED' | 'CALL_DECLINED',
   ) {
-    const memberIds = await this.memberIdsFor(client, payload);
-    if (!memberIds) return;
-
     client.to(memberIds).emit(event, {
       conversationId: payload.conversationId,
       userId: client.data.userId,
     });
+  }
+
+  private async stopRing(
+    conversationId: string,
+    callerId: string,
+    memberIds: string[],
+  ) {
+    const outcome = this.callService.stopRing(conversationId, callerId);
+    if (outcome !== 'missed') return outcome;
+
+    this.server.to(memberIds).emit('CALL_CANCELLED', { conversationId });
+    await this.callNotices.post({
+      conversationId,
+      userId: callerId,
+      type: MessageNoticeType.CALL_MISSED,
+    });
+    return outcome;
+  }
+
+  private async stopRingsCalledFrom(client: TypedSocket) {
+    const callerId = client.data.userId;
+    if (!callerId) return;
+
+    for (const conversationId of this.callService.ringsCalledFrom(client.id)) {
+      const memberIds = await this.memberIdsFor(client, { conversationId });
+      if (memberIds) await this.stopRing(conversationId, callerId, memberIds);
+    }
   }
 
   private async memberIdsFor(client: TypedSocket, payload: CallPayload) {
