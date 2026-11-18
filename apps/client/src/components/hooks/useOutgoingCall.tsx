@@ -5,7 +5,7 @@ import { emitSocketEventAndWaitForServerReply } from '@/lib/utils';
 import { OutgoingCallStatus, OutgoingCallTarget } from '@/types/call.types';
 import { TypedSocket } from '@/types/socket.types';
 import { CALL_RING_DURATION_MS } from '@repo/constants';
-import { CallAnswerPayload } from '@repo/types';
+import { CallAnswerPayload, CallPayload } from '@repo/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -33,7 +33,9 @@ export default function useOutgoingCall() {
     return () => {
       const conversationId = ringingConversationIdRef.current;
       ringingConversationIdRef.current = null;
-      if (conversationId) stopRinging(socket, conversationId);
+      if (!conversationId) return;
+      stopRinging(socket, conversationId);
+      setStatus('unanswered');
     };
   }, [socket]);
 
@@ -52,6 +54,9 @@ export default function useOutgoingCall() {
     function onAccepted(answer: CallAnswerPayload) {
       if (isAnswerToThisCall(answer)) joinCall();
     }
+    function onCancelled(cancelled: CallPayload) {
+      if (cancelled.conversationId === conversationId) setStatus('unanswered');
+    }
     function onDeclined(answer: CallAnswerPayload) {
       if (!isAnswerToThisCall(answer)) return;
       declinedUserIds.add(answer.userId);
@@ -64,19 +69,18 @@ export default function useOutgoingCall() {
     }, CALL_RING_DURATION_MS);
     socket.on('CALL_ACCEPTED', onAccepted);
     socket.on('CALL_DECLINED', onDeclined);
+    socket.on('CALL_CANCELLED', onCancelled);
 
     return () => {
       clearTimeout(ringTimeoutId);
       socket.off('CALL_ACCEPTED', onAccepted);
       socket.off('CALL_DECLINED', onDeclined);
+      socket.off('CALL_CANCELLED', onCancelled);
     };
   }, [status, socket, target, userId, router]);
 
   async function start(callTarget: OutgoingCallTarget) {
     if (!socket) return;
-    const hasSomeoneToRing = callTarget.recipientCount > 0;
-    setTarget(callTarget);
-    if (hasSomeoneToRing) setStatus('ringing');
 
     try {
       const { isOngoing, ringingCount } = await emitSocketEventAndWaitForServerReply(socket, 'CALL', {
@@ -87,6 +91,7 @@ export default function useOutgoingCall() {
         return;
       }
       setTarget({ ...callTarget, recipientCount: ringingCount });
+      setStatus('ringing');
     } catch {
       setStatus('idle');
     }

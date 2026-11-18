@@ -115,9 +115,15 @@ export class CallService {
     if (!ring) return this.hasPeers(conversationId) ? 'answered' : 'ignored';
     if (ring.callerId !== callerId) return 'ignored';
 
+    if (ring.isAnswered) return 'answered';
+
     this.rings.delete(conversationId);
-    const isAnswered = ring.isAnswered || this.hasPeers(conversationId);
-    return isAnswered ? 'answered' : 'missed';
+    return this.hasPeers(conversationId) ? 'answered' : 'missed';
+  }
+
+  pendingRing(conversationId: string) {
+    const ring = this.rings.get(conversationId);
+    return ring && !ring.isAnswered ? ring : null;
   }
 
   declineRing(conversationId: string, userId: string) {
@@ -132,7 +138,9 @@ export class CallService {
   }
 
   clearRing(conversationId: string) {
+    const ring = this.rings.get(conversationId) ?? null;
     this.rings.delete(conversationId);
+    return ring;
   }
 
   clearAnsweredRing(conversationId: string) {

@@ -33,7 +33,6 @@ export const CALL_RINGTONE_URL = '/sounds/incoming-call.mp3';
 export const CALL_RINGTONE_VOLUME = 1;
 export const RINGTONE_FADE_SECONDS = 0.02;
 export const CALL_NO_LONGER_RINGING = 'This call is no longer ringing';
-export const CALL_NOTICE_TYPES = ['CALL_RING', 'CALL_STARTED', 'CALL_ENDED', 'CALL_MISSED'];
 export const OUTGOING_CALL_STATUS_TEXT = {
   ringing: 'Calling…',
   declined: 'Call declined',

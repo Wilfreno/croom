@@ -273,13 +273,52 @@ describe('CallGateway', () => {
       ).resolves.toEqual({ isAccepted: true });
     });
 
-    it('forgets the ring when the call is ended for everyone', async () => {
-      const { gateway, callNotices, caller } = await ringing();
+    it('forgets the ring and stops it for everyone when the call is ended for everyone', async () => {
+      const { gateway, server, roomEmit, callNotices, caller } = await ringing();
 
       await gateway.endCall(CONVERSATION_ID, 'this conversation was blocked');
       await gateway.handleDisconnect(caller.client);
 
+      expect(server.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(roomEmit).toHaveBeenCalledWith('CALL_CANCELLED', { conversationId: CONVERSATION_ID });
       expect(callNotices.post).not.toHaveBeenCalled();
+    });
+
+    it('still lets others accept after the caller reconnects on the way into the answered call', async () => {
+      const { gateway, caller } = await ringing();
+      await gateway.handleAccept(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
+
+      await gateway.handleDisconnect(caller.client);
+
+      await expect(
+        gateway.handleAccept(fakeClient('carol').client, { conversationId: CONVERSATION_ID }),
+      ).resolves.toEqual({ isAccepted: true });
+    });
+
+    it('joins someone already calling instead of ringing over them', async () => {
+      const { gateway, server, callNotices, caller } = await ringing();
+      const { client, spies, broadcast } = fakeClient('bob');
+
+      await expect(gateway.handleCall(client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isOngoing: true,
+        ringingCount: 0,
+      });
+
+      expect(server.to).not.toHaveBeenCalled();
+      expect(callNotices.post).not.toHaveBeenCalled();
+      expect(spies.to).toHaveBeenCalledWith(['alice', 'bob', 'carol']);
+      expect(broadcast.emit).toHaveBeenCalledWith('CALL_ACCEPTED', { conversationId: CONVERSATION_ID, userId: 'bob' });
+      await expect(gateway.handleCancel(caller.client, { conversationId: CONVERSATION_ID })).resolves.toEqual({
+        isAnswered: true,
+      });
+    });
+
+    it('rings again when the same caller calls again', async () => {
+      const { gateway, server, caller } = await ringing();
+
+      await gateway.handleCall(caller.client, { conversationId: CONVERSATION_ID });
+
+      expect(server.to).toHaveBeenCalledWith(['bob', 'carol']);
     });
 
     it('lets more people accept once the call is running', async () => {

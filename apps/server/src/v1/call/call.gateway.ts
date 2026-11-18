@@ -73,6 +73,18 @@ export class CallGateway implements OnGatewayDisconnect {
         return access;
       }
 
+      const pendingRing = this.callService.pendingRing(payload.conversationId);
+      if (pendingRing && pendingRing.callerId !== callerId) {
+        this.callService.answerRing(payload.conversationId);
+        client
+          .to(access.members.map((member) => member.id))
+          .emit('CALL_ACCEPTED', {
+            conversationId: payload.conversationId,
+            userId: callerId,
+          });
+        return { isOngoing: true, ringingCount: 0 };
+      }
+
       const isOngoing =
         this.callService.otherPeers(payload.conversationId, client.id).length >
         0;
@@ -377,7 +389,11 @@ export class CallGateway implements OnGatewayDisconnect {
 
   async endCall(conversationId: string, reason: string) {
     try {
-      this.callService.clearRing(conversationId);
+      const ring = this.callService.clearRing(conversationId);
+      if (ring && !ring.isAnswered)
+        this.server
+          .to([ring.callerId, ...ring.ringingUserIds])
+          .emit('CALL_CANCELLED', { conversationId });
       const ended = await this.callService.endRoom(conversationId);
       if (!ended.length) return;
 

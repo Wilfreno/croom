@@ -135,12 +135,43 @@ describe('ConversationHeader', () => {
       expect(push).toHaveBeenCalledWith('/call/c1');
     });
 
-    it('goes straight in when the call is already running', async () => {
-      server.replies.CALL = { isOngoing: true };
+    it('goes straight in when the call is already running, without showing the ringing dialog', async () => {
+      server.replies.CALL = { isOngoing: true, ringingCount: 0 };
+      const { unmount } = renderWithQuery(<ConversationHeader conversationInfo={info} conversation={oneOnOne()} />);
 
-      await call();
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
 
       await waitFor(() => expect(push).toHaveBeenCalledWith('/call/c1'));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      unmount();
+      expect(server.emitWithAck).not.toHaveBeenCalledWith('CALL_CANCEL', expect.anything());
+    });
+
+    it('stops ringing instead of starting over when the connection is replaced', async () => {
+      const previous = server;
+      const { rerender, queryClient } = renderWithQuery(<ConversationHeader conversationInfo={info} conversation={oneOnOne()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Start video call' }));
+      const dialog = await screen.findByRole('dialog');
+
+      server = mockSocket({ CALL: { isOngoing: false, ringingCount: 1 }, CALL_CANCEL: { isAnswered: false } });
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <ConversationHeader conversationInfo={info} conversation={oneOnOne()} />
+        </QueryClientProvider>,
+      );
+
+      expect(previous.emitWithAck).toHaveBeenCalledWith('CALL_CANCEL', { conversationId: 'c1' });
+      expect(await within(dialog).findByText('No answer')).toBeInTheDocument();
+    });
+
+    it('stops showing "Calling…" when the server cancels the ring', async () => {
+      const dialog = await call();
+
+      act(() => server.serverEmit('CALL_CANCELLED', { conversationId: 'other' }));
+      expect(within(dialog).getByText('Calling…')).toBeInTheDocument();
+
+      act(() => server.serverEmit('CALL_CANCELLED', { conversationId: 'c1' }));
+      expect(within(dialog).getByText('No answer')).toBeInTheDocument();
     });
 
     it('goes straight in when there is nobody else to ring', async () => {
