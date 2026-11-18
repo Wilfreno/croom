@@ -81,10 +81,15 @@ function fakeClient(userId: string | undefined, id = nextId('socket')) {
   return { client: client as unknown as TypedSocket, spies: client, broadcast };
 }
 
-function build({ members = [alice, bob] as CallMember[] | null, isBlocked = false } = {}) {
+function build({
+  members = [alice, bob] as CallMember[] | null,
+  isBlocked = false,
+  isGroupChat = false,
+} = {}) {
   const conversationModel = {
     getCallMembersByConversationId: vi.fn().mockResolvedValue(members),
     isConversationBlocked: vi.fn().mockResolvedValue(isBlocked),
+    isGroupChat: vi.fn().mockResolvedValue(isGroupChat),
   };
   const routerEntry = fakeRouterEntry();
   const mediasoup = {
@@ -639,7 +644,7 @@ describe('CallGateway', () => {
     it('says the call ended, with how long it lasted, when the last person leaves', async () => {
       vi.useFakeTimers();
       try {
-        const { gateway, callNotices } = build();
+        const { gateway, callNotices } = build({ isGroupChat: true });
         const alicesTab = fakeClient('alice').client;
         const bobsTab = fakeClient('bob').client;
         await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
@@ -711,7 +716,7 @@ describe('CallGateway', () => {
     });
 
     it('says the call ended when removing someone empties it', async () => {
-      const { gateway, callNotices } = build();
+      const { gateway, callNotices } = build({ isGroupChat: true });
       const alicesTab = fakeClient('alice').client;
       await gateway.join(alicesTab, { conversationId: CONVERSATION_ID });
       await gateway.join(fakeClient('bob').client, { conversationId: CONVERSATION_ID });
@@ -833,6 +838,60 @@ describe('CallGateway', () => {
       expect(spies.leave).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(server.to).toHaveBeenCalledWith(`call:${CONVERSATION_ID}`);
       expect(roomEmit).toHaveBeenCalledWith('CALL_PEER_LEFT', { peerId: client.id });
+    });
+
+    describe('hanging up', () => {
+      async function inCall(options: Parameters<typeof build>[0] = {}) {
+        const built = build(options);
+        const alicesTab = fakeClient('alice').client;
+        const bobsTab = fakeClient('bob').client;
+        await joinWithTransports(built.gateway, alicesTab);
+        await joinWithTransports(built.gateway, bobsTab);
+        vi.clearAllMocks();
+        return { ...built, alicesTab, bobsTab };
+      }
+
+      it('ends a one-to-one call for the other person too, saying who hung up', async () => {
+        const { gateway, callService, callNotices, roomEmit, alicesTab, bobsTab } = await inCall();
+
+        await gateway.handleLeave(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeUndefined();
+        expect(roomEmit).toHaveBeenCalledWith('CALL_ENDED', { reason: 'Alice ended the call' });
+        expect(callNotices.post).toHaveBeenCalledOnce();
+        expect(callNotices.post).toHaveBeenCalledWith(
+          expect.objectContaining({ type: MessageNoticeType.CALL_ENDED }),
+        );
+      });
+
+      it('keeps a group call going for everyone else', async () => {
+        const { gateway, callService, roomEmit, alicesTab, bobsTab } = await inCall({
+          members: [alice, bob, carol],
+          isGroupChat: true,
+        });
+
+        await gateway.handleLeave(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+        expect(roomEmit).not.toHaveBeenCalledWith('CALL_ENDED', expect.anything());
+      });
+
+      it('keeps a one-to-one call going when someone only drops their connection', async () => {
+        const { gateway, callService, roomEmit, alicesTab, bobsTab } = await inCall();
+
+        await gateway.handleDisconnect(alicesTab);
+
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+        expect(roomEmit).not.toHaveBeenCalledWith('CALL_ENDED', expect.anything());
+      });
+
+      it('keeps the other person in the call when the lookup fails', async () => {
+        const { gateway, callService, conversationModel, alicesTab, bobsTab } = await inCall();
+        conversationModel.isGroupChat.mockRejectedValue(new Error('db down'));
+
+        await expect(gateway.handleLeave(alicesTab)).resolves.toBeUndefined();
+        expect(callService.getPeer(bobsTab.id)).toBeDefined();
+      });
     });
 
     it('does nothing for a socket that was not in a call', async () => {

@@ -2,7 +2,8 @@
 import useMediasoupCall from '@/components/hooks/useMediasoupCall';
 import { CallContextType } from '@/types/call.types';
 import { useRouter } from 'next/navigation';
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useLocalMedia } from './LocalMediaProvider';
 import { useSocketIO } from './SocketIOProvider';
 
@@ -24,6 +25,20 @@ export default function CallProvider({ conversationId, children }: { conversatio
   function leave() {
     router.push(`/conversation/${conversationId}`);
   }
+
+  useEffect(() => {
+    if (!socket) return;
+
+    function onCallEnded({ reason }: { reason: string }) {
+      toast(reason);
+      router.push(`/conversation/${conversationId}`);
+    }
+
+    socket.on('CALL_ENDED', onCallEnded);
+    return () => {
+      socket.off('CALL_ENDED', onCallEnded);
+    };
+  }, [socket, router, conversationId]);
 
   return <CallContext.Provider value={{ ...call, leave }}>{children}</CallContext.Provider>;
 }

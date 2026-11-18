@@ -60,6 +60,10 @@ export class CallService {
     return { members, caller };
   }
 
+  isGroupCall(conversationId: string) {
+    return this.conversationModel.isGroupChat(conversationId);
+  }
+
   getPeer(peerId: string) {
     return this.peers.get(peerId);
   }

@@ -190,6 +190,32 @@ describe('ConversationModel', () => {
     });
   });
 
+  describe('isGroupChat', () => {
+    it('looks for that conversation as a group chat', async () => {
+      const { collection, model } = build();
+
+      await model.isGroupChat(CONVERSATION_ID);
+
+      expect(collection.exists).toHaveBeenCalledWith({ _id: CONVERSATION_ID, isGroupChat: true });
+    });
+
+    it('reflects whether a match was found', async () => {
+      const { collection, model } = build();
+
+      await expect(model.isGroupChat(CONVERSATION_ID)).resolves.toBe(false);
+
+      collection.exists.mockResolvedValue({ _id: CONVERSATION_ID });
+      await expect(model.isGroupChat(CONVERSATION_ID)).resolves.toBe(true);
+    });
+
+    it('turns a driver failure into a 500', async () => {
+      const { collection, model } = build();
+      collection.exists.mockRejectedValue(new Error('connection lost'));
+
+      await expect(model.isGroupChat(CONVERSATION_ID)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
   describe('isConversationBlocked', () => {
     it('matches any blocked conversation, whoever blocked it', async () => {
       const { collection, model } = build();

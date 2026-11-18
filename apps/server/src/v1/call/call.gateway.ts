@@ -389,7 +389,9 @@ export class CallGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage('CALL_LEAVE')
   async handleLeave(@ConnectedSocket() client: TypedSocket) {
+    const peer = this.callService.getPeer(client.id);
     await this.leave(client);
+    if (peer) await this.endOneToOneCall(peer.conversationId, peer.userId);
   }
 
   private trackConsumer(client: TypedSocket, peer: Peer, consumer: Consumer) {
@@ -418,6 +420,23 @@ export class CallGateway implements OnGatewayDisconnect {
       await client.leave(room);
       this.server.to(room).emit('CALL_PEER_LEFT', { peerId: peer.peerId });
       await this.postEndedIfFinished(peer.conversationId, peer.userId);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  private async endOneToOneCall(conversationId: string, userId: string) {
+    try {
+      if (!this.callService.hasPeers(conversationId)) return;
+
+      const [isGroupCall, access] = await Promise.all([
+        this.callService.isGroupCall(conversationId),
+        this.callService.checkAccess(conversationId, userId),
+      ]);
+      if (isGroupCall) return;
+
+      const name = 'caller' in access ? access.caller.displayName : 'Someone';
+      await this.endCall(conversationId, `${name} ended the call`);
     } catch (error) {
       this.logger.error(error);
     }

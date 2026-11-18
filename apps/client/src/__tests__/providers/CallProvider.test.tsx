@@ -1,12 +1,15 @@
 import { mockStream } from '@/__tests__/mocks/mock-media';
+import { mockSocket } from '@/__tests__/mocks/mock-socket';
 import useMediasoupCall from '@/components/hooks/useMediasoupCall';
 import CallProvider, { useCall } from '@/components/providers/CallProvider';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import React from 'react';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const stream = mockStream();
-const socket = { id: 'socket' };
+const server = mockSocket();
+const socket = server.socket;
 const push = vi.fn();
 
 vi.mock('@/components/hooks/useMediasoupCall', () => ({ default: vi.fn() }));
@@ -15,6 +18,7 @@ vi.mock('@/components/providers/LocalMediaProvider', () => ({
   useLocalMedia: () => ({ localMedia: { status: 'ready', stream, error: null }, isCameraOn: false, isMicOn: true }),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('sonner', () => ({ toast: vi.fn() }));
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <CallProvider conversationId="c1">{children}</CallProvider>
@@ -63,5 +67,22 @@ describe('CallProvider', () => {
     result.current.leave();
 
     expect(push).toHaveBeenCalledWith('/conversation/c1');
+  });
+
+  it('sends you back to the conversation, saying why, when the call is ended for you', () => {
+    renderHook(() => useCall(), { wrapper });
+
+    act(() => server.serverEmit('CALL_ENDED', { reason: 'Alice ended the call' }));
+
+    expect(toast).toHaveBeenCalledWith('Alice ended the call');
+    expect(push).toHaveBeenCalledWith('/conversation/c1');
+  });
+
+  it('stops listening once you leave the call page', () => {
+    const { unmount } = renderHook(() => useCall(), { wrapper });
+
+    unmount();
+
+    expect(server.listenerCount('CALL_ENDED')).toBe(0);
   });
 });
