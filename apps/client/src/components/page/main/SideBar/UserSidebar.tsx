@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/components/providers/AuthProvider';
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
-import InitialsFallback from '@/components/page/main/InitialsFallback';
-import { Button } from '@/components/ui/button';
+import InitialsFallback from "@/components/page/main/InitialsFallback";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,9 +11,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LogOut, Settings } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+} from "@/components/ui/dropdown-menu";
+import { LogOut, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function UserSideBar() {
   const { session, logout } = useAuth();
@@ -48,14 +48,18 @@ export default function UserSideBar() {
             <Button
               variant="ghost"
               className="w-full justify-start cursor-pointer"
-              onClick={() => router.push('/settings')}
+              onClick={() => router.push("/settings")}
             >
               <Settings className="h-4 w-auto" />
               <span>Settings</span>
             </Button>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Button variant="ghost" className="justify-start cursor-pointer" onClick={async () => await logout()}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start cursor-pointer"
+              onClick={async () => await logout()}
+            >
               <LogOut className="h-4 w-auto" />
               <span>Logout</span>
             </Button>
