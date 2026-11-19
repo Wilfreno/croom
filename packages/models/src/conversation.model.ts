@@ -329,6 +329,41 @@ export class ConversationModel {
     }
   }
 
+  async removeAdminFromSharedGroups(adminId: string, session: ClientSession) {
+    const adminObjectId = new Types.ObjectId(adminId);
+
+    try {
+      await this.Conversation.updateMany(
+        { isGroupChat: true, admins: adminObjectId, "admins.1": { $exists: true } },
+        { $pull: { admins: adminObjectId } },
+        { session },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async findGroupNamesWithOnlyAdmin(adminId: string, session: ClientSession) {
+    try {
+      const groups = await this.Conversation.find(
+        {
+          isGroupChat: true,
+          status: { $ne: ConversationStatus.DELETED },
+          admins: [new Types.ObjectId(adminId)],
+          "members.1": { $exists: true },
+        },
+        { name: 1 },
+        { session },
+      ).lean();
+
+      return groups.map((group) => group.name ?? "");
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
   async setPhoto(
     { conversationId, photoId, requesterId }: { conversationId: string; photoId: string; requesterId: string },
     session?: ClientSession,

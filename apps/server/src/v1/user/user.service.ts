@@ -36,6 +36,7 @@ import {
 import { Connection, Types } from 'mongoose';
 import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
 import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
+import { describeOnlyAdminGroups } from '../../common/utils/only-admin-groups.util';
 import { OtpService } from '../otp/otp.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
@@ -446,6 +447,20 @@ export class UserService {
 
     try {
       await session.withTransaction(async () => {
+        await this.conversationModel.removeAdminFromSharedGroups(
+          requesterId,
+          session,
+        );
+        const onlyAdminGroupNames =
+          await this.conversationModel.findGroupNamesWithOnlyAdmin(
+            requesterId,
+            session,
+          );
+        if (onlyAdminGroupNames.length > 0)
+          throw new ConflictException(
+            describeOnlyAdminGroups(onlyAdminGroupNames),
+          );
+
         await this.userModel.anonymize(
           { userId: requesterId, displayName: DELETED_USER_DISPLAY_NAME },
           session,

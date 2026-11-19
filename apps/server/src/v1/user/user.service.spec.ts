@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
@@ -83,6 +84,8 @@ function build() {
   };
   const conversationModel = {
     getConversationPartnerIds: vi.fn().mockResolvedValue([]),
+    removeAdminFromSharedGroups: vi.fn().mockResolvedValue(undefined),
+    findGroupNamesWithOnlyAdmin: vi.fn().mockResolvedValue([]),
   };
   const otpService = {
     verify: vi.fn().mockResolvedValue(undefined),
@@ -597,6 +600,34 @@ describe('UserService', () => {
         'first-key',
         'second-key',
       ]);
+    });
+
+    it('steps down as admin of groups that keep another admin, inside the transaction', async () => {
+      await service.deleteAccount(REQUESTER_ID);
+
+      expect(
+        mocks.conversationModel.removeAdminFromSharedGroups,
+      ).toHaveBeenCalledWith(REQUESTER_ID, mocks.session);
+      expect(
+        mocks.conversationModel.findGroupNamesWithOnlyAdmin,
+      ).toHaveBeenCalledWith(REQUESTER_ID, mocks.session);
+    });
+
+    it('refuses while the user is the only admin of a group others are still in', async () => {
+      mocks.conversationModel.findGroupNamesWithOnlyAdmin.mockResolvedValue([
+        'Book club',
+      ]);
+
+      await expect(service.deleteAccount(REQUESTER_ID)).rejects.toThrow(
+        new ConflictException(
+          'make another member an admin of "Book club" before deleting your account',
+        ),
+      );
+      expect(mocks.userModel.anonymize).not.toHaveBeenCalled();
+      expect(mocks.sessionModel.revokeAllForUser).not.toHaveBeenCalled();
+      expect(mocks.socketSessions.disconnectUser).not.toHaveBeenCalled();
+      expect(mocks.uploadedFiles.deleteFiles).not.toHaveBeenCalled();
+      expect(mocks.session.endSession).toHaveBeenCalled();
     });
 
     it('keeps every file when the transaction fails', async () => {
