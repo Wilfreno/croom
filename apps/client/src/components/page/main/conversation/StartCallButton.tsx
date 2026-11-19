@@ -1,17 +1,17 @@
-'use client';
-import useCreateConversation from '@/components/hooks/mutation/useCreateConversation.mutation';
-import useOutgoingCall from '@/components/hooks/useOutgoingCall';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ConversationInfo } from '@/types/common.types';
-import { ConversationStatus } from '@repo/enums';
-import { Conversation } from '@repo/types';
-import { useQueryClient } from '@tanstack/react-query';
-import { Video } from 'lucide-react';
-import ConversationAvatar from '../ConversationAvatar';
-import UserAvatar from '../UserAvatar';
-import OutgoingCallDialog from './OutgoingCallDialog';
+"use client";
+import useCreateConversation from "@/components/hooks/mutation/useCreateConversation.mutation";
+import useOutgoingCall from "@/components/hooks/useOutgoingCall";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ConversationInfo } from "@/types/common.types";
+import { ConversationStatus } from "@repo/enums";
+import { Conversation } from "@repo/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { Video } from "lucide-react";
+import ConversationAvatar from "../ConversationAvatar";
+import UserAvatar from "../UserAvatar";
+import OutgoingCallDialog from "./OutgoingCallDialog";
 
 export default function StartCallButton({
   conversationId,
@@ -37,11 +37,13 @@ export default function StartCallButton({
       return;
     }
 
-    const createdConversation = await createConversation.mutateAsync(newConversationMemberIds).catch(() => null);
-    if (!createdConversation) return;
+    createConversation.mutate(newConversationMemberIds, {
+      async onSuccess(createdConversation) {
+        await outgoingCall.start({ conversationId: createdConversation.id });
 
-    await outgoingCall.start({ conversationId: createdConversation.id });
-    queryClient.invalidateQueries({ queryKey: ['conversation', 'members'] });
+        queryClient.invalidateQueries({ queryKey: ["conversation", "members"] });
+      },
+    });
   }
 
   const callAvatar = conversation ? (
@@ -74,7 +76,7 @@ export default function StartCallButton({
       </TooltipProvider>
       <OutgoingCallDialog
         status={outgoingCall.status}
-        name={conversationInfo?.conversationName ?? ''}
+        name={conversationInfo?.conversationName ?? ""}
         avatar={callAvatar}
         onCancel={outgoingCall.cancel}
         onClose={outgoingCall.close}
