@@ -1,3 +1,37 @@
+## [1.6.0](https://github.com/Wilfreno/croom/compare/v1.5.0...v1.6.0) (2026-11-19)
+
+### Features
+
+* call from compose and show call notices in the chat ([7f22da4](https://github.com/Wilfreno/croom/commit/7f22da400acc71a38be9f204073fefa0db870ea9))
+* **client:** add a chat panel to calls ([b9ee652](https://github.com/Wilfreno/croom/commit/b9ee652569ca572db22c279569370ca0b7515909))
+* **client:** color call avatars like the rest of the app ([1be9c5c](https://github.com/Wilfreno/croom/commit/1be9c5cc14e92d47c7f5f7e7f920dee83ee113d6))
+* **client:** let callers choose their microphone ([fe3a6d1](https://github.com/Wilfreno/croom/commit/fe3a6d1316b1dd423ee8f0ca633ca6972bfd20f3))
+* **client:** remember call device and on/off choices ([9a12630](https://github.com/Wilfreno/croom/commit/9a12630af1b2135f707418555c32df75f4bdd072))
+* **client:** restyle the call controls ([82a84b7](https://github.com/Wilfreno/croom/commit/82a84b79e24419ad11a4aa5f5c748e02d6a9d458))
+* **client:** ring incoming calls at the top center ([0ec29dc](https://github.com/Wilfreno/croom/commit/0ec29dcd10138f8cd5a5427306c76fc5baa2cdad))
+* **client:** show call participants in a side panel and allow pinning ([793a0ba](https://github.com/Wilfreno/croom/commit/793a0bad93db7fac01625bc9456305b089a46816))
+* **client:** wire the settings page to the new user endpoints ([1b3f7d5](https://github.com/Wilfreno/croom/commit/1b3f7d50fdd2e860d3c8eb1a8e51ed7e7f5fd68d))
+* hanging up a one-to-one call ends it for both ([a45ff4f](https://github.com/Wilfreno/croom/commit/a45ff4ffd72f80d6f9e9f1e71ff962f85ab9f6c9))
+* move photo uploads to the server and delete files on removal ([b90be59](https://github.com/Wilfreno/croom/commit/b90be59d47fc54cb4b86088edf7bca212a6570c9))
+* post a missed call notice when nobody answers ([943fd27](https://github.com/Wilfreno/croom/commit/943fd27c8a5e14691ef3c5c04fbb105b3820b989))
+* **server:** add profile, password and account settings endpoints ([0de04ce](https://github.com/Wilfreno/croom/commit/0de04ce1c7753e12dd72413dfbdb446c33fcb366))
+* wait for an answer before joining a call, with ringtones ([5d2d056](https://github.com/Wilfreno/croom/commit/5d2d056df7777d66c76236116db907d971865263))
+
+### Bug Fixes
+
+* **client:** allow images from the ufs.sh UploadThing host ([12ecdb1](https://github.com/Wilfreno/croom/commit/12ecdb15e27ec902f5d85ff2ea8201121199e0c0))
+* **client:** remove attached photos by id and wait for removals before sending ([50346fe](https://github.com/Wilfreno/croom/commit/50346fe5f72479ae904a6b6f2bd5624dfb1c21f7))
+* close review gaps in the settings endpoints ([14a6de1](https://github.com/Wilfreno/croom/commit/14a6de177f40ef651b09a45576218a5299ba26e5))
+* keep answered rings and handle two people calling at once ([9e47bfe](https://github.com/Wilfreno/croom/commit/9e47bfef30fdcecd430ffa4b42a593d5fc54fb52))
+* listen for answers before ringing ([3a93cd6](https://github.com/Wilfreno/croom/commit/3a93cd69f59e7af5f187e926a6c17fc317a2dba7))
+* make photo changes transactional and usernames unique ([2a88954](https://github.com/Wilfreno/croom/commit/2a889548dd0551b17b60ec9e97eadcee4fff03ac))
+* recover from failed pending-photo deletes and document the server upload token ([0570fd6](https://github.com/Wilfreno/croom/commit/0570fd64fe13f416564fb410163b534c544c0f80))
+* **server:** keep every group with an admin when an account is deleted ([fc08a49](https://github.com/Wilfreno/croom/commit/fc08a491851d9691dcedbd655985d59e349aae60))
+* **server:** only members can ask about a call when cancelling ([38fc1cf](https://github.com/Wilfreno/croom/commit/38fc1cf7f7b27e6a429d056544c02bf6ab76d3ba))
+* settle call rings on the server and fix review findings ([d4cda02](https://github.com/Wilfreno/croom/commit/d4cda0272b8c563b68c41fb95d25b4622ca82410))
+* stop rings by caller and dismiss your own toast when joining ([3b025d8](https://github.com/Wilfreno/croom/commit/3b025d83bb118bcffdcb6b44d0db66ca0adcf65b))
+* stop rings once everyone declines and answer on the live socket ([9f917e4](https://github.com/Wilfreno/croom/commit/9f917e4b9dca4aaf0ca4c9a222a3ba5d4e3233e4))
+
 ## [1.5.0](https://github.com/Wilfreno/croom/compare/v1.4.0...v1.5.0) (2026-11-17)
 
 ### Features
