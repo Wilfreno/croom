@@ -25,6 +25,7 @@ import ConversationBlockedBanner from '../conversation/ConversationBlockedBanner
 export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
   const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingPhotoIds, setDeletingPhotoIds] = useState<string[]>([]);
 
   const { value: textInput, setValue: setTextInput, textareaProps } = useMessageTextarea({ onSubmit: submit });
 
@@ -34,17 +35,24 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { sendMessage } = useComposeMessage();
 
-  const deletePhoto = useMutation<void, Error, { id: string; index: number }>({
-    async mutationFn({ id }) {
-      await axiosInstance.delete(`/upload/${id}`);
+  const deletePhoto = useMutation<void, Error, string>({
+    async mutationFn(photoId) {
+      await axiosInstance.delete(`/upload/${photoId}`);
     },
-    onSuccess: (_, { index }) => {
-      setPhotoInput((prev) => prev.toSpliced(index, 1));
+    onMutate(photoId) {
+      setDeletingPhotoIds((previous) => [...previous, photoId]);
+    },
+    onSuccess(_, photoId) {
+      setPhotoInput((previous) => previous.filter((photo) => photo.id !== photoId));
     },
     onError(error) {
       toast.error(getServerErrorMessage(error));
     },
+    onSettled(_, __, photoId) {
+      setDeletingPhotoIds((previous) => previous.filter((deletingId) => deletingId !== photoId));
+    },
   });
+  const isDeletingPhoto = deletingPhotoIds.length > 0;
 
   async function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<UploadedPhotoResult | null>[]) {
     try {
@@ -66,6 +74,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   }
 
   function submit(text: string = textInput) {
+    if (isDeletingPhoto) return;
     sendMessage.mutate({
       conversationId: foundConversations?.[0]?.id,
       text,
@@ -123,7 +132,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               />
 
               <div className="flex items-center gap-2">
-                {photoInput.map(({ url, id }, index) => (
+                {photoInput.map(({ url, id }) => (
                   <span key={url} className="relative">
                     <NextImage
                       src={url}
@@ -134,8 +143,10 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
                       priority
                     />
                     <Button
+                      aria-label="remove photo"
                       className="aspect-square h-fit w-auto rounded-full absolute -top-2 -right-2 p-1"
-                      onClick={() => deletePhoto.mutate({ id, index })}
+                      disabled={deletingPhotoIds.includes(id)}
+                      onClick={() => deletePhoto.mutate(id)}
                     >
                       <X className="h-4 w-auto" />
                     </Button>
@@ -182,7 +193,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
         {Boolean(textInput) || Boolean(photoInput.length) ? (
           <Button
             variant="ghost"
-            disabled={(!textInput && !photoInput.length) || sendMessage.isPending}
+            disabled={(!textInput && !photoInput.length) || sendMessage.isPending || isDeletingPhoto}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => submit()}

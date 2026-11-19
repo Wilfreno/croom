@@ -1,4 +1,4 @@
-import { stubImageLoading, UPLOADED_PHOTO } from '@/__tests__/mocks/mock-components';
+import { stubImageLoading, UPLOADED_PHOTO, UPLOADED_PHOTO_BATCH } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockPhoto, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
@@ -49,6 +49,7 @@ vi.mock('@/components/hooks/queries/useMessages', () => ({ default: () => ({ fou
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(axiosInstance.delete).mockResolvedValue({});
   server = mockSocket({ CALL: { isOngoing: false, ringingCount: 1 }, CALL_CANCEL: { isAnswered: false } });
   sessionUser = mockSession();
   sidebar.onMobile = false;
@@ -990,6 +991,52 @@ describe('ConversationMessageInput', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('could not delete'));
     expect(screen.getByRole('img', { name: 'image' })).toBeInTheDocument();
+  });
+
+  it('removes the right photos when two removals overlap', async () => {
+    const finishDelete: Array<() => void> = [];
+    vi.mocked(axiosInstance.delete).mockImplementation(
+      () => new Promise((resolve) => finishDelete.push(() => resolve({}))),
+    );
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
+    await user().click(screen.getAllByRole('button', { name: 'upload three photos' })[0]);
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(3));
+    const [first, second] = UPLOADED_PHOTO_BATCH;
+
+    await user().click(screen.getAllByRole('button', { name: 'remove photo' })[0]);
+    await user().click(screen.getAllByRole('button', { name: 'remove photo' })[1]);
+    expect(axiosInstance.delete).toHaveBeenNthCalledWith(1, `/upload/${first.serverData.photo.id}`);
+    expect(axiosInstance.delete).toHaveBeenNthCalledWith(2, `/upload/${second.serverData.photo.id}`);
+    await act(async () => finishDelete[0]());
+    await act(async () => finishDelete[1]());
+
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(1));
+    expect(screen.getByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_PHOTO_BATCH[2].url);
+  });
+
+  it('waits for a photo removal to finish before sending', async () => {
+    const finishDelete: Array<() => void> = [];
+    vi.mocked(axiosInstance.delete).mockImplementation(
+      () => new Promise((resolve) => finishDelete.push(() => resolve({}))),
+    );
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
+    await user().click(screen.getAllByRole('button', { name: 'upload three photos' })[0]);
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(3));
+
+    await user().click(screen.getAllByRole('button', { name: 'remove photo' })[0]);
+
+    expect(screen.getAllByRole('button', { name: 'remove photo' })[0]).toBeDisabled();
+    await user().type(screen.getByPlaceholderText('Aa'), 'hi{Enter}');
+    expect(sendMessage.mutate).not.toHaveBeenCalled();
+
+    await act(async () => finishDelete[0]());
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(2));
+    await user().type(screen.getByPlaceholderText('Aa'), '{Enter}');
+    expect(sendMessage.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        photoInput: UPLOADED_PHOTO_BATCH.slice(1).map(({ serverData }) => expect.objectContaining({ id: serverData.photo.id })),
+      }),
+    );
   });
 
   it('attaches nothing when the server saved no photo', async () => {

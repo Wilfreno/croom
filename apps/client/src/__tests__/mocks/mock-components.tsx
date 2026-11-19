@@ -5,6 +5,12 @@ export const UPLOADED_FILE = { key: 'uploaded-key', url: 'https://utfs.io/upload
 
 export const UPLOADED_PHOTO = { photo: { id: 'uploaded-photo', url: UPLOADED_FILE.url } };
 
+export const UPLOADED_PHOTO_BATCH = [1, 2, 3].map((photoNumber) => ({
+  key: `uploaded-key-${photoNumber}`,
+  url: `https://utfs.io/uploaded-${photoNumber}.png`,
+  serverData: { photo: { id: `uploaded-photo-${photoNumber}`, url: `https://utfs.io/uploaded-${photoNumber}.png` } },
+}));
+
 type UploadButtonProps = {
   onUploadBegin?: () => void;
   onClientUploadComplete?: (files: { key: string; url: string; serverData: unknown }[]) => void;
@@ -35,6 +41,15 @@ export function FakeUploadButton({ onUploadBegin, onClientUploadComplete, onUplo
         }}
       >
         upload photo without result
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onUploadBegin?.();
+          onClientUploadComplete?.(UPLOADED_PHOTO_BATCH);
+        }}
+      >
+        upload three photos
       </button>
       <button type="button" onClick={() => onUploadError?.(new Error('upload failed'))}>
         fail upload
