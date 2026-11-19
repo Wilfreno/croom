@@ -28,6 +28,10 @@ export function isForbiddenError(error: unknown) {
   return isAxiosError(error) && error.response?.status === 403;
 }
 
+export function isNotFoundError(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 404;
+}
+
 export function getServerErrorMessage(error: unknown) {
   if (isAxiosError<ServerResponse>(error) && error.response && error.response.status < 500 && error.response.data?.message)
     return error.response.data.message;

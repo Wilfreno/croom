@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PATCHRequest } from '@/lib/server/requests';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getServerErrorMessage } from '@/lib/utils';
+import { cn, getServerErrorMessage, isNotFoundError } from '@/lib/utils';
 import { ChangeConversationPhotoResult } from '@/types/conversation-photo.types';
 import type { UploadedPhotoResult } from '@/types/upload.types';
 import { CONVERSATION_PHOTO_UPLOAD_ENDPOINT, SOMETHING_WENT_WRONG } from '@repo/constants';
@@ -36,22 +36,20 @@ export default function ChangePhoto() {
 
   const queryClient = useQueryClient();
 
-  const deletePhoto = useMutation<void, Error, { photoId: string; close: boolean }>({
-    async mutationFn({ photoId }) {
+  const deletePhoto = useMutation<void, Error, string>({
+    async mutationFn(photoId) {
       await axiosInstance.delete(`/upload/${photoId}`);
     },
-    onSuccess(_, { photoId, close }) {
-      setNewPhoto((current) => (current?.id === photoId ? undefined : current));
-      if (close) setOpen(false);
-    },
     onError(error) {
+      if (isNotFoundError(error)) return;
       toast.error(getServerErrorMessage(error));
     },
   });
 
   function cancel() {
-    if (newPhoto) deletePhoto.mutate({ photoId: newPhoto.id, close: true });
-    else setOpen(false);
+    if (newPhoto) deletePhoto.mutate(newPhoto.id);
+    setNewPhoto(undefined);
+    setOpen(false);
   }
 
   const setNewPhotoMutation = useMutation({
@@ -93,18 +91,23 @@ export default function ChangePhoto() {
       return;
     }
 
-    if (newPhoto) deletePhoto.mutate({ photoId: newPhoto.id, close: false });
+    if (newPhoto) deletePhoto.mutate(newPhoto.id);
     setNewPhoto(uploadedPhoto);
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) setOpen(true);
+        else cancel();
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           variant="ghost"
           disabled={!isAdmin}
           className="w-full justify-start"
-          onClick={() => setOpen((prev) => !prev)}
         >
           <span className="aspect-square h-fit w-auto p-2 rounded-full bg-secondary text-primary">
             <ImageIcon className="h-4 w-auto" />

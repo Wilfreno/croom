@@ -786,6 +786,43 @@ describe('ChangePhoto', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('closes on cancel even when the upload cannot be deleted', async () => {
+    vi.mocked(axiosInstance.delete).mockRejectedValue(new AxiosError('network down'));
+    renderInfo(<ChangePhoto />);
+    const dialog = await uploadInDialog();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG);
+  });
+
+  it('closes quietly when the upload was already cleaned up', async () => {
+    vi.mocked(axiosInstance.delete).mockRejectedValue(
+      new AxiosError('404', undefined, undefined, undefined, {
+        status: 404,
+        data: { status: 'NOT_FOUND', message: 'photo does not exist', data: null },
+      } as never),
+    );
+    renderInfo(<ChangePhoto />);
+    const dialog = await uploadInDialog();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('cancels and deletes the upload when the dialog is dismissed with Escape', async () => {
+    renderInfo(<ChangePhoto />);
+    await uploadInDialog();
+
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
+  });
+
   it('closes without deleting anything when nothing was uploaded', async () => {
     renderInfo(<ChangePhoto />);
     await userEvent.click(screen.getByRole('button', { name: 'Change photo' }));

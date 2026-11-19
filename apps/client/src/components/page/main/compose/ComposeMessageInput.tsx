@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { axiosInstance } from '@/lib/axios-instance';
-import { cn, getServerErrorMessage, loadImageSize } from '@/lib/utils';
+import { cn, getServerErrorMessage, isNotFoundError, loadImageSize } from '@/lib/utils';
 import type { PhotoInput } from '@/types/message.types';
 import type { UploadedPhotoResult } from '@/types/upload.types';
 import { MESSAGE_PHOTOS_UPLOAD_ENDPOINT, SOMETHING_WENT_WRONG } from '@repo/constants';
@@ -35,6 +35,10 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { sendMessage } = useComposeMessage();
 
+  function removeAttachedPhoto(photoId: string) {
+    setPhotoInput((previous) => previous.filter((photo) => photo.id !== photoId));
+  }
+
   const deletePhoto = useMutation<void, Error, string>({
     async mutationFn(photoId) {
       await axiosInstance.delete(`/upload/${photoId}`);
@@ -43,9 +47,13 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
       setDeletingPhotoIds((previous) => [...previous, photoId]);
     },
     onSuccess(_, photoId) {
-      setPhotoInput((previous) => previous.filter((photo) => photo.id !== photoId));
+      removeAttachedPhoto(photoId);
     },
-    onError(error) {
+    onError(error, photoId) {
+      if (isNotFoundError(error)) {
+        removeAttachedPhoto(photoId);
+        return;
+      }
       toast.error(getServerErrorMessage(error));
     },
     onSettled(_, __, photoId) {

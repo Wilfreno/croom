@@ -977,9 +977,9 @@ describe('ConversationMessageInput', () => {
 
   it('keeps the photo and explains when it cannot be removed', async () => {
     vi.mocked(axiosInstance.delete).mockRejectedValueOnce(
-      new AxiosError('404', undefined, undefined, undefined, {
-        status: 404,
-        data: { status: 'NOT_FOUND', message: 'could not delete', data: null },
+      new AxiosError('409', undefined, undefined, undefined, {
+        status: 409,
+        data: { status: 'CONFLICT', message: 'could not delete', data: null },
       } as never),
     );
     stubImageLoading();
@@ -991,6 +991,24 @@ describe('ConversationMessageInput', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('could not delete'));
     expect(screen.getByRole('img', { name: 'image' })).toBeInTheDocument();
+  });
+
+  it('drops a photo the server already cleaned up', async () => {
+    vi.mocked(axiosInstance.delete).mockRejectedValueOnce(
+      new AxiosError('404', undefined, undefined, undefined, {
+        status: 404,
+        data: { status: 'NOT_FOUND', message: 'photo does not exist', data: null },
+      } as never),
+    );
+    stubImageLoading();
+    renderWithQuery(<ConversationMessageInput conversation={mockConversation()} />);
+    await user().click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
+    await screen.findByRole('img', { name: 'image' });
+
+    await user().click(screen.getByRole('button', { name: 'remove photo' }));
+
+    await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('removes the right photos when two removals overlap', async () => {

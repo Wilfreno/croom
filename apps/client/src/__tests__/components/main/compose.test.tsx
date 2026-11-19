@@ -13,6 +13,7 @@ import { COMPOSE_SELECTED_USERS_QUERY_KEY, SOMETHING_WENT_WRONG } from '@repo/co
 import { ConversationStatus } from '@repo/enums';
 import type { Conversation, Message, User, UserSession } from '@repo/types';
 import { act, screen, waitFor, within } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -386,6 +387,23 @@ describe('ComposeMessageInput', () => {
 
     expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
     await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
+  });
+
+  it('drops a photo the server already cleaned up', async () => {
+    vi.mocked(axiosInstance.delete).mockRejectedValueOnce(
+      new AxiosError('404', undefined, undefined, undefined, {
+        status: 404,
+        data: { status: 'NOT_FOUND', message: 'photo does not exist', data: null },
+      } as never),
+    );
+    renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
+    await userEvent.click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
+    await screen.findByRole('img', { name: 'image' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'remove photo' }));
+
+    await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('removes the right photos when two removals overlap', async () => {

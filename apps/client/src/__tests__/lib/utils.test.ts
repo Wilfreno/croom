@@ -1,5 +1,6 @@
 import {
   fetchWithServerCookies,
+  isNotFoundError,
   loadImageSize,
   toPhotoInputs,
   closeSession,
@@ -551,5 +552,22 @@ describe('loadImageSize', () => {
     stubImage('error');
 
     await expect(loadImageSize('https://utfs.io/p1.png')).rejects.toThrow('broken');
+  });
+});
+
+describe('isNotFoundError', () => {
+  const failedWith = (status: number) =>
+    new AxiosError(String(status), undefined, undefined, undefined, { status, data: null } as never);
+
+  it('is true for a 404 from the server', () => {
+    expect(isNotFoundError(failedWith(404))).toBe(true);
+  });
+
+  it.each([
+    ['another status', failedWith(409)],
+    ['a request with no response', new AxiosError('network down')],
+    ['an error that is not from axios', new Error('boom')],
+  ])('is false for %s', (_, error) => {
+    expect(isNotFoundError(error)).toBe(false);
   });
 });
