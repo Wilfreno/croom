@@ -8,3 +8,5 @@ dist-cjs
 *.tsbuildinfo
 
 .claude/worktrees/
+
+.react-email
