@@ -6,9 +6,11 @@ import useMessageTextarea from '@/components/hooks/useMessageTextarea';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { ServerResponse } from '@/lib/server/requests';
-import { cn, withBasePath } from '@/lib/utils';
+import { axiosInstance } from '@/lib/axios-instance';
+import { cn, getServerErrorMessage, isNotFoundError, loadImageSize } from '@/lib/utils';
 import type { PhotoInput } from '@/types/message.types';
+import type { UploadedPhotoResult } from '@/types/upload.types';
+import { MESSAGE_PHOTOS_UPLOAD_ENDPOINT, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { ConversationStatus } from '@repo/enums';
 import { useMutation } from '@tanstack/react-query';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
@@ -16,13 +18,14 @@ import { ImageIcon, ImagePlus, SendHorizontal, Smile, ThumbsUp, X } from 'lucide
 import NextImage from 'next/image';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ClientUploadedFileData } from 'uploadthing/types';
+import type { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 import ConversationBlockedBanner from '../conversation/ConversationBlockedBanner';
 
 export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: string[][] }) {
   const [photoInput, setPhotoInput] = useState<PhotoInput[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingPhotoIds, setDeletingPhotoIds] = useState<string[]>([]);
 
   const { value: textInput, setValue: setTextInput, textareaProps } = useMessageTextarea({ onSubmit: submit });
 
@@ -32,52 +35,54 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
 
   const { sendMessage } = useComposeMessage();
 
-  const deletePhoto = useMutation<void, Error, { key: string; index: number }>({
-    mutationFn: async ({ key }) => {
-      try {
-        const response = await fetch(withBasePath('/api/photo'), {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ key }),
-        });
+  function removeAttachedPhoto(photoId: string) {
+    setPhotoInput((previous) => previous.filter((photo) => photo.id !== photoId));
+  }
 
-        const { status, message } = (await response.json()) as ServerResponse;
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
+  const deletePhoto = useMutation<void, Error, string>({
+    async mutationFn(photoId) {
+      await axiosInstance.delete(`/upload/${photoId}`);
     },
-    onSuccess: (_, { index }) => {
-      setPhotoInput((prev) => prev.toSpliced(index, 1));
+    onMutate(photoId) {
+      setDeletingPhotoIds((previous) => [...previous, photoId]);
     },
-  });
-
-  async function onClientUploadComplete(
-    response: ClientUploadedFileData<{
-      photoUrl: string;
-    }>[],
-  ) {
-    for (const res of response) {
-      try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const newImage = new Image();
-          newImage.onload = () => resolve(newImage);
-          newImage.onerror = (err) => reject(err);
-          newImage.src = res.url;
-        });
-        setPhotoInput((prev) => [...prev, { key: res.key, url: res.url, width: image.width, height: image.height }]);
-      } catch (error) {
-        toast.error((error as Error).message);
+    onSuccess(_, photoId) {
+      removeAttachedPhoto(photoId);
+    },
+    onError(error, photoId) {
+      if (isNotFoundError(error)) {
+        removeAttachedPhoto(photoId);
         return;
       }
+      toast.error(getServerErrorMessage(error));
+    },
+    onSettled(_, __, photoId) {
+      setDeletingPhotoIds((previous) => previous.filter((deletingId) => deletingId !== photoId));
+    },
+  });
+  const isDeletingPhoto = deletingPhotoIds.length > 0;
+
+  async function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<UploadedPhotoResult | null>[]) {
+    try {
+      for (const uploadedFile of uploadedFiles) {
+        const uploadedPhoto = uploadedFile.serverData?.photo;
+        if (!uploadedPhoto) {
+          toast.error(SOMETHING_WENT_WRONG);
+          continue;
+        }
+
+        const { width, height } = await loadImageSize(uploadedPhoto.url);
+        setPhotoInput((prev) => [...prev, { id: uploadedPhoto.id, url: uploadedPhoto.url, width, height }]);
+      }
+    } catch {
+      toast.error(SOMETHING_WENT_WRONG);
+    } finally {
+      setUploadingImage(false);
     }
-    setUploadingImage(false);
   }
 
   function submit(text: string = textInput) {
+    if (isDeletingPhoto) return;
     sendMessage.mutate({
       conversationId: foundConversations?.[0]?.id,
       text,
@@ -95,7 +100,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
   return (
     <div className="flex items-end p-2 bg-transparent">
       <UploadThingButton
-        endpoint="multipleImage"
+        endpoint={MESSAGE_PHOTOS_UPLOAD_ENDPOINT}
         className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-background ut-button:hover:bg-secondary ut-allowed-content:hidden ut-button:focus-within:ring-offset-0  ut-button:focus-within:ring-0 ut-button:after:ut-uploading:bg-transparent"
         content={{
           button() {
@@ -119,7 +124,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
           {uploadingImage || Boolean(photoInput.length) ? (
             <div className="bg-secondary rounded-t-lg w-full p-4 flex items-center gap-4">
               <UploadThingButton
-                endpoint="multipleImage"
+                endpoint={MESSAGE_PHOTOS_UPLOAD_ENDPOINT}
                 className="ut-button:aspect-square ut-button:h-fit ut-button:w-auto ut-button:p-2 ut-button:rounded-full ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
                 content={{
                   button() {
@@ -135,7 +140,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
               />
 
               <div className="flex items-center gap-2">
-                {photoInput.map(({ url, key }, index) => (
+                {photoInput.map(({ url, id }) => (
                   <span key={url} className="relative">
                     <NextImage
                       src={url}
@@ -146,8 +151,10 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
                       priority
                     />
                     <Button
+                      aria-label="remove photo"
                       className="aspect-square h-fit w-auto rounded-full absolute -top-2 -right-2 p-1"
-                      onClick={() => deletePhoto.mutate({ key, index })}
+                      disabled={deletingPhotoIds.includes(id)}
+                      onClick={() => deletePhoto.mutate(id)}
                     >
                       <X className="h-4 w-auto" />
                     </Button>
@@ -194,7 +201,7 @@ export default function ComposeMessageInput({ selectedUsers }: { selectedUsers: 
         {Boolean(textInput) || Boolean(photoInput.length) ? (
           <Button
             variant="ghost"
-            disabled={(!textInput && !photoInput.length) || sendMessage.isPending}
+            disabled={(!textInput && !photoInput.length) || sendMessage.isPending || isDeletingPhoto}
             type="button"
             className="aspect-square h-fit w-auto p-1 mb-1"
             onClick={() => submit()}

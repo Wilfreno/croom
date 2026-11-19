@@ -1,7 +1,12 @@
 import {
+  fetchWithServerCookies,
+  isNotFoundError,
+  loadImageSize,
+  toPhotoInputs,
   closeSession,
   cn,
   emitSocketEventAndWaitForServerReply,
+  emptyChangePasswordForm,
   getAvatarColor,
   getConversationName,
   getGroupAvatarMembers,
@@ -19,6 +24,7 @@ import {
   getTimeIntervalText,
   isSameSender,
   peopleLabel,
+  withoutAtSign,
 } from '@/lib/utils';
 import type { CallSession } from '@/types/call.types';
 import type { TypedSocket } from '@/types/socket.types';
@@ -447,5 +453,121 @@ describe('call notices', () => {
     expect(getNoticeText({ ...input, notice: { type: MessageNoticeType.NICKNAME, user: 'bob', value: 'Ace' } })).toBe(
       "Ada set Bob's nickname to Ace",
     );
+  });
+});
+
+describe('withoutAtSign', () => {
+  it('drops a leading @', () => {
+    expect(withoutAtSign('@ada')).toBe('ada');
+  });
+
+  it('leaves a username without an @ as it is', () => {
+    expect(withoutAtSign('ada')).toBe('ada');
+  });
+
+  it('only drops the first character when it is an @', () => {
+    expect(withoutAtSign('a@da')).toBe('a@da');
+  });
+
+  it('is empty for a missing username', () => {
+    expect(withoutAtSign(undefined)).toBe('');
+  });
+});
+
+describe('emptyChangePasswordForm', () => {
+  it('starts every field empty', () => {
+    expect(emptyChangePasswordForm()).toEqual({ currentPassword: '', password: '', confirmPassword: '' });
+  });
+
+  it('returns a new form each time', () => {
+    expect(emptyChangePasswordForm()).not.toBe(emptyChangePasswordForm());
+  });
+});
+
+describe('fetchWithServerCookies', () => {
+  const fetchSpy = vi.fn().mockResolvedValue(new Response(null));
+
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_SERVER_V1', 'http://localhost:8000/v1');
+    vi.stubGlobal('fetch', fetchSpy);
+    fetchSpy.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('sends cookies to the server', async () => {
+    await fetchWithServerCookies('http://localhost:8000/v1/upload?slug=profilePhoto', { method: 'POST' });
+
+    expect(fetchSpy).toHaveBeenCalledWith('http://localhost:8000/v1/upload?slug=profilePhoto', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  });
+
+  it('sends no cookies anywhere else', async () => {
+    const storageUrl = new URL('https://sea1.ingest.uploadthing.com/file-key');
+
+    await fetchWithServerCookies(storageUrl, { method: 'HEAD' });
+
+    expect(fetchSpy).toHaveBeenCalledWith(storageUrl, { method: 'HEAD' });
+  });
+});
+
+describe('toPhotoInputs', () => {
+  it('keeps the id, url and size of each photo for a resend', () => {
+    const photo = { id: 'p1', key: 'k1', url: 'https://utfs.io/p1.png', width: 640, height: 480 };
+
+    expect(toPhotoInputs([photo] as never)).toEqual([{ id: 'p1', url: 'https://utfs.io/p1.png', width: 640, height: 480 }]);
+  });
+});
+
+describe('loadImageSize', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubImage(outcome: 'load' | 'error') {
+    vi.stubGlobal(
+      'Image',
+      class {
+        width = 640;
+        height = 480;
+        onload: (() => void) | null = null;
+        onerror: ((error: unknown) => void) | null = null;
+        set src(_: string) {
+          queueMicrotask(() => (outcome === 'load' ? this.onload?.() : this.onerror?.(new Error('broken'))));
+        }
+      },
+    );
+  }
+
+  it('resolves with the size of the loaded image', async () => {
+    stubImage('load');
+
+    await expect(loadImageSize('https://utfs.io/p1.png')).resolves.toEqual({ width: 640, height: 480 });
+  });
+
+  it('rejects when the image cannot load', async () => {
+    stubImage('error');
+
+    await expect(loadImageSize('https://utfs.io/p1.png')).rejects.toThrow('broken');
+  });
+});
+
+describe('isNotFoundError', () => {
+  const failedWith = (status: number) =>
+    new AxiosError(String(status), undefined, undefined, undefined, { status, data: null } as never);
+
+  it('is true for a 404 from the server', () => {
+    expect(isNotFoundError(failedWith(404))).toBe(true);
+  });
+
+  it.each([
+    ['another status', failedWith(409)],
+    ['a request with no response', new AxiosError('network down')],
+    ['an error that is not from axios', new Error('boom')],
+  ])('is false for %s', (_, error) => {
+    expect(isNotFoundError(error)).toBe(false);
   });
 });

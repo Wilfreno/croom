@@ -16,6 +16,7 @@ async function bootstrap() {
     // Logs one line per request and per response (method, url, status, time)
     // to stdout, which pm2 captures: `pm2 logs croom-server`.
     new FastifyAdapter({ logger: true }),
+    { rawBody: true },
   );
   const configService = app.get(ConfigService);
   const port = configService.get('PORT');

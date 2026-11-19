@@ -9,12 +9,14 @@ import {
 } from '@nestjs/websockets';
 import { SESSION_COOKIE } from '@repo/constants';
 import { UserStatus } from '@repo/enums';
+import { hashSessionToken } from '@repo/models';
 import type { ServerToClientEvents } from '@repo/types';
 import type {
   TypedNamespace,
   TypedServer,
   TypedSocket,
 } from '../../common/types/socket-io.types';
+import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
 import { serializeIds } from '../../common/utils/serialize-ids.util';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
@@ -38,6 +40,7 @@ export class MessageGateway
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly socketSessions: SocketSessionsService,
   ) {}
 
   /**
@@ -48,11 +51,14 @@ export class MessageGateway
    * it used to lose that race.
    */
   afterInit(namespace: TypedNamespace) {
+    this.socketSessions.attach(namespace);
+
     namespace.use((client, next) => {
       this.authenticate(client).then(
-        (userId) => {
-          if (!userId) return next(new Error('you are not logged in'));
-          client.data.userId = userId;
+        (identity) => {
+          if (!identity) return next(new Error('you are not logged in'));
+          client.data.userId = identity.userId;
+          client.data.sessionTokenHash = identity.sessionTokenHash;
           next();
         },
         (error: unknown) => {
@@ -64,7 +70,9 @@ export class MessageGateway
   }
 
   /** Resolves the session cookie sent with the handshake to a user id. */
-  async authenticate(client: TypedSocket): Promise<string | null> {
+  async authenticate(
+    client: TypedSocket,
+  ): Promise<{ userId: string; sessionTokenHash: string } | null> {
     const cookieHeader = client.handshake.headers.cookie;
     const token = cookieHeader
       ? fastifyCookie.parse(cookieHeader)[SESSION_COOKIE]
@@ -72,7 +80,9 @@ export class MessageGateway
     if (!token) return null;
 
     const user = await this.authService.resolveSession(token);
-    return user?.id ?? null;
+    if (!user) return null;
+
+    return { userId: user.id, sessionTokenHash: hashSessionToken(token) };
   }
 
   async handleConnection(client: TypedSocket) {

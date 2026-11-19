@@ -1,4 +1,4 @@
-import { stubImageLoading, stubPhotoDelete, UPLOADED_FILE } from '@/__tests__/mocks/mock-components';
+import { stubImageLoading, UPLOADED_PHOTO, UPLOADED_PHOTO_BATCH } from '@/__tests__/mocks/mock-components';
 import { mockConversation, mockMessage, mockSession, mockUser } from '@/__tests__/mocks/mock-entities';
 import { makeQueryClient } from '@/__tests__/mocks/MockQueryClientProvider';
 import { mockSocket } from '@/__tests__/mocks/mock-socket';
@@ -9,10 +9,11 @@ import ComposeFoundMessages from '@/components/page/main/compose/ComposeFoundMes
 import ComposeMessageInput from '@/components/page/main/compose/ComposeMessageInput';
 import ComposeTo from '@/components/page/main/compose/ComposeTo';
 import { axiosInstance } from '@/lib/axios-instance';
-import { COMPOSE_SELECTED_USERS_QUERY_KEY } from '@repo/constants';
+import { COMPOSE_SELECTED_USERS_QUERY_KEY, SOMETHING_WENT_WRONG } from '@repo/constants';
 import { ConversationStatus } from '@repo/enums';
 import type { Conversation, Message, User, UserSession } from '@repo/types';
 import { act, screen, waitFor, within } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -21,7 +22,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/components/page/UploadthingButton', async () => (await import('@/__tests__/mocks/mock-components')).uploadthingModule);
 vi.mock('emoji-picker-react', async () => (await import('@/__tests__/mocks/mock-components')).emojiPickerModule);
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
-vi.mock('@/lib/axios-instance', () => ({ axiosInstance: { patch: vi.fn().mockResolvedValue({}), post: vi.fn() } }));
+vi.mock('@/lib/axios-instance', () => ({
+  axiosInstance: { patch: vi.fn().mockResolvedValue({}), post: vi.fn(), delete: vi.fn().mockResolvedValue({}) },
+}));
 vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }));
 
 let sessionUser: UserSession;
@@ -58,6 +61,7 @@ vi.mock('@/components/hooks/mutation/useComposeMessage.mutation', () => ({ defau
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(axiosInstance.delete).mockResolvedValue({});
   server = mockSocket({ CALL: { isOngoing: false, ringingCount: 1 }, CALL_CANCEL: { isAnswered: false } });
   sessionUser = mockSession();
   searchResult = [];
@@ -364,17 +368,16 @@ describe('ComposeMessageInput', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
 
-    expect(await screen.findByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_FILE.url);
+    expect(await screen.findByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_PHOTO.photo.url);
     await userEvent.type(screen.getByPlaceholderText('Aa'), 'look{Enter}');
 
     expect(sendMessage.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({ photos: [{ ...UPLOADED_FILE, width: 640, height: 480 }] }),
+      expect.objectContaining({ photos: [{ id: UPLOADED_PHOTO.photo.id, url: UPLOADED_PHOTO.photo.url, width: 640, height: 480 }] }),
     );
     expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument();
   });
 
   it('removes an attached photo', async () => {
-    const fetchMock = stubPhotoDelete();
     stubImageLoading();
     renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
     await userEvent.click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
@@ -382,8 +385,65 @@ describe('ComposeMessageInput', () => {
 
     await userEvent.click(image.parentElement!.querySelector('button')!);
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/photo', expect.objectContaining({ method: 'DELETE' }));
+    expect(axiosInstance.delete).toHaveBeenCalledWith(`/upload/${UPLOADED_PHOTO.photo.id}`);
     await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
+  });
+
+  it('drops a photo the server already cleaned up', async () => {
+    vi.mocked(axiosInstance.delete).mockRejectedValueOnce(
+      new AxiosError('404', undefined, undefined, undefined, {
+        status: 404,
+        data: { status: 'NOT_FOUND', message: 'photo does not exist', data: null },
+      } as never),
+    );
+    renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
+    await userEvent.click(screen.getAllByRole('button', { name: 'upload photo' })[0]);
+    await screen.findByRole('img', { name: 'image' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'remove photo' }));
+
+    await waitFor(() => expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument());
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('removes the right photos when two removals overlap', async () => {
+    const finishDelete: Array<() => void> = [];
+    vi.mocked(axiosInstance.delete).mockImplementation(
+      () => new Promise((resolve) => finishDelete.push(() => resolve({}))),
+    );
+    renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
+    await userEvent.click(screen.getAllByRole('button', { name: 'upload three photos' })[0]);
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(3));
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'remove photo' })[0]);
+    await userEvent.click(screen.getAllByRole('button', { name: 'remove photo' })[1]);
+    await act(async () => finishDelete[0]());
+    await act(async () => finishDelete[1]());
+
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(1));
+    expect(screen.getByRole('img', { name: 'image' })).toHaveAttribute('src', UPLOADED_PHOTO_BATCH[2].url);
+  });
+
+  it('waits for a photo removal to finish before sending', async () => {
+    vi.mocked(axiosInstance.delete).mockImplementation(() => new Promise(() => {}));
+    renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
+    await userEvent.click(screen.getAllByRole('button', { name: 'upload three photos' })[0]);
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'image' })).toHaveLength(3));
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'remove photo' })[0]);
+    await userEvent.type(screen.getByPlaceholderText('Aa'), 'hi{Enter}');
+
+    expect(screen.getAllByRole('button', { name: 'remove photo' })[0]).toBeDisabled();
+    expect(sendMessage.mutate).not.toHaveBeenCalled();
+  });
+
+  it('attaches nothing when the server saved no photo', async () => {
+    renderWithQuery(<ComposeMessageInput selectedUsers={selection(1)} />);
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'upload photo without result' })[0]);
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(SOMETHING_WENT_WRONG));
+    expect(screen.queryByRole('img', { name: 'image' })).not.toBeInTheDocument();
   });
 
   it('shows an upload error', async () => {

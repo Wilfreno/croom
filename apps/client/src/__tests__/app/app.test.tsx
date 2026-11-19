@@ -13,15 +13,11 @@ import ConversationError from '@/app/(main)/(home)/conversation/error';
 import HomeLayout from '@/app/(main)/(home)/layout';
 import HomePage from '@/app/(main)/(home)/page';
 import MainLayout from '@/app/(main)/layout';
-import { DELETE } from '@/app/api/photo/route';
-import { ourFileRouter } from '@/app/api/uploadthing/core';
 import RootLayout, { metadata } from '@/app/layout';
 import PasswordToolTip from '@/components/page/auth/PasswordToolTip';
 import SignupNavigateToLoginPage from '@/components/page/auth/signup/SignupNavigateToLoginPage';
-import { UploadThingButton, UploadThingDropzone } from '@/components/page/UploadthingButton';
 import GoogleSvg from '@/components/svg/GoogleSvg';
 import Loading from '@/components/svg/Loading';
-import { uploadThingApi } from '@/lib/server/uploadthing';
 import { OTPType } from '@repo/enums';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -31,7 +27,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('next/image', async () => (await import('@/__tests__/mocks/mock-components')).nextImageModule);
 vi.mock('next/font/google', () => ({ Work_Sans: () => ({ className: 'work-sans' }) }));
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }));
-vi.mock('@/lib/server/uploadthing', () => ({ uploadThingApi: { deleteFiles: vi.fn() } }));
 
 const push = vi.fn();
 let searchParams = new URLSearchParams();
@@ -73,51 +68,6 @@ beforeEach(() => {
   Object.assign(sidebar, { isOpen: false, onMobile: false });
 });
 
-describe('api/photo DELETE', () => {
-  function deleteRequest(body: unknown) {
-    return new Request('http://localhost/api/photo', { method: 'DELETE', body: JSON.stringify(body) });
-  }
-
-  it('deletes the file from UploadThing', async () => {
-    const response = await DELETE(deleteRequest({ key: 'abc' }));
-
-    expect(uploadThingApi.deleteFiles).toHaveBeenCalledWith('abc');
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'OK', message: 'photo deleted', data: null });
-  });
-
-  it('reports a failure as a 500 the client recognises', async () => {
-    vi.mocked(uploadThingApi.deleteFiles).mockRejectedValue(new Error('UploadThing down'));
-
-    const response = await DELETE(deleteRequest({ key: 'abc' }));
-
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      status: 'INTERNAL SERVER ERROR',
-      message: 'Oops! something went wrong',
-      data: null,
-    });
-  });
-
-  it('rejects a body that is not JSON', async () => {
-    const response = await DELETE(new Request('http://localhost/api/photo', { method: 'DELETE', body: 'nope' }));
-
-    expect(response.status).toBe(500);
-    expect(uploadThingApi.deleteFiles).not.toHaveBeenCalled();
-  });
-});
-
-describe('api/uploadthing', () => {
-  it('offers a multi-image and a single-image endpoint', () => {
-    expect(Object.keys(ourFileRouter)).toEqual(['multipleImage', 'singleImage']);
-  });
-
-  it('builds typed upload components from the router', () => {
-    expect(UploadThingButton).toBeTypeOf('function');
-    expect(UploadThingDropzone).toBeTypeOf('function');
-  });
-});
-
 describe('RootLayout', () => {
   it('names the app', () => {
     expect(metadata).toEqual({ title: 'Croom', description: 'Simple chat app where you and your friends can hangout' });
@@ -138,12 +88,19 @@ describe('RootLayout', () => {
 });
 
 describe('main layouts', () => {
-  it('puts the aside and conversation list beside the page', () => {
+  it('puts the aside beside the page, without the conversation list', () => {
     render(<MainLayout>page content</MainLayout>);
 
     expect(screen.getByText('aside')).toBeInTheDocument();
-    expect(screen.getByText('conversation list')).toBeInTheDocument();
+    expect(screen.queryByText('conversation list')).not.toBeInTheDocument();
     expect(screen.getByText('page content')).toBeInTheDocument();
+  });
+
+  it('puts the conversation list beside the home pages', () => {
+    render(<HomeLayout>home page</HomeLayout>);
+
+    expect(screen.getByText('conversation list')).toBeInTheDocument();
+    expect(screen.getByText('home page')).toBeInTheDocument();
   });
 
   it('adds the info sidebar next to a conversation', () => {
@@ -153,11 +110,8 @@ describe('main layouts', () => {
     expect(screen.getByText('info sidebar')).toBeInTheDocument();
   });
 
-  it.each([
-    ['home', HomeLayout],
-    ['call', CallLayout],
-  ])('the %s layout renders its page as is', (_, Layout) => {
-    render(<Layout>just the page</Layout>);
+  it('the call layout renders its page as is', () => {
+    render(<CallLayout>just the page</CallLayout>);
 
     expect(screen.getByText('just the page')).toBeInTheDocument();
   });

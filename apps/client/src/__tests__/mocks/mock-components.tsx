@@ -3,9 +3,17 @@ import { vi } from 'vitest';
 /** The file a fake upload "completes" with. */
 export const UPLOADED_FILE = { key: 'uploaded-key', url: 'https://utfs.io/uploaded.png' };
 
+export const UPLOADED_PHOTO = { photo: { id: 'uploaded-photo', url: UPLOADED_FILE.url } };
+
+export const UPLOADED_PHOTO_BATCH = [1, 2, 3].map((photoNumber) => ({
+  key: `uploaded-key-${photoNumber}`,
+  url: `https://utfs.io/uploaded-${photoNumber}.png`,
+  serverData: { photo: { id: `uploaded-photo-${photoNumber}`, url: `https://utfs.io/uploaded-${photoNumber}.png` } },
+}));
+
 type UploadButtonProps = {
   onUploadBegin?: () => void;
-  onClientUploadComplete?: (files: { key: string; url: string }[]) => void;
+  onClientUploadComplete?: (files: { key: string; url: string; serverData: unknown }[]) => void;
   onUploadError?: (error: Error) => void;
 };
 
@@ -20,10 +28,28 @@ export function FakeUploadButton({ onUploadBegin, onClientUploadComplete, onUplo
         type="button"
         onClick={() => {
           onUploadBegin?.();
-          onClientUploadComplete?.([UPLOADED_FILE]);
+          onClientUploadComplete?.([{ ...UPLOADED_FILE, serverData: UPLOADED_PHOTO }]);
         }}
       >
         upload photo
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onUploadBegin?.();
+          onClientUploadComplete?.([{ ...UPLOADED_FILE, serverData: null }]);
+        }}
+      >
+        upload photo without result
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          onUploadBegin?.();
+          onClientUploadComplete?.(UPLOADED_PHOTO_BATCH);
+        }}
+      >
+        upload three photos
       </button>
       <button type="button" onClick={() => onUploadError?.(new Error('upload failed'))}>
         fail upload
@@ -32,7 +58,7 @@ export function FakeUploadButton({ onUploadBegin, onClientUploadComplete, onUplo
   );
 }
 
-export const uploadthingModule = { UploadThingButton: FakeUploadButton, UploadThingDropzone: FakeUploadButton };
+export const uploadthingModule = { UploadThingButton: FakeUploadButton };
 
 /** Stands in for emoji-picker-react: one button that picks 😀. */
 export function FakeEmojiPicker({ onEmojiClick }: { onEmojiClick: (emoji: { emoji: string }) => void }) {
@@ -73,11 +99,4 @@ export function stubImageLoading() {
       }
     },
   );
-}
-
-/** A `fetch` stub for the `/api/photo` delete route. */
-export function stubPhotoDelete(reply: { status: string; message: string } = { status: 'OK', message: 'photo deleted' }) {
-  const fetchMock = vi.fn().mockResolvedValue({ json: async () => reply });
-  vi.stubGlobal('fetch', fetchMock);
-  return fetchMock;
 }

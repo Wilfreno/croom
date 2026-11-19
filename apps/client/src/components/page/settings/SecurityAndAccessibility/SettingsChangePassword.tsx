@@ -1,39 +1,112 @@
-"use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PATCHRequest } from "@/lib/server/requests";
-import { cn } from "@/lib/utils";
-import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+'use client';
+import PasswordStrengthIndicator from '@/components/page/auth/PasswordStrengthIndicator';
+import usePasswordStrengthChecker from '@/components/hooks/usePasswordStrengthChecker';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { axiosInstance } from '@/lib/axios-instance';
+import { cn, emptyChangePasswordForm, getServerErrorMessage } from '@/lib/utils';
+import type { ChangePasswordForm } from '@/types/user-settings.types';
+import { PASSWORD_CHANGED } from '@repo/constants';
+import { AuthServiceOptions } from '@repo/enums';
+import { passwordStrengthScorePerCriteriaSatisfied } from '@repo/utils';
+import { useMutation } from '@tanstack/react-query';
+import { Eye, EyeOff } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id} className="font-medium">
+        {label}
+      </Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          placeholder={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label={visible ? `hide ${label}` : `show ${label}`}
+          className="aspect-square h-8 p-2 w-auto absolute right-2 top-1/2 -translate-y-1/2"
+          onClick={() => setVisible((previous) => !previous)}
+        >
+          {visible ? <Eye className="h-full w-auto" /> : <EyeOff className="h-full w-auto" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsChangePassword() {
-  const [password, setPassword] = useState({ new: "", confirm: "" });
-  const [seePassword, setSeePassword] = useState([false, false]);
+  const [form, setForm] = useState<ChangePasswordForm>(emptyChangePasswordForm());
   const [open, setOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
 
-  const divRef = useRef<HTMLDivElement>(null);
+  const { session } = useAuth();
+  const hasPassword = Boolean(session.user?.authService?.includes(AuthServiceOptions.WITH_EMAIL_AND_PASSWORD));
+  const { score } = usePasswordStrengthChecker(form.password);
+
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (open) divRef.current?.scrollIntoView();
+    if (open) formRef.current?.scrollIntoView();
   }, [open]);
 
-  const changePassword = useMutation({
-    mutationFn: async () => {
-      try {
-        const { status, message } = await PATCHRequest("/v1/user/password", {
-          password,
-        });
+  function close() {
+    setForm(emptyChangePasswordForm());
+    setFormKey((previous) => previous + 1);
+    setOpen(false);
+  }
 
-        if (status !== "OK") throw new Error(message);
-      } catch (error) {
-        toast.error("Oops! something went wrong");
-        throw error;
+  const changePassword = useMutation<void, Error, ChangePasswordForm>({
+    async mutationFn({ currentPassword, password, confirmPassword }) {
+      await axiosInstance.patch('/user/password', {
+        currentPassword: hasPassword ? currentPassword : undefined,
+        password,
+        confirmPassword,
+      });
+    },
+    async onSuccess() {
+      if (!hasPassword) {
+        const authService = session.user?.authService ?? [];
+        await session.update({ authService: [...authService, AuthServiceOptions.WITH_EMAIL_AND_PASSWORD] });
       }
+      toast.success(PASSWORD_CHANGED);
+      close();
+    },
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
     },
   });
+
+  const passwordsDiffer = form.password !== form.confirmPassword;
+  const isWeak = score < passwordStrengthScorePerCriteriaSatisfied(5);
+  const cannotConfirm =
+    (hasPassword && !form.currentPassword) ||
+    !form.password ||
+    !form.confirmPassword ||
+    passwordsDiffer ||
+    isWeak ||
+    changePassword.isPending;
 
   return (
     <div>
@@ -42,87 +115,51 @@ export default function SettingsChangePassword() {
         <Button
           variant="outline"
           onClick={() => {
-            if (open) {
-              setPassword({ new: "", confirm: "" });
-              setSeePassword([false, false]);
-            }
-            setOpen((prev) => !prev);
+            if (open) close();
+            else setOpen(true);
           }}
         >
-          {open ? "Cancel" : "Change"}
+          {open ? 'Cancel' : hasPassword ? 'Change' : 'Set password'}
         </Button>
       </div>
-      <div ref={divRef} className={cn(open ? "grid gap-2 relative" : "hidden")}>
-        <div className="space-y-1">
-          <Label htmlFor="new-password" className="font-medium">
-            New Password
-          </Label>
-          <div className="relative">
-            <Input
-              id="new-password"
-              type={seePassword[0] ? "text" : "password"}
-              placeholder="New Password"
-              value={password.new}
-              onChange={(e) => setPassword((prev) => ({ ...prev, new: e.target.value }))}
-            />
-            <Button
-              variant="ghost"
-              className="aspect-square h-8 p-2 w-auto absolute right-2 top-1/2 -translate-y-1/2"
-              onClick={() => setSeePassword((prev) => [!prev[0], prev[1]])}
-            >
-              {seePassword[0] ? (
-                <Eye className="h-full w-auto" />
-              ) : (
-                <EyeOff className="h-full w-auto" />
-              )}
-            </Button>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="confirm-password" className="font-medium">
-            Confirm Password
-          </Label>
-          <div className="relative">
-            <Input
-              id="confirm-password"
-              type={seePassword[1] ? "text" : "password"}
-              placeholder="Confirm Password"
-              value={password.confirm}
-              onChange={(e) =>
-                setPassword((prev) => ({ ...prev, confirm: e.target.value }))
-              }
-            />
-            <Button
-              variant="ghost"
-              className="aspect-square h-8 p-2 w-auto absolute right-2 top-1/2 -translate-y-1/2"
-              onClick={() => setSeePassword((prev) => [prev[0], !prev[1]])}
-            >
-              {seePassword[1] ? (
-                <Eye className="h-full w-auto" />
-              ) : (
-                <EyeOff className="h-full w-auto" />
-              )}
-            </Button>
-          </div>
-        </div>
-        {password.new !== password.confirm && (
-          <span className="text-xs font-medium text-destructive">
-            Password is not the same
-          </span>
+      <form
+        key={formKey}
+        ref={formRef}
+        className={cn(open ? 'grid gap-2 relative' : 'hidden')}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (cannotConfirm) return;
+          changePassword.mutate(form);
+        }}
+      >
+        {hasPassword && (
+          <PasswordField
+            id="current-password"
+            label="Current Password"
+            value={form.currentPassword}
+            onChange={(currentPassword) => setForm((previous) => ({ ...previous, currentPassword }))}
+          />
         )}
-        <Button
-          disabled={
-            !password.new ||
-            !password.confirm ||
-            password.new !== password.confirm ||
-            changePassword.isPending
-          }
-          className="justify-self-end"
-          onClick={() => changePassword.mutate()}
-        >
+        <PasswordField
+          id="new-password"
+          label="New Password"
+          value={form.password}
+          onChange={(password) => setForm((previous) => ({ ...previous, password }))}
+        />
+        <PasswordStrengthIndicator password={form.password} />
+        <PasswordField
+          id="confirm-password"
+          label="Confirm Password"
+          value={form.confirmPassword}
+          onChange={(confirmPassword) => setForm((previous) => ({ ...previous, confirmPassword }))}
+        />
+        {passwordsDiffer && (
+          <span className="text-xs font-medium text-destructive">Password is not the same</span>
+        )}
+        <Button type="submit" disabled={cannotConfirm} className="justify-self-end">
           Confirm
         </Button>
-      </div>
+      </form>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { CallMediaPreferences, CallSession, RingtoneNote } from "@/types/call.types";
 import type { CachedMessage, MessagePages, PhotoInput } from "@/types/message.types";
+import type { ChangePasswordForm } from "@/types/user-settings.types";
 import type { ServerReplyOfSocketEvent, SocketEventWithServerReply, TypedSocket } from "@/types/socket.types";
 import { AVATAR_FALLBACK_COLORS, CALL_TILE_GAP, CALL_DEFAULT_MEDIA_PREFERENCES, CALL_MEDIA_PREFERENCES_STORAGE_KEY, RINGTONE_FADE_SECONDS, SECONDS_IN_DAY, SECONDS_IN_HOUR, SECONDS_IN_MINUTE, SECONDS_IN_WEEK, SECONDS_IN_YEAR, SOCKET_SERVER_REPLY_TIMEOUT_MS, SOMETHING_WENT_WRONG } from "@repo/constants";
 import { CALL_MESSAGE_NOTICE_TYPES, ConversationStatus, MessageNoticeType, UserStatus } from "@repo/enums";
@@ -27,11 +28,25 @@ export function isForbiddenError(error: unknown) {
   return isAxiosError(error) && error.response?.status === 403;
 }
 
+export function isNotFoundError(error: unknown) {
+  return isAxiosError(error) && error.response?.status === 404;
+}
+
 export function getServerErrorMessage(error: unknown) {
   if (isAxiosError<ServerResponse>(error) && error.response && error.response.status < 500 && error.response.data?.message)
     return error.response.data.message;
 
   return SOMETHING_WENT_WRONG;
+}
+
+export function withoutAtSign(userName: string | undefined) {
+  if (!userName) return "";
+  if (userName.startsWith("@")) return userName.slice(1);
+  return userName;
+}
+
+export function emptyChangePasswordForm(): ChangePasswordForm {
+  return { currentPassword: "", password: "", confirmPassword: "" };
 }
 
 export function isConversationOnline(conversation: Pick<Conversation, "members">, currentUserId?: string) {
@@ -301,7 +316,7 @@ export function createPendingMessage({
     conversation: conversationId,
     sender,
     text,
-    photos: photos.map((photo) => ({ ...photo, id: photo.key }) as unknown as Photo),
+    photos: photos as unknown as Photo[],
     seenBy: [],
     status: "",
     dateCreated: now,
@@ -345,7 +360,7 @@ export function removeMessage(pages: MessagePages, id: string): MessagePages {
 }
 
 export function toPhotoInputs(photos: Photo[]): PhotoInput[] {
-  return photos.map(({ key, url, width, height }) => ({ key, url, width, height }));
+  return photos.map(({ id, url, width, height }) => ({ id, url, width, height }));
 }
 
 export function markMessageFailed(pages: MessagePages, id: string): MessagePages {
@@ -380,4 +395,21 @@ export function playRingtoneNote(context: AudioContext, output: AudioNode, note:
 export async function stopCallRing(socket: TypedSocket, conversationId: string) {
   const reply = await emitSocketEventAndWaitForServerReply(socket, 'CALL_CANCEL', { conversationId }).catch(() => null);
   return Boolean(reply?.isAnswered);
+}
+
+export function fetchWithServerCookies(input: RequestInfo | URL, init?: RequestInit) {
+  const requestUrl = new URL(input instanceof Request ? input.url : input.toString(), window.location.href);
+  const serverOrigin = new URL(process.env.NEXT_PUBLIC_SERVER_V1 ?? '', window.location.href).origin;
+  const isServerRequest = requestUrl.origin === serverOrigin;
+
+  return fetch(input, isServerRequest ? { ...init, credentials: 'include' } : init);
+}
+
+export function loadImageSize(url: string) {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.width, height: image.height });
+    image.onerror = (error) => reject(error);
+    image.src = url;
+  });
 }

@@ -1,9 +1,11 @@
 import fastifyCookie from '@fastify/cookie';
 import { SESSION_COOKIE } from '@repo/constants';
+import { hashSessionToken } from '@repo/models';
 import Fastify from 'fastify';
 import { UserStatus } from '@repo/enums';
 import { Types } from 'mongoose';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
 import type { TypedNamespace, TypedServer, TypedSocket } from '../../common/types/socket-io.types';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
@@ -14,7 +16,7 @@ const USER_ID = '64b7f0c2a1b2c3d4e5f60718';
 function fakeClient(cookie?: string) {
   const client = {
     handshake: { headers: cookie === undefined ? {} : { cookie } },
-    data: {} as { userId?: string },
+    data: {} as { userId?: string; sessionTokenHash?: string },
     emit: vi.fn(),
     disconnect: vi.fn(),
     join: vi.fn(async () => undefined),
@@ -31,12 +33,17 @@ function build({ socketsInRoom = 1 } = {}) {
       partnerIds: ['partner-1', 'partner-2'],
     }),
   };
-  const gateway = new MessageGateway(authService as unknown as AuthService, userService as unknown as UserService);
+  const socketSessions = { attach: vi.fn() };
+  const gateway = new MessageGateway(
+    authService as unknown as AuthService,
+    userService as unknown as UserService,
+    socketSessions as unknown as SocketSessionsService,
+  );
   const fetchSockets = vi.fn(async () => Array.from({ length: socketsInRoom }));
   const roomEmit = vi.fn();
   const server = { in: vi.fn(() => ({ fetchSockets })), to: vi.fn(() => ({ emit: roomEmit })) };
   gateway.server = server as unknown as TypedServer;
-  return { gateway, authService, userService, server, fetchSockets, roomEmit };
+  return { gateway, authService, userService, socketSessions, server, fetchSockets, roomEmit };
 }
 
 // `fastifyCookie.parse` only works once the plugin has loaded its parser, which main.ts does at boot.
@@ -66,6 +73,16 @@ describe('MessageGateway', () => {
 
       expect(authService.resolveSession).toHaveBeenCalledWith('token-123');
       expect(spies.data.userId).toBe(USER_ID);
+      expect(spies.data.sessionTokenHash).toBe(hashSessionToken('token-123'));
+    });
+
+    it('hands the namespace to the socket session registry', async () => {
+      const { gateway, socketSessions } = build();
+      const { client } = fakeClient(`${SESSION_COOKIE}=token-123`);
+
+      await runMiddleware(gateway, client);
+
+      expect(socketSessions.attach).toHaveBeenCalledOnce();
     });
 
     it.each([

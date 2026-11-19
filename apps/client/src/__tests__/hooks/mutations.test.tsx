@@ -46,7 +46,7 @@ describe('useSendMessage', () => {
   it('posts the text and photos to the conversation', async () => {
     const conversationId = 'c1';
     serverReturns(payloadFor(conversationId));
-    const photo = { key: 'k', url: 'u', width: 1, height: 1 };
+    const photo = { id: 'p1', url: 'u', width: 1, height: 1 };
 
     const { result } = renderHookWithQuery(() => useSendMessage(''));
     await act(() => result.current.sendMessage.mutateAsync({ text: 'hi', photoInput: [photo], conversationId }));
@@ -219,7 +219,7 @@ describe('useComposeMessage', () => {
   it('posts the message with the members for a first message', async () => {
     const payload = payloadFor('new-conversation');
     serverReturns(payload);
-    const photos = [{ key: 'k', url: 'u', width: 1, height: 1 }];
+    const photos = [{ id: 'p1', url: 'u', width: 1, height: 1 }];
 
     const { result } = renderHookWithQuery(() => useComposeMessage());
     await act(() => result.current.sendMessage.mutateAsync({ conversationId: '', text: 'hi', members: ['u1'], photos }));

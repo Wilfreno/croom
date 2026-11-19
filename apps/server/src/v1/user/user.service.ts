@@ -3,24 +3,42 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectConnection } from '@nestjs/mongoose';
+import {
+  DELETED_USER_DISPLAY_NAME,
+  MAX_RECENT_PROFILE_PHOTOS,
+} from '@repo/constants';
 import {
   AuthServiceOptions,
   CheckUserDataType,
   EmailStatus,
   OTPType,
+  PhotoType,
   UserStatus,
 } from '@repo/enums';
-import { ConversationModel, UserModel } from '@repo/models';
+import {
+  ConversationModel,
+  PhotoModel,
+  SessionModel,
+  UserModel,
+} from '@repo/models';
+import type { Photo } from '@repo/schemas';
 import { AuthenticatedUser } from '@repo/types';
 import {
   getPasswordStrengthScore,
   isEmail,
   passwordStrengthScorePerCriteriaSatisfied,
 } from '@repo/utils';
-import { Connection } from 'mongoose';
+import { Connection, Types } from 'mongoose';
+import { SocketSessionsService } from '../../common/socket-sessions/socket-sessions.service';
+import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
+import { describeOnlyAdminGroups } from '../../common/utils/only-admin-groups.util';
 import { OtpService } from '../otp/otp.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CheckValueDTO } from './dto/check-value.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RecoverAccountDto } from './dto/recover-account.dto';
@@ -33,7 +51,24 @@ export class UserService {
     private readonly userModel: UserModel,
     private readonly conversationModel: ConversationModel,
     private readonly otpService: OtpService,
+    private readonly photoModel: PhotoModel,
+    private readonly sessionModel: SessionModel,
+    private readonly configService: ConfigService,
+    private readonly socketSessions: SocketSessionsService,
+    private readonly uploadedFiles: UploadedFilesService,
   ) {}
+
+  async onApplicationBootstrap() {
+    try {
+      const renamed = await this.userModel.renameDuplicateUserNames();
+      if (renamed > 0)
+        this.logger.log(`renamed ${renamed} users with a duplicate username`);
+
+      await this.userModel.createIndexes();
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
 
   async createUser({
     email,
@@ -201,5 +236,249 @@ export class UserService {
       lastOnline: new Date(user.lastOnline).toISOString(),
       partnerIds,
     };
+  }
+
+  async changeDisplayName({
+    requesterId,
+    displayName,
+  }: {
+    requesterId: string;
+    displayName: string;
+  }) {
+    await this.userModel.setDisplayName({ userId: requesterId, displayName });
+
+    return { displayName };
+  }
+
+  async changeUserName({
+    requesterId,
+    userName,
+  }: {
+    requesterId: string;
+    userName: string;
+  }) {
+    const taken = await this.userModel.isUserNameTaken({
+      userName,
+      exceptUserId: requesterId,
+    });
+    if (taken) throw new ConflictException('username is already taken');
+
+    await this.userModel.setUserName({ userId: requesterId, userName });
+
+    return { userName };
+  }
+
+  async changePassword({
+    requesterId,
+    sessionToken,
+    currentPassword,
+    password,
+    confirmPassword,
+  }: ChangePasswordDto & { requesterId: string; sessionToken?: string }) {
+    if (password !== confirmPassword)
+      throw new BadRequestException(
+        'Password and Confirm password is not the same',
+      );
+
+    if (
+      getPasswordStrengthScore(password) <
+      passwordStrengthScorePerCriteriaSatisfied(5)
+    )
+      throw new BadRequestException('password is weak');
+
+    const user = await this.userModel.getUserByIdWithPassword(requesterId);
+    if (!user) throw new NotFoundException('user does not exist');
+
+    if (user.password) {
+      const matched = await this.userModel.verifyPassword({
+        password: currentPassword ?? '',
+        hashed: user.password,
+        configService: this.configService,
+      });
+      if (!matched)
+        throw new UnauthorizedException('current password is incorrect');
+    }
+
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await this.userModel.setPassword(
+          { userId: requesterId, password },
+          session,
+        );
+        await this.sessionModel.revokeAllForUser(
+          new Types.ObjectId(requesterId),
+          { except: sessionToken, session },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    await this.socketSessions.disconnectUser(requesterId, {
+      exceptSessionToken: sessionToken,
+    });
+  }
+
+  async getProfilePhotos(requesterId: string) {
+    return await this.photoModel.getProfilePhotosByOwnerId(requesterId);
+  }
+
+  async uploadProfilePhoto({
+    requesterId,
+    photo,
+  }: {
+    requesterId: string;
+    photo: Pick<Photo, 'key' | 'url'>;
+  }) {
+    const session = await this.connection.startSession();
+    let newPhotoId = '';
+    let prunedPhotoKeys: string[] = [];
+
+    try {
+      await session.withTransaction(async () => {
+        const [newPhoto] = await this.photoModel.createMany(
+          [
+            {
+              owner: new Types.ObjectId(requesterId),
+              type: PhotoType.PROFILE,
+              key: photo.key,
+              url: photo.url,
+            },
+          ],
+          session,
+        );
+        newPhotoId = String(newPhoto._id);
+
+        await this.userModel.setPhoto(
+          { userId: requesterId, photoId: newPhotoId },
+          session,
+        );
+        prunedPhotoKeys = await this.photoModel.deleteProfilePhotosBeyond(
+          { ownerId: requesterId, keep: MAX_RECENT_PROFILE_PHOTOS },
+          session,
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    await this.uploadedFiles.deleteFiles(prunedPhotoKeys);
+
+    return { photo: { id: newPhotoId, url: photo.url } };
+  }
+
+  async switchToRecentProfilePhoto({
+    requesterId,
+    photoId,
+  }: {
+    requesterId: string;
+    photoId: string;
+  }) {
+    const photo = await this.photoModel.findProfilePhoto({
+      photoId,
+      ownerId: requesterId,
+    });
+    if (!photo) throw new NotFoundException('photo does not exist');
+
+    const session = await this.connection.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const stillExists = await this.photoModel.markAsRecent(
+          photoId,
+          session,
+        );
+        if (!stillExists) throw new NotFoundException('photo does not exist');
+
+        await this.userModel.setPhoto(
+          { userId: requesterId, photoId },
+          session,
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { photo: { id: photoId, url: photo.url } };
+  }
+
+  async deleteProfilePhoto({
+    requesterId,
+    photoId,
+  }: {
+    requesterId: string;
+    photoId: string;
+  }) {
+    const session = await this.connection.startSession();
+    let deletedPhotoKey = '';
+
+    try {
+      await session.withTransaction(async () => {
+        const notInUse = await this.userModel.touchUnlessUsingPhoto(
+          { userId: requesterId, photoId },
+          session,
+        );
+        if (!notInUse)
+          throw new ConflictException(
+            'you cannot delete the photo you are using',
+          );
+
+        const deletedKey = await this.photoModel.deleteProfilePhoto(
+          { photoId, ownerId: requesterId },
+          session,
+        );
+        if (deletedKey === null)
+          throw new NotFoundException('photo does not exist');
+
+        deletedPhotoKey = deletedKey;
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    await this.uploadedFiles.deleteFiles([deletedPhotoKey]);
+  }
+
+  async deleteAccount(requesterId: string) {
+    const session = await this.connection.startSession();
+    let deletedPhotoKeys: string[] = [];
+
+    try {
+      await session.withTransaction(async () => {
+        await this.conversationModel.removeAdminFromSharedGroups(
+          requesterId,
+          session,
+        );
+        const onlyAdminGroupNames =
+          await this.conversationModel.findGroupNamesWithOnlyAdmin(
+            requesterId,
+            session,
+          );
+        if (onlyAdminGroupNames.length > 0)
+          throw new ConflictException(
+            describeOnlyAdminGroups(onlyAdminGroupNames),
+          );
+
+        await this.userModel.anonymize(
+          { userId: requesterId, displayName: DELETED_USER_DISPLAY_NAME },
+          session,
+        );
+        deletedPhotoKeys = await this.photoModel.deleteProfilePhotosByOwnerId(
+          requesterId,
+          session,
+        );
+        await this.sessionModel.revokeAllForUser(
+          new Types.ObjectId(requesterId),
+          { session },
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    await this.socketSessions.disconnectUser(requesterId);
+    await this.uploadedFiles.deleteFiles(deletedPhotoKeys);
   }
 }

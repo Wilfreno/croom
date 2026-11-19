@@ -3,6 +3,7 @@ import { ConversationStatus, MessageNoticeType, PhotoType } from '@repo/enums';
 import { ConversationModel, MessageModel, PhotoModel, UserModel } from '@repo/models';
 import { ClientSession, Connection, Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UploadedFilesService } from '../../common/uploaded-files/uploaded-files.service';
 import { CallGateway } from '../call/call.gateway';
 import { MessageGateway } from '../message/message.gateway';
 import { ConversationService } from './conversation.service';
@@ -60,9 +61,13 @@ function build() {
   };
   const photoModel = {
     getPhotosByConversationId: vi.fn().mockResolvedValue([]),
-    createMany: vi.fn().mockResolvedValue([{ _id: NEW_PHOTO_ID }]),
-    deleteById: vi.fn().mockResolvedValue(undefined),
+    claimPendingPhoto: vi.fn().mockResolvedValue({
+      _id: NEW_PHOTO_ID,
+      url: 'https://utfs.io/uploaded.png',
+    }),
+    deleteById: vi.fn().mockResolvedValue('old-photo-key'),
   };
+  const uploadedFiles = { deleteFiles: vi.fn().mockResolvedValue(undefined) };
 
   const callGateway = { endCall: vi.fn().mockResolvedValue(undefined), removeFromCall: vi.fn().mockResolvedValue(undefined) };
   const messageGateway = { emitToUsers: vi.fn() };
@@ -80,6 +85,7 @@ function build() {
     callGateway as unknown as CallGateway,
     connection as unknown as Connection,
     messageGateway as unknown as MessageGateway,
+    uploadedFiles as unknown as UploadedFilesService,
   );
 
   return {
@@ -88,6 +94,7 @@ function build() {
     userModel,
     messageModel,
     photoModel,
+    uploadedFiles,
     callGateway,
     messageGateway,
     transaction,
@@ -349,38 +356,61 @@ describe('ConversationService', () => {
   });
 
   describe('changePhoto', () => {
-    const photo = { key: 'uploaded-key', url: 'https://utfs.io/uploaded.png' };
-    const query = { conversationId: 'c1', photo, requesterId: ME };
+    const photoId = String(NEW_PHOTO_ID);
+    const query = { conversationId: 'c1', photoId, requesterId: ME };
     const group = { isGroupChat: true, members: [ME, ADA, BOB], admins: [ME] };
 
-    it('saves the upload as the group photo, owned by the admin who set it', async () => {
-      const { service, conversationModel, photoModel, transaction } = build();
+    it('uses a pending conversation photo the admin uploaded', async () => {
+      const {
+        service,
+        conversationModel,
+        photoModel,
+        uploadedFiles,
+        transaction,
+      } = build();
       conversationModel.findConversationById.mockResolvedValue(group);
 
       await expect(service.changePhoto(query)).resolves.toEqual({
-        photo: { id: String(NEW_PHOTO_ID), url: photo.url },
+        photo: { id: photoId, url: 'https://utfs.io/uploaded.png' },
       });
 
-      const [[newPhoto], photoSession] = photoModel.createMany.mock.calls[0];
-      expect(String(newPhoto.owner)).toBe(ME);
-      expect(newPhoto).toMatchObject({ type: PhotoType.CONVERSATION, key: photo.key, url: photo.url });
-      expect(photoSession).toBe(transaction);
+      expect(photoModel.claimPendingPhoto).toHaveBeenCalledWith(
+        { photoId, ownerId: ME, type: PhotoType.CONVERSATION },
+        transaction,
+      );
       expect(conversationModel.setPhoto).toHaveBeenCalledWith(
-        { conversationId: 'c1', photoId: String(NEW_PHOTO_ID), requesterId: ME },
+        { conversationId: 'c1', photoId, requesterId: ME },
         transaction,
       );
       expect(photoModel.deleteById).not.toHaveBeenCalled();
+      expect(uploadedFiles.deleteFiles).not.toHaveBeenCalled();
       expect(transaction.endSession).toHaveBeenCalled();
     });
 
-    it('deletes the photo it replaced', async () => {
-      const { service, conversationModel, photoModel, transaction } = build();
+    it('refuses a photo that is not a pending upload of the admin', async () => {
+      const { service, conversationModel, photoModel } = build();
+      conversationModel.findConversationById.mockResolvedValue(group);
+      photoModel.claimPendingPhoto.mockResolvedValue(null);
+
+      await expect(service.changePhoto(query)).rejects.toBeInstanceOf(NotFoundException);
+      expect(conversationModel.setPhoto).not.toHaveBeenCalled();
+    });
+
+    it('deletes the photo it replaced and its file', async () => {
+      const {
+        service,
+        conversationModel,
+        photoModel,
+        uploadedFiles,
+        transaction,
+      } = build();
       conversationModel.findConversationById.mockResolvedValue(group);
       conversationModel.setPhoto.mockResolvedValue({ changed: true, previousPhotoId: 'old-photo' });
 
       await service.changePhoto(query);
 
       expect(photoModel.deleteById).toHaveBeenCalledWith('old-photo', transaction);
+      expect(uploadedFiles.deleteFiles).toHaveBeenCalledWith(['old-photo-key']);
     });
 
     it.each([
@@ -392,16 +422,23 @@ describe('ConversationService', () => {
       conversationModel.findConversationById.mockResolvedValue(conversation);
 
       await expect(service.changePhoto(query)).rejects.toBeInstanceOf(exception);
-      expect(photoModel.createMany).not.toHaveBeenCalled();
+      expect(photoModel.claimPendingPhoto).not.toHaveBeenCalled();
     });
 
     it('reports a conflict and keeps the old photo when the caller stopped being an admin', async () => {
-      const { service, conversationModel, photoModel, transaction } = build();
+      const {
+        service,
+        conversationModel,
+        photoModel,
+        uploadedFiles,
+        transaction,
+      } = build();
       conversationModel.findConversationById.mockResolvedValue(group);
       conversationModel.setPhoto.mockResolvedValue({ changed: false, previousPhotoId: null });
 
       await expect(service.changePhoto(query)).rejects.toBeInstanceOf(ConflictException);
       expect(photoModel.deleteById).not.toHaveBeenCalled();
+      expect(uploadedFiles.deleteFiles).not.toHaveBeenCalled();
       expect(transaction.endSession).toHaveBeenCalled();
     });
   });

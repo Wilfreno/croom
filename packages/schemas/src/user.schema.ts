@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { USER_NAME_COLLATION } from '@repo/constants';
 import { AuthServiceOptions, UserStatus } from '@repo/enums';
 import { HydratedDocument, Types } from 'mongoose';
 
@@ -37,6 +38,9 @@ export class User {
   @Prop({ type: Date, required: false, default: Date.now })
   lastOnline!: Date;
 
+  @Prop({ type: Date, default: null })
+  dateDeleted!: Date | null;
+
   @Prop({ type: Date, immutable: true })
   dateCreated!: Date;
 
@@ -45,3 +49,5 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index({ userName: 1 }, { unique: true, collation: USER_NAME_COLLATION });

@@ -27,6 +27,7 @@ function build() {
       updateOne: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
       updateMany: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
       findOneAndUpdate: vi.fn().mockResolvedValue(null),
+      find: vi.fn(() => ({ lean: vi.fn().mockResolvedValue([]) })),
     },
   );
 
@@ -637,6 +638,51 @@ describe('ConversationModel', () => {
       collection.updateOne.mockRejectedValue(new Error('connection lost'));
 
       await expect(model.leaveConversation(base)).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+  });
+
+  describe('removeAdminFromSharedGroups', () => {
+    it('pulls the admin only from groups that keep another admin, inside the transaction', async () => {
+      const { collection, model } = build();
+      const session = {} as ClientSession;
+
+      await model.removeAdminFromSharedGroups(USER_ID, session);
+
+      const [filter, update, options] = collection.updateMany.mock.calls[0];
+      expect(filter.isGroupChat).toBe(true);
+      expect(String(filter.admins)).toBe(USER_ID);
+      expect(filter['admins.1']).toEqual({ $exists: true });
+      expect(String(update.$pull.admins)).toBe(USER_ID);
+      expect(options).toEqual({ session });
+    });
+  });
+
+  describe('findGroupNamesWithOnlyAdmin', () => {
+    it('finds live groups where the user is the only admin and someone else is still a member', async () => {
+      const { collection, model } = build();
+      const session = {} as ClientSession;
+
+      await model.findGroupNamesWithOnlyAdmin(USER_ID, session);
+
+      const [filter, projection, options] = collection.find.mock.calls[0];
+      expect(filter.isGroupChat).toBe(true);
+      expect(filter.status).toEqual({ $ne: ConversationStatus.DELETED });
+      expect(filter.admins.map(String)).toEqual([USER_ID]);
+      expect(filter['members.1']).toEqual({ $exists: true });
+      expect(projection).toEqual({ name: 1 });
+      expect(options).toEqual({ session });
+    });
+
+    it('returns the group names, with an empty name for unnamed groups', async () => {
+      const { collection, model } = build();
+      collection.find.mockReturnValue({
+        lean: vi.fn().mockResolvedValue([{ name: 'Book club' }, {}]),
+      });
+
+      await expect(model.findGroupNamesWithOnlyAdmin(USER_ID, {} as ClientSession)).resolves.toEqual([
+        'Book club',
+        '',
+      ]);
     });
   });
 

@@ -3,14 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import InitialsFallback from '@/components/page/main/InitialsFallback';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DELETERequest, GETRequest, PATCHRequest } from '@/lib/server/requests';
-import { cn } from '@/lib/utils';
-import { Photo } from '@repo/types';
+import { axiosInstance } from '@/lib/axios-instance';
+import { cn, getServerErrorMessage } from '@/lib/utils';
+import type { ChangeProfilePhotoResult, ProfilePhoto } from '@/types/user-settings.types';
+import {
+  MAX_RECENT_PROFILE_PHOTOS,
+  PROFILE_PHOTO_CHANGED,
+  PROFILE_PHOTO_UPLOAD_ENDPOINT,
+  SOMETHING_WENT_WRONG,
+} from '@repo/constants';
+import type { Photo, ServerResponse } from '@repo/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Info, Trash, Upload, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ClientUploadedFileData } from 'uploadthing/types';
+import type { ClientUploadedFileData } from 'uploadthing/types';
 import { UploadThingButton } from '../../UploadthingButton';
 
 export default function SettingsChangePhoto() {
@@ -21,103 +28,76 @@ export default function SettingsChangePhoto() {
     session: { user, update },
   } = useAuth();
 
-  const { data: recentPhotos } = useQuery({
-    queryKey: [user, 'photos'],
-    queryFn: async () => {
-      try {
-        const { data, message, status } = await GETRequest<Photo[]>('/v1/user/photos');
+  const photosQueryKey = [user?.id, 'photos'];
+  const currentPhotoId = user?.photo?.id;
 
-        if (status !== 'OK') throw new Error(message);
-        return data;
-      } catch (error) {
-        throw error;
-      }
+  const { data: profilePhotos } = useQuery({
+    queryKey: photosQueryKey,
+    async queryFn() {
+      const { data: response } = await axiosInstance.get<ServerResponse<ProfilePhoto[]>>('/user/photos');
+      return response.data;
     },
   });
 
-  const changePhoto = useMutation<
-    void,
-    Error,
-    Partial<{
-      id: string;
-      key: string;
-      url: string;
-      width: number;
-      height: number;
-    }>
-  >({
-    mutationFn: async (newPhoto) => {
-      try {
-        const { message, status } = await PATCHRequest('/v1/user/photo', {
-          photo: newPhoto,
-        });
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        setUploading(false);
-        throw error;
-      }
+  const recentPhotos = profilePhotos?.filter((photo) => photo.id !== currentPhotoId) ?? [];
+
+  async function showNewPhoto({ photo }: ChangeProfilePhotoResult) {
+    await update({ photo: photo as Photo });
+    toast.success(PROFILE_PHOTO_CHANGED);
+    await queryClient.invalidateQueries({ queryKey: photosQueryKey });
+  }
+
+  const changePhoto = useMutation<ChangeProfilePhotoResult, Error, string>({
+    async mutationFn(recentPhotoId) {
+      const { data: response } = await axiosInstance.patch<ServerResponse<ChangeProfilePhotoResult>>(
+        `/user/photos/${recentPhotoId}`,
+      );
+      return response.data;
     },
-    onSuccess: (_, newPhoto) => {
-      update({ photo: newPhoto as Photo });
+    onSuccess: showNewPhoto,
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
+    },
+  });
+
+  const deletePhoto = useMutation<void, Error, string>({
+    async mutationFn(photoId) {
+      await axiosInstance.delete(`/user/photos/${photoId}`);
+    },
+    onSuccess(_, photoId) {
+      queryClient.setQueryData<ProfilePhoto[]>(photosQueryKey, (previous) =>
+        previous?.filter((photo) => photo.id !== photoId),
+      );
+    },
+    onError(error) {
+      toast.error(getServerErrorMessage(error));
+    },
+  });
+
+  async function onClientUploadComplete(uploadedFiles: ClientUploadedFileData<ChangeProfilePhotoResult | null>[]) {
+    const result = uploadedFiles[0]?.serverData;
+
+    try {
+      if (!result) {
+        toast.error(SOMETHING_WENT_WRONG);
+        return;
+      }
+
+      await showNewPhoto(result);
+    } finally {
       setUploading(false);
-    },
-  });
-
-  const deletePhoto = useMutation<void, Error, { id: string; index: number }>({
-    mutationFn: async ({ id }) => {
-      try {
-        const { status, message } = await DELETERequest('/v1/photo/', { id });
-
-        if (status !== 'OK') throw new Error(message);
-      } catch (error) {
-        toast.error((error as Error).message);
-        throw error;
-      }
-    },
-    onSuccess: (_, { index }) => {
-      queryClient.setQueryData<Photo[]>([user, 'photos'], (prev) => {
-        if (!prev) return [];
-        return prev.toSpliced(index + 1, 1);
-      });
-    },
-  });
-
-  async function onClientUploadComplete(
-    response: ClientUploadedFileData<{
-      photoUrl: string;
-    }>[],
-  ) {
-    for (const res of response) {
-      try {
-        const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const newImage = new Image();
-
-          newImage.onload = () => resolve(newImage);
-          newImage.onerror = (err) => reject(err);
-          newImage.src = res.url;
-        });
-        changePhoto.mutate({
-          key: res.key,
-          url: res.url,
-          width: image.width,
-          height: image.height,
-        });
-      } catch (error) {
-        toast.error('Oops! something went wrong');
-        setUploading(false);
-        throw error;
-      }
     }
   }
+
+  const isBusy = uploading || changePhoto.isPending;
 
   return (
     <div className="grid gap-4">
       <div className="font-semibold w-full flex items-start justify-between pr-2">
         <span>Profile photo </span>
         <UploadThingButton
-          disabled={uploading}
-          endpoint="singleImage"
+          disabled={isBusy}
+          endpoint={PROFILE_PHOTO_UPLOAD_ENDPOINT}
           className="ut-button:h-fit ut-button:w-fit ut-button:p-2 ut-button:gap-2 ut-uploading:ut-button:bg-primary/50 ut-button:bg-primary ut-button:focus-within:ring-0 ut-button:focus-within:ring-offset-0 ut-button:hover:bg-primary/80 ut-allowed-content:hidden ut-button:after:ut-uploading:bg-transparent"
           content={{
             button() {
@@ -132,12 +112,13 @@ export default function SettingsChangePhoto() {
           onClientUploadComplete={onClientUploadComplete}
           onUploadError={(e) => {
             toast.error(e.message);
+            setUploading(false);
           }}
           onUploadBegin={() => setUploading(true)}
         />
       </div>
       <div className="flex items-center justify-center md:justify-start">
-        <Avatar className={cn('aspect-square h-36 w-auto shadow-md border', uploading && 'animate-pulse')}>
+        <Avatar className={cn('aspect-square h-36 w-auto shadow-md border', isBusy && 'animate-pulse')}>
           <AvatarImage src={user?.photo?.url} />
           <InitialsFallback name={user?.displayName} colorKey={user?.id} />
         </Avatar>
@@ -151,53 +132,51 @@ export default function SettingsChangePhoto() {
                 </TooltipTrigger>
                 <TooltipContent align="end" side="right">
                   <span>
-                    There can only be <strong>5</strong> recent photos available, if you upload a new one when
-                    there&apos;s already <strong>5</strong> recent photos the last one will bew deleted.
+                    Only your <strong>{MAX_RECENT_PROFILE_PHOTOS}</strong> latest photos are kept. Uploading another one
+                    deletes the oldest.
                   </span>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
           <div className="flex items-center gap-4 pl-10 min-h-20">
-            {recentPhotos?.slice(1).map((photo, index) => (
-              <div
-                key={photo.id}
-                className="aspect-square h-24 w-auto shadow-sm flex items-center justify-center cursor-pointer relative hover:shadow-md hover:border group"
-              >
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 text-green-500 hover:text-green-500 hidden group-hover:inline-flex z-50',
-                    deletePhoto.isPending && deletePhoto.variables.index === index && 'hidden group-hover:hidden',
-                    uploading && 'hidden group-hover:hidden',
-                  )}
-                  onClick={() => {
-                    setUploading(true);
-                    changePhoto.mutate(photo);
-                  }}
+            {recentPhotos.map((photo) => {
+              const isBeingDeleted = deletePhoto.isPending && deletePhoto.variables === photo.id;
+
+              return (
+                <div
+                  key={photo.id}
+                  className="aspect-square h-24 w-auto shadow-sm flex items-center justify-center cursor-pointer relative hover:shadow-md hover:border group"
                 >
-                  change
-                </Button>
-                <Button
-                  variant="outline"
-                  className="absolute -top-2 -right-2 aspect-square h-fit w-auto rounded-full p-1 z-50"
-                  onClick={() => deletePhoto.mutate({ id: photo.id, index })}
-                >
-                  <Trash className="h-4 w-auto text-destructive" />
-                </Button>
-                <Avatar
-                  className={cn(
-                    'h-full w-full rounded-none z-10',
-                    deletePhoto.isPending && deletePhoto.variables.index === index && 'blur-md',
-                  )}
-                >
-                  <AvatarImage src={photo?.url} />
-                  <AvatarFallback>
-                    <UserRound className="h-1/2 w-auto" />
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            ))}
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 text-green-500 hover:text-green-500 hidden group-hover:inline-flex z-50',
+                      (isBeingDeleted || isBusy) && 'hidden group-hover:hidden',
+                    )}
+                    disabled={isBusy}
+                    onClick={() => changePhoto.mutate(photo.id)}
+                  >
+                    change
+                  </Button>
+                  <Button
+                    variant="outline"
+                    aria-label="delete photo"
+                    className="absolute -top-2 -right-2 aspect-square h-fit w-auto rounded-full p-1 z-50"
+                    disabled={isBeingDeleted || isBusy}
+                    onClick={() => deletePhoto.mutate(photo.id)}
+                  >
+                    <Trash className="h-4 w-auto text-destructive" />
+                  </Button>
+                  <Avatar className={cn('h-full w-full rounded-none z-10', isBeingDeleted && 'blur-md')}>
+                    <AvatarImage src={photo.url} />
+                    <AvatarFallback>
+                      <UserRound className="h-1/2 w-auto" />
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

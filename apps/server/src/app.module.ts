@@ -16,6 +16,7 @@ import { ConversationModule } from './v1/conversation/conversation.module';
 import { MessageModule } from './v1/message/message.module';
 import { CallModule } from './v1/call/call.module';
 import { ReportModule } from './v1/report/report.module';
+import { UploadModule } from './v1/upload/upload.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ReportModule } from './v1/report/report.module';
     MessageModule,
     CallModule,
     ReportModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [

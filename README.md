@@ -105,6 +105,8 @@ GMAIL_USER=
 GMAIL_2F_AUTH_APP_PASS=
 
 ABSENT_PASSWORD_HASH=
+
+UPLOADTHING_TOKEN=
 ```
 
 #### PORT, SERVER_URL and CLIENT_URL
@@ -148,6 +150,11 @@ pnpm --silent --filter @repo/models exec node -e "require('bcrypt').hash(require
 ```
 and paste the line it prints into the `.env`.
 
+#### UPLOADTHING_TOKEN
+The server stores images with [UploadThing](https://uploadthing.com/): it signs uploads for logged-in users, saves each uploaded photo, and deletes files that are no longer used. The server does not start without it. [Sign in](https://uploadthing.com/sign-in), [create an app](https://uploadthing.com/dashboard/), then go to **API Keys** and copy the **UPLOADTHING_TOKEN**.
+
+UploadThing confirms each upload by calling `SERVER_URL` followed by `/v1/upload`, so in production `SERVER_URL` has to be reachable from the internet.
+
 :warning: Keep the `\` in front of every `$`. The server expands `$NAME` references in `.env` files, so an unescaped hash like `$2b$14$…` is cut short when it loads, and quoting it does not help. Logins still work with a broken hash, but the protection above is lost.
 
 #### Video calls (optional)
@@ -166,15 +173,10 @@ Create **apps/client/.env**:
 ```env
 NEXT_PUBLIC_SERVER=http://localhost:8000
 NEXT_PUBLIC_SERVER_V1=http://localhost:8000/v1
-
-UPLOADTHING_TOKEN=
 ```
 
 #### NEXT_PUBLIC_SERVER and NEXT_PUBLIC_SERVER_V1
 Both point at the same server and have to agree. `NEXT_PUBLIC_SERVER_V1` is the versioned root that api requests are made against, so request paths carry no version of their own (`/auth/session`). `NEXT_PUBLIC_SERVER` is the bare address, used for sockets and for the full-page navigations that cannot go through the api client, such as the Google sign-in handoff and logout.
-
-#### UPLOADTHING_TOKEN
-The client stores images with [UploadThing](https://uploadthing.com/). [Sign in](https://uploadthing.com/sign-in), [create an app](https://uploadthing.com/dashboard/), then go to **API Keys** and copy the **UPLOADTHING_TOKEN**.
 
 ## Start the App
 From the repository root:

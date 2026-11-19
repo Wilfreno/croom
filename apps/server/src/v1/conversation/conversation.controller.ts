@@ -109,11 +109,11 @@ export class ConversationController {
   changePhoto(
     @CurrentUser() currentUser: AuthenticatedUser,
     @Param() { conversationId }: ChangePhotoParamDto,
-    @Body() { photo }: ChangePhotoDto,
+    @Body() { photoId }: ChangePhotoDto,
   ) {
     return this.conversationService.changePhoto({
       conversationId,
-      photo,
+      photoId,
       requesterId: currentUser.id,
     });
   }

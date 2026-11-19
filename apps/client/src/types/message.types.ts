@@ -10,4 +10,4 @@ export type CachedMessage = Message & {
 
 export type MessagePages = InfiniteData<{ pageParam: number; result: CachedMessage[] }, unknown>;
 
-export type PhotoInput = { key: string; url: string; width: number; height: number };
+export type PhotoInput = { id: string; url: string; width: number; height: number };

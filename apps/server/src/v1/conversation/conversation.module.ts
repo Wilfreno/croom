@@ -11,6 +11,7 @@ import {
   User,
   UserSchema,
 } from '@repo/schemas';
+import { UploadedFilesModule } from '../../common/uploaded-files/uploaded-files.module';
 import { CallModule } from '../call/call.module';
 import { MessageGatewayModule } from '../message/message-gateway.module';
 import { ConversationService } from './conversation.service';
@@ -20,6 +21,7 @@ import { ConversationController } from './conversation.controller';
   imports: [
     CallModule,
     MessageGatewayModule,
+    UploadedFilesModule,
     MongooseModule.forFeature([
       { name: Conversation.name, schema: ConversationSchema },
       { name: Message.name, schema: MessageSchema },

@@ -4,21 +4,15 @@ import {
   IsArray,
   IsInt,
   IsMongoId,
-  IsNotEmpty,
   IsPositive,
   IsString,
-  IsUrl,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
 export class MessagePhotoDto {
-  @IsString()
-  @IsNotEmpty()
-  key!: string;
-
-  @IsUrl()
-  url!: string;
+  @IsMongoId()
+  id!: string;
 
   @IsInt()
   @IsPositive()

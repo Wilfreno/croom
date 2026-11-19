@@ -4,3 +4,7 @@ export const USER_UNBLOCKED = 'user unblocked';
 export const USER_REPORTED = 'User reported';
 export const LEFT_GROUP_CHAT = 'You left the group chat';
 export const REMOVED_FROM_GROUP_CHAT = 'You were removed from a group chat';
+export const DISPLAY_NAME_CHANGED = 'Display name changed';
+export const USER_NAME_CHANGED = 'Username changed';
+export const PASSWORD_CHANGED = 'Password changed';
+export const PROFILE_PHOTO_CHANGED = 'Profile photo changed';

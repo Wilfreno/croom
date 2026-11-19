@@ -163,12 +163,10 @@ describe('ConversationController', () => {
 
   it('changes the group photo as the current user', async () => {
     const { controller, conversationService } = build();
-    const photo = { key: 'k', url: 'https://utfs.io/new.png' };
-
-    await expect(controller.changePhoto(USER, { conversationId: 'c1' }, { photo })).resolves.toEqual({
+    await expect(controller.changePhoto(USER, { conversationId: 'c1' }, { photoId: 'p1' })).resolves.toEqual({
       photo: { id: 'p1', url: 'https://utfs.io/new.png' },
     });
-    expect(conversationService.changePhoto).toHaveBeenCalledWith({ conversationId: 'c1', photo, requesterId: 'me' });
+    expect(conversationService.changePhoto).toHaveBeenCalledWith({ conversationId: 'c1', photoId: 'p1', requesterId: 'me' });
   });
 
   it('renames the group as the current user', async () => {
