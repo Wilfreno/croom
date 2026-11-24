@@ -1,3 +1,9 @@
+## [1.7.0](https://github.com/Wilfreno/croom/compare/v1.6.0...v1.7.0) (2026-11-24)
+
+### Features
+
+* **client:** show server availability hours on login and sign-up ([84f6791](https://github.com/Wilfreno/croom/commit/84f67915a7e63f7c556ab5e8805e546b22688086))
+
 ## [1.6.0](https://github.com/Wilfreno/croom/compare/v1.5.0...v1.6.0) (2026-11-19)
 
 ### Features
