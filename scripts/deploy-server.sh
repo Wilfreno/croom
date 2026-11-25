@@ -29,6 +29,7 @@ pnpm --filter nest-server build
 
 echo "==> Restarting the server"
 cd apps/server # the server reads .env from its working directory
+export NODE_ENV=production
 if pm2 describe "$PM2_NAME" > /dev/null 2>&1; then
   pm2 reload "$PM2_NAME" --update-env
 else
