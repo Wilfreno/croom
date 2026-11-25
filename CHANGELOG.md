@@ -1,3 +1,9 @@
+## [1.7.1](https://github.com/Wilfreno/croom/compare/v1.7.0...v1.7.1) (2026-11-25)
+
+### Bug Fixes
+
+* **server:** set NODE_ENV before pm2 starts the server ([7a8f018](https://github.com/Wilfreno/croom/commit/7a8f0188e4e5f3e52c3f99b90e0780c9578010d1))
+
 ## [1.7.0](https://github.com/Wilfreno/croom/compare/v1.6.0...v1.7.0) (2026-11-24)
 
 ### Features
